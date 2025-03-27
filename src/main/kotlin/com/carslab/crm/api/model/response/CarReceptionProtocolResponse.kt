@@ -1,9 +1,9 @@
 package com.carslab.crm.api.model.response
 
-import com.carslab.crm.api.model.request.ReferralSource
+import com.carslab.crm.api.model.ApiProtocolStatus
+import com.carslab.crm.api.model.request.ApiReferralSource
 import com.carslab.crm.api.model.request.ServiceApprovalStatus
 import com.carslab.crm.domain.model.DiscountType
-import com.carslab.crm.domain.model.ProtocolStatus
 
 /**
  * DTO dla odpowiedzi API po utworzeniu lub aktualizacji protokołu przyjęcia pojazdu.
@@ -14,7 +14,7 @@ data class CarReceptionProtocolResponse(
     val createdAt: String,
     val updatedAt: String,
     val statusUpdatedAt: String,
-    val status: ProtocolStatus
+    val status: ApiProtocolStatus
 )
 
 /**
@@ -42,8 +42,8 @@ data class CarReceptionProtocolDetailResponse(
     val phone: String? = null,
     val notes: String? = null,
     val selectedServices: List<SelectedServiceResponse>,
-    val status: ProtocolStatus,
-    val referralSource: ReferralSource? = null,
+    val status: ApiProtocolStatus,
+    val referralSource: ApiReferralSource? = null,
     val otherSourceDetails: String? = null,
     val vehicleImages: List<VehicleImageResponse>? = null,
     val createdAt: String,

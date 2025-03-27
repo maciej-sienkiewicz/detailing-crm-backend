@@ -1,5 +1,7 @@
 package com.carslab.crm.api.model.request
 
+import com.carslab.crm.api.model.ApiProtocolStatus
+
 /**
  * DTO dla żądania utworzenia lub aktualizacji protokołu przyjęcia pojazdu.
  * Wszystkie pola są opcjonalne, aby umożliwić częściowe aktualizacje.
@@ -25,9 +27,9 @@ class CarReceptionProtocolRequest {
     var phone: String? = null
     var notes: String? = null
     var selectedServices: List<SelectedServiceRequest>? = null
-    var status: ProtocolStatus = ProtocolStatus.SCHEDULED
+    var status: ApiProtocolStatus = ApiProtocolStatus.SCHEDULED
     var appointmentId: String? = null
-    var referralSource: ReferralSource? = null
+    var referralSource: ApiReferralSource? = null
     var otherSourceDetails: String? = null
     var vehicleImages: List<VehicleImageRequest>? = null
     var statusUpdatedAt: String? = null
@@ -43,7 +45,7 @@ class SelectedServiceRequest {
     var id: String? = null
     var name: String? = null
     var price: Double? = null
-    var discountType: DiscountType? = null
+    var discountType: ApiDiscountType? = null
     var discountValue: Double? = null
     var finalPrice: Double? = null
     val approvalStatus: ServiceApprovalStatus? = null
@@ -82,7 +84,7 @@ enum class ProtocolStatus {
 /**
  * Typ wyliczeniowy dla typu rabatu.
  */
-enum class DiscountType {
+enum class ApiDiscountType {
     PERCENTAGE,
     AMOUNT,
     FIXED_PRICE
@@ -100,7 +102,7 @@ enum class ServiceApprovalStatus {
 /**
  * Typ wyliczeniowy dla źródła polecenia.
  */
-enum class ReferralSource {
+enum class ApiReferralSource {
     REGULAR_CUSTOMER,
     RECOMMENDATION,
     SEARCH_ENGINE,

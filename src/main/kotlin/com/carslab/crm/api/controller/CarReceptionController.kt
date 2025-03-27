@@ -1,15 +1,20 @@
 package com.carslab.crm.api.controller
 
+import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.api.mapper.CarReceptionMapper
+import com.carslab.crm.api.model.request.CarReceptionProtocolRequest
 import com.carslab.crm.api.model.response.CarReceptionProtocolDetailResponse
 import com.carslab.crm.api.model.response.CarReceptionProtocolListResponse
-import com.carslab.crm.api.model.request.CarReceptionProtocolRequest
 import com.carslab.crm.api.model.response.CarReceptionProtocolResponse
-import com.carslab.crm.api.mapper.CarReceptionMapper
+import com.carslab.crm.domain.CarReceptionFacade
 import com.carslab.crm.domain.model.ProtocolId
-import com.carslab.crm.domain.model.ProtocolStatus
-import com.carslab.crm.domain.CarReceptionService
-import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
+import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
+import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.util.ValidationUtils
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -18,185 +23,239 @@ import java.time.format.DateTimeFormatter
 @RestController
 @RequestMapping("/api/receptions")
 @CrossOrigin(origins = ["*"])
+@Tag(name = "Car Receptions", description = "Car reception protocol management endpoints")
 class CarReceptionController(
-    private val carReceptionService: CarReceptionService
-) {
-    private val logger = LoggerFactory.getLogger(CarReceptionController::class.java)
+    private val carReceptionFacade: CarReceptionFacade
+) : BaseController() {
 
     @PostMapping
-    fun createCarReceptionProtocol(@RequestBody request: CarReceptionProtocolRequest): ResponseEntity<CarReceptionProtocolResponse> {
-        logger.info("Received request to create new car reception protocol for: ${request.ownerName}, vehicle: ${request.make} ${request.model}")
+    @Operation(summary = "Create a car reception protocol", description = "Creates a new car reception protocol for a vehicle")
+    fun createCarReceptionProtocol(@Valid @RequestBody request: CarReceptionProtocolRequest): ResponseEntity<CarReceptionProtocolResponse> {
+        logger.info("Creating new car reception protocol for: ${request.ownerName}, vehicle: ${request.make} ${request.model}")
 
         try {
+            // Validate request data
+            validateCarReceptionRequest(request)
+
+            // Convert request to domain model
             val domainProtocol = CarReceptionMapper.toDomain(request)
 
-            val createdProtocol = carReceptionService.createProtocol(domainProtocol)
+            // Create protocol using facade
+            val createdProtocol = carReceptionFacade.createProtocol(domainProtocol)
 
-            // Konwertujemy wynik na odpowiedź API
+            // Convert domain model to response
             val response = CarReceptionMapper.toResponse(createdProtocol)
 
             logger.info("Successfully created car reception protocol with ID: ${response.id}")
-            return ResponseEntity.status(HttpStatus.CREATED).body(response)
+            return created(response)
         } catch (e: Exception) {
-            logger.error("Error creating car reception protocol", e)
-            throw e
+            return logAndRethrow("Error creating car reception protocol", e)
         }
     }
 
     @GetMapping("/list")
+    @Operation(summary = "Get list of car reception protocols", description = "Retrieves a list of car reception protocols with optional filtering")
     fun getCarReceptionProtocolsList(
-        @RequestParam(required = false) clientName: String?,
-        @RequestParam(required = false) licensePlate: String?,
-        @RequestParam(required = false) status: ProtocolStatus?,
-        @RequestParam(required = false) startDate: String?,
-        @RequestParam(required = false) endDate: String?
+        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
+        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: com.carslab.crm.api.model.request.ProtocolStatus?,
+        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
+        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
     ): ResponseEntity<List<CarReceptionProtocolListResponse>> {
-        logger.info("Getting list view of car reception protocols with filters")
+        logger.info("Getting list of car reception protocols with filters")
 
-        val protocols = carReceptionService.searchProtocols(
+        val domainStatus = status?.let { CarReceptionMapper.mapStatus(it.name) }
+
+        val protocols = carReceptionFacade.searchProtocols(
             clientName = clientName,
             licensePlate = licensePlate,
-            status = status?.let { CarReceptionMapper.mapStatus(it) },
-            startDate = startDate?.let { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) },
-            endDate = endDate?.let { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }
+            status = domainStatus,
+            startDate = parseDateParam(startDate),
+            endDate = parseDateParam(endDate)
         )
 
         val response = protocols.map { CarReceptionMapper.toListResponse(it) }
-        println(response)
-        return ResponseEntity.ok(response)
+        return ok(response)
     }
 
     @GetMapping
+    @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering")
     fun getAllCarReceptionProtocols(
-        @RequestParam(required = false) clientName: String?,
-        @RequestParam(required = false) licensePlate: String?,
-        @RequestParam(required = false) status: ProtocolStatus?,
-        @RequestParam(required = false) startDate: String?,
-        @RequestParam(required = false) endDate: String?
+        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
+        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: com.carslab.crm.api.model.request.ProtocolStatus?,
+        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
+        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
     ): ResponseEntity<List<CarReceptionProtocolResponse>> {
         logger.info("Getting all car reception protocols with filters")
 
-        val protocols = carReceptionService.searchProtocols(
+        val domainStatus = status?.let { CarReceptionMapper.mapStatus(it.name) }
+
+        val protocols = carReceptionFacade.searchProtocols(
             clientName = clientName,
             licensePlate = licensePlate,
-            status = status?.let { CarReceptionMapper.mapStatus(it) },
-            startDate = startDate?.let { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) },
-            endDate = endDate?.let { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }
+            status = domainStatus,
+            startDate = parseDateParam(startDate),
+            endDate = parseDateParam(endDate)
         )
 
         val response = protocols.map { CarReceptionMapper.toResponse(it) }
-        return ResponseEntity.ok(response)
+        return ok(response)
     }
 
     @GetMapping("/{id}")
-    fun getCarReceptionProtocolById(@PathVariable id: String): ResponseEntity<CarReceptionProtocolDetailResponse> {
+    @Operation(summary = "Get car reception protocol by ID", description = "Retrieves a specific car reception protocol by its ID")
+    fun getCarReceptionProtocolById(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String
+    ): ResponseEntity<CarReceptionProtocolDetailResponse> {
         logger.info("Getting car reception protocol by ID: $id")
 
-        val protocol = carReceptionService.getProtocolById(ProtocolId(id))
-            ?: return ResponseEntity.notFound().build()
+        val protocol = carReceptionFacade.getProtocolById(ProtocolId(id))
+            ?: throw ResourceNotFoundException("Protocol", id)
 
-        return ResponseEntity.ok(CarReceptionMapper.toDetailResponse(protocol))
+        return ok(CarReceptionMapper.toDetailResponse(protocol))
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update car reception protocol", description = "Updates an existing car reception protocol")
     fun updateCarReceptionProtocol(
-        @PathVariable id: String,
-        @RequestBody request: CarReceptionProtocolRequest
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
+        @Valid @RequestBody request: CarReceptionProtocolRequest
     ): ResponseEntity<CarReceptionProtocolDetailResponse> {
         logger.info("Updating car reception protocol with ID: $id")
 
-        // Sprawdzamy czy protokół istnieje
-        val existingProtocol = carReceptionService.getProtocolById(ProtocolId(id))
-            ?: return ResponseEntity.notFound().build()
+        // Verify protocol exists
+        val existingProtocol = carReceptionFacade.getProtocolById(ProtocolId(id))
+            ?: throw ResourceNotFoundException("Protocol", id)
 
         try {
-            // Upewniamy się, że ID w żądaniu jest zgodne z ID w ścieżce
+            // Validate request data
+            validateCarReceptionRequest(request)
+
+            // Ensure ID in request matches path ID
             val requestWithId = request.apply { this.id = id }
 
-            // Konwertujemy żądanie na model domenowy, zachowując oryginalne daty audytowe
+            // Convert request to domain model
             val domainProtocol = CarReceptionMapper.toDomain(requestWithId).copy(
                 audit = existingProtocol.audit.copy(
                     createdAt = existingProtocol.audit.createdAt
                 )
             )
 
-            // Aktualizujemy protokół przy użyciu serwisu
-            val updatedProtocol = carReceptionService.updateProtocol(domainProtocol)
+            // Update protocol using facade
+            val updatedProtocol = carReceptionFacade.updateProtocol(domainProtocol)
 
-            // Konwertujemy wynik na odpowiedź API
+            // Convert domain model to response
             val response = CarReceptionMapper.toDetailResponse(updatedProtocol)
 
             logger.info("Successfully updated car reception protocol with ID: $id")
-            return ResponseEntity.ok(response)
+            return ok(response)
         } catch (e: Exception) {
-            logger.error("Error updating car reception protocol with ID: $id", e)
-            throw e
+            return logAndRethrow("Error updating car reception protocol with ID: $id", e)
         }
     }
 
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Update protocol status", description = "Updates the status of a car reception protocol")
     fun updateProtocolStatus(
-        @PathVariable id: String,
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
         @RequestBody statusUpdate: StatusUpdateRequest
     ): ResponseEntity<CarReceptionProtocolResponse> {
         logger.info("Updating status of car reception protocol with ID: $id to ${statusUpdate.status}")
 
+        if (statusUpdate.status.isNullOrBlank()) {
+            throw ValidationException("Status cannot be empty")
+        }
+
         try {
-            val domainStatus = CarReceptionMapper.mapStatus(statusUpdate.status)
-            val updatedProtocol = carReceptionService.changeStatus(ProtocolId(id), domainStatus)
+            val domainStatus = CarReceptionMapper.mapStatus(statusUpdate.status!!)
+            val updatedProtocol = carReceptionFacade.changeStatus(ProtocolId(id), domainStatus)
 
             val response = CarReceptionMapper.toResponse(updatedProtocol)
-            return ResponseEntity.ok(response)
+            return ok(response)
         } catch (e: IllegalArgumentException) {
-            logger.error("Protocol with ID $id not found", e)
-            return ResponseEntity.notFound().build()
+            throw ValidationException("Invalid status value: ${statusUpdate.status}")
         } catch (e: Exception) {
-            logger.error("Error updating status for protocol with ID: $id", e)
-            throw e
+            return logAndRethrow("Error updating status for protocol with ID: $id", e)
         }
     }
 
     @DeleteMapping("/{id}")
-    fun deleteCarReceptionProtocol(@PathVariable id: String): ResponseEntity<Void> {
+    @Operation(summary = "Delete car reception protocol", description = "Deletes a car reception protocol by its ID")
+    fun deleteCarReceptionProtocol(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String
+    ): ResponseEntity<Map<String, Any>> {
         logger.info("Deleting car reception protocol with ID: $id")
 
-        val deleted = carReceptionService.deleteProtocol(ProtocolId(id))
+        val deleted = carReceptionFacade.deleteProtocol(ProtocolId(id))
 
         return if (deleted) {
             logger.info("Successfully deleted car reception protocol with ID: $id")
-            ResponseEntity.noContent().build()
+            ok(createSuccessResponse("Protocol successfully deleted", mapOf("protocolId" to id)))
         } else {
             logger.warn("Car reception protocol with ID: $id not found for deletion")
-            ResponseEntity.notFound().build()
+            throw ResourceNotFoundException("Protocol", id)
+        }
+    }
+
+    private fun validateCarReceptionRequest(request: CarReceptionProtocolRequest) {
+        ValidationUtils.validateNotBlank(request.startDate, "Start date")
+
+        if (request.startDate != null) {
+            try {
+                LocalDate.parse(request.startDate, DateTimeFormatter.ISO_DATE)
+            } catch (e: Exception) {
+                throw ValidationException("Invalid start date format. Use ISO format (YYYY-MM-DD)")
+            }
+        }
+
+        if (request.endDate != null) {
+            try {
+                val endDate = LocalDate.parse(request.endDate, DateTimeFormatter.ISO_DATE)
+                val startDate = LocalDate.parse(request.startDate, DateTimeFormatter.ISO_DATE)
+
+                if (endDate.isBefore(startDate)) {
+                    throw ValidationException("End date cannot be before start date")
+                }
+            } catch (e: ValidationException) {
+                throw e
+            } catch (e: Exception) {
+                throw ValidationException("Invalid end date format. Use ISO format (YYYY-MM-DD)")
+            }
+        }
+
+        ValidationUtils.validateNotBlank(request.licensePlate, "License plate")
+        ValidationUtils.validateNotBlank(request.make, "Vehicle make")
+        ValidationUtils.validateNotBlank(request.model, "Vehicle model")
+        ValidationUtils.validateNotBlank(request.ownerName, "Owner name")
+
+        if (request.ownerName != null && request.email == null && request.phone == null) {
+            throw ValidationException("At least one contact method (email or phone) is required")
+        }
+
+        if (request.email != null) {
+            ValidationUtils.validateEmail(request.email, "Email")
+        }
+
+        if (request.phone != null) {
+            ValidationUtils.validatePhone(request.phone, "Phone")
+        }
+    }
+
+    private fun parseDateParam(dateString: String?): LocalDate? {
+        if (dateString.isNullOrBlank()) return null
+
+        return try {
+            LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE)
+        } catch (e: Exception) {
+            logger.warn("Invalid date format: $dateString")
+            null
         }
     }
 }
 
-// Request dla aktualizacji statusu
 class StatusUpdateRequest {
     var status: String? = null
 
     constructor() {}
-}
-
-// Rozszerzenie klasy CarReceptionMapper o metodę mapowania statusów
-fun CarReceptionMapper.Companion.mapStatus(apiStatus: ProtocolStatus): com.carslab.crm.domain.model.ProtocolStatus {
-    return when (apiStatus) {
-        ProtocolStatus.SCHEDULED -> ProtocolStatus.SCHEDULED
-        ProtocolStatus.PENDING_APPROVAL -> ProtocolStatus.PENDING_APPROVAL
-        ProtocolStatus.IN_PROGRESS -> ProtocolStatus.IN_PROGRESS
-        ProtocolStatus.READY_FOR_PICKUP -> com.carslab.crm.domain.model.ProtocolStatus.READY_FOR_PICKUP
-        ProtocolStatus.COMPLETED -> com.carslab.crm.domain.model.ProtocolStatus.COMPLETED
-    }
-}
-
-fun CarReceptionMapper.Companion.mapStatus(apiStatus: String?): ProtocolStatus {
-    return when (apiStatus) {
-        "SCHEDULED" -> ProtocolStatus.SCHEDULED
-        "PENDING_APPROVAL" -> ProtocolStatus.PENDING_APPROVAL
-        "IN_PROGRESS" -> ProtocolStatus.IN_PROGRESS
-        "READY_FOR_PICKUP" -> ProtocolStatus.READY_FOR_PICKUP
-        "COMPLETED" -> ProtocolStatus.COMPLETED
-        else -> throw IllegalArgumentException("Test")
-    }
 }

@@ -8,9 +8,6 @@ import com.carslab.crm.domain.model.ClientStats
 import com.carslab.crm.api.model.response.ClientResponse
 
 object ClientMapper {
-    /**
-     * Konwertuje żądanie (DTO) na model domenowy.
-     */
     fun toDomain(request: ClientRequest): ClientDetails {
         return ClientDetails(
             id = request.id?.let { ClientId(it.toLong()) } ?: ClientId(),
@@ -25,9 +22,6 @@ object ClientMapper {
         )
     }
 
-    /**
-     * Konwertuje model domenowy na odpowiedź (DTO).
-     */
     fun toResponse(client: ClientDetails): ClientResponse {
         return ClientResponse(
             id = client.id.value.toString(),
@@ -44,9 +38,6 @@ object ClientMapper {
         )
     }
 
-    /**
-     * Konwertuje model domenowy na odpowiedź (DTO).
-     */
     fun toExpandedResponse(client: ClientStats): ClientExpandedResponse {
         return ClientExpandedResponse(
             id = client.client.id.value.toString(),
@@ -79,6 +70,9 @@ object ClientMapper {
             notes = client.notes,
             createdAt = client.audit.createdAt,
             updatedAt = client.audit.updatedAt,
+            totalVisits = 0,
+            totalRevenue = 0.0,
+            vehicles = emptyList()
         )
     }
 }

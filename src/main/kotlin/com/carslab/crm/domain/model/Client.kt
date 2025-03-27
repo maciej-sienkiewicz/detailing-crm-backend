@@ -40,7 +40,7 @@ data class ClientDetails(
 
 data class ClientStats(
     val client: ClientDetails,
-    val vehicles: List<Vehicle>,
+    val vehicles: List<Vehicle> = emptyList(),
     val stats: ClientStats? = null
 )
 

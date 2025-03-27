@@ -1,5 +1,6 @@
 package com.carslab.crm.api.model.response
 
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.request.ProtocolStatus
 
 /**
@@ -11,7 +12,7 @@ data class CarReceptionProtocolListResponse(
     val vehicle: VehicleBasicInfo,
     val period: PeriodInfo,
     val owner: OwnerBasicInfo,
-    val status: ProtocolStatus,
+    val status: ApiProtocolStatus,
     val totalServiceCount: Int,
     val totalAmount: Double
 )

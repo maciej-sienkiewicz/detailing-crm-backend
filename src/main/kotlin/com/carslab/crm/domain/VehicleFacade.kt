@@ -1,32 +1,34 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.stats.ClientStats
+import com.carslab.crm.domain.model.stats.VehicleStats
+import com.carslab.crm.domain.port.*
+import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
+import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalDateTime
-import com.carslab.crm.domain.model.stats.ClientStats
-import com.carslab.crm.domain.model.stats.VehicleStats
-import com.carslab.crm.domain.port.*
 
 @Service
-class VehicleFacade(
+class VehicleService(
     private val vehicleRepository: VehicleRepository,
     private val serviceHistoryRepository: ServiceHistoryRepository,
-    private val clientsRepository: ClientRepository,
-    private val clientStatsRepository: ClientStatisticsRepository,
+    private val clientRepository: ClientRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
+    private val clientStatisticsRepository: ClientStatisticsRepository
 ) {
-
-    private val logger = LoggerFactory.getLogger(VehicleFacade::class.java)
+    private val logger = LoggerFactory.getLogger(VehicleService::class.java)
 
     fun createVehicle(vehicle: Vehicle): Vehicle {
         logger.info("Creating new vehicle: ${vehicle.make} ${vehicle.model}, plate: ${vehicle.licensePlate}")
-
         validateVehicle(vehicle)
 
-        // Zapisujemy pojazd w repozytorium
         val savedVehicle = vehicleRepository.save(vehicle)
+        initializeVehicleStatistics(savedVehicle.id)
+        updateClientVehicleStats(emptyList(), savedVehicle.ownerIds)
+
         logger.info("Created vehicle with ID: ${savedVehicle.id.value}")
         return savedVehicle
     }
@@ -34,14 +36,11 @@ class VehicleFacade(
     fun updateVehicle(vehicle: Vehicle): Vehicle {
         logger.info("Updating vehicle with ID: ${vehicle.id.value}")
 
-        // Sprawdzamy czy pojazd istnieje
         val existingVehicle = vehicleRepository.findById(vehicle.id)
-            ?: throw IllegalArgumentException("Vehicle with ID ${vehicle.id.value} not found")
+            ?: throw ResourceNotFoundException("Vehicle", vehicle.id.value)
 
-        // Walidacja
         validateVehicle(vehicle)
 
-        // Zachowujemy statystyki serwisowe z istniejącego pojazdu
         val updatedVehicle = vehicle.copy(
             totalServices = existingVehicle.totalServices,
             lastServiceDate = existingVehicle.lastServiceDate,
@@ -51,21 +50,8 @@ class VehicleFacade(
             )
         )
 
-        // Zapisujemy zaktualizowany pojazd
         val savedVehicle = vehicleRepository.save(updatedVehicle)
-
-        val previousOwners = existingVehicle.ownerIds.toSet()
-        val currentOwners = savedVehicle.ownerIds.toSet()
-
-        previousOwners.minus(currentOwners)
-            .map { clientStatsRepository.findById(ClientId(it.toLong())) ?: ClientStats(it.toLong(), 0, "0".toBigDecimal(), 0) }
-            .map { it.copy(vehiclesNo = it.vehiclesNo - 1) }
-            .forEach { clientStatsRepository.save(it) }
-
-        currentOwners.minus(previousOwners)
-            .map { clientStatsRepository.findById(ClientId(it.toLong())) ?: ClientStats(it.toLong(), 0, "0".toBigDecimal(), 0) }
-            .map { it.copy(vehiclesNo = it.vehiclesNo + 1) }
-            .forEach { clientStatsRepository.save(it) }
+        updateClientVehicleStats(existingVehicle.ownerIds, savedVehicle.ownerIds)
 
         logger.info("Updated vehicle with ID: ${savedVehicle.id.value}")
         return savedVehicle
@@ -77,29 +63,29 @@ class VehicleFacade(
     }
 
     fun getVehicleOwners(id: VehicleId): List<ClientDetails> {
-        logger.debug("Getting vehicle by ID: ${id.value}")
+        logger.debug("Getting owners for vehicle ID: ${id.value}")
         val vehicle = vehicleRepository.findById(id)
-        return vehicle?.ownerIds?.map { clientsRepository.findById(ClientId(it.toLong())) }?.filterNotNull() ?: emptyList()
+            ?: throw ResourceNotFoundException("Vehicle", id.value)
+
+        return vehicle.ownerIds
+            .mapNotNull { ownerId ->
+                try {
+                    clientRepository.findById(ClientId(ownerId.toLong()))
+                } catch (e: NumberFormatException) {
+                    logger.warn("Invalid owner ID format: $ownerId")
+                    null
+                }
+            }
     }
 
-    fun getAllVehicles(): List<VehicleWithStats> {
+    fun getAllVehicles(): List<Vehicle> {
         logger.debug("Getting all vehicles")
-        val vehicles = vehicleRepository.findAll()
-        val stats: Map<Long, VehicleStats> = vehicles.map {
-            vehicleStatisticsRepository.findById(it.id)
-        }.associateBy { it.vehicleId }
-
-        return vehicles.map { VehicleWithStats(it, stats[it.id.value]!!) }
+        return vehicleRepository.findAll()
     }
 
-    fun getVehiclesByOwnerId(ownerId: String): List<VehicleWithStats> {
+    fun getVehiclesByOwnerId(ownerId: String): List<Vehicle> {
         logger.debug("Getting vehicles for owner ID: $ownerId")
-        val vehicles = vehicleRepository.findByOwnerId(ownerId)
-        val stats: Map<Long, VehicleStats> = vehicles.map {
-            vehicleStatisticsRepository.findById(it.id)
-        }.associateBy { it.vehicleId }
-
-        return vehicles.map { VehicleWithStats(it, stats[it.id.value]!!) }
+        return vehicleRepository.findByOwnerId(ownerId)
     }
 
     fun searchVehicles(
@@ -109,24 +95,20 @@ class VehicleFacade(
     ): List<Vehicle> {
         logger.debug("Searching vehicles with filters: licensePlate=$licensePlate, make=$make, model=$model")
 
-        // Pobieramy wszystkie pojazdy, a następnie filtrujemy je według podanych kryteriów
         var result = vehicleRepository.findAll()
 
-        // Filtrowanie według numeru rejestracyjnego
         if (!licensePlate.isNullOrBlank()) {
             result = result.filter {
                 it.licensePlate.contains(licensePlate, ignoreCase = true)
             }
         }
 
-        // Filtrowanie według marki
         if (!make.isNullOrBlank()) {
             result = result.filter {
                 it.make.contains(make, ignoreCase = true)
             }
         }
 
-        // Filtrowanie według modelu
         if (!model.isNullOrBlank()) {
             result = result.filter {
                 it.model.contains(model, ignoreCase = true)
@@ -139,18 +121,20 @@ class VehicleFacade(
 
     fun deleteVehicle(id: VehicleId): Boolean {
         logger.info("Deleting vehicle with ID: ${id.value}")
+
+        val vehicle = vehicleRepository.findById(id)
+        if (vehicle != null) {
+            updateClientVehicleStats(vehicle.ownerIds, emptyList())
+        }
+
         return vehicleRepository.deleteById(id)
     }
 
     fun addServiceHistoryEntry(serviceHistory: ServiceHistory): ServiceHistory {
         logger.info("Adding service history entry for vehicle: ${serviceHistory.vehicleId.value}")
-
         validateServiceHistory(serviceHistory)
 
-        // Zapisujemy wpis historii serwisowej
         val savedServiceHistory = serviceHistoryRepository.save(serviceHistory)
-
-        // Aktualizujemy statystyki pojazdu
         updateVehicleServiceStats(serviceHistory.vehicleId)
 
         logger.info("Created service history entry with ID: ${savedServiceHistory.id.value}")
@@ -160,13 +144,10 @@ class VehicleFacade(
     fun deleteServiceHistoryEntry(id: ServiceHistoryId): Boolean {
         logger.info("Deleting service history entry with ID: ${id.value}")
 
-        // Najpierw pobieramy wpis, żeby znać ID pojazdu do aktualizacji statystyk
         val serviceHistory = serviceHistoryRepository.findById(id)
-
         if (serviceHistory != null) {
             val deleted = serviceHistoryRepository.deleteById(id)
             if (deleted) {
-                // Aktualizujemy statystyki pojazdu po usunięciu wpisu
                 updateVehicleServiceStats(serviceHistory.vehicleId)
             }
             return deleted
@@ -180,7 +161,10 @@ class VehicleFacade(
         return serviceHistoryRepository.findByVehicleId(vehicleId)
     }
 
-    // Metoda do aktualizacji statystyk serwisowych pojazdu
+    fun getVehicleStatistics(id: VehicleId): VehicleStats {
+        return vehicleStatisticsRepository.findById(id)
+    }
+
     private fun updateVehicleServiceStats(vehicleId: VehicleId) {
         logger.debug("Updating service statistics for vehicle: ${vehicleId.value}")
 
@@ -188,7 +172,7 @@ class VehicleFacade(
         val serviceHistory = serviceHistoryRepository.findByVehicleId(vehicleId)
 
         if (serviceHistory.isEmpty()) {
-            // Brak historii serwisowej, reset statystyk
+            // Reset stats if no history exists
             val updatedVehicle = vehicle.copy(
                 totalServices = 0,
                 lastServiceDate = null,
@@ -201,14 +185,14 @@ class VehicleFacade(
             return
         }
 
-        // Obliczanie statystyk
+        // Calculate stats
         val totalServices = serviceHistory.size
         val totalSpent = serviceHistory.sumOf { it.price }
         val lastServiceDate = serviceHistory
             .maxByOrNull { it.date }
-            ?.date?.atStartOfDay() // Konwersja LocalDate na LocalDateTime
+            ?.date?.atStartOfDay()
 
-        // Aktualizacja pojazdu
+        // Update vehicle
         val updatedVehicle = vehicle.copy(
             totalServices = totalServices,
             lastServiceDate = lastServiceDate,
@@ -222,58 +206,155 @@ class VehicleFacade(
         logger.debug("Updated service statistics for vehicle: ${vehicleId.value}")
     }
 
-    // Walidacja pojazdu
     private fun validateVehicle(vehicle: Vehicle) {
-        // Sprawdzamy, czy marka i model nie są puste
         if (vehicle.make.isBlank()) {
-            throw IllegalArgumentException("Vehicle make cannot be empty")
+            throw ValidationException("Vehicle make cannot be empty")
         }
 
         if (vehicle.model.isBlank()) {
-            throw IllegalArgumentException("Vehicle model cannot be empty")
+            throw ValidationException("Vehicle model cannot be empty")
         }
 
-        // Sprawdzamy, czy numer rejestracyjny nie jest pusty
         if (vehicle.licensePlate.isBlank()) {
-            throw IllegalArgumentException("License plate cannot be empty")
+            throw ValidationException("License plate cannot be empty")
         }
 
-        // Sprawdzamy, czy rok produkcji jest prawidłowy
         val currentYear = LocalDate.now().year
         if (vehicle.year < 1900 || vehicle.year > currentYear + 1) {
-            throw IllegalArgumentException("Invalid production year. Year must be between 1900 and ${currentYear + 1}")
+            throw ValidationException("Invalid production year. Year must be between 1900 and ${currentYear + 1}")
         }
 
-        // Sprawdzamy, czy lista właścicieli nie jest pusta
         if (vehicle.ownerIds.isEmpty()) {
-            throw IllegalArgumentException("Vehicle must have at least one owner")
+            throw ValidationException("Vehicle must have at least one owner")
         }
     }
 
-    // Walidacja wpisu historii serwisowej
     private fun validateServiceHistory(serviceHistory: ServiceHistory) {
-        // Sprawdzamy, czy opis nie jest pusty
         if (serviceHistory.description.isBlank()) {
-            throw IllegalArgumentException("Service history description cannot be empty")
+            throw ValidationException("Service history description cannot be empty")
         }
 
-        // Sprawdzamy, czy typ usługi nie jest pusty
         if (serviceHistory.serviceType.isBlank()) {
-            throw IllegalArgumentException("Service type cannot be empty")
+            throw ValidationException("Service type cannot be empty")
         }
 
-        // Sprawdzamy, czy cena jest dodatnia
         if (serviceHistory.price < 0) {
-            throw IllegalArgumentException("Service price cannot be negative")
+            throw ValidationException("Service price cannot be negative")
         }
 
-        // Sprawdzamy, czy data nie jest z przyszłości
         if (serviceHistory.date.isAfter(LocalDate.now())) {
-            throw IllegalArgumentException("Service date cannot be in the future")
+            throw ValidationException("Service date cannot be in the future")
         }
 
-        // Sprawdzamy, czy pojazd istnieje
-        val vehicle = vehicleRepository.findById(serviceHistory.vehicleId)
-            ?: throw IllegalArgumentException("Vehicle with ID ${serviceHistory.vehicleId.value} not found")
+        // Check if vehicle exists
+        vehicleRepository.findById(serviceHistory.vehicleId)
+            ?: throw ResourceNotFoundException("Vehicle", serviceHistory.vehicleId.value)
+    }
+
+    private fun initializeVehicleStatistics(vehicleId: VehicleId) {
+        val stats = VehicleStats(
+            vehicleId = vehicleId.value,
+            visitNo = 0,
+            gmv = "0".toBigDecimal()
+        )
+        vehicleStatisticsRepository.save(stats)
+    }
+
+    private fun updateClientVehicleStats(previousOwnerIds: List<String>, currentOwnerIds: List<String>) {
+        val previousOwners = previousOwnerIds.toSet()
+        val currentOwners = currentOwnerIds.toSet()
+
+        // Owners that were removed
+        previousOwners.minus(currentOwners)
+            .mapNotNull { ownerId ->
+                try {
+                    val id = ClientId(ownerId.toLong())
+                    clientStatisticsRepository.findById(id) ?: ClientStats(ownerId.toLong(), 0, "0".toBigDecimal(), 0)
+                } catch (e: NumberFormatException) {
+                    logger.warn("Invalid owner ID format: $ownerId")
+                    null
+                }
+            }
+            .map { it.copy(vehiclesNo = it.vehiclesNo - 1) }
+            .forEach { clientStatisticsRepository.save(it) }
+
+        // Owners that were added
+        currentOwners.minus(previousOwners)
+            .mapNotNull { ownerId ->
+                try {
+                    val id = ClientId(ownerId.toLong())
+                    clientStatisticsRepository.findById(id) ?: ClientStats(ownerId.toLong(), 0, "0".toBigDecimal(), 0)
+                } catch (e: NumberFormatException) {
+                    logger.warn("Invalid owner ID format: $ownerId")
+                    null
+                }
+            }
+            .map { it.copy(vehiclesNo = it.vehiclesNo + 1) }
+            .forEach { clientStatisticsRepository.save(it) }
+    }
+}
+
+@Service
+class VehicleFacade(
+    private val vehicleService: VehicleService,
+) {
+    private val logger = LoggerFactory.getLogger(VehicleFacade::class.java)
+
+    fun createVehicle(vehicle: Vehicle): Vehicle {
+        return vehicleService.createVehicle(vehicle)
+    }
+
+    fun updateVehicle(vehicle: Vehicle): Vehicle {
+        return vehicleService.updateVehicle(vehicle)
+    }
+
+    fun getVehicleById(id: VehicleId): Vehicle? {
+        return vehicleService.getVehicleById(id)
+    }
+
+    fun getVehicleOwners(id: VehicleId): List<ClientDetails> {
+        return vehicleService.getVehicleOwners(id)
+    }
+
+    fun getAllVehicles(): List<VehicleWithStats> {
+        val vehicles = vehicleService.getAllVehicles()
+
+        return vehicles.map { vehicle ->
+            val stats = vehicleService.getVehicleStatistics(vehicle.id)
+            VehicleWithStats(vehicle, stats)
+        }
+    }
+
+    fun getVehiclesByOwnerId(ownerId: String): List<VehicleWithStats> {
+        val vehicles = vehicleService.getVehiclesByOwnerId(ownerId)
+
+        return vehicles.map { vehicle ->
+            val stats = vehicleService.getVehicleStatistics(vehicle.id)
+            VehicleWithStats(vehicle, stats)
+        }
+    }
+
+    fun searchVehicles(
+        licensePlate: String?,
+        make: String?,
+        model: String?
+    ): List<Vehicle> {
+        return vehicleService.searchVehicles(licensePlate, make, model)
+    }
+
+    fun deleteVehicle(id: VehicleId): Boolean {
+        return vehicleService.deleteVehicle(id)
+    }
+
+    fun addServiceHistoryEntry(serviceHistory: ServiceHistory): ServiceHistory {
+        return vehicleService.addServiceHistoryEntry(serviceHistory)
+    }
+
+    fun deleteServiceHistoryEntry(id: ServiceHistoryId): Boolean {
+        return vehicleService.deleteServiceHistoryEntry(id)
+    }
+
+    fun getServiceHistoryByVehicleId(vehicleId: VehicleId): List<ServiceHistory> {
+        return vehicleService.getServiceHistoryByVehicleId(vehicleId)
     }
 }
