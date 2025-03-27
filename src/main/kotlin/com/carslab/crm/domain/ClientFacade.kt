@@ -31,10 +31,10 @@ class ClientService(
 
     fun updateClient(client: ClientDetails): ClientDetails {
         logger.info("Updating client with ID: ${client.id.value}")
+        validateClient(client)
         val existingClient = clientRepository.findById(client.id)
             ?: throw ResourceNotFoundException("Client", client.id.value)
 
-        validateClient(client)
         val updatedClient = client.copy(
             audit = client.audit.copy(
                 updatedAt = LocalDateTime.now()
@@ -211,7 +211,7 @@ class ClientFacade(
             val stats = clientService.getClientStatistics(client.id)
             val clientVehicles = vehicles[client.id.value] ?: emptyList()
 
-            com.carslab.crm.domain.model.ClientStats(
+            ClientStats(
                 client = client,
                 vehicles = clientVehicles,
                 stats = stats

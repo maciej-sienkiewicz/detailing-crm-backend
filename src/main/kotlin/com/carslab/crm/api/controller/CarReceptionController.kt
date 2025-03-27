@@ -2,10 +2,13 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.CarReceptionMapper
+import com.carslab.crm.api.mapper.CarReceptionMapperExtension
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.request.CarReceptionProtocolRequest
 import com.carslab.crm.api.model.response.CarReceptionProtocolDetailResponse
 import com.carslab.crm.api.model.response.CarReceptionProtocolListResponse
 import com.carslab.crm.api.model.response.CarReceptionProtocolResponse
+import com.carslab.crm.api.model.response.ClientProtocolHistoryResponse
 import com.carslab.crm.domain.CarReceptionFacade
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
@@ -196,6 +199,35 @@ class CarReceptionController(
             logger.warn("Car reception protocol with ID: $id not found for deletion")
             throw ResourceNotFoundException("Protocol", id)
         }
+    }
+
+    @GetMapping("/{clientId}/protocols")
+    @Operation(
+        summary = "Get protocols for client",
+        description = "Retrieves all car reception protocols for a specific client"
+    )
+    fun getProtocolsByClientId(
+        @Parameter(description = "Client ID", required = true) @PathVariable clientId: Long,
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: ApiProtocolStatus?
+    ): ResponseEntity<List<ClientProtocolHistoryResponse>> {
+        logger.info("Getting protocols for client with ID: $clientId")
+
+
+        val domainStatus = status?.let { CarReceptionMapperExtension.mapStatus(it) }
+
+        val protocols = carReceptionFacade.searchProtocols(
+            clientId = clientId,
+            status = domainStatus
+        )
+
+        if (protocols.isEmpty()) {
+            logger.info("No protocols found for client with ID: $clientId")
+        } else {
+            logger.info("Found ${protocols.size} protocols for client with ID: $clientId")
+        }
+
+        val response = protocols.map { CarReceptionMapper.toClientProtocolHistoryResponse(it) }
+        return ok(response)
     }
 
     private fun validateCarReceptionRequest(request: CarReceptionProtocolRequest) {

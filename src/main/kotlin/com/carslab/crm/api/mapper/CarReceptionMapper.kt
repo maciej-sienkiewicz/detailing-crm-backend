@@ -1,12 +1,10 @@
 package com.carslab.crm.api.mapper
 
 import com.carslab.crm.api.model.ApiProtocolStatus
-import com.carslab.crm.api.model.request.ApiDiscountType
-import com.carslab.crm.api.model.request.ApiReferralSource
-import com.carslab.crm.api.model.request.CarReceptionProtocolRequest
-import com.carslab.crm.api.model.request.SelectedServiceRequest
+import com.carslab.crm.api.model.request.*
 import com.carslab.crm.api.model.response.*
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.ProtocolStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -79,7 +77,20 @@ object CarReceptionMapper {
         )
     }
 
-    fun toDetailResponse(protocol: CarReceptionProtocol): CarReceptionProtocolDetailResponse {
+    fun toClientProtocolHistoryResponse(protocol: CarReceptionProtocol): ClientProtocolHistoryResponse {
+        return ClientProtocolHistoryResponse(
+            id = protocol.id.value,
+            startDate = protocol.period.startDate.toString(),
+            endDate = protocol.period.endDate.toString(),
+            status = mapStatusToApi(protocol.status),
+            carMake = protocol.vehicle.make,
+            carModel = protocol.vehicle.model,
+            licensePlate = protocol.vehicle.licensePlate,
+            totalAmount = protocol.services.sumOf { it.finalPrice.amount }
+        )
+    }
+
+        fun toDetailResponse(protocol: CarReceptionProtocol): CarReceptionProtocolDetailResponse {
         return CarReceptionProtocolDetailResponse(
             id = protocol.id.value,
             startDate = protocol.period.startDate.format(DATE_FORMATTER),
@@ -222,11 +233,11 @@ object CarReceptionMapper {
         }
     }
 
-    private fun mapApprovalStatus(apiApprovalStatus: com.carslab.crm.api.model.request.ServiceApprovalStatus?): ApprovalStatus {
+    private fun mapApprovalStatus(apiApprovalStatus: ServiceApprovalStatus?): ApprovalStatus {
         return when (apiApprovalStatus) {
-            com.carslab.crm.api.model.request.ServiceApprovalStatus.PENDING -> ApprovalStatus.PENDING
-            com.carslab.crm.api.model.request.ServiceApprovalStatus.APPROVED -> ApprovalStatus.APPROVED
-            com.carslab.crm.api.model.request.ServiceApprovalStatus.REJECTED -> ApprovalStatus.REJECTED
+            ServiceApprovalStatus.PENDING -> ApprovalStatus.PENDING
+            ServiceApprovalStatus.APPROVED -> ApprovalStatus.APPROVED
+            ServiceApprovalStatus.REJECTED -> ApprovalStatus.REJECTED
             null -> ApprovalStatus.PENDING
         }
     }
@@ -263,11 +274,11 @@ object CarReceptionMapper {
         }
     }
 
-    private fun mapApprovalStatusToApi(approvalStatus: ApprovalStatus): com.carslab.crm.api.model.request.ServiceApprovalStatus {
+    private fun mapApprovalStatusToApi(approvalStatus: ApprovalStatus): ServiceApprovalStatus {
         return when (approvalStatus) {
-            ApprovalStatus.PENDING -> com.carslab.crm.api.model.request.ServiceApprovalStatus.PENDING
-            ApprovalStatus.APPROVED -> com.carslab.crm.api.model.request.ServiceApprovalStatus.APPROVED
-            ApprovalStatus.REJECTED -> com.carslab.crm.api.model.request.ServiceApprovalStatus.REJECTED
+            ApprovalStatus.PENDING -> ServiceApprovalStatus.PENDING
+            ApprovalStatus.APPROVED -> ServiceApprovalStatus.APPROVED
+            ApprovalStatus.REJECTED -> ServiceApprovalStatus.REJECTED
         }
     }
 }

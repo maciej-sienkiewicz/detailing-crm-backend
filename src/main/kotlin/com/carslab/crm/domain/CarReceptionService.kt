@@ -103,12 +103,13 @@ class CarReceptionService(
 
     fun searchProtocols(
         clientName: String? = null,
+        clientId: Long? = null,
         licensePlate: String? = null,
         status: ProtocolStatus? = null,
         startDate: LocalDate? = null,
         endDate: LocalDate? = null
     ): List<CarReceptionProtocol> {
-        logger.debug("Searching protocols with filters: clientName=$clientName, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
+        logger.debug("Searching protocols with filters: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
 
         var result = carReceptionRepository.findAll()
 
@@ -116,6 +117,12 @@ class CarReceptionService(
             result = result.filter {
                 it.client.name.contains(clientName, ignoreCase = true) ||
                         it.client.companyName?.contains(clientName, ignoreCase = true) == true
+            }
+        }
+
+        if (clientId != null) {
+            result = result.filter {
+                it.client.id == clientId
             }
         }
 

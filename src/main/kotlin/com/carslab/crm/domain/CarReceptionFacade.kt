@@ -35,6 +35,7 @@ class CarReceptionFacade(
 
     fun searchProtocols(
         clientName: String? = null,
+        clientId: Long? = null,
         licensePlate: String? = null,
         status: ProtocolStatus? = null,
         startDate: LocalDate? = null,
@@ -42,6 +43,7 @@ class CarReceptionFacade(
     ): List<CarReceptionProtocol> {
         return carReceptionService.searchProtocols(
             clientName = clientName,
+            clientId = clientId,
             licensePlate = licensePlate,
             status = status,
             startDate = startDate,
