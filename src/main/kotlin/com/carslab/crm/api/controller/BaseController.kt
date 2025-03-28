@@ -56,6 +56,20 @@ abstract class BaseController {
     }
 
     /**
+     * Creates a ResponseEntity with BAD_REQUEST status and the given error message.
+     */
+    protected fun <T> badRequest(message: String): ResponseEntity<T> {
+        val errorResponse = mapOf(
+            "success" to false,
+            "message" to message,
+            "timestamp" to LocalDateTime.now()
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse as T)
+    }
+
+    /**
      * Logs an exception and re-throws it.
      */
     protected fun logAndRethrow(message: String, e: Exception): Nothing {

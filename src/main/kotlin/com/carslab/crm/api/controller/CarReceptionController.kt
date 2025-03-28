@@ -5,21 +5,31 @@ import com.carslab.crm.api.mapper.CarReceptionMapper
 import com.carslab.crm.api.mapper.CarReceptionMapperExtension
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.request.CarReceptionProtocolRequest
+import com.carslab.crm.api.model.request.VehicleImageMapper
 import com.carslab.crm.api.model.response.CarReceptionProtocolDetailResponse
 import com.carslab.crm.api.model.response.CarReceptionProtocolListResponse
 import com.carslab.crm.api.model.response.CarReceptionProtocolResponse
 import com.carslab.crm.api.model.response.ClientProtocolHistoryResponse
 import com.carslab.crm.domain.CarReceptionFacade
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.VehicleImage
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
 import com.carslab.crm.infrastructure.util.ValidationUtils
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -28,8 +38,116 @@ import java.time.format.DateTimeFormatter
 @CrossOrigin(origins = ["*"])
 @Tag(name = "Car Receptions", description = "Car reception protocol management endpoints")
 class CarReceptionController(
-    private val carReceptionFacade: CarReceptionFacade
+    private val carReceptionFacade: CarReceptionFacade,
+    private val imageStorageService: InMemoryImageStorageService,
+    private val objectMapper: ObjectMapper,
 ) : BaseController() {
+
+    @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Create a car reception protocol with files", description = "Creates a new car reception protocol with vehicle images")
+    fun createCarReceptionProtocolWithFiles(request: MultipartHttpServletRequest): ResponseEntity<CarReceptionProtocolResponse> {
+        try {
+            // Pobierz dane protokołu z pola 'protocol'
+            val protocolJson = request.getParameter("protocol")
+                ?: return badRequest("Missing 'protocol' parameter")
+
+            // Parsuj JSON na obiekt DTO
+            val protocolRequest: CarReceptionProtocolRequest = objectMapper.readValue(protocolJson)
+
+            logger.info("Creating new car reception protocol with files for: ${protocolRequest.ownerName}, vehicle: ${protocolRequest.make} ${protocolRequest.model}")
+
+            // Walidacja danych
+            validateCarReceptionRequest(protocolRequest)
+
+            // Konwersja DTO na model domenowy
+            val domainProtocol = CarReceptionMapper.toDomain(protocolRequest)
+
+            // Lista obrazów do zapisania
+            val imagesToSave = mutableListOf<VehicleImage>()
+
+            // Przetworzenie zdjęć z VehicleImageRequest (bez plików)
+            protocolRequest.vehicleImages?.forEachIndexed { index, imageRequest ->
+                if (!imageRequest.has_file) {
+                    // Zdjęcie bez pliku - używamy tylko metadanych
+                    val image = VehicleImageMapper.toDomain(imageRequest)
+                    imagesToSave.add(image)
+                }
+            }
+
+            // Przetworzenie przesłanych plików
+            val fileMap = request.fileMap
+
+            fileMap.forEach { (paramName, file) ->
+                // Sprawdź, czy to jest plik zdjęcia (format: images[index])
+                val imageIndexRegex = """images\[(\d+)\]""".toRegex()
+                val matchResult = imageIndexRegex.find(paramName)
+
+                if (matchResult != null) {
+                    val index = matchResult.groupValues[1].toInt()
+
+                    // Pobierz odpowiedni request obrazu
+                    val imageRequest = protocolRequest.vehicleImages?.getOrNull(index)
+
+                    if (imageRequest != null && imageRequest.has_file) {
+                        // Zapisz plik w pamięci i uzyskaj identyfikator
+                        val storageId = imageStorageService.storeFile(file)
+
+                        // Utwórz obiekt VehicleImage z danymi z requestu i identyfikatorem przechowywania
+                        val image = VehicleImageMapper.toDomain(imageRequest, storageId)
+                        imagesToSave.add(image)
+                    }
+                }
+            }
+
+            // Zapisz protokół
+            val createdProtocol = carReceptionFacade.createProtocol(domainProtocol)
+
+            // Konwersja modelu domenowego na DTO odpowiedzi
+            val response = CarReceptionMapper.toResponse(createdProtocol)
+
+            logger.info("Successfully created car reception protocol with ID: ${response.id} and ${imagesToSave.size} images")
+            return created(response)
+        } catch (e: Exception) {
+            return logAndRethrow("Error creating car reception protocol with files", e)
+        }
+    }
+
+    @GetMapping("/image/{fileId}")
+    fun getImage(@PathVariable fileId: String): ResponseEntity<Resource> {
+        try {
+            // Sprawdź, czy plik istnieje
+            if (!imageStorageService.fileExists(fileId)) {
+                logger.warn("Image with id $fileId not found")
+                return ResponseEntity.notFound().build()
+            }
+
+            // Pobierz dane pliku
+            val fileData = imageStorageService.getFileData(fileId)
+                ?: return ResponseEntity.notFound().build()
+
+            // Pobierz metadane pliku
+            val metadata = imageStorageService.getFileMetadata(fileId)
+                ?: return ResponseEntity.internalServerError().build()
+
+            // Utwórz zasób z danych pliku
+            val resource = ByteArrayResource(fileData)
+
+            // Określ typ MIME na podstawie metadanych
+            val contentType = metadata.contentType
+
+            logger.info("Serving image $fileId with type $contentType and size ${fileData.size} bytes")
+
+            // Zwróć zasób
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"${metadata.originalName}\"")
+                .body(resource)
+        } catch (e: Exception) {
+            logger.error("Error serving image $fileId", e)
+            return ResponseEntity.internalServerError().build()
+        }
+    }
+
 
     @PostMapping
     @Operation(summary = "Create a car reception protocol", description = "Creates a new car reception protocol for a vehicle")

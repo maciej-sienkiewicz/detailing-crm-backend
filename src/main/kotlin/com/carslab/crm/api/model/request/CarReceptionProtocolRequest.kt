@@ -1,6 +1,9 @@
 package com.carslab.crm.api.model.request
 
 import com.carslab.crm.api.model.ApiProtocolStatus
+import com.carslab.crm.api.model.response.VehicleImageResponse
+import com.carslab.crm.domain.model.VehicleImage
+import java.util.UUID
 
 /**
  * DTO dla żądania utworzenia lub aktualizacji protokołu przyjęcia pojazdu.
@@ -59,15 +62,42 @@ class SelectedServiceRequest {
  */
 class VehicleImageRequest {
     var id: String? = null
-    var url: String? = null
     var name: String? = null
     var size: Long? = null
     var type: String? = null
     var description: String? = null
     var location: String? = null
+    var has_file: Boolean = false
 
     // Konstruktor domyślny wymagany przez Jackson
     constructor() {}
+}
+
+object VehicleImageMapper {
+    fun toResponse(image: VehicleImage): VehicleImageResponse {
+        return VehicleImageResponse(
+            id = image.id,
+            name = image.name,
+            size = image.size,
+            type = image.type,
+            storage_id = image.storageId,
+            created_at = image.createdAt,
+            description = image.description,
+            location = image.location
+        )
+    }
+
+    fun toDomain(request: VehicleImageRequest, storageId: String? = null): VehicleImage {
+        return VehicleImage(
+            id = request.id ?: UUID.randomUUID().toString(),
+            name = request.name ?: "",
+            size = request.size ?: 0,
+            type = request.type ?: "",
+            storageId = storageId ?: "",  // ID przechowywania w pamięci zostanie ustawione po zapisaniu pliku
+            description = request.description,
+            location = request.location
+        )
+    }
 }
 
 /**

@@ -4,6 +4,8 @@ import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.request.ApiReferralSource
 import com.carslab.crm.api.model.request.ServiceApprovalStatus
 import com.carslab.crm.domain.model.DiscountType
+import com.fasterxml.jackson.annotation.JsonInclude
+import java.time.Instant
 
 /**
  * DTO dla odpowiedzi API po utworzeniu lub aktualizacji protokołu przyjęcia pojazdu.
@@ -68,13 +70,14 @@ data class SelectedServiceResponse(
 /**
  * DTO dla informacji o zdjęciu w odpowiedzi.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class VehicleImageResponse(
     val id: String,
-    val url: String? = null,
     val name: String,
     val size: Long,
     val type: String,
+    val storage_id: String,  // Używane do tworzenia URL do obrazu
+    val created_at: Instant,
     val description: String? = null,
-    val location: String? = null,
-    val createdAt: String
+    val location: String? = null
 )
