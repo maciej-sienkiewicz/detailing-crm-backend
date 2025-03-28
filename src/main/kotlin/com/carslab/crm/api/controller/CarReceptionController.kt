@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 @RestController
 @RequestMapping("/api/receptions")
@@ -144,6 +145,29 @@ class CarReceptionController(
                 .body(resource)
         } catch (e: Exception) {
             logger.error("Error serving image $fileId", e)
+            return ResponseEntity.internalServerError().build()
+        }
+    }
+
+    @GetMapping("/receptions/{protocolId}/images")
+    fun getProtocolImages(@PathVariable protocolId: String): ResponseEntity<List<ImageDTO>> {
+        try {
+            val images = imageStorageService.getAllFileIds()
+                .map { imageStorageService.getFileMetadata(it) }
+                .map {
+                    ImageDTO(
+                        id = "id",
+                        name = it?.originalName ?: "",
+                        size = it?.size ?: 0,
+                        type = it?.contentType ?: "",
+                        createdAt = it?.uploadTime.toString(),
+                        protocolId = protocolId
+                    )
+                }
+
+            return ResponseEntity.ok(images)
+        } catch (e: Exception) {
+            logger.error("Error getting images for protocol $protocolId", e)
             return ResponseEntity.internalServerError().build()
         }
     }
@@ -409,3 +433,28 @@ class StatusUpdateRequest {
 
     constructor() {}
 }
+
+data class ImageDTO(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val type: String,
+    val createdAt: String,
+    val protocolId: String,
+    val description: String? = null,
+    val location: String? = null
+)
+
+/**
+ * DTO dla metadanych obrazu
+ */
+data class ImageMetadataDTO(
+    val id: String,
+    val protocolId: String,
+    val originalName: String,
+    val contentType: String,
+    val size: Long,
+    val uploadDate: Date,
+    val description: String? = null,
+    val location: String? = null
+)
