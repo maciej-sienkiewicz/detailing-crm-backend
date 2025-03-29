@@ -36,9 +36,6 @@ data class VehicleResponse(
     @JsonProperty("total_spent")
     val totalSpent: Double,
 
-    @JsonProperty("owner_ids")
-    val ownerIds: List<String>,
-
     @JsonProperty("created_at")
     val createdAt: LocalDateTime,
 

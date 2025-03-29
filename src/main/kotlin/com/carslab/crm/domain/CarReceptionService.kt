@@ -1,10 +1,13 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
-import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -16,31 +19,33 @@ class CarReceptionService(
     private val clientRepository: ClientRepository,
     private val vehicleRepository: VehicleRepository,
     private val clientStatisticsRepository: ClientStatisticsRepository,
-    private val vehicleStatisticsRepository: VehicleStatisticsRepository
+    private val vehicleStatisticsRepository: VehicleStatisticsRepository,
+    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
-    fun createProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
-        logger.info("Creating new protocol for vehicle: ${protocol.vehicle.make} ${protocol.vehicle.model} (${protocol.vehicle.licensePlate})")
+    fun createProtocol(protocol: CreateProtocolRootModel): ProtocolId {
+        logger.info("Creating new protocol for vehicle: ${protocol.vehicle.brand} ${protocol.vehicle.model} (${protocol.vehicle.licensePlate})")
 
-        // Logika związana z klientem - znajdź lub utwórz
         val client = findOrCreateClient(protocol.client)
+        val vehicle = findExistingVehicle(protocol.vehicle) ?: createNewVehicle(protocol.vehicle)
+            .also { clientVehicleAssociationRepository.newAssociation(it.id, client.id) }
+            .also { initializeVehicleStatistics(it.id) }
+            .also { incrementClientVehicles(client.id) }
 
-        // Stwórz protokół z poprawnym ID klienta
-        val protocolWithClientId = protocol.copy(
+        val protocolWithFilledIds = protocol.copy(
             client = protocol.client.copy(
-                id = client.id.value
+                id = client.id.value.toString()
+            ),
+            vehicle = protocol.vehicle.copy(
+                id = vehicle.id.value.toString()
             )
         )
 
-        // Zapisz protokół
-        val savedProtocol = carReceptionRepository.save(protocolWithClientId)
+        val savedProtocolId = carReceptionRepository.save(protocolWithFilledIds)
 
-        // Logika związana z pojazdem - znajdź lub utwórz
-        val vehicle = findOrCreateVehicle(savedProtocol)
-
-        logger.info("Created protocol with ID: ${savedProtocol.id.value}")
-        return savedProtocol
+        logger.info("Created protocol with ID: ${savedProtocolId}")
+        return savedProtocolId
     }
 
     fun updateProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
@@ -157,17 +162,17 @@ class CarReceptionService(
         return carReceptionRepository.deleteById(protocolId)
     }
 
-    private fun findOrCreateClient(clientData: Client): ClientDetails {
+    private fun findOrCreateClient(clientData: CreateProtocolClientModel): ClientDetails {
         // Jeśli klient ma ID, próbujemy go znaleźć
         if (clientData.id != null) {
-            clientRepository.findById(ClientId(clientData.id))?.let {
+            clientRepository.findById(ClientId(clientData.id.toLong()))?.let {
                 logger.debug("Found existing client with ID: ${clientData.id}")
                 return it
             }
         }
 
         // Próbujemy znaleźć klienta po danych kontaktowych
-        val existingClient = findClientByContactInfo(clientData)
+        val existingClient = findClientByContactInfo(clientData.email, clientData.phone)
         if (existingClient != null) {
             logger.debug("Found existing client by contact information")
             return existingClient
@@ -186,7 +191,15 @@ class CarReceptionService(
         return clientRepository.findClient(client)
     }
 
-    private fun createNewClient(client: Client): ClientDetails {
+    private fun findClientByContactInfo(email: String?, phoneNumber: String?): ClientDetails? {
+        if (email.isNullOrBlank() && phoneNumber.isNullOrBlank()) {
+            return null
+        }
+
+        return clientRepository.findClient(email, phoneNumber)
+    }
+
+    private fun createNewClient(client: CreateProtocolClientModel): ClientDetails {
         val nameParts = client.name.split(" ")
         val firstName = nameParts.getOrNull(0) ?: ""
         val lastName = if (nameParts.size > 1) nameParts.subList(1, nameParts.size).joinToString(" ") else ""
@@ -209,79 +222,28 @@ class CarReceptionService(
         return savedClient
     }
 
-    private fun findOrCreateVehicle(protocol: CarReceptionProtocol): Vehicle {
-        // Próbujemy znaleźć pojazd po numerze VIN lub numerze rejestracyjnym
-        val existingVehicle = vehicleRepository.findByVinOrLicensePlate(
-            protocol.vehicle.vin,
-            protocol.vehicle.licensePlate
+    private fun findExistingVehicle(protocol: CreateProtocolVehicleModel): Vehicle? {
+        return vehicleRepository.findByVinOrLicensePlate(
+            protocol.vin,
+            protocol.licensePlate
         )
-
-        if (existingVehicle != null) {
-            logger.debug("Found existing vehicle with license plate: ${protocol.vehicle.licensePlate}")
-
-            // Sprawdzamy czy klient jest już właścicielem pojazdu
-            if (protocol.client.id != null && !existingVehicle.ownerIds.contains(protocol.client.id.toString())) {
-                // Jeśli nie, dodajemy go jako właściciela
-                logger.info("Adding client ${protocol.client.id} as owner to vehicle ${existingVehicle.id.value}")
-                return addOwnerToVehicle(existingVehicle, protocol.client.id.toString())
-            }
-
-            return existingVehicle
-        }
-
-        // Jeśli nie znaleźliśmy pojazdu, tworzymy nowy
-        logger.info("Creating new vehicle: ${protocol.vehicle.make} ${protocol.vehicle.model} (${protocol.vehicle.licensePlate})")
-        return createNewVehicle(protocol)
     }
 
-    private fun createNewVehicle(protocol: CarReceptionProtocol): Vehicle {
+    private fun createNewVehicle(vehicle: CreateProtocolVehicleModel): Vehicle {
         val newVehicle = Vehicle(
             id = VehicleId.generate(),
-            make = protocol.vehicle.make,
-            model = protocol.vehicle.model,
-            year = protocol.vehicle.productionYear,
-            licensePlate = protocol.vehicle.licensePlate,
-            color = protocol.vehicle.color,
-            vin = protocol.vehicle.vin,
-            totalServices = 0,
-            lastServiceDate = null,
-            totalSpent = 0.0,
-            ownerIds = protocol.client.id?.let { listOf(it.toString()) } ?: emptyList(),
+            make = vehicle.brand,
+            model = vehicle.model,
+            year = vehicle.productionYear,
+            licensePlate = vehicle.licensePlate,
+            color = vehicle.color,
+            vin = vehicle.vin,
             audit = Audit(
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
             )
         )
-
-        val savedVehicle = vehicleRepository.save(newVehicle)
-
-        // Inicjalizacja statystyk pojazdu
-        initializeVehicleStatistics(savedVehicle.id)
-
-        // Aktualizacja statystyk klienta jeśli istnieje ID klienta
-        protocol.client.id?.let { updateClientVehiclesStatistic(it) }
-
-        return savedVehicle
-    }
-
-    private fun addOwnerToVehicle(vehicle: Vehicle, ownerId: String): Vehicle {
-        val updatedVehicle = vehicle.copy(
-            ownerIds = vehicle.ownerIds + ownerId,
-            audit = vehicle.audit.copy(
-                updatedAt = LocalDateTime.now()
-            )
-        )
-
-        val savedVehicle = vehicleRepository.save(updatedVehicle)
-
-        // Aktualizuj statystyki klienta
-        try {
-            updateClientVehiclesStatistic(ownerId.toLong())
-        } catch (e: NumberFormatException) {
-            logger.warn("Invalid owner ID format: $ownerId")
-        }
-
-        return savedVehicle
+        return vehicleRepository.save(newVehicle)
     }
 
     private fun updateStatisticsOnCompletion(protocol: CarReceptionProtocol) {
@@ -330,9 +292,9 @@ class CarReceptionService(
         vehicleStatisticsRepository.save(stats)
     }
 
-    private fun updateClientVehiclesStatistic(clientId: Long) {
-        val clientStats = clientStatisticsRepository.findById(ClientId(clientId))
-            ?: ClientStats(clientId, 0, "0".toBigDecimal(), 0)
+    private fun incrementClientVehicles(clientId: ClientId) {
+        val clientStats = clientStatisticsRepository.findById(clientId)
+            ?: ClientStats(clientId.value, 0, "0".toBigDecimal(), 0)
 
         val updatedStats = clientStats.copy(
             vehiclesNo = clientStats.vehiclesNo + 1

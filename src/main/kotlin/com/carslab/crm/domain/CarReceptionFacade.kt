@@ -3,6 +3,7 @@ package com.carslab.crm.domain
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -13,7 +14,7 @@ class CarReceptionFacade(
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionFacade::class.java)
 
-    fun createProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
+    fun createProtocol(protocol: CreateProtocolRootModel): ProtocolId {
         return carReceptionService.createProtocol(protocol)
     }
 

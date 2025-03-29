@@ -27,7 +27,7 @@ class VehicleService(
 
         val savedVehicle = vehicleRepository.save(vehicle)
         initializeVehicleStatistics(savedVehicle.id)
-        updateClientVehicleStats(emptyList(), savedVehicle.ownerIds)
+        updateClientVehicleStats(emptyList(), emptyList())
 
         logger.info("Created vehicle with ID: ${savedVehicle.id.value}")
         return savedVehicle
@@ -51,7 +51,6 @@ class VehicleService(
         )
 
         val savedVehicle = vehicleRepository.save(updatedVehicle)
-        updateClientVehicleStats(existingVehicle.ownerIds, savedVehicle.ownerIds)
 
         logger.info("Updated vehicle with ID: ${savedVehicle.id.value}")
         return savedVehicle

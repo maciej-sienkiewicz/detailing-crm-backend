@@ -4,6 +4,8 @@ import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ContactAttempt
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
+import com.carslab.crm.infrastructure.repository.ProtocolEntity
 
 /**
  * Port repozytorium dla protokołów przyjęcia pojazdów.
@@ -14,6 +16,8 @@ interface CarReceptionRepository {
     /**
      * Zapisuje nowy protokół lub aktualizuje istniejący.
      */
+    fun save(protocol: CreateProtocolRootModel): ProtocolId
+
     fun save(protocol: CarReceptionProtocol): CarReceptionProtocol
 
     /**

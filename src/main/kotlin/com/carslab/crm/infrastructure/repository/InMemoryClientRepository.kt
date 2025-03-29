@@ -64,4 +64,12 @@ class InMemoryClientRepository : ClientRepository {
             lowerEmail?.let { c.email.lowercase().contains(it) } ?: false || cleanedPhone?.let {  c.phone.replace(" ", "").contains(it) } ?: false
         }
     }
+
+    override fun findClient(email: String?, phoneNumber: String?): ClientDetails? {
+        val lowerEmail = email?.lowercase()
+        val cleanedPhone = phoneNumber?.replace(" ", "")
+        return clients.values.find { c ->
+            lowerEmail?.let { c.email.lowercase().contains(it) } ?: false || cleanedPhone?.let {  c.phone.replace(" ", "").contains(it) } ?: false
+        }
+    }
 }

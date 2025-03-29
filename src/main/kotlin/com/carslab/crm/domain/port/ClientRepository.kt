@@ -45,4 +45,6 @@ interface ClientRepository {
     fun findByPhone(phone: String): List<ClientDetails>
 
     fun findClient(client: Client): ClientDetails?
+
+    fun findClient(email: String?, phoneNumber: String?): ClientDetails?
 }

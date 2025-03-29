@@ -8,6 +8,7 @@ import com.carslab.crm.domain.port.ContactAttemptRepository
 import com.carslab.crm.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -16,7 +17,8 @@ import java.time.LocalDateTime
 class ClientService(
     private val clientRepository: ClientRepository,
     private val contactAttemptRepository: ContactAttemptRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository
+    private val clientStatisticsRepository: ClientStatisticsRepository,
+    private val associationRepository: InMemoryClientVehicleAssociationRepository,
 ) {
     private val logger = LoggerFactory.getLogger(ClientService::class.java)
 
@@ -186,7 +188,8 @@ class ClientService(
 @Service
 class ClientFacade(
     private val clientService: ClientService,
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val inMemoryClientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(ClientFacade::class.java)
 
@@ -204,19 +207,23 @@ class ClientFacade(
 
     fun getAllClients(): List<com.carslab.crm.domain.model.ClientStats> {
         val clients = clientService.getAllClients()
-        val clientIds = clients.map { it.id.value }.toSet()
-        val vehicles = vehicleRepository.findByClientIds(clientIds)
+        val clientIds = clients.map { it.id }.toSet()
 
-        return clients.map { client ->
-            val stats = clientService.getClientStatistics(client.id)
-            val clientVehicles = vehicles[client.id.value] ?: emptyList()
+       val vehiclesByClient: Map<ClientDetails?, List<Vehicle>> = inMemoryClientVehicleAssociationRepository.findVehiclesByOwnerIds(clientIds.toList())
+            .mapValues { vehicleRepository.findByIds(it.value) }
+            .mapKeys { clientService.getClientById(it.key) }
 
-            ClientStats(
-                client = client,
-                vehicles = clientVehicles,
-                stats = stats
-            )
-        }
+        return vehiclesByClient
+            .filter { it.key != null }
+            .map { (client, vehicles) ->
+                val stats = clientService.getClientStatistics(client!!.id)
+
+                ClientStats(
+                    client = client,
+                    vehicles = vehicles,
+                    stats = stats
+                )
+            }
     }
 
     fun searchClients(
