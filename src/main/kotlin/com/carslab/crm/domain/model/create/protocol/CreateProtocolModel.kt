@@ -13,7 +13,7 @@ data class CreateProtocolRootModel(
     val referralSource: ReferralSource? = null,
     val otherSourceDetails: String? = null,
     val documents: Documents = Documents(),
-    val mediaItems: List<MediaItem> = emptyList(),
+    val mediaItems: List<CreateMediaTypeModel> = emptyList(),
     val audit: AuditInfo
 )
 

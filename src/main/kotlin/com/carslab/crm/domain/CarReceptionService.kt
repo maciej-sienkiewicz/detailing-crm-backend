@@ -11,6 +11,7 @@ import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
+import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
 import com.carslab.crm.infrastructure.repository.InMemoryProtocolServicesRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -26,7 +27,8 @@ class CarReceptionService(
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
     private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository,
     private val protocolServicesRepository: InMemoryProtocolServicesRepository,
-) {
+    private val imageStorageService: InMemoryImageStorageService,
+    ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
     fun createProtocol(createProtocolCommand: CreateProtocolRootModel): ProtocolId {
@@ -112,6 +114,7 @@ class CarReceptionService(
         val vehicle = vehicleRepository.findById(vehicleId)
         val client = clientRepository.findById(clientId)
         val services = protocolServicesRepository.findByIds(id)
+        val images = imageStorageService.getImagesByProtocol(id)
 
         return CarReceptionProtocol(
             id = id,
@@ -159,7 +162,17 @@ class CarReceptionService(
                 createdBy = LocalDateTime.now().toString(),
                 updatedBy = LocalDateTime.now().toString(),
                 appointmentId = ""
-            )
+            ),
+            mediaItems = images.map {
+                MediaItem(
+                    id = it.id,
+                    type = MediaType.PHOTO,
+                    name = it.name,
+                    size = it.size,
+                    description = "Zamockowany opis",
+                    createdAt = LocalDateTime.now()
+                )
+            }
         )
     }
 

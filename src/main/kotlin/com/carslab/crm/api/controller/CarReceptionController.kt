@@ -52,24 +52,7 @@ class CarReceptionController(
             validateCarReceptionRequest(protocolRequest)
 
             val domainProtocol = CarReceptionDtoMapper.fromCreateCommand(protocolRequest)
-
-            val imagesToSave = mutableListOf<VehicleImage>()
-
-            protocolRequest.vehicleImages?.forEachIndexed { index, imageRequest ->
-                if (!imageRequest.hasFile) {
-                    // Zdjęcie bez pliku - używamy tylko metadanych
-                    val image = VehicleImage(
-                        id = java.util.UUID.randomUUID().toString(),
-                        name = imageRequest.name ?: "",
-                        size = imageRequest.size ?: 0,
-                        type = imageRequest.type ?: "",
-                        storageId = "",
-                        description = imageRequest.description,
-                        location = imageRequest.location
-                    )
-                    imagesToSave.add(image)
-                }
-            }
+            val createdProtocolId = carReceptionFacade.createProtocol(domainProtocol)
 
             val fileMap = request.fileMap
 
@@ -84,26 +67,11 @@ class CarReceptionController(
                     val imageRequest = protocolRequest.vehicleImages?.getOrNull(index)
 
                     if (imageRequest != null && imageRequest.hasFile) {
-                        val storageId = imageStorageService.storeFile(file)
-
-                        val image = VehicleImage(
-                            id = java.util.UUID.randomUUID().toString(),
-                            name = imageRequest.name ?: file.originalFilename ?: "",
-                            size = imageRequest.size ?: file.size,
-                            type = imageRequest.type ?: file.contentType ?: "",
-                            storageId = storageId,
-                            description = imageRequest.description,
-                            location = imageRequest.location
-                        )
-                        imagesToSave.add(image)
+                        val storageId = imageStorageService.storeFile(file, createdProtocolId, domainProtocol.mediaItems.get(index))
                     }
                 }
             }
 
-            // Zapisz protokół
-            val createdProtocolId = carReceptionFacade.createProtocol(domainProtocol)
-
-            logger.info("Successfully created car reception protocol with ID: $createdProtocolId and ${imagesToSave.size} images")
             return created(ProtocolIdResponse(createdProtocolId.value))
         } catch (e: Exception) {
             return logAndRethrow("Error creating car reception protocol with files", e)

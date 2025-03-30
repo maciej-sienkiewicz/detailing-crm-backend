@@ -6,13 +6,12 @@ import com.carslab.crm.api.model.request.ApiDiscountType
 import com.carslab.crm.api.model.request.ApiReferralSource
 import com.carslab.crm.api.model.request.ServiceApprovalStatus
 import com.carslab.crm.domain.model.*
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
-import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
+import com.carslab.crm.domain.model.create.protocol.*
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.print.attribute.standard.Media
 
 /**
  * Zrefaktoryzowany mapper dla modeli protokołu przyjęcia pojazdu.
@@ -26,13 +25,13 @@ object CarReceptionDtoMapper {
      * Mapuje string na status domeny.
      * Metoda jest używana głównie do konwersji filtrów zapytań.
      */
-    fun mapStatus(status: String): com.carslab.crm.domain.model.ProtocolStatus {
+    fun mapStatus(status: String): ProtocolStatus {
         return when (status.uppercase()) {
-            "SCHEDULED" -> com.carslab.crm.domain.model.ProtocolStatus.SCHEDULED
-            "PENDING_APPROVAL" -> com.carslab.crm.domain.model.ProtocolStatus.PENDING_APPROVAL
-            "IN_PROGRESS" -> com.carslab.crm.domain.model.ProtocolStatus.IN_PROGRESS
-            "READY_FOR_PICKUP" -> com.carslab.crm.domain.model.ProtocolStatus.READY_FOR_PICKUP
-            "COMPLETED" -> com.carslab.crm.domain.model.ProtocolStatus.COMPLETED
+            "SCHEDULED" -> ProtocolStatus.SCHEDULED
+            "PENDING_APPROVAL" -> ProtocolStatus.PENDING_APPROVAL
+            "IN_PROGRESS" -> ProtocolStatus.IN_PROGRESS
+            "READY_FOR_PICKUP" -> ProtocolStatus.READY_FOR_PICKUP
+            "COMPLETED" -> ProtocolStatus.COMPLETED
             else -> throw IllegalArgumentException("Unknown status: $status")
         }
     }
@@ -41,14 +40,14 @@ object CarReceptionDtoMapper {
      * Mapuje status API na status domeny.
      * Metoda jest dostępna publicznie dla kontrolera.
      */
-    fun mapApiStatusToDomain(apiStatus: ApiProtocolStatus?): com.carslab.crm.domain.model.ProtocolStatus {
+    fun mapApiStatusToDomain(apiStatus: ApiProtocolStatus?): ProtocolStatus {
         return when (apiStatus) {
-            ApiProtocolStatus.SCHEDULED -> com.carslab.crm.domain.model.ProtocolStatus.SCHEDULED
-            ApiProtocolStatus.PENDING_APPROVAL -> com.carslab.crm.domain.model.ProtocolStatus.PENDING_APPROVAL
-            ApiProtocolStatus.IN_PROGRESS -> com.carslab.crm.domain.model.ProtocolStatus.IN_PROGRESS
-            ApiProtocolStatus.READY_FOR_PICKUP -> com.carslab.crm.domain.model.ProtocolStatus.READY_FOR_PICKUP
-            ApiProtocolStatus.COMPLETED -> com.carslab.crm.domain.model.ProtocolStatus.COMPLETED
-            null -> com.carslab.crm.domain.model.ProtocolStatus.SCHEDULED // Domyślna wartość
+            ApiProtocolStatus.SCHEDULED -> ProtocolStatus.SCHEDULED
+            ApiProtocolStatus.PENDING_APPROVAL -> ProtocolStatus.PENDING_APPROVAL
+            ApiProtocolStatus.IN_PROGRESS -> ProtocolStatus.IN_PROGRESS
+            ApiProtocolStatus.READY_FOR_PICKUP -> ProtocolStatus.READY_FOR_PICKUP
+            ApiProtocolStatus.COMPLETED -> ProtocolStatus.COMPLETED
+            null -> ProtocolStatus.SCHEDULED // Domyślna wartość
         }
     }
 
@@ -94,7 +93,13 @@ object CarReceptionDtoMapper {
                 keysProvided = command.keysProvided ?: false,
                 documentsProvided = command.documentsProvided ?: false
             ),
-            mediaItems = emptyList(),
+            mediaItems = command.vehicleImages
+                ?.map { CreateMediaTypeModel(
+                    type = MediaType.PHOTO,
+                    name = it.name ?: "Unknown",
+                    description = it.description,
+                    location = it.location,
+                ) } ?: emptyList(),
             audit = AuditInfo(
                 createdAt = now,
                 updatedAt = now,
@@ -246,7 +251,16 @@ object CarReceptionDtoMapper {
             status = mapDomainStatusToApi(protocol.status),
             referralSource = mapDomainReferralSourceToApi(protocol.referralSource),
             otherSourceDetails = protocol.otherSourceDetails,
-            vehicleImages = emptyList(), // Ten fragment powinien być zaktualizowany, gdy zaimplementujesz obsługę obrazów
+            vehicleImages = protocol.mediaItems.filter { it.type == MediaType.PHOTO }
+                .map { VehicleImageDto(
+                    id = it.id,
+                    name = it.name,
+                    size = it.size,
+                    type = it.type.toString(),
+                    storageId = it.id,
+                    createdAt = Instant.now(),
+                    description = it.description,
+                ) },
             createdAt = protocol.audit.createdAt.format(DATETIME_FORMATTER),
             updatedAt = protocol.audit.updatedAt.format(DATETIME_FORMATTER),
             statusUpdatedAt = protocol.audit.statusUpdatedAt.format(DATETIME_FORMATTER),
