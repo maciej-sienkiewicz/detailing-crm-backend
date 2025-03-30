@@ -18,6 +18,8 @@ interface ClientRepository {
      */
     fun findById(id: ClientId): ClientDetails?
 
+    fun findByIds(ids: List<ClientId>): List<ClientDetails>
+
     /**
      * Zwraca wszystkich klientów.
      */

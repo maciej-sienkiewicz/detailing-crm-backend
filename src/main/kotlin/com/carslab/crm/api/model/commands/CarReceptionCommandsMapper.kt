@@ -9,6 +9,7 @@ import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
+import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -271,7 +272,7 @@ object CarReceptionDtoMapper {
 
     // Metody pomocnicze do mapowania usług
 
-    private fun mapCreateServiceCommandToService(command: CreateServiceCommand): Service {
+     fun mapCreateServiceCommandToService(command: CreateServiceCommand): CreateServiceModel {
         val basePrice = command.price
         val discountValue = command.discountValue ?: 0.0
         val discountType = command.discountType?.let { mapApiDiscountTypeToDomain(it) }
@@ -285,8 +286,7 @@ object CarReceptionDtoMapper {
             basePrice
         }
 
-        return Service(
-            id = "", // ID będzie wygenerowane przy zapisie
+        return CreateServiceModel(
             name = command.name,
             basePrice = Money(basePrice),
             discount = if (discountValue > 0 && discountType != null) {

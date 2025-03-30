@@ -6,10 +6,12 @@ import com.carslab.crm.domain.model.stats.VehicleStats
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalDateTime
+
 
 @Service
 class VehicleService(
@@ -17,7 +19,8 @@ class VehicleService(
     private val serviceHistoryRepository: ServiceHistoryRepository,
     private val clientRepository: ClientRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository
+    private val clientStatisticsRepository: ClientStatisticsRepository,
+    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(VehicleService::class.java)
 
@@ -27,9 +30,7 @@ class VehicleService(
 
         val savedVehicle = vehicleRepository.save(vehicle)
         initializeVehicleStatistics(savedVehicle.id)
-        updateClientVehicleStats(emptyList(), emptyList())
 
-        logger.info("Created vehicle with ID: ${savedVehicle.id.value}")
         return savedVehicle
     }
 
@@ -66,15 +67,11 @@ class VehicleService(
         val vehicle = vehicleRepository.findById(id)
             ?: throw ResourceNotFoundException("Vehicle", id.value)
 
-        return vehicle.ownerIds
-            .mapNotNull { ownerId ->
-                try {
-                    clientRepository.findById(ClientId(ownerId.toLong()))
-                } catch (e: NumberFormatException) {
-                    logger.warn("Invalid owner ID format: $ownerId")
-                    null
-                }
-            }
+        val ownerIds = clientVehicleAssociationRepository.findOwnersByVehicleId(vehicle.id)
+
+        return ownerIds.mapNotNull { clientId ->
+            clientRepository.findById(clientId)
+        }
     }
 
     fun getAllVehicles(): List<Vehicle> {
@@ -84,7 +81,14 @@ class VehicleService(
 
     fun getVehiclesByOwnerId(ownerId: String): List<Vehicle> {
         logger.debug("Getting vehicles for owner ID: $ownerId")
-        return vehicleRepository.findByOwnerId(ownerId)
+        try {
+            val clientId = ClientId(ownerId.toLong())
+            val vehicleIds = clientVehicleAssociationRepository.findVehiclesByClientId(clientId)
+            return vehicleIds.mapNotNull { vehicleRepository.findById(it) }
+        } catch (e: NumberFormatException) {
+            logger.warn("Invalid owner ID format: $ownerId")
+            return emptyList()
+        }
     }
 
     fun searchVehicles(
@@ -98,19 +102,19 @@ class VehicleService(
 
         if (!licensePlate.isNullOrBlank()) {
             result = result.filter {
-                it.licensePlate.contains(licensePlate, ignoreCase = true)
+                it.licensePlate!!.contains(licensePlate, ignoreCase = true)
             }
         }
 
         if (!make.isNullOrBlank()) {
             result = result.filter {
-                it.make.contains(make, ignoreCase = true)
+                it.make!!.contains(make, ignoreCase = true)
             }
         }
 
         if (!model.isNullOrBlank()) {
             result = result.filter {
-                it.model.contains(model, ignoreCase = true)
+                it.model!!.contains(model, ignoreCase = true)
             }
         }
 
@@ -121,9 +125,12 @@ class VehicleService(
     fun deleteVehicle(id: VehicleId): Boolean {
         logger.info("Deleting vehicle with ID: ${id.value}")
 
-        val vehicle = vehicleRepository.findById(id)
-        if (vehicle != null) {
-            updateClientVehicleStats(vehicle.ownerIds, emptyList())
+        // Find all owners associated with this vehicle
+        val owners = clientVehicleAssociationRepository.findOwnersByVehicleId(id)
+
+        // Update client statistics for all owners
+        owners.forEach { clientId ->
+            updateClientVehicleCount(clientId, -1)
         }
 
         return vehicleRepository.deleteById(id)
@@ -162,6 +169,37 @@ class VehicleService(
 
     fun getVehicleStatistics(id: VehicleId): VehicleStats {
         return vehicleStatisticsRepository.findById(id)
+    }
+
+    fun addOwnerToVehicle(vehicleId: VehicleId, clientId: ClientId) {
+        logger.debug("Adding owner ${clientId.value} to vehicle ${vehicleId.value}")
+
+        // Check if the vehicle exists
+        val vehicle = vehicleRepository.findById(vehicleId)
+            ?: throw ResourceNotFoundException("Vehicle", vehicleId.value)
+
+        // Check if the client exists
+        val client = clientRepository.findById(clientId)
+            ?: throw ResourceNotFoundException("Client", clientId.value)
+
+        // Add the association
+        clientVehicleAssociationRepository.newAssociation(vehicleId, clientId)
+
+        // Update client statistics
+        updateClientVehicleCount(clientId, 1)
+    }
+
+    fun removeOwnerFromVehicle(vehicleId: VehicleId, clientId: ClientId): Boolean {
+        // This would be a new method to implement in the association repository
+        // For now, let's assume it returns true if the association was removed
+        val removed = true // clientVehicleAssociationRepository.removeAssociation(vehicleId, clientId)
+
+        if (removed) {
+            // Update client statistics
+            updateClientVehicleCount(clientId, -1)
+        }
+
+        return removed
     }
 
     private fun updateVehicleServiceStats(vehicleId: VehicleId) {
@@ -206,25 +244,21 @@ class VehicleService(
     }
 
     private fun validateVehicle(vehicle: Vehicle) {
-        if (vehicle.make.isBlank()) {
+        if (vehicle.make.isNullOrBlank()) {
             throw ValidationException("Vehicle make cannot be empty")
         }
 
-        if (vehicle.model.isBlank()) {
+        if (vehicle.model.isNullOrBlank()) {
             throw ValidationException("Vehicle model cannot be empty")
         }
 
-        if (vehicle.licensePlate.isBlank()) {
+        if (vehicle.licensePlate.isNullOrBlank()) {
             throw ValidationException("License plate cannot be empty")
         }
 
         val currentYear = LocalDate.now().year
-        if (vehicle.year < 1900 || vehicle.year > currentYear + 1) {
+        if (vehicle.year != null && (vehicle.year < 1900 || vehicle.year > currentYear + 1)) {
             throw ValidationException("Invalid production year. Year must be between 1900 and ${currentYear + 1}")
-        }
-
-        if (vehicle.ownerIds.isEmpty()) {
-            throw ValidationException("Vehicle must have at least one owner")
         }
     }
 
@@ -259,43 +293,22 @@ class VehicleService(
         vehicleStatisticsRepository.save(stats)
     }
 
-    private fun updateClientVehicleStats(previousOwnerIds: List<String>, currentOwnerIds: List<String>) {
-        val previousOwners = previousOwnerIds.toSet()
-        val currentOwners = currentOwnerIds.toSet()
+    private fun updateClientVehicleCount(clientId: ClientId, delta: Long) {
+        val clientStats = clientStatisticsRepository.findById(clientId)
+            ?: ClientStats(clientId.value, 0, "0".toBigDecimal(), 0)
 
-        // Owners that were removed
-        previousOwners.minus(currentOwners)
-            .mapNotNull { ownerId ->
-                try {
-                    val id = ClientId(ownerId.toLong())
-                    clientStatisticsRepository.findById(id) ?: ClientStats(ownerId.toLong(), 0, "0".toBigDecimal(), 0)
-                } catch (e: NumberFormatException) {
-                    logger.warn("Invalid owner ID format: $ownerId")
-                    null
-                }
-            }
-            .map { it.copy(vehiclesNo = it.vehiclesNo - 1) }
-            .forEach { clientStatisticsRepository.save(it) }
+        val updatedStats = clientStats.copy(
+            vehiclesNo = clientStats.vehiclesNo + delta
+        )
 
-        // Owners that were added
-        currentOwners.minus(previousOwners)
-            .mapNotNull { ownerId ->
-                try {
-                    val id = ClientId(ownerId.toLong())
-                    clientStatisticsRepository.findById(id) ?: ClientStats(ownerId.toLong(), 0, "0".toBigDecimal(), 0)
-                } catch (e: NumberFormatException) {
-                    logger.warn("Invalid owner ID format: $ownerId")
-                    null
-                }
-            }
-            .map { it.copy(vehiclesNo = it.vehiclesNo + 1) }
-            .forEach { clientStatisticsRepository.save(it) }
+        clientStatisticsRepository.save(updatedStats)
     }
 }
 
 @Service
 class VehicleFacade(
     private val vehicleService: VehicleService,
+    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(VehicleFacade::class.java)
 
@@ -355,5 +368,13 @@ class VehicleFacade(
 
     fun getServiceHistoryByVehicleId(vehicleId: VehicleId): List<ServiceHistory> {
         return vehicleService.getServiceHistoryByVehicleId(vehicleId)
+    }
+
+    fun addOwnerToVehicle(vehicleId: VehicleId, clientId: ClientId) {
+        vehicleService.addOwnerToVehicle(vehicleId, clientId)
+    }
+
+    fun removeOwnerFromVehicle(vehicleId: VehicleId, clientId: ClientId): Boolean {
+        return vehicleService.removeOwnerFromVehicle(vehicleId, clientId)
     }
 }

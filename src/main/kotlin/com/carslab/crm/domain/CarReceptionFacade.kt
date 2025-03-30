@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
+import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -20,6 +21,10 @@ class CarReceptionFacade(
 
     fun updateProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
         return carReceptionService.updateProtocol(protocol)
+    }
+
+    fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {
+        return carReceptionService.updateServices(protocolId, services)
     }
 
     fun changeStatus(protocolId: ProtocolId, newStatus: ProtocolStatus): CarReceptionProtocol {

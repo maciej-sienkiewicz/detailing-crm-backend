@@ -5,6 +5,7 @@ import com.carslab.crm.api.mapper.CarReceptionDtoMapper
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper.DATETIME_FORMATTER
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.commands.*
+import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.domain.CarReceptionFacade
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.VehicleImage
@@ -39,28 +40,21 @@ class CarReceptionController(
 ) : BaseController() {
 
     @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    @Operation(summary = "Create a car reception protocol with files", description = "Creates a new car reception protocol with vehicle images")
-    fun createCarReceptionProtocolWithFiles(request: MultipartHttpServletRequest): ResponseEntity<CarReceptionBasicDto> {
+    fun createCarReceptionProtocolWithFiles(request: MultipartHttpServletRequest): ResponseEntity<ProtocolIdResponse> {
         try {
-            // Pobierz dane protokołu z pola 'protocol'
             val protocolJson = request.getParameter("protocol")
                 ?: return badRequest("Missing 'protocol' parameter")
 
-            // Parsuj JSON na obiekt DTO
             val protocolRequest: CreateCarReceptionCommand = objectMapper.readValue(protocolJson, CreateCarReceptionCommand::class.java)
 
             logger.info("Creating new car reception protocol with files for: ${protocolRequest.ownerName}, vehicle: ${protocolRequest.make} ${protocolRequest.model}")
 
-            // Walidacja danych
             validateCarReceptionRequest(protocolRequest)
 
-            // Konwersja DTO na model domenowy
             val domainProtocol = CarReceptionDtoMapper.fromCreateCommand(protocolRequest)
 
-            // Lista obrazów do zapisania
             val imagesToSave = mutableListOf<VehicleImage>()
 
-            // Przetworzenie zdjęć z VehicleImageRequest (bez plików)
             protocolRequest.vehicleImages?.forEachIndexed { index, imageRequest ->
                 if (!imageRequest.hasFile) {
                     // Zdjęcie bez pliku - używamy tylko metadanych
@@ -77,7 +71,6 @@ class CarReceptionController(
                 }
             }
 
-            // Przetworzenie przesłanych plików
             val fileMap = request.fileMap
 
             fileMap.forEach { (paramName, file) ->
@@ -88,14 +81,11 @@ class CarReceptionController(
                 if (matchResult != null) {
                     val index = matchResult.groupValues[1].toInt()
 
-                    // Pobierz odpowiedni request obrazu
                     val imageRequest = protocolRequest.vehicleImages?.getOrNull(index)
 
                     if (imageRequest != null && imageRequest.hasFile) {
-                        // Zapisz plik w pamięci i uzyskaj identyfikator
                         val storageId = imageStorageService.storeFile(file)
 
-                        // Utwórz obiekt VehicleImage z danymi z requestu i identyfikatorem przechowywania
                         val image = VehicleImage(
                             id = java.util.UUID.randomUUID().toString(),
                             name = imageRequest.name ?: file.originalFilename ?: "",
@@ -111,23 +101,74 @@ class CarReceptionController(
             }
 
             // Zapisz protokół
-            val createdProtocol = carReceptionFacade.createProtocol(domainProtocol)
+            val createdProtocolId = carReceptionFacade.createProtocol(domainProtocol)
 
-            // Konwersja modelu domenowego na DTO odpowiedzi
-            val response = CarReceptionBasicDto(
-                id = createdProtocol.value,
-                createdAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                updatedAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                statusUpdatedAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                status = ApiProtocolStatus.SCHEDULED
-            )
-
-            logger.info("Successfully created car reception protocol with ID: ${response.id} and ${imagesToSave.size} images")
-            return created(response)
+            logger.info("Successfully created car reception protocol with ID: $createdProtocolId and ${imagesToSave.size} images")
+            return created(ProtocolIdResponse(createdProtocolId.value))
         } catch (e: Exception) {
             return logAndRethrow("Error creating car reception protocol with files", e)
         }
     }
+
+    @PostMapping
+    fun createCarReceptionProtocol(@Valid @RequestBody command: CreateCarReceptionCommand): ResponseEntity<ProtocolIdResponse> {
+        logger.info("Creating new car reception protocol for: ${command.ownerName}, vehicle: ${command.make} ${command.model}")
+
+        try {
+            validateCarReceptionRequest(command)
+
+            val savedProtocolId = CarReceptionDtoMapper.fromCreateCommand(command)
+                .let { carReceptionFacade.createProtocol(it) }
+
+            logger.info("Successfully created car reception protocol with ID: $savedProtocolId")
+            return created(ProtocolIdResponse(savedProtocolId.value))
+        } catch (e: Exception) {
+            return logAndRethrow("Error     creating car reception protocol", e)
+        }
+    }
+
+    @PutMapping("/{protocolId}/services")
+    fun updateServices(
+        @PathVariable protocolId: String,
+        @RequestBody command: ServicesUpdateCommand): ResponseEntity<ProtocolIdResponse> {
+        try {
+
+            val savedProtocolId = command.services
+                .map { CarReceptionDtoMapper.mapCreateServiceCommandToService(it) }
+                .let { carReceptionFacade.updateServices(ProtocolId(protocolId), it) }
+
+            logger.info("Successfully created car reception protocol with ID: $savedProtocolId")
+            return created(ProtocolIdResponse(protocolId))
+        } catch (e: Exception) {
+            return logAndRethrow("Error     creating car reception protocol", e)
+        }
+    }
+
+    @GetMapping("/list")
+    @Operation(summary = "Get list of car reception protocols", description = "Retrieves a list of car reception protocols with optional filtering")
+    fun getCarReceptionProtocolsList(
+        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
+        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
+        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
+        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
+    ): ResponseEntity<List<CarReceptionListDto>> {
+        logger.info("Getting list of car reception protocols with filters")
+
+        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
+
+        val protocols = carReceptionFacade.searchProtocols(
+            clientName = clientName,
+            licensePlate = licensePlate,
+            status = domainStatus,
+            startDate = parseDateParam(startDate),
+            endDate = parseDateParam(endDate)
+        )
+
+        val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
+        return ok(response)
+    }
+
 
     @GetMapping("/image/{fileId}")
     fun getImage(@PathVariable fileId: String): ResponseEntity<Resource> {
@@ -189,60 +230,6 @@ class CarReceptionController(
         }
     }
 
-    @PostMapping
-    @Operation(summary = "Create a car reception protocol", description = "Creates a new car reception protocol for a vehicle")
-    fun createCarReceptionProtocol(@Valid @RequestBody command: CreateCarReceptionCommand): ResponseEntity<CarReceptionBasicDto> {
-        logger.info("Creating new car reception protocol for: ${command.ownerName}, vehicle: ${command.make} ${command.model}")
-
-        try {
-            validateCarReceptionRequest(command)
-
-            // Convert command to domain model
-            val domainProtocol = CarReceptionDtoMapper.fromCreateCommand(command)
-
-            // Create protocol using facade
-            val createdProtocol = carReceptionFacade.createProtocol(domainProtocol)
-
-            // Convert domain model to response
-            val response = CarReceptionBasicDto(
-                id = createdProtocol.value,
-                createdAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                updatedAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                statusUpdatedAt = LocalDateTime.now().format(DATETIME_FORMATTER),
-                status = ApiProtocolStatus.SCHEDULED
-            )
-
-            logger.info("Successfully created car reception protocol with ID: ${response.id}")
-            return created(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error creating car reception protocol", e)
-        }
-    }
-
-    @GetMapping("/list")
-    @Operation(summary = "Get list of car reception protocols", description = "Retrieves a list of car reception protocols with optional filtering")
-    fun getCarReceptionProtocolsList(
-        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
-        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
-        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
-        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
-        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
-    ): ResponseEntity<List<CarReceptionListDto>> {
-        logger.info("Getting list of car reception protocols with filters")
-
-        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
-
-        val protocols = carReceptionFacade.searchProtocols(
-            clientName = clientName,
-            licensePlate = licensePlate,
-            status = domainStatus,
-            startDate = parseDateParam(startDate),
-            endDate = parseDateParam(endDate)
-        )
-
-        val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
-        return ok(response)
-    }
 
     @GetMapping
     @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering")
@@ -385,8 +372,6 @@ class CarReceptionController(
         val response = protocols.map { CarReceptionDtoMapper.toClientHistoryDto(it) }
         return ok(response)
     }
-
-    // Metody pomocnicze
 
     private fun validateCarReceptionRequest(command: CreateCarReceptionCommand) {
         ValidationUtils.validateNotBlank(command.startDate, "Start date")

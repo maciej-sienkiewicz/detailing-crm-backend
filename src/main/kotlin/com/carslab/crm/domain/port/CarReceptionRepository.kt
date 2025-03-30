@@ -5,7 +5,9 @@ import com.carslab.crm.domain.model.ContactAttempt
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
+import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.infrastructure.repository.ProtocolEntity
+import java.time.LocalDate
 
 /**
  * Port repozytorium dla protokołów przyjęcia pojazdów.
@@ -23,7 +25,7 @@ interface CarReceptionRepository {
     /**
      * Znajduje protokół po jego identyfikatorze.
      */
-    fun findById(id: ProtocolId): CarReceptionProtocol?
+    fun findById(id: ProtocolId): ProtocolView?
 
     /**
      * Znajduje wszystkie protokoły.
@@ -49,4 +51,13 @@ interface CarReceptionRepository {
      * Usuwa protokół o podanym identyfikatorze.
      */
     fun deleteById(id: ProtocolId): Boolean
+
+    fun searchProtocols(
+        clientName: String?,
+        clientId: Long?,
+        licensePlate: String?,
+        status: ProtocolStatus?,
+        startDate: LocalDate?,
+        endDate: LocalDate?
+    ): List<ProtocolView>
 }

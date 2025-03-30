@@ -186,6 +186,13 @@ data class CreateServiceCommand(
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING
 )
 
+class ServicesUpdateCommand {
+
+    var services: List<CreateServiceCommand> = emptyList()
+
+    constructor() {}
+}
+
 /**
  * Komenda do aktualizacji istniejącej usługi.
  */

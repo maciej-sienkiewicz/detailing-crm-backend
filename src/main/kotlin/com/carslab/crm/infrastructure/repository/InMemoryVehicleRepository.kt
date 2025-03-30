@@ -38,7 +38,10 @@ class InMemoryVehicleRepository : VehicleRepository {
     }
 
     override fun findByVinOrLicensePlate(vin: String?, licensePlate: String?): Vehicle? {
-        return vehicles.values.firstOrNull { (vin != null && it.vin == vin) || (licensePlate != null && licensePlate == it.licensePlate) }
+        return vehicles.values.firstOrNull {
+            (vin != null && !vin.isBlank() && it.vin == vin) ||
+                    (licensePlate != null && !licensePlate.isBlank() && it.licensePlate == licensePlate)
+        }
     }
 
     override fun findByIds(ids: List<VehicleId>): List<Vehicle> {

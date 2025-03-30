@@ -8,13 +8,21 @@ data class CreateProtocolRootModel(
     val client: CreateProtocolClientModel,
     val period: ServicePeriod,
     val status: ProtocolStatus,
-    val services: List<Service>,
+    val services: List<CreateServiceModel>,
     val notes: String? = null,
     val referralSource: ReferralSource? = null,
     val otherSourceDetails: String? = null,
     val documents: Documents = Documents(),
     val mediaItems: List<MediaItem> = emptyList(),
     val audit: AuditInfo
+)
+
+data class CreateServiceModel(
+    val name: String,
+    val basePrice: Money,
+    val discount: Discount? = null,
+    val finalPrice: Money,
+    val approvalStatus: ApprovalStatus,
 )
 
 data class CreateProtocolVehicleModel(

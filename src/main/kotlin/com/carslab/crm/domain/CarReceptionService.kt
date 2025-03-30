@@ -4,10 +4,14 @@ import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
+import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import com.carslab.crm.domain.model.stats.ClientStats
+import com.carslab.crm.domain.model.stats.VehicleStats
+import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
+import com.carslab.crm.infrastructure.repository.InMemoryProtocolServicesRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -20,29 +24,32 @@ class CarReceptionService(
     private val vehicleRepository: VehicleRepository,
     private val clientStatisticsRepository: ClientStatisticsRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
+    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository,
+    private val protocolServicesRepository: InMemoryProtocolServicesRepository,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
-    fun createProtocol(protocol: CreateProtocolRootModel): ProtocolId {
-        logger.info("Creating new protocol for vehicle: ${protocol.vehicle.brand} ${protocol.vehicle.model} (${protocol.vehicle.licensePlate})")
+    fun createProtocol(createProtocolCommand: CreateProtocolRootModel): ProtocolId {
+        logger.info("Creating new protocol for vehicle: ${createProtocolCommand.vehicle.brand} ${createProtocolCommand.vehicle.model} (${createProtocolCommand.vehicle.licensePlate})")
 
-        val client = findOrCreateClient(protocol.client)
-        val vehicle = findExistingVehicle(protocol.vehicle) ?: createNewVehicle(protocol.vehicle)
+        val client = findOrCreateClient(createProtocolCommand.client)
+        //TODO: Jak samochod istnieje i nie ma przypisanego klienta to go dodaj
+        val vehicle = findExistingVehicle(createProtocolCommand.vehicle) ?: createNewVehicle(createProtocolCommand.vehicle)
             .also { clientVehicleAssociationRepository.newAssociation(it.id, client.id) }
             .also { initializeVehicleStatistics(it.id) }
             .also { incrementClientVehicles(client.id) }
 
-        val protocolWithFilledIds = protocol.copy(
-            client = protocol.client.copy(
+        val protocolWithFilledIds = createProtocolCommand.copy(
+            client = createProtocolCommand.client.copy(
                 id = client.id.value.toString()
             ),
-            vehicle = protocol.vehicle.copy(
+            vehicle = createProtocolCommand.vehicle.copy(
                 id = vehicle.id.value.toString()
             )
         )
 
         val savedProtocolId = carReceptionRepository.save(protocolWithFilledIds)
+        protocolServicesRepository.saveServices(createProtocolCommand.services, savedProtocolId)
 
         logger.info("Created protocol with ID: ${savedProtocolId}")
         return savedProtocolId
@@ -52,9 +59,9 @@ class CarReceptionService(
         logger.info("Updating protocol with ID: ${protocol.id.value}")
 
         val existingProtocol = carReceptionRepository.findById(protocol.id)
+            ?.enrichProtocol()
             ?: throw ResourceNotFoundException("Protocol", protocol.id.value)
 
-        // Aktualizujemy informacje audytowe
         val updatedProtocol = protocol.copy(
             audit = protocol.audit.copy(
                 updatedAt = LocalDateTime.now(),
@@ -66,7 +73,6 @@ class CarReceptionService(
             )
         )
 
-        // Zapisujemy zaktualizowany protokół
         val savedProtocol = carReceptionRepository.save(updatedProtocol)
         logger.info("Updated protocol with ID: ${savedProtocol.id.value}")
         return savedProtocol
@@ -76,6 +82,7 @@ class CarReceptionService(
         logger.info("Changing status of protocol ${protocolId.value} to $newStatus")
 
         val existingProtocol = carReceptionRepository.findById(protocolId)
+            ?.enrichProtocol()
             ?: throw ResourceNotFoundException("Protocol", protocolId.value)
 
         val now = LocalDateTime.now()
@@ -98,7 +105,62 @@ class CarReceptionService(
 
     fun getProtocolById(protocolId: ProtocolId): CarReceptionProtocol? {
         logger.debug("Getting protocol by ID: ${protocolId.value}")
-        return carReceptionRepository.findById(protocolId)
+        return carReceptionRepository.findById(protocolId)?.enrichProtocol()
+    }
+
+    private fun ProtocolView.enrichProtocol(): CarReceptionProtocol {
+        val vehicle = vehicleRepository.findById(vehicleId)
+        val client = clientRepository.findById(clientId)
+        val services = protocolServicesRepository.findByIds(id)
+
+        return CarReceptionProtocol(
+            id = id,
+            vehicle = vehicle.let {
+                VehicleDetails(
+                    make = it?.make ?: "",
+                    model = it?.model ?: "",
+                    licensePlate = it?.model ?: "",
+                    productionYear = it?.year ?: 0,
+                    vin = it?.vin ?: "",
+                    color = it?.color ?: "",
+                    mileage = 0
+                )
+            },
+            client = client.let {
+                Client(
+                    id = it?.id?.value,
+                    name = "${it?.firstName} ${it?.lastName}",
+                    email = it?.email,
+                    phone = it?.phone,
+                    companyName = it?.company,
+                    taxId = it?.taxId
+                )
+            },
+            period = period,
+            status = status,
+            services = services
+                .map {
+                    Service(
+                        id = it.id.toString(),
+                        name = it.name,
+                        basePrice = it.basePrice,
+                        discount = it.discount,
+                        finalPrice = it.finalPrice,
+                        approvalStatus = it.approvalStatus
+                    )
+                },
+            notes = notes,
+            referralSource = ReferralSource.SEARCH_ENGINE,
+            otherSourceDetails = "",
+            audit = AuditInfo(
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+                statusUpdatedAt = LocalDateTime.now(),
+                createdBy = LocalDateTime.now().toString(),
+                updatedBy = LocalDateTime.now().toString(),
+                appointmentId = ""
+            )
+        )
     }
 
     fun getAllProtocols(): List<CarReceptionProtocol> {
@@ -116,45 +178,60 @@ class CarReceptionService(
     ): List<CarReceptionProtocol> {
         logger.debug("Searching protocols with filters: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
 
-        var result = carReceptionRepository.findAll()
+        val baseProtocols = carReceptionRepository.searchProtocols(
+            clientName = clientName,
+            clientId = clientId,
+            licensePlate = licensePlate,
+            status = status,
+            startDate = startDate,
+            endDate = endDate
+        )
+        val vehiclesIds = baseProtocols.map { it.vehicleId }
+        val clientIds = baseProtocols.map { it.clientId }
 
-        if (!clientName.isNullOrBlank()) {
-            result = result.filter {
-                it.client.name.contains(clientName, ignoreCase = true) ||
-                        it.client.companyName?.contains(clientName, ignoreCase = true) == true
-            }
+        val vehicles: Map<VehicleId, Vehicle> = vehicleRepository.findByIds(vehiclesIds).associateBy { it.id }
+        val clients = clientRepository.findByIds(clientIds).associateBy { it.id }
+
+        return baseProtocols.map {
+            CarReceptionProtocol(
+                id = it.id,
+                vehicle = vehicles[it.vehicleId]!!.let {
+                    VehicleDetails(
+                        make = it.make ?: "",
+                        model = it.model ?: "",
+                        licensePlate = it.model ?: "",
+                        productionYear = it.year ?: 0,
+                        vin = it.vin ?: "",
+                        color = it.color ?: "",
+                        mileage = 0
+                    )
+                },
+                client = clients[it.clientId]!!.let {
+                    Client(
+                        id = it.id.value,
+                        name = "${it.firstName} ${it.lastName}",
+                        email = it.email,
+                        phone = it.phone,
+                        companyName = it.company,
+                        taxId = it.taxId
+                    )
+                },
+                period = it.period,
+                status = it.status,
+                services = emptyList(),
+                notes = it.notes,
+                referralSource = ReferralSource.SEARCH_ENGINE,
+                otherSourceDetails = "",
+                audit = AuditInfo(
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now(),
+                    statusUpdatedAt = LocalDateTime.now(),
+                    createdBy = LocalDateTime.now().toString(),
+                    updatedBy = LocalDateTime.now().toString(),
+                    appointmentId = ""
+                )
+            )
         }
-
-        if (clientId != null) {
-            result = result.filter {
-                it.client.id == clientId
-            }
-        }
-
-        if (!licensePlate.isNullOrBlank()) {
-            result = result.filter {
-                it.vehicle.licensePlate.contains(licensePlate, ignoreCase = true)
-            }
-        }
-
-        if (status != null) {
-            result = result.filter { it.status == status }
-        }
-
-        if (startDate != null) {
-            result = result.filter {
-                !it.period.endDate.isBefore(startDate)
-            }
-        }
-
-        if (endDate != null) {
-            result = result.filter {
-                !it.period.startDate.isAfter(endDate)
-            }
-        }
-
-        logger.debug("Found ${result.size} protocols matching filters")
-        return result
     }
 
     fun deleteProtocol(protocolId: ProtocolId): Boolean {
@@ -284,7 +361,7 @@ class CarReceptionService(
     }
 
     private fun initializeVehicleStatistics(vehicleId: VehicleId) {
-        val stats = com.carslab.crm.domain.model.stats.VehicleStats(
+        val stats = VehicleStats(
             vehicleId = vehicleId.value,
             visitNo = 0,
             gmv = "0".toBigDecimal()
@@ -301,5 +378,9 @@ class CarReceptionService(
         )
 
         clientStatisticsRepository.save(updatedStats)
+    }
+
+    fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {
+        protocolServicesRepository.saveServices(services, protocolId)
     }
 }

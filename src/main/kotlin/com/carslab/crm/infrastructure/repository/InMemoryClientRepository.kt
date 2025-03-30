@@ -26,6 +26,10 @@ class InMemoryClientRepository : ClientRepository {
         return clients[id.value.toString()]
     }
 
+    override fun findByIds(ids: List<ClientId>): List<ClientDetails> {
+        return ids.mapNotNull { clients[it.value.toString()] }
+    }
+
     override fun findAll(): List<ClientDetails> {
         return clients.values.toList()
     }
