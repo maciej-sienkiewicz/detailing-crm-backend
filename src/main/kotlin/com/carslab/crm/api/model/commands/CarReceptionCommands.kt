@@ -239,7 +239,10 @@ data class CreateVehicleImageCommand(
     val location: String? = null,
 
     @JsonProperty("has_file")
-    val hasFile: Boolean = false
+    val hasFile: Boolean = false,
+
+    @JsonProperty("tags")
+    val tags: List<String> = emptyList()
 )
 
 /**
@@ -483,7 +486,10 @@ data class VehicleImageDto(
     val description: String? = null,
 
     @JsonProperty("location")
-    val location: String? = null
+    val location: String? = null,
+
+    @JsonProperty("tags")
+    val tags: List<String> = emptyList()
 )
 
 /**

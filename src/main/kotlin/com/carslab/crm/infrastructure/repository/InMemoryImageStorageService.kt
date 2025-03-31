@@ -44,7 +44,8 @@ class InMemoryImageStorageService {
             val metadata = ImageMetadata(
                 originalName = createMediaTypeModel.name,
                 contentType = file.contentType ?: "application/octet-stream",
-                size = file.size
+                size = file.size,
+                tags = createMediaTypeModel.tags
             )
 
             // Zapisywanie danych pliku
@@ -103,7 +104,8 @@ class InMemoryImageStorageService {
             .map { MediaTypeView(
                 id = it.key.fileId,
                 name = it.value?.originalName ?: "Dupa",
-                size = it.value?.size ?: 0
+                size = it.value?.size ?: 0,
+                tags = it.value?.tags ?: emptyList()
             ) }.toSet()
     }
 
@@ -114,6 +116,7 @@ class InMemoryImageStorageService {
         val originalName: String,
         val contentType: String,
         val size: Long,
-        val uploadTime: Long = System.currentTimeMillis()
+        val uploadTime: Long = System.currentTimeMillis(),
+        val tags: List<String>
     )
 }

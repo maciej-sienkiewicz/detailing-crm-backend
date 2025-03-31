@@ -8,5 +8,6 @@ class CreateMediaTypeModel(
     val name: String,
     val url: String? = null,
     val description: String? = null,
-    val location: String? = null
+    val location: String? = null,
+    val tags: List<String> = emptyList()
 )

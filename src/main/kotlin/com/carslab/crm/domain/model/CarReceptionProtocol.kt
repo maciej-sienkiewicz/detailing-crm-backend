@@ -156,7 +156,8 @@ data class MediaItem(
     val size: Long,
     val description: String? = null,
     val location: String? = null,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    val tags: List<String>
 )
 
 /**

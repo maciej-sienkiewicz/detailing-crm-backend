@@ -99,6 +99,7 @@ object CarReceptionDtoMapper {
                     name = it.name ?: "Unknown",
                     description = it.description,
                     location = it.location,
+                    tags = it.tags
                 ) } ?: emptyList(),
             audit = AuditInfo(
                 createdAt = now,
@@ -260,6 +261,7 @@ object CarReceptionDtoMapper {
                     storageId = it.id,
                     createdAt = Instant.now(),
                     description = it.description,
+                    tags = it.tags
                 ) },
             createdAt = protocol.audit.createdAt.format(DATETIME_FORMATTER),
             updatedAt = protocol.audit.updatedAt.format(DATETIME_FORMATTER),

@@ -170,7 +170,8 @@ class CarReceptionService(
                     name = it.name,
                     size = it.size,
                     description = "Zamockowany opis",
-                    createdAt = LocalDateTime.now()
+                    createdAt = LocalDateTime.now(),
+                    tags = it.tags
                 )
             }
         )
