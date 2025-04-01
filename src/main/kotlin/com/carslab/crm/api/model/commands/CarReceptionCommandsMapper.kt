@@ -10,6 +10,7 @@ import com.carslab.crm.domain.model.create.protocol.*
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import javax.print.attribute.standard.Media
 
@@ -57,8 +58,19 @@ object CarReceptionDtoMapper {
     fun fromCreateCommand(command: CreateCarReceptionCommand): CreateProtocolRootModel {
         val protocolId = ProtocolId.generate()
 
-        val startDate = LocalDate.parse(command.startDate)
-        val endDate = command.endDate?.let { LocalDate.parse(it) } ?: startDate
+        val startDateTime = try {
+            LocalDateTime.parse(command.startDate)
+        } catch (e: Exception) {
+            LocalDateTime.of(LocalDate.parse(command.startDate), LocalTime.of(8, 0))
+        }
+
+        val endDateTime = command.endDate?.let {
+            try {
+                LocalDateTime.parse(it)
+            } catch (e: Exception) {
+                LocalDateTime.of(LocalDate.parse(it), LocalTime.of(23, 59, 59))
+            }
+        } ?: LocalDateTime.of(LocalDate.parse(command.startDate), LocalTime.of(23, 59, 59))
 
         val now = LocalDateTime.now()
 
@@ -81,8 +93,8 @@ object CarReceptionDtoMapper {
                 taxId = command.taxId
             ),
             period = ServicePeriod(
-                startDate = startDate,
-                endDate = endDate
+                startDate = startDateTime,
+                endDate = endDateTime
             ),
             status = mapApiStatusToDomain(command.status),
             services = command.selectedServices?.map { mapCreateServiceCommandToService(it) } ?: emptyList(),
@@ -116,9 +128,21 @@ object CarReceptionDtoMapper {
     fun fromUpdateCommand(command: UpdateCarReceptionCommand, existingProtocol: CarReceptionProtocol? = null): CarReceptionProtocol {
         val protocolId = ProtocolId(command.id)
 
-        // Konwertujemy daty
-        val startDate = LocalDate.parse(command.startDate)
-        val endDate = command.endDate?.let { LocalDate.parse(it) } ?: startDate
+        val startDate = try {
+            LocalDateTime.parse(command.startDate)
+        } catch (e: Exception) {
+            // Jeśli format to tylko data bez czasu, dodaj domyślną godzinę 8:00
+            LocalDateTime.of(LocalDate.parse(command.startDate), LocalTime.of(8, 0))
+        }
+
+        val endDate = command.endDate?.let {
+            try {
+                LocalDateTime.parse(it)
+            } catch (e: Exception) {
+                // Jeśli format to tylko data bez czasu, dodaj czas końca dnia 23:59:59
+                LocalDateTime.of(LocalDate.parse(it), LocalTime.of(23, 59, 59))
+            }
+        } ?: LocalDateTime.of(LocalDate.parse(command.startDate), LocalTime.of(23, 59, 59))
 
         // Tworzymy informacje audytowe
         val now = LocalDateTime.now()
@@ -220,8 +244,8 @@ object CarReceptionDtoMapper {
     fun toDetailDto(protocol: CarReceptionProtocol): CarReceptionDetailDto {
         return CarReceptionDetailDto(
             id = protocol.id.value,
-            startDate = protocol.period.startDate.format(DATE_FORMATTER),
-            endDate = protocol.period.endDate.format(DATE_FORMATTER),
+            startDate = protocol.period.startDate.format(DATETIME_FORMATTER),
+            endDate = protocol.period.endDate.format(DATETIME_FORMATTER),
             licensePlate = protocol.vehicle.licensePlate,
             make = protocol.vehicle.make,
             model = protocol.vehicle.model,

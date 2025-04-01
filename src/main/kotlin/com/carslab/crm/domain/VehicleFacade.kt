@@ -77,6 +77,7 @@ class VehicleService(
     fun getAllVehicles(): List<Vehicle> {
         logger.debug("Getting all vehicles")
         return vehicleRepository.findAll()
+
     }
 
     fun getVehiclesByOwnerId(ownerId: String): List<Vehicle> {
@@ -95,7 +96,7 @@ class VehicleService(
         licensePlate: String?,
         make: String?,
         model: String?
-    ): List<Vehicle> {
+    ): List<VehicleWithStats> {
         logger.debug("Searching vehicles with filters: licensePlate=$licensePlate, make=$make, model=$model")
 
         var result = vehicleRepository.findAll()
@@ -120,6 +121,13 @@ class VehicleService(
 
         logger.debug("Found ${result.size} vehicles matching filters")
         return result
+            .associateBy { vehicleStatisticsRepository.findById(it.id) }
+            .map { (stats, vehicle) ->
+                VehicleWithStats(
+                    vehicle = vehicle,
+                    stats = stats
+                )
+            }
     }
 
     fun deleteVehicle(id: VehicleId): Boolean {
@@ -350,7 +358,7 @@ class VehicleFacade(
         licensePlate: String?,
         make: String?,
         model: String?
-    ): List<Vehicle> {
+    ): List<VehicleWithStats> {
         return vehicleService.searchVehicles(licensePlate, make, model)
     }
 

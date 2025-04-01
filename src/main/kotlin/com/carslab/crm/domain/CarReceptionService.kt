@@ -12,9 +12,11 @@ import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
+import com.carslab.crm.infrastructure.repository.InMemoryProtocolCommentsRepository
 import com.carslab.crm.infrastructure.repository.InMemoryProtocolServicesRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -28,6 +30,7 @@ class CarReceptionService(
     private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository,
     private val protocolServicesRepository: InMemoryProtocolServicesRepository,
     private val imageStorageService: InMemoryImageStorageService,
+    private val inMemoryProtocolCommentsRepository: InMemoryProtocolCommentsRepository,
     ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -52,6 +55,7 @@ class CarReceptionService(
 
         val savedProtocolId = carReceptionRepository.save(protocolWithFilledIds)
         protocolServicesRepository.saveServices(createProtocolCommand.services, savedProtocolId)
+        updateStatisticsOnCreateComponent(protocolWithFilledIds)
 
         logger.info("Created protocol with ID: ${savedProtocolId}")
         return savedProtocolId
@@ -88,6 +92,7 @@ class CarReceptionService(
             ?: throw ResourceNotFoundException("Protocol", protocolId.value)
 
         val now = LocalDateTime.now()
+        commentOnStatusChange(newStatus, existingProtocol.status, protocolId)
         val updatedProtocol = existingProtocol.copy(
             status = newStatus,
             audit = existingProtocol.audit.copy(
@@ -110,6 +115,15 @@ class CarReceptionService(
         return carReceptionRepository.findById(protocolId)?.enrichProtocol()
     }
 
+    private fun commentOnStatusChange(newStatus: ProtocolStatus, previousStatus: ProtocolStatus, protocolId: ProtocolId) =
+        inMemoryProtocolCommentsRepository.save(ProtocolComment(
+            protocolId = protocolId,
+            author = "Administrator",
+            content = "Zmieniono status protokołu z: $previousStatus na: $newStatus",
+            timestamp = Instant.now().toString(),
+            type = "system"
+        ))
+
     private fun ProtocolView.enrichProtocol(): CarReceptionProtocol {
         val vehicle = vehicleRepository.findById(vehicleId)
         val client = clientRepository.findById(clientId)
@@ -122,7 +136,7 @@ class CarReceptionService(
                 VehicleDetails(
                     make = it?.make ?: "",
                     model = it?.model ?: "",
-                    licensePlate = it?.model ?: "",
+                    licensePlate = it?.licensePlate ?: "",
                     productionYear = it?.year ?: 0,
                     vin = it?.vin ?: "",
                     color = it?.color ?: "",
@@ -187,8 +201,8 @@ class CarReceptionService(
         clientId: Long? = null,
         licensePlate: String? = null,
         status: ProtocolStatus? = null,
-        startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        startDate: LocalDateTime? = null,
+        endDate: LocalDateTime? = null
     ): List<CarReceptionProtocol> {
         logger.debug("Searching protocols with filters: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
 
@@ -337,15 +351,14 @@ class CarReceptionService(
         return vehicleRepository.save(newVehicle)
     }
 
-    private fun updateStatisticsOnCompletion(protocol: CarReceptionProtocol) {
+    private fun updateStatisticsOnCreateComponent(protocol: CreateProtocolRootModel) {
         // Aktualizacja statystyk klienta
         protocol.client.id?.let { clientId ->
-            val clientStats = clientStatisticsRepository.findById(ClientId(clientId))
-                ?: ClientStats(clientId, 0, "0".toBigDecimal(), 0)
+            val clientStats = clientStatisticsRepository.findById(ClientId(clientId.toLong()))
+                ?: ClientStats(clientId.toLong(), 0, "0".toBigDecimal(), 0)
 
             val updatedClientStats = clientStats.copy(
                 visitNo = clientStats.visitNo + 1,
-                gmv = clientStats.gmv + protocol.services.sumOf { it.finalPrice.amount }.toBigDecimal()
             )
 
             clientStatisticsRepository.save(updatedClientStats)
@@ -357,6 +370,30 @@ class CarReceptionService(
             val vehicleStats = vehicleStatisticsRepository.findById(it.id)
             val updatedStats = vehicleStats.copy(
                 visitNo = vehicleStats.visitNo + 1,
+            )
+
+            vehicleStatisticsRepository.save(updatedStats)
+        }
+    }
+
+    private fun updateStatisticsOnCompletion(protocol: CarReceptionProtocol) {
+        // Aktualizacja statystyk klienta
+        protocol.client.id?.let { clientId ->
+            val clientStats = clientStatisticsRepository.findById(ClientId(clientId))
+                ?: ClientStats(clientId, 0, "0".toBigDecimal(), 0)
+
+            val updatedClientStats = clientStats.copy(
+                gmv = clientStats.gmv + protocol.services.sumOf { it.finalPrice.amount }.toBigDecimal()
+            )
+
+            clientStatisticsRepository.save(updatedClientStats)
+        }
+
+        // Aktualizacja statystyk pojazdu
+        val vehicle = vehicleRepository.findByVinOrLicensePlate(protocol.vehicle.vin, protocol.vehicle.licensePlate)
+        vehicle?.let {
+            val vehicleStats = vehicleStatisticsRepository.findById(it.id)
+            val updatedStats = vehicleStats.copy(
                 gmv = vehicleStats.gmv + protocol.services.sumOf { it.finalPrice.amount }.toBigDecimal()
             )
 

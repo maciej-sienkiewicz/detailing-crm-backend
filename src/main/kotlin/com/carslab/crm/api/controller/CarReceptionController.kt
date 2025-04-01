@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @RestController
@@ -129,8 +130,8 @@ class CarReceptionController(
             clientName = clientName,
             licensePlate = licensePlate,
             status = domainStatus,
-            startDate = parseDateParam(startDate),
-            endDate = parseDateParam(endDate)
+            startDate = parseDateTimeParam(startDate),
+            endDate = parseDateTimeParam(endDate)
         )
 
         val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
@@ -216,8 +217,8 @@ class CarReceptionController(
             clientName = clientName,
             licensePlate = licensePlate,
             status = domainStatus,
-            startDate = parseDateParam(startDate),
-            endDate = parseDateParam(endDate)
+            startDate = parseDateTimeParam(startDate),
+            endDate = parseDateTimeParam(endDate)
         )
 
         val response = protocols.map { CarReceptionDtoMapper.toBasicDto(it) }
@@ -344,29 +345,6 @@ class CarReceptionController(
     private fun validateCarReceptionRequest(command: CreateCarReceptionCommand) {
         ValidationUtils.validateNotBlank(command.startDate, "Start date")
 
-        if (command.startDate != null) {
-            try {
-                LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
-            } catch (e: Exception) {
-                throw ValidationException("Invalid start date format. Use ISO format (YYYY-MM-DD)")
-            }
-        }
-
-        if (command.endDate != null) {
-            try {
-                val endDate = LocalDate.parse(command.endDate, DateTimeFormatter.ISO_DATE)
-                val startDate = LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
-
-                if (endDate.isBefore(startDate)) {
-                    throw ValidationException("End date cannot be before start date")
-                }
-            } catch (e: ValidationException) {
-                throw e
-            } catch (e: Exception) {
-                throw ValidationException("Invalid end date format. Use ISO format (YYYY-MM-DD)")
-            }
-        }
-
         ValidationUtils.validateNotBlank(command.licensePlate, "License plate")
         ValidationUtils.validateNotBlank(command.make, "Vehicle make")
         ValidationUtils.validateNotBlank(command.model, "Vehicle model")
@@ -391,24 +369,48 @@ class CarReceptionController(
 
         if (command.startDate != null) {
             try {
-                LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
+                LocalDateTime.parse(command.startDate, DateTimeFormatter.ISO_DATE_TIME)
             } catch (e: Exception) {
-                throw ValidationException("Invalid start date format. Use ISO format (YYYY-MM-DD)")
+                try {
+                    // Próba interpretacji jako samej daty i dodanie domyślnego czasu (8:00)
+                    val localDate = LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
+                    LocalDateTime.of(localDate, LocalTime.of(8, 0))
+                } catch (e2: Exception) {
+                    throw ValidationException("Invalid start date format. Use ISO format (YYYY-MM-DD'T'HH:MM:SS)")
+                }
             }
         }
 
         if (command.endDate != null) {
             try {
-                val endDate = LocalDate.parse(command.endDate, DateTimeFormatter.ISO_DATE)
-                val startDate = LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
+                var endDateTime: LocalDateTime
+                var startDateTime: LocalDateTime
 
-                if (endDate.isBefore(startDate)) {
+                // Parsowanie endDate z obsługą przypadku, gdy jest tylko data (bez czasu)
+                try {
+                    endDateTime = LocalDateTime.parse(command.endDate, DateTimeFormatter.ISO_DATE_TIME)
+                } catch (e: Exception) {
+                    // Jeśli przyszła sama data, dodajemy czas końca dnia (23:59:59)
+                    val endLocalDate = LocalDate.parse(command.endDate, DateTimeFormatter.ISO_DATE)
+                    endDateTime = LocalDateTime.of(endLocalDate, LocalTime.of(23, 59, 59))
+                }
+
+                // Parsowanie startDate z obsługą przypadku, gdy jest tylko data (bez czasu)
+                try {
+                    startDateTime = LocalDateTime.parse(command.startDate, DateTimeFormatter.ISO_DATE_TIME)
+                } catch (e: Exception) {
+                    // Jeśli przyszła sama data, dodajemy domyślną godzinę (8:00)
+                    val startLocalDate = LocalDate.parse(command.startDate, DateTimeFormatter.ISO_DATE)
+                    startDateTime = LocalDateTime.of(startLocalDate, LocalTime.of(8, 0))
+                }
+
+                if (endDateTime.isBefore(startDateTime)) {
                     throw ValidationException("End date cannot be before start date")
                 }
             } catch (e: ValidationException) {
                 throw e
             } catch (e: Exception) {
-                throw ValidationException("Invalid end date format. Use ISO format (YYYY-MM-DD)")
+                throw ValidationException("Invalid date format. Use ISO format (YYYY-MM-DD'T'HH:MM:SS)")
             }
         }
 
@@ -430,14 +432,20 @@ class CarReceptionController(
         }
     }
 
-    private fun parseDateParam(dateString: String?): LocalDate? {
-        if (dateString.isNullOrBlank()) return null
+    private fun parseDateTimeParam(dateTimeString: String?): LocalDateTime? {
+        if (dateTimeString.isNullOrBlank()) return null
 
         return try {
-            LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE)
+            LocalDateTime.parse(dateTimeString)
         } catch (e: Exception) {
-            logger.warn("Invalid date format: $dateString")
-            null
+            try {
+                // Próba sparsowania jako LocalDate i dodanie domyślnego czasu
+                val date = LocalDate.parse(dateTimeString, DateTimeFormatter.ISO_DATE)
+                LocalDateTime.of(date, LocalTime.of(0, 0)) // Początek dnia (00:00)
+            } catch (e2: Exception) {
+                logger.warn("Invalid date/time format: $dateTimeString")
+                null
+            }
         }
     }
 }

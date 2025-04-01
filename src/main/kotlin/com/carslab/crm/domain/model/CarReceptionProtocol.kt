@@ -61,8 +61,8 @@ data class Client(
  * Okres świadczenia usługi.
  */
 data class ServicePeriod(
-    val startDate: LocalDate,
-    val endDate: LocalDate
+    val startDate: LocalDateTime,
+    val endDate: LocalDateTime
 )
 
 /**

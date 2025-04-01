@@ -8,6 +8,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Service
 class CarReceptionFacade(
@@ -44,8 +45,8 @@ class CarReceptionFacade(
         clientId: Long? = null,
         licensePlate: String? = null,
         status: ProtocolStatus? = null,
-        startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        startDate: LocalDateTime? = null,
+        endDate: LocalDateTime? = null
     ): List<CarReceptionProtocol> {
         return carReceptionService.searchProtocols(
             clientName = clientName,

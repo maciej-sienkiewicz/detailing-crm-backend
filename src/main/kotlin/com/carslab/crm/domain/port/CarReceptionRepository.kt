@@ -8,6 +8,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.infrastructure.repository.ProtocolEntity
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /**
  * Port repozytorium dla protokołów przyjęcia pojazdów.
@@ -57,7 +58,7 @@ interface CarReceptionRepository {
         clientId: Long?,
         licensePlate: String?,
         status: ProtocolStatus?,
-        startDate: LocalDate?,
-        endDate: LocalDate?
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?
     ): List<ProtocolView>
 }

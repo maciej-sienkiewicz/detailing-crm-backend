@@ -133,8 +133,8 @@ class InMemoryCarReceptionRepository(
         clientId: Long?,
         licensePlate: String?,
         status: ProtocolStatus?,
-        startDate: LocalDate?,
-        endDate: LocalDate?
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?
     ): List<ProtocolView> {
         // Start with all entities
         var filteredEntities = entities.values
