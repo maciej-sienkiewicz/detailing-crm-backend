@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.*
 
 data class CreateProtocolRootModel(
     val id: ProtocolId,
+    val title: String,
     val vehicle: CreateProtocolVehicleModel,
     val client: CreateProtocolClientModel,
     val period: ServicePeriod,
@@ -20,9 +21,10 @@ data class CreateProtocolRootModel(
 data class CreateServiceModel(
     val name: String,
     val basePrice: Money,
-    val discount: Discount? = null,
+    val discount: Discount?,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
+    val note: String?,
 )
 
 data class CreateProtocolVehicleModel(

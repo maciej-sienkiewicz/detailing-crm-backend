@@ -14,6 +14,7 @@ data class ServiceEntity(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
+    val note: String?
 )
 
 data class ServiceId(val id: Long)
@@ -55,5 +56,6 @@ private fun CreateServiceModel.toEntity(protocolId: ProtocolId): ServiceEntity {
         basePrice = this.basePrice,
         discount = this.discount,
         finalPrice = this.finalPrice,
-        approvalStatus = this.approvalStatus
+        approvalStatus = this.approvalStatus,
+        note = this.note,
     )}
