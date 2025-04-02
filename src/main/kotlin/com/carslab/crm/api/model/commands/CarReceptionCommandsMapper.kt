@@ -273,7 +273,8 @@ object CarReceptionDtoMapper {
                     discountType = mapDomainDiscountTypeToApi(service.discount?.type),
                     discountValue = service.discount?.value ?: 0.0,
                     finalPrice = service.finalPrice.amount,
-                    approvalStatus = mapDomainApprovalStatusToApi(service.approvalStatus)
+                    approvalStatus = mapDomainApprovalStatusToApi(service.approvalStatus),
+                    note = service.note,
                 )
             },
             status = mapDomainStatusToApi(protocol.status),

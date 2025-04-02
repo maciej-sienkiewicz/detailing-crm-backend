@@ -471,7 +471,10 @@ data class ServiceDto(
     val finalPrice: Double,
 
     @JsonProperty("approval_status")
-    val approvalStatus: ServiceApprovalStatus? = null
+    val approvalStatus: ServiceApprovalStatus? = null,
+
+    @JsonProperty("note")
+    val note: String
 )
 
 /**
