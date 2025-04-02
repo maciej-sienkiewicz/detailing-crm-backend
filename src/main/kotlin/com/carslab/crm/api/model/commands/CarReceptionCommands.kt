@@ -93,6 +93,9 @@ data class UpdateCarReceptionCommand(
     @JsonProperty("id")
     val id: String,
 
+    @JsonProperty("title")
+    val title: String,
+
     @JsonProperty("start_date")
     val startDate: String,
 
@@ -189,7 +192,7 @@ data class CreateServiceCommand(
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
 
     @JsonProperty("note")
-    val note: String? = null
+    val note: String
 )
 
 class ServicesUpdateCommand {
@@ -222,7 +225,10 @@ data class UpdateServiceCommand(
     val finalPrice: Double? = null,
 
     @JsonProperty("approval_status")
-    val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING
+    val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
+
+    @JsonProperty("note")
+    val note: String
 )
 
 /**

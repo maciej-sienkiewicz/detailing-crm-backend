@@ -8,6 +8,7 @@ import java.time.LocalDateTime
  */
 data class CarReceptionProtocol(
     val id: ProtocolId,
+    val title: String,
     val vehicle: VehicleDetails,
     val client: Client,
     val period: ServicePeriod,
@@ -75,6 +76,7 @@ data class Service(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
+    val note: String
 )
 
 /**

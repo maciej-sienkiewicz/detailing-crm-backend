@@ -24,7 +24,7 @@ data class CreateServiceModel(
     val discount: Discount?,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
-    val note: String?,
+    val note: String,
 )
 
 data class CreateProtocolVehicleModel(

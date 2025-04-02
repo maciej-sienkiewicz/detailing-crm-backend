@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 
 data class ProtocolView(
     val id: ProtocolId,
+    val title: String,
     val vehicleId: VehicleId,
     val clientId: ClientId,
     val period: ServicePeriod,

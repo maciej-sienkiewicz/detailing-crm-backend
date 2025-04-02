@@ -159,6 +159,7 @@ object CarReceptionDtoMapper {
 
         return CarReceptionProtocol(
             id = protocolId,
+            title = command.title,
             vehicle = VehicleDetails(
                 make = command.make,
                 model = command.model,
@@ -245,7 +246,7 @@ object CarReceptionDtoMapper {
     fun toDetailDto(protocol: CarReceptionProtocol): CarReceptionDetailDto {
         return CarReceptionDetailDto(
             id = protocol.id.value,
-            name =
+            title = protocol.title,
             startDate = protocol.period.startDate.format(DATETIME_FORMATTER),
             endDate = protocol.period.endDate.format(DATETIME_FORMATTER),
             licensePlate = protocol.vehicle.licensePlate,
@@ -370,7 +371,8 @@ object CarReceptionDtoMapper {
                 )
             } else null,
             finalPrice = Money(finalPrice),
-            approvalStatus = command.approvalStatus?.let { mapApiApprovalStatusToDomain(it) } ?: ApprovalStatus.PENDING
+            approvalStatus = command.approvalStatus?.let { mapApiApprovalStatusToDomain(it) } ?: ApprovalStatus.PENDING,
+            note = command.note
         )
     }
 

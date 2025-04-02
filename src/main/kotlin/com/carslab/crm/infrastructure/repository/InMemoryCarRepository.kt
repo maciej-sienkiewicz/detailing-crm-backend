@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class ProtocolEntity(
     val id: ProtocolId,
+    val title: String,
     val vehicleId: VehicleId,
     val clientId: ClientId,
     val period: ServicePeriod,
@@ -44,6 +45,7 @@ class InMemoryCarReceptionRepository(
     override fun save(protocol: CreateProtocolRootModel): ProtocolId {
         val entity = ProtocolEntity(
             id = protocol.id,
+            title = protocol.title,
             vehicleId = VehicleId(protocol.vehicle.id?.toLong() ?: throw IllegalStateException("Vehicle ID is required")),
             clientId = ClientId(protocol.client.id?.toLong() ?: throw IllegalStateException("Client ID is required")),
             period = protocol.period,
@@ -62,6 +64,7 @@ class InMemoryCarReceptionRepository(
         // Create or update the entity
         val entity = entities[protocol.id.value] ?: ProtocolEntity(
             id = protocol.id,
+            title = protocol.title,
             vehicleId = VehicleId(0), // This will be updated if client has a vehicle ID
             clientId = ClientId(protocol.client.id ?: 0),
             period = protocol.period,
@@ -199,6 +202,7 @@ class InMemoryCarReceptionRepository(
     private fun ProtocolEntity.toDomainObject() =
         ProtocolView(
             id = id,
+            title = title,
             vehicleId = vehicleId,
             clientId = clientId,
             period = period,

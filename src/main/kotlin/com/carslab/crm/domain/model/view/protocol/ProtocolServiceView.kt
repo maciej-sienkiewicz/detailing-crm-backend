@@ -12,4 +12,5 @@ data class ProtocolServiceView(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
+    val note: String
 )

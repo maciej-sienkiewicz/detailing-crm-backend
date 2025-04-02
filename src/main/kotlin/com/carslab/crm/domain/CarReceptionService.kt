@@ -78,6 +78,22 @@ class CarReceptionService(
                 }
             )
         )
+        
+        protocolServicesRepository
+            .saveServices(
+                services = updatedProtocol.services
+                    .map {
+                        CreateServiceModel(
+                            name = it.name,
+                            basePrice = it.basePrice,
+                            discount = it.discount,
+                            finalPrice = it.finalPrice,
+                            approvalStatus = it.approvalStatus,
+                            note = it.note
+                        )
+                    },
+                protocolId = updatedProtocol.id
+            )
 
         val savedProtocol = carReceptionRepository.save(updatedProtocol)
         logger.info("Updated protocol with ID: ${savedProtocol.id.value}")
@@ -132,6 +148,7 @@ class CarReceptionService(
 
         return CarReceptionProtocol(
             id = id,
+            title = title,
             vehicle = vehicle.let {
                 VehicleDetails(
                     make = it?.make ?: "",
@@ -163,7 +180,8 @@ class CarReceptionService(
                         basePrice = it.basePrice,
                         discount = it.discount,
                         finalPrice = it.finalPrice,
-                        approvalStatus = it.approvalStatus
+                        approvalStatus = it.approvalStatus,
+                        note = it.note
                     )
                 },
             notes = notes,
@@ -223,6 +241,7 @@ class CarReceptionService(
         return baseProtocols.map {
             CarReceptionProtocol(
                 id = it.id,
+                title = it.title,
                 vehicle = vehicles[it.vehicleId]!!.let {
                     VehicleDetails(
                         make = it.make ?: "",

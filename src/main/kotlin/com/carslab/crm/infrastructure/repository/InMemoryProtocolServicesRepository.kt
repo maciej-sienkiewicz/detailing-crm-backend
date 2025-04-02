@@ -14,7 +14,7 @@ data class ServiceEntity(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
-    val note: String?
+    val note: String
 )
 
 data class ServiceId(val id: Long)
@@ -41,7 +41,8 @@ class InMemoryProtocolServicesRepository {
                     basePrice = it.basePrice,
                     discount = it.discount,
                     finalPrice = it.finalPrice,
-                    approvalStatus = it.approvalStatus
+                    approvalStatus = it.approvalStatus,
+                    note = it.note
                 )
             }
     }
