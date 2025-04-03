@@ -109,6 +109,25 @@ class InMemoryImageStorageService {
             ) }.toSet()
     }
 
+    fun updateImageMetadata(protocolId: ProtocolId, imageId: String, name: String, tags: List<String>, description: String?, location: String?): MediaTypeView {
+        val imageKey = ImageId(protocolId, imageId)
+        val metadata = metadataStorage[imageKey] ?: throw IllegalArgumentException("Image not found")
+
+        val updatedMetadata = metadata.copy(
+            originalName = name,
+            tags = tags
+        )
+
+        metadataStorage[imageKey] = updatedMetadata
+
+        return MediaTypeView(
+            id = imageId,
+            name = updatedMetadata.originalName,
+            size = updatedMetadata.size,
+            tags = updatedMetadata.tags
+        )
+    }
+
     /**
      * Klasa do przechowywania metadanych pliku.
      */

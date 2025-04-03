@@ -107,13 +107,7 @@ object CarReceptionDtoMapper {
                 documentsProvided = command.documentsProvided ?: false
             ),
             mediaItems = command.vehicleImages
-                ?.map { CreateMediaTypeModel(
-                    type = MediaType.PHOTO,
-                    name = it.name ?: "Unknown",
-                    description = it.description,
-                    location = it.location,
-                    tags = it.tags
-                ) } ?: emptyList(),
+                ?.map { it.fromCreateImageCommand() } ?: emptyList(),
             audit = AuditInfo(
                 createdAt = now,
                 updatedAt = now,
@@ -122,6 +116,24 @@ object CarReceptionDtoMapper {
             )
         )
     }
+
+
+    fun CreateVehicleImageCommand.fromCreateImageCommand() =
+        CreateMediaTypeModel(
+            type = MediaType.PHOTO,
+            name = name ?: "Unknown",
+            description = description,
+            location = location,
+            tags = tags
+        )
+
+    fun UpdateVehicleImageCommand.fromCreateImageCommand() =
+        UpdateMediaTypeMode(
+            name = name ?: "Unknown",
+            description = description,
+            location = location,
+            tags = tags
+        )
 
     /**
      * Konwertuje komendę aktualizacji protokołu na model domenowy.

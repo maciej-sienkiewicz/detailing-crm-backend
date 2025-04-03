@@ -3,12 +3,16 @@ package com.carslab.crm.api.controller
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper.DATETIME_FORMATTER
+import com.carslab.crm.api.mapper.CarReceptionDtoMapper.fromCreateImageCommand
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.commands.*
 import com.carslab.crm.api.model.response.ProtocolIdResponse
+import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.CarReceptionFacade
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.VehicleImage
+import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
+import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
@@ -25,6 +29,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartHttpServletRequest
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -55,28 +60,121 @@ class CarReceptionController(
             val domainProtocol = CarReceptionDtoMapper.fromCreateCommand(protocolRequest)
             val createdProtocolId = carReceptionFacade.createProtocol(domainProtocol)
 
-            val fileMap = request.fileMap
-
-            fileMap.forEach { (paramName, file) ->
-                // Sprawdź, czy to jest plik zdjęcia (format: images[index])
-                val imageIndexRegex = """images\[(\d+)\]""".toRegex()
-                val matchResult = imageIndexRegex.find(paramName)
-
-                if (matchResult != null) {
-                    val index = matchResult.groupValues[1].toInt()
-
-                    val imageRequest = protocolRequest.vehicleImages?.getOrNull(index)
-
-                    if (imageRequest != null && imageRequest.hasFile) {
-                        val storageId = imageStorageService.storeFile(file, createdProtocolId, domainProtocol.mediaItems.get(index))
-                    }
-                }
-            }
+            processUploadedImages(request, protocolRequest.vehicleImages, createdProtocolId, domainProtocol.mediaItems)
 
             return created(ProtocolIdResponse(createdProtocolId.value))
         } catch (e: Exception) {
             return logAndRethrow("Error creating car reception protocol with files", e)
         }
+    }
+
+    @PostMapping("/{protocolId}/image", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun uploadPhoto(@PathVariable protocolId: String, request: MultipartHttpServletRequest): ResponseEntity<ProtocolIdResponse> {
+        try {
+            logger.info("Adding new photo for protocol: $protocolId")
+
+            val imageDetailsJson = request.getParameter("image")
+                ?: return badRequest("Missing 'image' parameter")
+
+            val imageCommand: CreateVehicleImageCommand = objectMapper.readValue(imageDetailsJson, CreateVehicleImageCommand::class.java)
+            val image = imageCommand.fromCreateImageCommand()
+
+            storeUploadedImage(request, ProtocolId(protocolId), image)
+
+            return created(ProtocolIdResponse(protocolId))
+        } catch (e: Exception) {
+            return logAndRethrow("Error uploading photo for car reception protocol", e)
+        }
+    }
+
+    /**
+     * Aktualizacja metadanych zdjęcia (nazwa, tagi, opis, lokalizacja)
+     */
+    @PatchMapping("/{protocolId}/image/{imageId}")
+    fun updateImageMetadata(
+        @PathVariable protocolId: String,
+        @PathVariable imageId: String,
+        @RequestBody updateCommand: UpdateVehicleImageCommand
+    ): ResponseEntity<VehicleImageResponse> {
+        try {
+            logger.info("Updating image metadata for protocol: $protocolId, image: $imageId, data: $updateCommand")
+
+            val updateImage = updateCommand.fromCreateImageCommand()
+
+            // Aktualizacja metadanych obrazu
+            val updatedImage: MediaTypeView = imageStorageService.updateImageMetadata(
+                protocolId = ProtocolId(protocolId),
+                imageId = imageId,
+                name = updateImage.name,
+                tags = updateImage.tags,
+                description = updateImage.description,
+                location = updateImage.location
+            )
+
+            // Mapowanie do odpowiedzi
+            val response = VehicleImageResponse(
+                id = updatedImage.id,
+                name = updatedImage.name,
+                size = updatedImage.size,
+                tags = updatedImage.tags,
+                type = "PHOTO",
+                createdAt = Instant.now(),
+                updatedAt = Instant.now(),
+                description = "to moj opis",
+                location = "pl",
+            )
+
+            return ResponseEntity.ok(response)
+        } catch (e: Exception) {
+            return logAndRethrow("Error updating image metadata", e)
+        }
+    }
+
+    /**
+     * Processes uploaded images from multipart request and stores them in the image storage service
+     */
+    private fun processUploadedImages(
+        request: MultipartHttpServletRequest,
+        vehicleImages: List<CreateVehicleImageCommand>?,
+        protocolId: ProtocolId,
+        mediaItems: List<CreateMediaTypeModel>
+    ) {
+        if (vehicleImages.isNullOrEmpty()) return
+
+        request.fileMap.forEach { (paramName, file) ->
+            val index = extractImageIndex(paramName) ?: return@forEach
+
+            val imageRequest = vehicleImages.getOrNull(index)
+            if (imageRequest != null && imageRequest.hasFile && index < mediaItems.size) {
+                imageStorageService.storeFile(file, protocolId, mediaItems[index])
+            }
+        }
+    }
+
+    /**
+     * Stores a single uploaded image from the multipart request
+     */
+    private fun storeUploadedImage(
+        request: MultipartHttpServletRequest,
+        protocolId: ProtocolId,
+        image: CreateMediaTypeModel
+    ) {
+        request.fileMap.forEach { (paramName, file) ->
+            if (extractImageIndex(paramName) != null) {
+                imageStorageService.storeFile(file, protocolId, image)
+                return
+            }
+        }
+    }
+
+    /**
+     * Extracts image index from parameter name using regex
+     * Returns null if parameter doesn't match the expected format
+     */
+    private fun extractImageIndex(paramName: String): Int? {
+        val imageIndexRegex = """images\[(\d+)\]""".toRegex()
+        val matchResult = imageIndexRegex.find(paramName) ?: return null
+        return matchResult.groupValues[1].toInt()
     }
 
     @PostMapping

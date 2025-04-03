@@ -19,7 +19,7 @@ data class CreateCarReceptionCommand(
     val endDate: String? = null,
 
     @JsonProperty("license_plate")
-    val licensePlate: String,
+    val licensePlate: String? = null,
 
     @JsonProperty("make")
     val make: String,
@@ -261,17 +261,8 @@ data class CreateVehicleImageCommand(
  * Komenda do aktualizacji istniejącego obrazu pojazdu.
  */
 data class UpdateVehicleImageCommand(
-    @JsonProperty("id")
-    val id: String,
-
     @JsonProperty("name")
     val name: String? = null,
-
-    @JsonProperty("size")
-    val size: Long? = null,
-
-    @JsonProperty("type")
-    val type: String? = null,
 
     @JsonProperty("description")
     val description: String? = null,
@@ -279,8 +270,8 @@ data class UpdateVehicleImageCommand(
     @JsonProperty("location")
     val location: String? = null,
 
-    @JsonProperty("has_file")
-    val hasFile: Boolean = false
+    @JsonProperty("tags")
+    val tags: List<String> = emptyList()
 )
 /**
  * DTO dla szybkiego widoku listy protokołów.
@@ -474,7 +465,7 @@ data class ServiceDto(
     val approvalStatus: ServiceApprovalStatus? = null,
 
     @JsonProperty("note")
-    val note: String
+    val note: String? = ""
 )
 
 /**
