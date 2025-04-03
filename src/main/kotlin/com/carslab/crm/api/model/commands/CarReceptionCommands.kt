@@ -192,7 +192,7 @@ data class CreateServiceCommand(
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
 
     @JsonProperty("note")
-    val note: String
+    val note: String? = null
 )
 
 class ServicesUpdateCommand {

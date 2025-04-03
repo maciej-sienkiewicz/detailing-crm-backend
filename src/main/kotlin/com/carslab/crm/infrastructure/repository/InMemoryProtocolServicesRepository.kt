@@ -14,7 +14,7 @@ data class ServiceEntity(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
-    val note: String
+    val note: String?
 )
 
 data class ServiceId(val id: Long)
