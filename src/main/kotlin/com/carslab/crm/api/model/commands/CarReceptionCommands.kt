@@ -31,7 +31,7 @@ data class CreateCarReceptionCommand(
     val productionYear: Int? = null,
 
     @JsonProperty("mileage")
-    val mileage: Int? = null,
+    val mileage: Long? = null,
 
     @JsonProperty("vin")
     val vin: String? = null,
@@ -115,7 +115,7 @@ data class UpdateCarReceptionCommand(
     val productionYear: Int? = null,
 
     @JsonProperty("mileage")
-    val mileage: Int? = null,
+    val mileage: Long? = null,
 
     @JsonProperty("vin")
     val vin: String? = null,
@@ -179,6 +179,9 @@ data class CreateServiceCommand(
     @JsonProperty("price")
     val price: Double,
 
+    @JsonProperty("quantity")
+    val quantity: Long,
+
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
 
@@ -212,6 +215,9 @@ data class UpdateServiceCommand(
     @JsonProperty("name")
     val name: String,
 
+    @JsonProperty("quantity")
+    val quantity: Long,
+
     @JsonProperty("price")
     val price: Double,
 
@@ -228,7 +234,7 @@ data class UpdateServiceCommand(
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
 
     @JsonProperty("note")
-    val note: String
+    val note: String?
 )
 
 /**
@@ -328,7 +334,7 @@ data class CarReceptionDetailDto(
     val productionYear: Int,
 
     @JsonProperty("mileage")
-    val mileage: Int? = null,
+    val mileage: Long? = null,
 
     @JsonProperty("vin")
     val vin: String? = null,
@@ -448,6 +454,9 @@ data class ServiceDto(
 
     @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("quantity")
+    val quantity: Long,
 
     @JsonProperty("price")
     val price: Double,

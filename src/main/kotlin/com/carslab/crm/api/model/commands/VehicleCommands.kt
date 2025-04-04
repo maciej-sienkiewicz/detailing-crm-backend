@@ -18,6 +18,9 @@ data class CreateVehicleCommand(
     @JsonProperty("year")
     val year: Int,
 
+    @JsonProperty("mileage")
+    val mileage: Long? = null,
+
     @JsonProperty("license_plate")
     val licensePlate: String,
 
@@ -47,6 +50,9 @@ data class UpdateVehicleCommand(
 
     @JsonProperty("year")
     val year: Int,
+
+    @JsonProperty("mileage")
+    val mileage: Long? = null,
 
     @JsonProperty("license_plate")
     val licensePlate: String,

@@ -12,7 +12,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import javax.print.attribute.standard.Media
 
 /**
  * Zrefaktoryzowany mapper dla modeli protokołu przyjęcia pojazdu.
@@ -194,7 +193,7 @@ object CarReceptionDtoMapper {
                 endDate = endDate
             ),
             status = mapApiStatusToDomain(command.status),
-            services = command.selectedServices?.map { mapUpdateServiceCommandToService(it) } ?: emptyList(),
+            protocolServices = command.selectedServices?.map { mapUpdateServiceCommandToService(it) } ?: emptyList(),
             notes = command.notes,
             referralSource = mapApiReferralSourceToDomain(command.referralSource),
             otherSourceDetails = command.otherSourceDetails,
@@ -247,8 +246,8 @@ object CarReceptionDtoMapper {
                 companyName = protocol.client.companyName
             ),
             status = mapDomainStatusToApi(protocol.status),
-            totalServiceCount = protocol.services.size,
-            totalAmount = protocol.services.sumOf { it.finalPrice.amount }
+            totalServiceCount = protocol.protocolServices.size,
+            totalAmount = protocol.protocolServices.sumOf { it.finalPrice.amount }
         )
     }
 
@@ -277,7 +276,7 @@ object CarReceptionDtoMapper {
             email = protocol.client.email,
             phone = protocol.client.phone,
             notes = protocol.notes,
-            selectedServices = protocol.services.map { service ->
+            selectedServices = protocol.protocolServices.map { service ->
                 ServiceDto(
                     id = service.id,
                     name = service.name,
@@ -287,6 +286,7 @@ object CarReceptionDtoMapper {
                     finalPrice = service.finalPrice.amount,
                     approvalStatus = mapDomainApprovalStatusToApi(service.approvalStatus),
                     note = service.note,
+                    quantity = service.quantity
                 )
             },
             status = mapDomainStatusToApi(protocol.status),
@@ -322,7 +322,7 @@ object CarReceptionDtoMapper {
             carMake = protocol.vehicle.make,
             carModel = protocol.vehicle.model,
             licensePlate = protocol.vehicle.licensePlate,
-            totalAmount = protocol.services.sumOf { it.finalPrice.amount }
+            totalAmount = protocol.protocolServices.sumOf { it.finalPrice.amount }
         )
     }
 
@@ -354,11 +354,12 @@ object CarReceptionDtoMapper {
             } else null,
             finalPrice = Money(finalPrice),
             approvalStatus = command.approvalStatus?.let { mapApiApprovalStatusToDomain(it) } ?: ApprovalStatus.PENDING,
-            note = command.note
+            note = command.note,
+            quantity = command.quantity
         )
     }
 
-    private fun mapUpdateServiceCommandToService(command: UpdateServiceCommand): Service {
+    private fun mapUpdateServiceCommandToService(command: UpdateServiceCommand): ProtocolService {
         val basePrice = command.price
         val discountValue = command.discountValue ?: 0.0
         val discountType = command.discountType?.let { mapApiDiscountTypeToDomain(it) }
@@ -372,7 +373,7 @@ object CarReceptionDtoMapper {
             basePrice
         }
 
-        return Service(
+        return ProtocolService(
             id = command.id,
             name = command.name,
             basePrice = Money(basePrice),
@@ -385,7 +386,8 @@ object CarReceptionDtoMapper {
             } else null,
             finalPrice = Money(finalPrice),
             approvalStatus = command.approvalStatus?.let { mapApiApprovalStatusToDomain(it) } ?: ApprovalStatus.PENDING,
-            note = command.note
+            note = command.note,
+            quantity = command.quantity
         )
     }
 

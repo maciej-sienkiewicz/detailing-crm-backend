@@ -17,7 +17,6 @@ import com.carslab.crm.infrastructure.repository.InMemoryProtocolServicesReposit
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -81,7 +80,7 @@ class CarReceptionService(
         
         protocolServicesRepository
             .saveServices(
-                services = updatedProtocol.services
+                services = updatedProtocol.protocolServices
                     .map {
                         CreateServiceModel(
                             name = it.name,
@@ -89,7 +88,8 @@ class CarReceptionService(
                             discount = it.discount,
                             finalPrice = it.finalPrice,
                             approvalStatus = it.approvalStatus,
-                            note = it.note
+                            note = it.note,
+                            quantity = it.quantity
                         )
                     },
                 protocolId = updatedProtocol.id
@@ -157,7 +157,7 @@ class CarReceptionService(
                     productionYear = it?.year ?: 0,
                     vin = it?.vin ?: "",
                     color = it?.color ?: "",
-                    mileage = 0
+                    mileage = it?.mileage
                 )
             },
             client = client.let {
@@ -172,16 +172,17 @@ class CarReceptionService(
             },
             period = period,
             status = status,
-            services = services
+            protocolServices = services
                 .map {
-                    Service(
+                    ProtocolService(
                         id = it.id.toString(),
                         name = it.name,
                         basePrice = it.basePrice,
                         discount = it.discount,
                         finalPrice = it.finalPrice,
                         approvalStatus = it.approvalStatus,
-                        note = it.note
+                        note = it.note,
+                        quantity = it.quantity
                     )
                 },
             notes = notes,
@@ -265,7 +266,7 @@ class CarReceptionService(
                 },
                 period = it.period,
                 status = it.status,
-                services = emptyList(),
+                protocolServices = emptyList(),
                 notes = it.notes,
                 referralSource = ReferralSource.SEARCH_ENGINE,
                 otherSourceDetails = "",
@@ -362,6 +363,7 @@ class CarReceptionService(
             licensePlate = vehicle.licensePlate,
             color = vehicle.color,
             vin = vehicle.vin,
+            mileage = vehicle.mileage,
             audit = Audit(
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
@@ -402,7 +404,7 @@ class CarReceptionService(
                 ?: ClientStats(clientId, 0, "0".toBigDecimal(), 0)
 
             val updatedClientStats = clientStats.copy(
-                gmv = clientStats.gmv + protocol.services.sumOf { it.finalPrice.amount }.toBigDecimal()
+                gmv = clientStats.gmv + protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
             )
 
             clientStatisticsRepository.save(updatedClientStats)
@@ -413,7 +415,7 @@ class CarReceptionService(
         vehicle?.let {
             val vehicleStats = vehicleStatisticsRepository.findById(it.id)
             val updatedStats = vehicleStats.copy(
-                gmv = vehicleStats.gmv + protocol.services.sumOf { it.finalPrice.amount }.toBigDecimal()
+                gmv = vehicleStats.gmv + protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
             )
 
             vehicleStatisticsRepository.save(updatedStats)

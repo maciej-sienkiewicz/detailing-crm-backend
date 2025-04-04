@@ -24,6 +24,7 @@ object VehicleMapper {
             totalServices = 0, // Domyślnie dla nowego pojazdu
             lastServiceDate = null, // Domyślnie dla nowego pojazdu
             totalSpent = 0.0, // Domyślnie dla nowego pojazdu
+            mileage = request.mileage,
             audit = Audit(
                 createdAt = now,
                 updatedAt = now

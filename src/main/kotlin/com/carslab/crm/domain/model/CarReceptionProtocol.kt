@@ -1,6 +1,5 @@
 package com.carslab.crm.domain.model
 
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
@@ -13,7 +12,7 @@ data class CarReceptionProtocol(
     val client: Client,
     val period: ServicePeriod,
     val status: ProtocolStatus,
-    val services: List<Service>,
+    val protocolServices: List<ProtocolService>,
     val notes: String? = null,
     val referralSource: ReferralSource? = null,
     val otherSourceDetails: String? = null,
@@ -41,7 +40,7 @@ data class VehicleDetails(
     val productionYear: Int,
     val vin: String? = null,
     val color: String? = null,
-    val mileage: Int? = null
+    val mileage: Long? = null
 )
 
 /**
@@ -69,14 +68,15 @@ data class ServicePeriod(
 /**
  * Informacje o usłudze.
  */
-data class Service(
+data class ProtocolService(
     val id: String,
     val name: String,
     val basePrice: Money,
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
-    val note: String?
+    val note: String?,
+    val quantity: Long,
 )
 
 /**

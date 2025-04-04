@@ -443,7 +443,6 @@ class CarReceptionController(
     private fun validateCarReceptionRequest(command: CreateCarReceptionCommand) {
         ValidationUtils.validateNotBlank(command.startDate, "Start date")
 
-        ValidationUtils.validateNotBlank(command.licensePlate, "License plate")
         ValidationUtils.validateNotBlank(command.make, "Vehicle make")
         ValidationUtils.validateNotBlank(command.model, "Vehicle model")
         ValidationUtils.validateNotBlank(command.ownerName, "Owner name")

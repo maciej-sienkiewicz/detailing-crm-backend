@@ -14,7 +14,8 @@ data class ServiceEntity(
     val discount: Discount? = null,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
-    val note: String?
+    val note: String?,
+    val quantity: Long
 )
 
 data class ServiceId(val id: Long)
@@ -42,7 +43,8 @@ class InMemoryProtocolServicesRepository {
                     discount = it.discount,
                     finalPrice = it.finalPrice,
                     approvalStatus = it.approvalStatus,
-                    note = it.note
+                    note = it.note,
+                    quantity = it.quantity
                 )
             }
     }
@@ -59,4 +61,5 @@ private fun CreateServiceModel.toEntity(protocolId: ProtocolId): ServiceEntity {
         finalPrice = this.finalPrice,
         approvalStatus = this.approvalStatus,
         note = this.note,
+        quantity = quantity
     )}

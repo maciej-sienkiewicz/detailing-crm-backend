@@ -32,6 +32,9 @@ data class VehicleRequest(
     @Schema(description = "Vehicle production year", example = "2023", required = true)
     val year: Int,
 
+    @JsonProperty("mileage")
+    val mileage: Long? = null,
+
     @JsonProperty("license_plate")
     @field:NotBlank(message = "{validation.vehicleRequest.licensePlate.notBlank}")
     @field:ValidLicensePlate

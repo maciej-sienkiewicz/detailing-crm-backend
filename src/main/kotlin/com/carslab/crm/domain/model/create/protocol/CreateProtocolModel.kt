@@ -25,6 +25,7 @@ data class CreateServiceModel(
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
     val note: String?,
+    val quantity: Long,
 )
 
 data class CreateProtocolVehicleModel(
@@ -35,7 +36,7 @@ data class CreateProtocolVehicleModel(
     val productionYear: Int? = null,
     val vin: String? = null,
     val color: String? = null,
-    val mileage: Int? = null
+    val mileage: Long? = null
 )
 
 data class CreateProtocolClientModel(

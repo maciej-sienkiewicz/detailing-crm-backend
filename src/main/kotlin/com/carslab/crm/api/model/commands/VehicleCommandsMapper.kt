@@ -29,7 +29,8 @@ object VehicleDtoMapper {
             vin = command.vin,
             totalServices = 0, // Domyślnie dla nowego pojazdu
             lastServiceDate = null, // Domyślnie dla nowego pojazdu
-            totalSpent = 0.0, // Domyślnie dla nowego pojazdu
+            totalSpent = 0.0, // Domyślnie dla nowego pojazdu,
+            mileage = command.mileage,
             audit = Audit(
                 createdAt = now,
                 updatedAt = now
@@ -60,6 +61,7 @@ object VehicleDtoMapper {
             totalServices = totalServices,
             lastServiceDate = lastServiceDate,
             totalSpent = totalSpent,
+            mileage = command.mileage,
             audit = Audit(
                 createdAt = createdAt,
                 updatedAt = now
