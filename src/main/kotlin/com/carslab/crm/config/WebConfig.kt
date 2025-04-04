@@ -21,6 +21,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
+@EnableWebSecurity
 class SecurityConfig {
 
     @Bean
@@ -31,7 +32,7 @@ class SecurityConfig {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         mapper.registerModule(JavaTimeModule())
 
-        // Dodatkowe opcje poprawiające możliwości deserializacji
+        // Additional options to improve deserialization
         mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
         mapper.enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL)
 
@@ -42,11 +43,16 @@ class SecurityConfig {
     fun apiSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .authorizeHttpRequests { auth ->
-                auth.anyRequest().permitAll()
+                auth
+                    .requestMatchers("/api/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                    .requestMatchers("/h2-console/**").permitAll()
+                    .anyRequest().permitAll()
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .csrf { it.disable() }
             .cors { it.configurationSource(corsConfigurationSource()) }
+            .headers { headers -> headers.frameOptions { it.disable() } }
 
         return http.build()
     }

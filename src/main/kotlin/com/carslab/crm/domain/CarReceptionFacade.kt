@@ -7,7 +7,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.time.LocalDate
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
@@ -16,30 +16,37 @@ class CarReceptionFacade(
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionFacade::class.java)
 
+    @Transactional
     fun createProtocol(protocol: CreateProtocolRootModel): ProtocolId {
         return carReceptionService.createProtocol(protocol)
     }
 
+    @Transactional
     fun updateProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
         return carReceptionService.updateProtocol(protocol)
     }
 
+    @Transactional
     fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {
-        return carReceptionService.updateServices(protocolId, services)
+        carReceptionService.updateServices(protocolId, services)
     }
 
+    @Transactional
     fun changeStatus(protocolId: ProtocolId, newStatus: ProtocolStatus): CarReceptionProtocol {
         return carReceptionService.changeStatus(protocolId, newStatus)
     }
 
+    @Transactional(readOnly = true)
     fun getProtocolById(protocolId: ProtocolId): CarReceptionProtocol? {
         return carReceptionService.getProtocolById(protocolId)
     }
 
+    @Transactional(readOnly = true)
     fun getAllProtocols(): List<CarReceptionProtocol> {
         return carReceptionService.getAllProtocols()
     }
 
+    @Transactional(readOnly = true)
     fun searchProtocols(
         clientName: String? = null,
         clientId: Long? = null,
@@ -58,6 +65,7 @@ class CarReceptionFacade(
         )
     }
 
+    @Transactional
     fun deleteProtocol(protocolId: ProtocolId): Boolean {
         return carReceptionService.deleteProtocol(protocolId)
     }

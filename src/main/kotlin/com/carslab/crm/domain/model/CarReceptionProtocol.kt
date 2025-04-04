@@ -1,6 +1,7 @@
 package com.carslab.crm.domain.model
 
 import java.time.LocalDateTime
+import java.util.*
 
 /**
  * Model domeny reprezentujący protokół przyjęcia pojazdu.
@@ -26,7 +27,9 @@ data class CarReceptionProtocol(
  */
 data class ProtocolId(val value: String) {
     companion object {
-        fun generate(): ProtocolId = ProtocolId("PROT-${System.currentTimeMillis()}-${(Math.random() * 1000).toInt()}")
+        // Ta metoda zostanie użyta tylko podczas migracji do nowo utworzonego protokołu
+        // który jeszcze nie ma ID z bazy danych
+        fun generate(): ProtocolId = ProtocolId(UUID.randomUUID().toString())
     }
 }
 

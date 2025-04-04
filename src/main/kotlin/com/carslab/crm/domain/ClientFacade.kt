@@ -4,24 +4,25 @@ import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.port.ClientRepository
 import com.carslab.crm.domain.port.ClientStatisticsRepository
+import com.carslab.crm.domain.port.ClientVehicleRepository
 import com.carslab.crm.domain.port.ContactAttemptRepository
 import com.carslab.crm.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
-import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
 class ClientService(
     private val clientRepository: ClientRepository,
     private val contactAttemptRepository: ContactAttemptRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository,
-    private val associationRepository: InMemoryClientVehicleAssociationRepository,
+    private val clientStatisticsRepository: ClientStatisticsRepository
 ) {
     private val logger = LoggerFactory.getLogger(ClientService::class.java)
 
+    @Transactional
     fun createClient(client: ClientDetails): ClientDetails {
         logger.info("Creating new client: ${client.fullName}")
         validateClient(client)
@@ -31,6 +32,7 @@ class ClientService(
         return savedClient
     }
 
+    @Transactional
     fun updateClient(client: ClientDetails): ClientDetails {
         logger.info("Updating client with ID: ${client.id.value}")
         validateClient(client)
@@ -48,16 +50,19 @@ class ClientService(
         return savedClient
     }
 
+    @Transactional(readOnly = true)
     fun getClientById(clientId: ClientId): ClientDetails? {
         logger.debug("Getting client by ID: ${clientId.value}")
         return clientRepository.findById(clientId)
     }
 
+    @Transactional(readOnly = true)
     fun getAllClients(): List<ClientDetails> {
         logger.debug("Getting all clients")
         return clientRepository.findAll()
     }
 
+    @Transactional(readOnly = true)
     fun searchClients(
         name: String? = null,
         email: String? = null,
@@ -91,11 +96,13 @@ class ClientService(
         return result
     }
 
+    @Transactional
     fun deleteClient(clientId: ClientId): Boolean {
         logger.info("Deleting client with ID: ${clientId.value}")
         return clientRepository.deleteById(clientId)
     }
 
+    @Transactional
     fun createContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
         logger.info("Creating new contact attempt for client: ${contactAttempt.clientId}")
         validateContactAttempt(contactAttempt)
@@ -104,6 +111,7 @@ class ClientService(
         return savedContactAttempt
     }
 
+    @Transactional
     fun updateContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
         logger.info("Updating contact attempt with ID: ${contactAttempt.id.value}")
         val existingContactAttempt = contactAttemptRepository.findById(contactAttempt.id)
@@ -121,21 +129,25 @@ class ClientService(
         return savedContactAttempt
     }
 
+    @Transactional(readOnly = true)
     fun getContactAttemptsByClientId(clientId: String): List<ContactAttempt> {
         logger.debug("Getting contact attempts for client: $clientId")
         return contactAttemptRepository.findContactAttemptsByClientId(clientId)
     }
 
+    @Transactional(readOnly = true)
     fun getContactAttemptById(contactAttemptId: ContactAttemptId): ContactAttempt? {
         logger.debug("Getting contact attempt by ID: ${contactAttemptId.value}")
         return contactAttemptRepository.findById(contactAttemptId)
     }
 
+    @Transactional
     fun deleteContactAttempt(contactAttemptId: ContactAttemptId): Boolean {
         logger.info("Deleting contact attempt with ID: ${contactAttemptId.value}")
         return contactAttemptRepository.deleteById(contactAttemptId)
     }
 
+    @Transactional(readOnly = true)
     fun getClientStatistics(clientId: ClientId): ClientStats {
         return clientStatisticsRepository.findById(clientId)
             ?: ClientStats(clientId.value, 0, "0".toBigDecimal(), 0)
@@ -189,27 +201,31 @@ class ClientService(
 class ClientFacade(
     private val clientService: ClientService,
     private val vehicleRepository: VehicleRepository,
-    private val inMemoryClientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
+    private val clientVehicleRepository: ClientVehicleRepository
 ) {
     private val logger = LoggerFactory.getLogger(ClientFacade::class.java)
 
+    @Transactional
     fun createClient(client: ClientDetails): ClientDetails {
         return clientService.createClient(client)
     }
 
+    @Transactional
     fun updateClient(client: ClientDetails): ClientDetails {
         return clientService.updateClient(client)
     }
 
+    @Transactional(readOnly = true)
     fun getClientById(clientId: ClientId): ClientDetails? {
         return clientService.getClientById(clientId)
     }
 
+    @Transactional(readOnly = true)
     fun getAllClients(): List<com.carslab.crm.domain.model.ClientStats> {
         val clients = clientService.getAllClients()
         val clientIds = clients.map { it.id }.toSet()
 
-       val vehiclesByClient: Map<ClientDetails?, List<Vehicle>> = inMemoryClientVehicleAssociationRepository.findVehiclesByOwnerIds(clientIds.toList())
+        val vehiclesByClient: Map<ClientDetails?, List<Vehicle>> = clientVehicleRepository.findVehiclesByOwnerIds(clientIds.toList())
             .mapValues { vehicleRepository.findByIds(it.value) }
             .mapKeys { clientService.getClientById(it.key) }
 
@@ -218,7 +234,7 @@ class ClientFacade(
             .map { (client, vehicles) ->
                 val stats = clientService.getClientStatistics(client!!.id)
 
-                ClientStats(
+                com.carslab.crm.domain.model.ClientStats(
                     client = client,
                     vehicles = vehicles,
                     stats = stats
@@ -226,6 +242,7 @@ class ClientFacade(
             }
     }
 
+    @Transactional(readOnly = true)
     fun searchClients(
         name: String? = null,
         email: String? = null,
@@ -234,30 +251,37 @@ class ClientFacade(
         return clientService.searchClients(name, email, phone)
     }
 
+    @Transactional
     fun deleteClient(clientId: ClientId): Boolean {
         return clientService.deleteClient(clientId)
     }
 
+    @Transactional
     fun createContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
         return clientService.createContactAttempt(contactAttempt)
     }
 
+    @Transactional
     fun updateContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
         return clientService.updateContactAttempt(contactAttempt)
     }
 
+    @Transactional(readOnly = true)
     fun getContactAttemptsByClientId(clientId: String): List<ContactAttempt> {
         return clientService.getContactAttemptsByClientId(clientId)
     }
 
+    @Transactional(readOnly = true)
     fun getContactAttemptById(contactAttemptId: ContactAttemptId): ContactAttempt? {
         return clientService.getContactAttemptById(contactAttemptId)
     }
 
+    @Transactional
     fun deleteContactAttempt(contactAttemptId: ContactAttemptId): Boolean {
         return clientService.deleteContactAttempt(contactAttemptId)
     }
 
+    @Transactional(readOnly = true)
     fun getClientStatistics(clientId: ClientId): ClientStats {
         return clientService.getClientStatistics(clientId)
     }

@@ -6,7 +6,6 @@ import com.carslab.crm.domain.model.stats.VehicleStats
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
-import com.carslab.crm.infrastructure.repository.InMemoryClientVehicleAssociationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -20,7 +19,7 @@ class VehicleService(
     private val clientRepository: ClientRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
     private val clientStatisticsRepository: ClientStatisticsRepository,
-    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
+    private val clientVehicleAssociationRepository: ClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(VehicleService::class.java)
 
@@ -316,7 +315,6 @@ class VehicleService(
 @Service
 class VehicleFacade(
     private val vehicleService: VehicleService,
-    private val clientVehicleAssociationRepository: InMemoryClientVehicleAssociationRepository
 ) {
     private val logger = LoggerFactory.getLogger(VehicleFacade::class.java)
 

@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.math.BigDecimal
 
@@ -81,7 +82,6 @@ class ClientController(
         logger.info("Getting all clients")
 
         val clientStats = clientFacade.getAllClients()
-        // Tutaj jest problem - musimy użyć właściwej metody mappera, która obsługuje ClientStats a nie ClientDetails
         val response = clientStats.map { stats ->
             ClientMapper.toExpandedResponse(stats)  // To powinno być ok, bo teraz mamy ClientStats
         }

@@ -15,7 +15,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
-import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
+import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import com.carslab.crm.infrastructure.util.ValidationUtils
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -41,7 +41,7 @@ import java.time.format.DateTimeFormatter
 @Tag(name = "Car Receptions", description = "Car reception protocol management endpoints")
 class CarReceptionController(
     private val carReceptionFacade: CarReceptionFacade,
-    private val imageStorageService: InMemoryImageStorageService,
+    private val imageStorageService: FileImageStorageService,
     private val objectMapper: ObjectMapper,
 ) : BaseController() {
 
@@ -102,7 +102,7 @@ class CarReceptionController(
             val updateImage = updateCommand.fromCreateImageCommand()
 
             // Aktualizacja metadanych obrazu
-            val updatedImage: MediaTypeView = imageStorageService.updateImageMetadata(
+            val updatedImage = imageStorageService.updateImageMetadata(
                 protocolId = ProtocolId(protocolId),
                 imageId = imageId,
                 name = updateImage.name,
@@ -199,15 +199,14 @@ class CarReceptionController(
         @PathVariable protocolId: String,
         @RequestBody command: ServicesUpdateCommand): ResponseEntity<ProtocolIdResponse> {
         try {
-
             val savedProtocolId = command.services
                 .map { CarReceptionDtoMapper.mapCreateServiceCommandToService(it) }
                 .let { carReceptionFacade.updateServices(ProtocolId(protocolId), it) }
 
-            logger.info("Successfully created car reception protocol with ID: $savedProtocolId")
+            logger.info("Successfully updated services for protocol with ID: $protocolId")
             return created(ProtocolIdResponse(protocolId))
         } catch (e: Exception) {
-            return logAndRethrow("Error     creating car reception protocol", e)
+            return logAndRethrow("Error updating services for car reception protocol", e)
         }
     }
 
@@ -276,21 +275,20 @@ class CarReceptionController(
     @GetMapping("/protocols/{protocolId}/images")
     fun getProtocolImages(@PathVariable protocolId: String): ResponseEntity<List<ImageDTO>> {
         try {
-            val images = imageStorageService.getAllFileIds()
-                .map { imageStorageService.getFileMetadata(it) }
-                .filterNotNull()
+            val protocolIdObj = ProtocolId(protocolId)
+            val images = imageStorageService.getImagesByProtocol(protocolIdObj)
                 .map {
                     ImageDTO(
-                        id = "id",
-                        name = it.originalName,
+                        id = it.id,
+                        name = it.name,
                         size = it.size,
-                        type = it.contentType,
-                        createdAt = it.uploadTime.toString(),
+                        type = "image/jpeg", // Tymczasowo hardcoded
+                        createdAt = LocalDateTime.now().toString(),
                         protocolId = protocolId
                     )
                 }
 
-            return ResponseEntity.ok(images)
+            return ResponseEntity.ok(images.toList())
         } catch (e: Exception) {
             logger.error("Error getting images for protocol $protocolId", e)
             return ResponseEntity.internalServerError().build()
