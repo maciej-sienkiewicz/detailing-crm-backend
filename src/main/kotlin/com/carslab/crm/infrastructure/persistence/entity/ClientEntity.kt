@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 class ClientEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "first_name", nullable = false)
     var firstName: String,
@@ -42,16 +42,17 @@ class ClientEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 
-    @ManyToMany
-    @JoinTable(
-        name = "client_vehicles",
-        joinColumns = [JoinColumn(name = "client_id")],
-        inverseJoinColumns = [JoinColumn(name = "vehicle_id")]
-    )
+    @Version
+    @Column(name = "version", nullable = false)
+    var version: Long = 0,
+
+    // Relacja many-to-many używająca join table
+    @ManyToMany(mappedBy = "owners")
     var vehicles: MutableSet<VehicleEntity> = mutableSetOf()
+
 ) {
     fun toDomain(): ClientDetails = ClientDetails(
-        id = ClientId(id),
+        id = ClientId(id!!),
         firstName = firstName,
         lastName = lastName,
         email = email ?: "",
@@ -69,7 +70,6 @@ class ClientEntity(
     companion object {
         fun fromDomain(domain: ClientDetails): ClientEntity {
             return ClientEntity(
-                id = domain.id.value,
                 firstName = domain.firstName,
                 lastName = domain.lastName,
                 email = domain.email,

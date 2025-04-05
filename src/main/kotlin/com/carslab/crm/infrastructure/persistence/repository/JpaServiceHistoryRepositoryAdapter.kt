@@ -4,22 +4,22 @@ import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
 import com.carslab.crm.domain.model.VehicleId
 import com.carslab.crm.domain.port.ServiceHistoryRepository
+import com.carslab.crm.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.persistence.entity.ServiceHistoryEntity
 import com.carslab.crm.infrastructure.persistence.repository.ServiceHistoryJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
-@Transactional
 class JpaServiceHistoryRepositoryAdapter(
     private val serviceHistoryJpaRepository: ServiceHistoryJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository
+    private val vehicleJpaRepository: VehicleRepository
 ) : ServiceHistoryRepository {
 
     override fun save(serviceHistory: ServiceHistory): ServiceHistory {
-        val vehicleEntity = vehicleJpaRepository.findById(serviceHistory.vehicleId.value).orElseThrow {
-            IllegalStateException("Vehicle with ID ${serviceHistory.vehicleId.value} not found")
+        // Sprawdź, czy pojazd istnieje
+        if (vehicleJpaRepository.findById(serviceHistory.vehicleId) != null) {
+            throw IllegalStateException("Vehicle with ID ${serviceHistory.vehicleId.value} not found")
         }
 
         val entity = if (serviceHistoryJpaRepository.existsById(serviceHistory.id.value)) {
@@ -34,7 +34,7 @@ class JpaServiceHistoryRepositoryAdapter(
 
             existingEntity
         } else {
-            ServiceHistoryEntity.fromDomain(serviceHistory, vehicleEntity)
+            ServiceHistoryEntity.fromDomain(serviceHistory)
         }
 
         val savedEntity = serviceHistoryJpaRepository.save(entity)
@@ -52,7 +52,8 @@ class JpaServiceHistoryRepositoryAdapter(
     }
 
     override fun findByVehicleId(vehicleId: VehicleId): List<ServiceHistory> {
-        return serviceHistoryJpaRepository.findByVehicle_Id(vehicleId.value)
+        // Używamy bezpośrednio metody findByVehicleId zamiast findByVehicle_Id
+        return serviceHistoryJpaRepository.findByVehicleId(vehicleId.value)
             .map { it.toDomain() }
     }
 

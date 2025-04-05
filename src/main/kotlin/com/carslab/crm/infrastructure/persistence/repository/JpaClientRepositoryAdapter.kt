@@ -10,13 +10,14 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
-@Transactional
 class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepository) : ClientRepository {
 
     override fun save(clientDetails: ClientDetails): ClientDetails {
         val entity = if (clientDetails.id.value > 0) {
+            clientJpaRepository.flush()
             val existingEntity = clientJpaRepository.findById(clientDetails.id.value).orElse(null)
                 ?: ClientEntity.fromDomain(clientDetails)
+            clientJpaRepository.flush()
 
             // Update fields
             existingEntity.firstName = clientDetails.firstName
@@ -34,7 +35,9 @@ class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepos
             ClientEntity.fromDomain(clientDetails)
         }
 
+        clientJpaRepository.flush()
         val savedEntity = clientJpaRepository.save(entity)
+        clientJpaRepository.flush()
         return savedEntity.toDomain()
     }
 

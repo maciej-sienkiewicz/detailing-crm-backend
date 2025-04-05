@@ -19,7 +19,6 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
-@Transactional
 class CarReceptionService(
     private val carReceptionRepository: CarReceptionRepository,
     private val clientRepository: ClientRepository,
@@ -219,6 +218,7 @@ class CarReceptionService(
     ): List<CarReceptionProtocol> {
         logger.debug("Searching protocols with filters: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
 
+        // Używamy zaktualizowanej metody w repozytorium
         val protocolViews = carReceptionRepository.searchProtocols(
             clientName = clientName,
             clientId = clientId,
@@ -305,7 +305,7 @@ class CarReceptionService(
 
     private fun createNewVehicle(vehicle: CreateProtocolVehicleModel): Vehicle {
         val newVehicle = Vehicle(
-            id = VehicleId(1), // ID zostanie wygenerowane przez bazę danych
+            id = VehicleId(0), // ID zostanie wygenerowane przez bazę danych
             make = vehicle.brand,
             model = vehicle.model,
             year = vehicle.productionYear,

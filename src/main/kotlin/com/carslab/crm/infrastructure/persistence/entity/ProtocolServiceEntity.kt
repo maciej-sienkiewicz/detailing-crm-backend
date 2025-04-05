@@ -15,11 +15,11 @@ import java.time.LocalDateTime
 class ProtocolServiceEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "protocol_id", nullable = false)
-    var protocol: ProtocolEntity,
+    // Zmienione z obiektu na ID
+    @Column(name = "protocol_id", nullable = false)
+    var protocolId: Long,
 
     @Column(nullable = false)
     var name: String,
@@ -60,7 +60,7 @@ class ProtocolServiceEntity(
         } else null
 
         return ProtocolServiceView(
-            id = ServiceId(id),
+            id = ServiceId(id!!),
             name = name,
             basePrice = Money(basePrice.toDouble()),
             discount = discount,
@@ -72,13 +72,9 @@ class ProtocolServiceEntity(
     }
 
     companion object {
-        fun fromDomain(
-            domain: ProtocolServiceView,
-            protocolEntity: ProtocolEntity
-        ): ProtocolServiceEntity {
+        fun fromDomain(domain: ProtocolServiceView, protocolId: Long): ProtocolServiceEntity {
             val entity = ProtocolServiceEntity(
-                id = domain.id.id,
-                protocol = protocolEntity,
+                protocolId = protocolId,
                 name = domain.name,
                 basePrice = BigDecimal.valueOf(domain.basePrice.amount),
                 finalPrice = BigDecimal.valueOf(domain.finalPrice.amount),

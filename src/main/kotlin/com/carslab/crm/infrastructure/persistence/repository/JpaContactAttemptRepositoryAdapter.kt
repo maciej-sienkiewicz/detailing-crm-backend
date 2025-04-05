@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Repository
-@Transactional
 class JpaContactAttemptRepositoryAdapter(
     private val contactAttemptJpaRepository: ContactAttemptJpaRepository
 ) : ContactAttemptRepository {

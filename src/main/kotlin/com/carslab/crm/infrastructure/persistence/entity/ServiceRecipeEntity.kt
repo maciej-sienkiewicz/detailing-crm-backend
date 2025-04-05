@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 class ServiceRecipeEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(nullable = false)
     var name: String,
@@ -49,7 +49,6 @@ class ServiceRecipeEntity(
     companion object {
         fun fromDomain(domain: ServiceRecipeView): ServiceRecipeEntity {
             return ServiceRecipeEntity(
-                id = domain.id.value.toLongOrNull() ?: 0,
                 name = domain.name,
                 description = domain.description,
                 price = domain.price,

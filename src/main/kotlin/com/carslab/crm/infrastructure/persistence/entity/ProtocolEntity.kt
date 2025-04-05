@@ -13,18 +13,18 @@ class ProtocolEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(nullable = false)
     var title: String,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id", nullable = false)
-    var vehicle: VehicleEntity,
+    // Zmienione z obiektu na ID
+    @Column(name = "vehicle_id", nullable = false)
+    var vehicleId: Long,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    var client: ClientEntity,
+    // Zmienione z obiektu na ID
+    @Column(name = "client_id", nullable = false)
+    var clientId: Long,
 
     @Column(name = "start_date", nullable = false)
     var startDate: LocalDateTime,
@@ -64,20 +64,20 @@ class ProtocolEntity(
     @Column(name = "status_updated_at", nullable = false)
     var statusUpdatedAt: LocalDateTime = LocalDateTime.now(),
 
-    @OneToMany(mappedBy = "protocol", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
     var services: MutableList<ProtocolServiceEntity> = mutableListOf(),
 
-    @OneToMany(mappedBy = "protocol", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
     var comments: MutableList<ProtocolCommentEntity> = mutableListOf(),
 
-    @OneToMany(mappedBy = "protocol", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
     var images: MutableList<VehicleImageEntity> = mutableListOf()
 ) {
     fun toDomainView(): ProtocolView = ProtocolView(
         id = ProtocolId(id.toString()),
         title = title,
-        vehicleId = com.carslab.crm.domain.model.VehicleId(vehicle.id),
-        clientId = com.carslab.crm.domain.model.ClientId(client.id),
+        vehicleId = com.carslab.crm.domain.model.VehicleId(vehicleId),
+        clientId = com.carslab.crm.domain.model.ClientId(clientId),
         period = com.carslab.crm.domain.model.ServicePeriod(
             startDate = startDate,
             endDate = endDate
@@ -88,12 +88,11 @@ class ProtocolEntity(
     )
 
     companion object {
-        fun fromDomainView(domain: ProtocolView, vehicleEntity: VehicleEntity, clientEntity: ClientEntity): ProtocolEntity {
+        fun fromDomainView(domain: ProtocolView): ProtocolEntity {
             return ProtocolEntity(
-                id = domain.id.value.toLong(),
                 title = domain.title,
-                vehicle = vehicleEntity,
-                client = clientEntity,
+                vehicleId = domain.vehicleId.value,
+                clientId = domain.clientId.value,
                 startDate = domain.period.startDate,
                 endDate = domain.period.endDate,
                 status = domain.status,

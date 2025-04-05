@@ -41,19 +41,35 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
 @Repository
 interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, String> {
     fun findByStatus(status: ProtocolStatus): List<ProtocolEntity>
-    fun findByVehicle_LicensePlateContainingIgnoreCase(licensePlate: String): List<ProtocolEntity>
-    fun findByClient_Id(clientId: Long): List<ProtocolEntity>
-    fun findByClient_FirstNameContainingIgnoreCaseOrClient_LastNameContainingIgnoreCase(firstName: String, lastName: String): List<ProtocolEntity>
+    fun findByClientId(clientId: Long): List<ProtocolEntity>
+
+    // Usunięta metoda findByClientFirstNameContainingIgnoreCaseOrClientLastNameContainingIgnoreCase
+    // i zastąpiona zapytaniem JPQL, które odpowiednio łączy tabele
+    @Query("SELECT p FROM ProtocolEntity p " +
+            "JOIN ClientEntity c ON p.clientId = c.id " +
+            "WHERE LOWER(c.firstName) LIKE LOWER(CONCAT('%', :name, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :name, '%'))")
+    fun findByClientName(@Param("name") name: String): List<ProtocolEntity>
+
+    @Query("SELECT p FROM ProtocolEntity p " +
+            "JOIN VehicleEntity v ON p.vehicleId = v.id " +
+            "WHERE LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))")
+    fun findByLicensePlateContaining(@Param("licensePlate") licensePlate: String): List<ProtocolEntity>
+
     fun findByStartDateGreaterThanEqual(startDate: LocalDateTime): List<ProtocolEntity>
     fun findByEndDateLessThanEqual(endDate: LocalDateTime): List<ProtocolEntity>
 
-    @Query("SELECT p FROM ProtocolEntity p WHERE " +
-            "(:clientName IS NULL OR LOWER(p.client.firstName) LIKE LOWER(CONCAT('%', :clientName, '%')) OR LOWER(p.client.lastName) LIKE LOWER(CONCAT('%', :clientName, '%'))) AND " +
-            "(:clientId IS NULL OR p.client.id = :clientId) AND " +
-            "(:licensePlate IS NULL OR LOWER(p.vehicle.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) AND " +
-            "(:status IS NULL OR p.status = :status) AND " +
-            "(:startDate IS NULL OR p.endDate >= :startDate) AND " +
-            "(:endDate IS NULL OR p.startDate <= :endDate)")
+    @Query(nativeQuery = true,
+        value = "SELECT p.* FROM protocols p " +
+                "JOIN clients c ON p.client_id = c.id " +
+                "JOIN vehicles v ON p.vehicle_id = v.id " +
+                "WHERE " +
+                "(CAST(:clientName AS text) IS NULL OR LOWER(c.first_name::text) LIKE LOWER(CONCAT('%', :clientName, '%')) OR LOWER(c.last_name::text) LIKE LOWER(CONCAT('%', :clientName, '%'))) AND " +
+                "(CAST(:clientId AS text) IS NULL OR p.client_id = :clientId) AND " +
+                "(CAST(:licensePlate AS text) IS NULL OR LOWER(v.license_plate::text) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) AND " +
+                "(CAST(:status AS text) IS NULL OR p.status = :status::text) AND " +
+                "(CAST(:startDate AS text) IS NULL OR p.end_date >= :startDate) AND " +
+                "(CAST(:endDate AS text) IS NULL OR p.start_date <= :endDate)")
     fun searchProtocols(
         @Param("clientName") clientName: String?,
         @Param("clientId") clientId: Long?,
@@ -66,17 +82,17 @@ interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, String> {
 
 @Repository
 interface ProtocolServiceJpaRepository : JpaRepository<ProtocolServiceEntity, Long> {
-    fun findByProtocol_Id(protocolId: Long): List<ProtocolServiceEntity>
+    fun findByProtocolId(protocolId: Long): List<ProtocolServiceEntity>
 }
 
 @Repository
 interface ProtocolCommentJpaRepository : JpaRepository<ProtocolCommentEntity, Long> {
-    fun findByProtocol_Id(protocolId: Long): List<ProtocolCommentEntity>
+    fun findByProtocolId(protocolId: Long): List<ProtocolCommentEntity>
 }
 
 @Repository
 interface ServiceHistoryJpaRepository : JpaRepository<ServiceHistoryEntity, String> {
-    fun findByVehicle_Id(vehicleId: Long): List<ServiceHistoryEntity>
+    fun findByVehicleId(vehicleId: Long): List<ServiceHistoryEntity>
     fun findByDateBetween(startDate: LocalDate, endDate: LocalDate): List<ServiceHistoryEntity>
 }
 
@@ -90,7 +106,7 @@ interface ContactAttemptJpaRepository : JpaRepository<ContactAttemptEntity, Stri
 
 @Repository
 interface VehicleImageJpaRepository : JpaRepository<VehicleImageEntity, String> {
-    fun findByProtocol_Id(protocolId: Long): List<VehicleImageEntity>
+    fun findByProtocolId(protocolId: Long): List<VehicleImageEntity>
 }
 
 @Repository

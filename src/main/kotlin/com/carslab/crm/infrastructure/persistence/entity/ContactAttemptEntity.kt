@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 class ContactAttemptEntity(
     @Id
     @Column(nullable = false)
-    val id: String,
+    val id: String? = null,
 
     @Column(name = "client_id", nullable = false)
     var clientId: String,
@@ -40,7 +40,7 @@ class ContactAttemptEntity(
 ) {
     fun toDomain(): ContactAttempt {
         return ContactAttempt(
-            id = ContactAttemptId(id),
+            id = ContactAttemptId(id!!),
             clientId = clientId,
             date = date,
             type = type,

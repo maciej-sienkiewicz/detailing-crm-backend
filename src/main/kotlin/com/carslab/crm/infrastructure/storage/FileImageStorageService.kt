@@ -1,11 +1,11 @@
 package com.carslab.crm.infrastructure.storage
 
-import com.carslab.crm.domain.model.MediaType
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import com.carslab.crm.infrastructure.persistence.entity.ImageTagEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleImageEntity
+import com.carslab.crm.infrastructure.persistence.repository.ImageTagJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.VehicleImageJpaRepository
 import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
@@ -22,16 +22,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 import java.util.stream.Stream
 
 @Service
-@Transactional
 class FileImageStorageService(
     private val protocolJpaRepository: ProtocolJpaRepository,
     private val vehicleImageJpaRepository: VehicleImageJpaRepository,
+    private val imageTagJpaRepository: ImageTagJpaRepository,
     @Value("\${file.upload-dir:uploads}") private val uploadDir: String
 ) : InMemoryImageStorageService() {
 
@@ -45,24 +44,31 @@ class FileImageStorageService(
         }
     }
 
-    override fun storeFile(file: MultipartFile, protocolId: ProtocolId, createMediaTypeModel: CreateMediaTypeModel): String {
+    override fun storeFile(
+        file: MultipartFile,
+        protocolId: ProtocolId,
+        createMediaTypeModel: CreateMediaTypeModel
+    ): String {
         try {
             if (file.isEmpty) {
                 throw RuntimeException("Failed to store empty file")
             }
 
-            val protocolEntity = protocolJpaRepository.findById(protocolId.value).orElseThrow {
-                RuntimeException("Protocol not found: ${protocolId.value}")
+            // Sprawdzamy czy protokół istnieje
+            if (!protocolJpaRepository.existsById(protocolId.value)) {
+                throw RuntimeException("Protocol not found: ${protocolId.value}")
             }
 
-            // Generate a unique ID for the file
+            val protocolIdLong = protocolId.value.toLong()
+
+            // Generujemy unikalne ID dla pliku
             val fileId = UUID.randomUUID().toString()
 
-            // Create directory for protocol if it doesn't exist
+            // Tworzymy katalog dla protokołu, jeśli nie istnieje
             val protocolDir = rootLocation.resolve(protocolId.value)
             Files.createDirectories(protocolDir)
 
-            // Store file with the generated ID as filename (preserving original extension)
+            // Przechowujemy plik z wygenerowanym ID jako nazwą pliku (zachowując oryginalne rozszerzenie)
             val originalFilename = file.originalFilename ?: "unknown"
             val extension = originalFilename.substringAfterLast('.', "")
             val targetFilename = "$fileId.$extension"
@@ -70,10 +76,10 @@ class FileImageStorageService(
 
             Files.copy(file.inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING)
 
-            // Create and save image entity with metadata
+            // Tworzymy i zapisujemy encję obrazu z metadanymi
             val imageEntity = VehicleImageEntity(
                 id = fileId,
-                protocol = protocolEntity,
+                protocolId = protocolIdLong,
                 name = createMediaTypeModel.name,
                 contentType = file.contentType ?: "application/octet-stream",
                 size = file.size,
@@ -82,13 +88,17 @@ class FileImageStorageService(
                 storagePath = targetPath.toString()
             )
 
-            // Add tags
-            createMediaTypeModel.tags.forEach { tag ->
-                val tagEntity = ImageTagEntity(imageEntity, tag)
-                imageEntity.tags.add(tagEntity)
-            }
-
+            // Zapisujemy encję obrazu
             vehicleImageJpaRepository.save(imageEntity)
+
+            // Dodajemy tagi jako osobne encje
+            createMediaTypeModel.tags.forEach { tag ->
+                val tagEntity = ImageTagEntity(
+                    imageId = fileId,
+                    tag = tag
+                )
+                imageTagJpaRepository.save(tagEntity)
+            }
 
             return fileId
         } catch (e: Exception) {
@@ -99,11 +109,14 @@ class FileImageStorageService(
     override fun deleteFile(fileId: String, protocolId: ProtocolId) {
         try {
             vehicleImageJpaRepository.findById(fileId).ifPresent { imageEntity ->
-                // Delete the physical file
+                // Usuwamy fizyczny plik
                 val filePath = Paths.get(imageEntity.storagePath)
                 Files.deleteIfExists(filePath)
 
-                // Delete the database record
+                // Usuwamy tagi
+                imageTagJpaRepository.deleteAllByImageId(fileId)
+
+                // Usuwamy rekord z bazy danych
                 vehicleImageJpaRepository.delete(imageEntity)
             }
         } catch (e: Exception) {
@@ -124,13 +137,14 @@ class FileImageStorageService(
     override fun getFileMetadata(fileId: String): ImageMetadata? {
         try {
             val imageEntity = vehicleImageJpaRepository.findById(fileId).orElse(null) ?: return null
+            val tags = imageTagJpaRepository.findByImageId(fileId).map { it.tag }
 
             return ImageMetadata(
                 originalName = imageEntity.name,
                 contentType = imageEntity.contentType,
                 size = imageEntity.size,
                 uploadTime = imageEntity.createdAt.toInstant(ZoneOffset.UTC).toEpochMilli(),
-                tags = imageEntity.tags.map { it.tag }
+                tags = tags
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to get file metadata", e)
@@ -146,9 +160,16 @@ class FileImageStorageService(
     }
 
     override fun getImagesByProtocol(protocolId: ProtocolId): Set<MediaTypeView> {
-        return vehicleImageJpaRepository.findByProtocol_Id(protocolId.value.toLong())
-            .map { it.toDomain() }
-            .toSet()
+        val images = vehicleImageJpaRepository.findByProtocolId(protocolId.value.toLong())
+
+        // Dla każdego obrazu pobieramy tagi
+        val result = images.map { image ->
+            val tags = imageTagJpaRepository.findByImageId(image.id).map { it.tag }
+            image.setTags(tags)
+            image.toDomain()
+        }.toSet()
+
+        return result
     }
 
     override fun updateImageMetadata(
@@ -163,18 +184,32 @@ class FileImageStorageService(
             RuntimeException("Image not found: $imageId")
         }
 
+        // Sprawdzamy czy obraz należy do tego protokołu
+        if (imageEntity.protocolId != protocolId.value.toLong()) {
+            throw RuntimeException("Image does not belong to protocol $protocolId")
+        }
+
         imageEntity.name = name
         imageEntity.description = description
         imageEntity.location = location
 
-        // Update tags
-        imageEntity.tags.clear()
+        // Aktualizujemy tagi - usuwamy wszystkie i dodajemy nowe
+        imageTagJpaRepository.deleteAllByImageId(imageId)
         tags.forEach { tag ->
-            val tagEntity = ImageTagEntity(imageEntity, tag)
-            imageEntity.tags.add(tagEntity)
+            val tagEntity = ImageTagEntity(
+                imageId = imageId,
+                tag = tag
+            )
+            imageTagJpaRepository.save(tagEntity)
         }
 
+        // Zapisujemy encję obrazu
         val updatedEntity = vehicleImageJpaRepository.save(imageEntity)
+
+        // Pobieramy tagi dla odpowiedzi
+        val updatedTags = imageTagJpaRepository.findByImageId(imageId).map { it.tag }
+        updatedEntity.setTags(updatedTags)
+
         return updatedEntity.toDomain()
     }
 

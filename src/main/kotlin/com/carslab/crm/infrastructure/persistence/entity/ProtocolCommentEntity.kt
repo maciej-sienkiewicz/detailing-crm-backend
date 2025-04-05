@@ -10,11 +10,11 @@ import java.time.LocalDateTime
 class ProtocolCommentEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "protocol_id", nullable = false)
-    var protocol: ProtocolEntity,
+    // Zmiana z obiektu na ID
+    @Column(name = "protocol_id", nullable = false)
+    var protocolId: Long,
 
     @Column(nullable = false)
     var author: String,
@@ -33,8 +33,8 @@ class ProtocolCommentEntity(
 ) {
     fun toDomain(): ProtocolComment {
         return ProtocolComment(
-            id = id,
-            protocolId = ProtocolId(protocol.id.toString()),
+            id = id!!,
+            protocolId = ProtocolId(protocolId.toString()),
             author = author,
             content = content,
             timestamp = timestamp,
@@ -43,10 +43,10 @@ class ProtocolCommentEntity(
     }
 
     companion object {
-        fun fromDomain(domain: ProtocolComment, protocolEntity: ProtocolEntity): ProtocolCommentEntity {
+        fun fromDomain(domain: ProtocolComment): ProtocolCommentEntity {
             return ProtocolCommentEntity(
                 id = domain.id,
-                protocol = protocolEntity,
+                protocolId = domain.protocolId.value.toLong(),
                 author = domain.author,
                 content = domain.content,
                 timestamp = domain.timestamp,

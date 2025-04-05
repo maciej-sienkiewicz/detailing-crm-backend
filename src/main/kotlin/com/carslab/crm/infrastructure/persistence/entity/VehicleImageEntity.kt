@@ -1,6 +1,5 @@
 package com.carslab.crm.infrastructure.persistence.entity
 
-import com.carslab.crm.domain.model.MediaType
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -12,9 +11,9 @@ class VehicleImageEntity(
     @Column(nullable = false)
     val id: String,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "protocol_id", nullable = false)
-    var protocol: ProtocolEntity,
+    // Zmiana z obiektu na ID
+    @Column(name = "protocol_id", nullable = false)
+    var protocolId: Long,
 
     @Column(nullable = false)
     var name: String,
@@ -37,28 +36,21 @@ class VehicleImageEntity(
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
-    @OneToMany(mappedBy = "image", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var tags: MutableSet<ImageTagEntity> = mutableSetOf()
+    // Zmiana mapowania - zamiast używać JPA relation użyjemy query
+    @Transient
+    var tagsList: List<String> = emptyList()
 ) {
     fun toDomain(): MediaTypeView {
         return MediaTypeView(
             id = id,
             name = name,
             size = size,
-            tags = tags.map { it.tag }.toList()
+            tags = tagsList
         )
     }
+
+    // Metoda pomocnicza do ustawiania tagów
+    fun setTags(tags: List<String>) {
+        this.tagsList = tags
+    }
 }
-
-@Entity
-@Table(name = "image_tags")
-class ImageTagEntity(
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "image_id", nullable = false)
-    var image: VehicleImageEntity,
-
-    @Id
-    @Column(nullable = false)
-    var tag: String
-)

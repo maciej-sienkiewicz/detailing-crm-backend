@@ -12,7 +12,7 @@ import java.math.BigDecimal
 class ClientStatisticsEntity(
     @Id
     @Column(name = "client_id")
-    val clientId: Long,
+    val clientId: Long? = null,
 
     @Column(name = "visit_no")
     var visitNo: Long = 0,
@@ -29,7 +29,7 @@ class ClientStatisticsEntity(
 ) {
     fun toDomain(): ClientStats {
         return ClientStats(
-            clientId = clientId,
+            clientId = clientId!!,
             visitNo = visitNo,
             gmv = gmv,
             vehiclesNo = vehiclesNo

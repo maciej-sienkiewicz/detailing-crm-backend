@@ -13,11 +13,11 @@ import java.time.LocalDateTime
 class ServiceHistoryEntity(
     @Id
     @Column(nullable = false)
-    val id: String,
+    val id: String? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id", nullable = false)
-    var vehicle: VehicleEntity,
+    // Zmiana z obiektu na ID
+    @Column(name = "vehicle_id", nullable = false)
+    var vehicleId: Long,
 
     @Column(nullable = false)
     var date: LocalDate,
@@ -42,8 +42,8 @@ class ServiceHistoryEntity(
 ) {
     fun toDomain(): ServiceHistory {
         return ServiceHistory(
-            id = ServiceHistoryId(id),
-            vehicleId = VehicleId(vehicle.id),
+            id = ServiceHistoryId(id!!),
+            vehicleId = VehicleId(vehicleId),
             date = date,
             serviceType = serviceType,
             description = description,
@@ -57,10 +57,9 @@ class ServiceHistoryEntity(
     }
 
     companion object {
-        fun fromDomain(domain: ServiceHistory, vehicleEntity: VehicleEntity): ServiceHistoryEntity {
+        fun fromDomain(domain: ServiceHistory): ServiceHistoryEntity {
             return ServiceHistoryEntity(
-                id = domain.id.value,
-                vehicle = vehicleEntity,
+                vehicleId = domain.vehicleId.value,
                 date = domain.date,
                 serviceType = domain.serviceType,
                 description = domain.description,

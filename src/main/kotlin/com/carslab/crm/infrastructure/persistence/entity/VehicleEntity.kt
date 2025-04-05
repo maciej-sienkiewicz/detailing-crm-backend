@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 class VehicleEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(nullable = false)
     var make: String,
@@ -49,14 +49,21 @@ class VehicleEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 
-    @ManyToMany(mappedBy = "vehicles")
-    var owners: MutableSet<ClientEntity> = mutableSetOf(),
+    @Version
+    var version: Long? = 0,
 
-    @OneToMany(mappedBy = "vehicle", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var serviceHistory: MutableList<ServiceHistoryEntity> = mutableListOf()
+    // Zamiast bezpośredniej relacji do ClientEntity używamy join table
+    @ManyToMany
+    @JoinTable(
+        name = "client_vehicles",
+        joinColumns = [JoinColumn(name = "vehicle_id")],
+        inverseJoinColumns = [JoinColumn(name = "client_id")]
+    )
+    var owners: MutableSet<ClientEntity> = mutableSetOf()
+
 ) {
     fun toDomain(): Vehicle = Vehicle(
-        id = VehicleId(id),
+        id = VehicleId(id!!),
         make = make,
         model = model,
         year = year,
@@ -76,7 +83,6 @@ class VehicleEntity(
     companion object {
         fun fromDomain(domain: Vehicle): VehicleEntity {
             return VehicleEntity(
-                id = domain.id.value,
                 make = domain.make ?: "",
                 model = domain.model ?: "",
                 year = domain.year,

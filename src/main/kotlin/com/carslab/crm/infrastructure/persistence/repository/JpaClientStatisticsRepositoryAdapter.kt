@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 
 @Repository
-@Transactional
 class JpaClientStatisticsRepositoryAdapter(
     private val clientStatisticsJpaRepository: ClientStatisticsJpaRepository
 ) : ClientStatisticsRepository {
@@ -43,7 +42,6 @@ class JpaClientStatisticsRepositoryAdapter(
 }
 
 @Repository
-@Transactional
 class JpaVehicleStatisticsRepositoryAdapter(
     private val vehicleStatisticsJpaRepository: VehicleStatisticsJpaRepository
 ) : VehicleStatisticsRepository {

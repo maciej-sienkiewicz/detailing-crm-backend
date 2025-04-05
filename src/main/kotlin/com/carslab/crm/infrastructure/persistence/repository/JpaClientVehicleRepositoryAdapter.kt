@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
-@Transactional
 class JpaClientVehicleRepositoryAdapter(
     private val clientJpaRepository: ClientJpaRepository,
     private val vehicleJpaRepository: VehicleJpaRepository
@@ -17,12 +16,12 @@ class JpaClientVehicleRepositoryAdapter(
 
     override fun findVehiclesByClientId(clientId: ClientId): List<VehicleId> {
         val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return emptyList()
-        return client.vehicles.map { VehicleId(it.id) }
+        return client.vehicles.map { VehicleId(it.id!!) }
     }
 
     override fun findOwnersByVehicleId(vehicleId: VehicleId): List<ClientId> {
         val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return emptyList()
-        return vehicle.owners.map { ClientId(it.id) }
+        return vehicle.owners.map { ClientId(it.id!!) }
     }
 
     override fun findVehiclesByOwnerIds(ownerIds: List<ClientId>): Map<ClientId, List<VehicleId>> {
