@@ -2,6 +2,7 @@ package com.carslab.crm.infrastructure.persistence.entity
 
 import com.carslab.crm.domain.model.ClientDetails
 import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -69,6 +70,21 @@ class ClientEntity(
 
     companion object {
         fun fromDomain(domain: ClientDetails): ClientEntity {
+            return ClientEntity(
+                firstName = domain.firstName,
+                lastName = domain.lastName,
+                email = domain.email,
+                phone = domain.phone,
+                address = domain.address,
+                company = domain.company,
+                taxId = domain.taxId,
+                notes = domain.notes,
+                createdAt = domain.audit.createdAt,
+                updatedAt = domain.audit.updatedAt
+            )
+        }
+
+        fun fromDomain(domain: CreateClientModel): ClientEntity {
             return ClientEntity(
                 firstName = domain.firstName,
                 lastName = domain.lastName,

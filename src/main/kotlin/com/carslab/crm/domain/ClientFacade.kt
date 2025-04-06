@@ -1,6 +1,7 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.port.ClientRepository
 import com.carslab.crm.domain.port.ClientStatisticsRepository
@@ -23,9 +24,8 @@ class ClientService(
 ) {
     private val logger = LoggerFactory.getLogger(ClientService::class.java)
 
-    fun createClient(client: ClientDetails): ClientDetails {
-        logger.info("Creating new client: ${client.fullName}")
-        validateClient(client)
+    fun createClient(client: CreateClientModel): ClientDetails {
+        logger.info("Creating new client: ${client.firstName} ${client.lastName}")
         val savedClient = clientRepository.save(client)
         initializeClientStatistics(savedClient.id)
         logger.info("Created client with ID: ${savedClient.id.value}")
@@ -38,13 +38,13 @@ class ClientService(
         val existingClient = clientRepository.findById(client.id)
             ?: throw ResourceNotFoundException("Client", client.id.value)
 
-        val updatedClient = client.copy(
+        val updatedClient: ClientDetails = existingClient.copy(
             audit = client.audit.copy(
                 updatedAt = LocalDateTime.now()
             )
         )
 
-        val savedClient = clientRepository.save(updatedClient)
+        val savedClient = clientRepository.updateOrSave(updatedClient)
         logger.info("Updated client with ID: ${savedClient.id.value}")
         return savedClient
     }
@@ -197,7 +197,7 @@ class ClientFacade(
 ) {
     private val logger = LoggerFactory.getLogger(ClientFacade::class.java)
 
-    fun createClient(client: ClientDetails): ClientDetails {
+    fun createClient(client: CreateClientModel): ClientDetails {
         return clientService.createClient(client)
     }
 
@@ -220,14 +220,13 @@ class ClientFacade(
             .mapValues { vehicleRepository.findByIds(it.value) }
             .mapKeys { clientService.getClientById(it.key) }
 
-        return vehiclesByClient
-            .filter { it.key != null }
-            .map { (client, vehicles) ->
-                val stats = clientService.getClientStatistics(client!!.id)
+        return clients
+            .map {
+                val stats = clientService.getClientStatistics(it.id)
 
-                com.carslab.crm.domain.model.ClientStats(
-                    client = client,
-                    vehicles = vehicles,
+                ClientStats(
+                    client = it,
+                    vehicles = vehiclesByClient.get(it) ?: emptyList(),
                     stats = stats
                 )
             }

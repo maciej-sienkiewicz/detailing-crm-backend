@@ -2,6 +2,8 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.ContactAttemptMapper
+import com.carslab.crm.api.model.commands.ClientCommandMapper
+import com.carslab.crm.api.model.commands.CreateClientCommand
 import com.carslab.crm.api.model.request.ClientRequest
 import com.carslab.crm.api.model.request.ContactAttemptRequest
 import com.carslab.crm.api.model.response.*
@@ -31,7 +33,7 @@ class ClientController(
 
     @PostMapping
     @Operation(summary = "Create a new client", description = "Creates a new client with the provided information")
-    fun createClient(@Valid @RequestBody request: ClientRequest): ResponseEntity<ClientExpandedResponse> {
+    fun createClient(@Valid @RequestBody request: CreateClientCommand): ResponseEntity<ClientExpandedResponse> {
         logger.info("Received request to create new client: ${request.firstName} ${request.lastName}")
 
         try {
@@ -44,7 +46,7 @@ class ClientController(
                 "Phone" to request.phone
             ))
 
-            val domainClient = ClientMapper.toDomain(request)
+            val domainClient = ClientCommandMapper.fromCreateCommand(request)
             val createdClient = clientFacade.createClient(domainClient)
             val response = ClientMapper.toExpandedResponse(createdClient)
 

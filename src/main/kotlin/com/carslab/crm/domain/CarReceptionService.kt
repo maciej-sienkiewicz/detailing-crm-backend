@@ -1,6 +1,7 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
@@ -280,8 +281,7 @@ class CarReceptionService(
         val firstName = nameParts.getOrNull(0) ?: ""
         val lastName = if (nameParts.size > 1) nameParts.subList(1, nameParts.size).joinToString(" ") else ""
 
-        val newClient = ClientDetails(
-            id = ClientId(), // ID zostanie wygenerowane przez bazę danych
+        val newClient = CreateClientModel(
             firstName = firstName,
             lastName = lastName,
             email = client.email ?: "",

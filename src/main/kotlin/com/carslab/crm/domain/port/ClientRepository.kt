@@ -3,6 +3,7 @@ package com.carslab.crm.domain.port
 import com.carslab.crm.domain.model.Client
 import com.carslab.crm.domain.model.ClientDetails
 import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 
 /**
  * Interfejs repozytorium klientów.
@@ -11,7 +12,10 @@ interface ClientRepository {
     /**
      * Zapisuje klienta w repozytorium.
      */
-    fun save(ClientDetails: ClientDetails): ClientDetails
+    fun save(ClientDetails: CreateClientModel): ClientDetails
+
+    fun updateOrSave(ClientDetails: ClientDetails): ClientDetails
+
 
     /**
      * Znajduje klienta po ID.

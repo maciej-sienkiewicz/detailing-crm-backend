@@ -1,6 +1,7 @@
 package com.carslab.crm.api.model.commands
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.stats.ClientStats
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -8,18 +9,17 @@ import java.time.format.DateTimeFormatter
 /**
  * Mapper dla modeli DTO związanych z klientami.
  */
-object ClientDtoMapper {
+object ClientCommandMapper {
     private val DATE_FORMATTER = DateTimeFormatter.ISO_DATE
     private val DATETIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME
 
     /**
      * Konwertuje komendę tworzenia klienta na model domenowy.
      */
-    fun fromCreateCommand(command: CreateClientCommand): ClientDetails {
+    fun fromCreateCommand(command: CreateClientCommand): CreateClientModel {
         val now = LocalDateTime.now()
 
-        return ClientDetails(
-            id = ClientId(),
+        return CreateClientModel(
             firstName = command.firstName,
             lastName = command.lastName,
             email = command.email,

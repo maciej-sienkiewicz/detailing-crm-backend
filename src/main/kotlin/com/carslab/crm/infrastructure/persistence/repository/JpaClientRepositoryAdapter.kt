@@ -3,16 +3,23 @@ package com.carslab.crm.infrastructure.persistence.adapter
 import com.carslab.crm.domain.model.Client
 import com.carslab.crm.domain.model.ClientDetails
 import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.port.ClientRepository
 import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepository) : ClientRepository {
 
-    override fun save(clientDetails: ClientDetails): ClientDetails {
+    override fun save(clientDetails: CreateClientModel): ClientDetails {
+        clientJpaRepository.flush()
+        val savedEntity = clientJpaRepository.save(ClientEntity.fromDomain(clientDetails))
+        clientJpaRepository.flush()
+        return savedEntity.toDomain()
+    }
+
+    override fun updateOrSave(clientDetails: ClientDetails): ClientDetails {
         val entity = if (clientDetails.id.value > 0) {
             clientJpaRepository.flush()
             val existingEntity = clientJpaRepository.findById(clientDetails.id.value).orElse(null)
