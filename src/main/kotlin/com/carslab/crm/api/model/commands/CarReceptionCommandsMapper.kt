@@ -32,6 +32,7 @@ object CarReceptionDtoMapper {
             "IN_PROGRESS" -> ProtocolStatus.IN_PROGRESS
             "READY_FOR_PICKUP" -> ProtocolStatus.READY_FOR_PICKUP
             "COMPLETED" -> ProtocolStatus.COMPLETED
+            "CANCELLED" -> ProtocolStatus.CANCELLED
             else -> throw IllegalArgumentException("Unknown status: $status")
         }
     }
@@ -47,6 +48,7 @@ object CarReceptionDtoMapper {
             ApiProtocolStatus.IN_PROGRESS -> ProtocolStatus.IN_PROGRESS
             ApiProtocolStatus.READY_FOR_PICKUP -> ProtocolStatus.READY_FOR_PICKUP
             ApiProtocolStatus.COMPLETED -> ProtocolStatus.COMPLETED
+            ApiProtocolStatus.CANCELLED -> ProtocolStatus.CANCELLED
             null -> ProtocolStatus.SCHEDULED // Domyślna wartość
         }
     }
@@ -408,6 +410,7 @@ object CarReceptionDtoMapper {
             ProtocolStatus.IN_PROGRESS -> ApiProtocolStatus.IN_PROGRESS
             ProtocolStatus.READY_FOR_PICKUP -> ApiProtocolStatus.READY_FOR_PICKUP
             ProtocolStatus.COMPLETED -> ApiProtocolStatus.COMPLETED
+            ProtocolStatus.CANCELLED -> ApiProtocolStatus.CANCELLED
         }
     }
 

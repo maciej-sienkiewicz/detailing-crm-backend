@@ -128,6 +128,7 @@ enum class ProtocolStatus(val uiVale: String) {
     IN_PROGRESS("W realizacji"),
     READY_FOR_PICKUP("Gotowy do odbioru"),
     COMPLETED("Zakończony"),
+    CANCELLED("Anulowany"),
 }
 
 /**

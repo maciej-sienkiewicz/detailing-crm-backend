@@ -5,5 +5,6 @@ enum class ApiProtocolStatus {
     PENDING_APPROVAL,
     IN_PROGRESS,
     READY_FOR_PICKUP,
-    COMPLETED
+    COMPLETED,
+    CANCELLED
 }
