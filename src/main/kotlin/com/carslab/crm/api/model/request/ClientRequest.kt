@@ -39,7 +39,6 @@ data class ClientRequest(
     @JsonProperty("phone")
     @field:ValidPhoneNumber(message = "{validation.clientRequest.phone.format}")
     @field:Size(max = 20)
-    @Schema(description = "Client's phone number", example = "+1 (555) 123-4567")
     val phone: String,
 
     @JsonProperty("address")

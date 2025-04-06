@@ -11,5 +11,7 @@ data class ProtocolView(
     val period: ServicePeriod,
     val status: ProtocolStatus,
     val notes: String?,
+    val keysProvided: Boolean,
+    val documentsProvided: Boolean,
     val createdAt: LocalDateTime,
 )

@@ -18,7 +18,8 @@ import java.time.LocalDateTime
 class ClientService(
     private val clientRepository: ClientRepository,
     private val contactAttemptRepository: ContactAttemptRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository
+    private val clientStatisticsRepository: ClientStatisticsRepository,
+    private val vehicleRepository: VehicleRepository
 ) {
     private val logger = LoggerFactory.getLogger(ClientService::class.java)
 
@@ -52,6 +53,9 @@ class ClientService(
         logger.debug("Getting client by ID: ${clientId.value}")
         return clientRepository.findById(clientId)
     }
+
+    fun getVehiclesByClientId(clientId: ClientId): List<Vehicle> =
+        vehicleRepository.findByClientId(clientId)
 
     fun getAllClients(): List<ClientDetails> {
         logger.debug("Getting all clients")
@@ -204,6 +208,9 @@ class ClientFacade(
     fun getClientById(clientId: ClientId): ClientDetails? {
         return clientService.getClientById(clientId)
     }
+
+    fun getVehiclesByClientId(clientId: ClientId): List<Vehicle> =
+        clientService.getVehiclesByClientId(clientId)
 
     fun getAllClients(): List<com.carslab.crm.domain.model.ClientStats> {
         val clients = clientService.getAllClients()

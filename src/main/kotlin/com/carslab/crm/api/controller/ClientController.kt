@@ -4,16 +4,14 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.ContactAttemptMapper
 import com.carslab.crm.api.model.request.ClientRequest
 import com.carslab.crm.api.model.request.ContactAttemptRequest
-import com.carslab.crm.api.model.response.ClientExpandedResponse
+import com.carslab.crm.api.model.response.*
 import com.carslab.crm.domain.ClientFacade
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.ContactAttemptId
-import com.carslab.crm.api.model.response.ClientResponse
-import com.carslab.crm.api.model.response.ClientStatisticsResponse
-import com.carslab.crm.api.model.response.ContactAttemptResponse
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.util.ValidationUtils
 import com.carslab.crm.presentation.mapper.ClientMapper
+import com.carslab.crm.presentation.mapper.VehicleMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -215,10 +213,12 @@ class ClientController(
     @Operation(summary = "Get client vehicles", description = "Retrieves vehicles associated with a client")
     fun getVehicles(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
-    ): ResponseEntity<ClientStatisticsResponse> {
+    ): ResponseEntity<List<VehicleResponse>> {
         logger.info("Getting vehicles for client: $clientId")
 
-        return ok(ClientStatisticsResponse(12L, BigDecimal.TEN, 1L))
+        val clientVehicles = clientFacade.getVehiclesByClientId(ClientId(clientId.toLong()))
+
+        return ok(clientVehicles.map { VehicleMapper.toResponse(it) })
     }
 
     @PutMapping("/contact-attempts/{id}")

@@ -122,12 +122,12 @@ enum class ApprovalStatus {
 /**
  * Status protokołu.
  */
-enum class ProtocolStatus {
-    SCHEDULED,
-    PENDING_APPROVAL,
-    IN_PROGRESS,
-    READY_FOR_PICKUP,
-    COMPLETED
+enum class ProtocolStatus(val uiVale: String) {
+    SCHEDULED("Zaplanowano"),
+    PENDING_APPROVAL("Oczekuje na zatwierdzenie"),
+    IN_PROGRESS("W realizacji"),
+    READY_FOR_PICKUP("Gotowy do odbioru"),
+    COMPLETED("Zakończony"),
 }
 
 /**

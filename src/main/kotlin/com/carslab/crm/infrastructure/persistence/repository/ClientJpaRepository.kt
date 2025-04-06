@@ -34,6 +34,9 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
         @Param("licensePlate") licensePlate: String?
     ): VehicleEntity?
 
+    @Query("SELECT v FROM VehicleEntity v JOIN v.owners c WHERE c.id = :clientId")
+    fun findAllByClientId(@Param("clientId") clientId: Long): List<VehicleEntity>
+
     fun findByMakeContainingIgnoreCase(make: String): List<VehicleEntity>
     fun findByModelContainingIgnoreCase(model: String): List<VehicleEntity>
 }

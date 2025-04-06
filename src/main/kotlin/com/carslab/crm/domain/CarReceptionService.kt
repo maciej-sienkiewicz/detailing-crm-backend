@@ -132,7 +132,7 @@ class CarReceptionService(
         protocolCommentsRepository.save(ProtocolComment(
             protocolId = protocolId,
             author = "Administrator",
-            content = "Zmieniono status protokołu z: $previousStatus na: $newStatus",
+            content = "Zmieniono status protokołu z \"${previousStatus.uiVale}\" na: \"${newStatus.uiVale}\"",
             timestamp = Instant.now().toString(),
             type = "system"
         ))
@@ -199,7 +199,8 @@ class CarReceptionService(
                     createdAt = LocalDateTime.now(),
                     tags = it.tags
                 )
-            }
+            },
+            documents = Documents(keysProvided, documentsProvided),
         )
     }
 

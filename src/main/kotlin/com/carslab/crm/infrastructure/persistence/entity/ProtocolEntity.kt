@@ -84,7 +84,9 @@ class ProtocolEntity(
         ),
         status = status,
         notes = notes,
-        createdAt = createdAt
+        createdAt = createdAt,
+        keysProvided = keysProvided,
+        documentsProvided = documentsProvided
     )
 
     companion object {

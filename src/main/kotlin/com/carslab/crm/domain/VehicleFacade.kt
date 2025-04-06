@@ -82,9 +82,7 @@ class VehicleService(
     fun getVehiclesByOwnerId(ownerId: String): List<Vehicle> {
         logger.debug("Getting vehicles for owner ID: $ownerId")
         try {
-            val clientId = ClientId(ownerId.toLong())
-            val vehicleIds = clientVehicleAssociationRepository.findVehiclesByClientId(clientId)
-            return vehicleIds.mapNotNull { vehicleRepository.findById(it) }
+            return vehicleRepository.findByClientId(ClientId(ownerId.toLong()))
         } catch (e: NumberFormatException) {
             logger.warn("Invalid owner ID format: $ownerId")
             return emptyList()

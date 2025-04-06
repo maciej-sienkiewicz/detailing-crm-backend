@@ -37,6 +37,7 @@ class JpaClientVehicleRepositoryAdapter(
         return result
     }
 
+    @Transactional
     override fun newAssociation(vehicleId: VehicleId, clientId: ClientId): Boolean {
         val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return false
         val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return false
@@ -46,9 +47,13 @@ class JpaClientVehicleRepositoryAdapter(
             return false
         }
 
-        // Add the association
+        // Add the association (both sides)
         client.vehicles.add(vehicle)
+        vehicle.owners.add(client)
+
+        // Save both entities
         clientJpaRepository.save(client)
+        vehicleJpaRepository.save(vehicle)
 
         return true
     }

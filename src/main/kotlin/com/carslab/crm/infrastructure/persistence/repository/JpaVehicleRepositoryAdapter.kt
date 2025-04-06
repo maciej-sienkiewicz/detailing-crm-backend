@@ -1,5 +1,6 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
+import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.Vehicle
 import com.carslab.crm.domain.model.VehicleId
 import com.carslab.crm.domain.port.VehicleRepository
@@ -53,5 +54,10 @@ class JpaVehicleRepositoryAdapter(private val vehicleJpaRepository: VehicleJpaRe
 
     override fun findByVinOrLicensePlate(vin: String?, licensePlate: String?): Vehicle? {
         return vehicleJpaRepository.findByVinOrLicensePlate(vin, licensePlate)?.toDomain()
+    }
+
+    override fun findByClientId(clientId: ClientId): List<Vehicle> {
+        return vehicleJpaRepository.findAllByClientId(clientId.value).map { it.toDomain() }
+            .toList()
     }
 }

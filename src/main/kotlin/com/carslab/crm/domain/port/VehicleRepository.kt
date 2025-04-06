@@ -1,5 +1,6 @@
 package com.carslab.crm.domain.port
 
+import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.Vehicle
 import com.carslab.crm.domain.model.VehicleId
 
@@ -10,4 +11,6 @@ interface VehicleRepository {
     fun findByIds(ids: List<VehicleId>): List<Vehicle>
     fun deleteById(id: VehicleId): Boolean
     fun findByVinOrLicensePlate(vin: String?, licensePlate: String?): Vehicle?
+    fun findByClientId(clientId: ClientId): List<Vehicle>
+
 }

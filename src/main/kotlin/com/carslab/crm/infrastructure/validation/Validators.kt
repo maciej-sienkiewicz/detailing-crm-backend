@@ -30,7 +30,7 @@ class AtLeastOneNotBlankValidator : ConstraintValidator<AtLeastOneNotBlank, Any>
             val field = fields[fieldName] ?: return@any false
             field.isAccessible = true
             val fieldValue = field.get(value) as? String
-            fieldValue.isNullOrBlank()
+            return !fieldValue.isNullOrBlank()
         }
     }
 

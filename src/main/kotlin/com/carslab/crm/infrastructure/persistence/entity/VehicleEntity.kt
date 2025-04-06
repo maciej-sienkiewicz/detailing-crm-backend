@@ -52,7 +52,6 @@ class VehicleEntity(
     @Version
     var version: Long? = 0,
 
-    // Zamiast bezpośredniej relacji do ClientEntity używamy join table
     @ManyToMany
     @JoinTable(
         name = "client_vehicles",
