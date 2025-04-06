@@ -40,5 +40,8 @@ data class VehicleResponse(
     val createdAt: LocalDateTime,
 
     @JsonProperty("updated_at")
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+
+    @JsonProperty("owner_ids")
+    val ownerIds: Set<String>
 )

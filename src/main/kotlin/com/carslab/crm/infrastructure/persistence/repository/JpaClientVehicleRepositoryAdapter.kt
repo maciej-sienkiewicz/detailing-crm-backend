@@ -47,13 +47,15 @@ class JpaClientVehicleRepositoryAdapter(
             return false
         }
 
-        // Add the association (both sides)
-        client.vehicles.add(vehicle)
-        vehicle.owners.add(client)
+        val hasClientSideAssociation = client.vehicles.contains(vehicle)
+        val hasVehicleSideAssociation = vehicle.owners.contains(client)
+        if(!hasClientSideAssociation) client.vehicles.add(vehicle)
+        if(!hasVehicleSideAssociation) vehicle.owners.add(client)
 
-        // Save both entities
-        clientJpaRepository.save(client)
-        vehicleJpaRepository.save(vehicle)
+        if(!hasClientSideAssociation || !hasVehicleSideAssociation) {
+            clientJpaRepository.save(client)
+            vehicleJpaRepository.save(vehicle)
+        }
 
         return true
     }

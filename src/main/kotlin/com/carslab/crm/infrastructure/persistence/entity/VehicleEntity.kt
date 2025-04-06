@@ -73,6 +73,7 @@ class VehicleEntity(
         lastServiceDate = lastServiceDate,
         totalSpent = totalSpent,
         mileage = mileage,
+        ownerIds = owners.map { it.id!! }.toSet(),
         audit = Audit(
             createdAt = createdAt,
             updatedAt = updatedAt

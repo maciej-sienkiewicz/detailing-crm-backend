@@ -31,6 +31,7 @@ object VehicleDtoMapper {
             lastServiceDate = null, // Domyślnie dla nowego pojazdu
             totalSpent = 0.0, // Domyślnie dla nowego pojazdu,
             mileage = command.mileage,
+            ownerIds = command.ownerIds.map { it.toLong() }.toSet(),
             audit = Audit(
                 createdAt = now,
                 updatedAt = now
@@ -62,6 +63,7 @@ object VehicleDtoMapper {
             lastServiceDate = lastServiceDate,
             totalSpent = totalSpent,
             mileage = command.mileage,
+            ownerIds = command.ownerIds.map { it.toLong() }.toSet(),
             audit = Audit(
                 createdAt = createdAt,
                 updatedAt = now

@@ -36,7 +36,7 @@ data class CreateProtocolVehicleModel(
     val productionYear: Int? = null,
     val vin: String? = null,
     val color: String? = null,
-    val mileage: Long? = null
+    val mileage: Long? = null,
 )
 
 data class CreateProtocolClientModel(

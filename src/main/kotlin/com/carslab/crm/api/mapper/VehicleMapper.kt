@@ -25,6 +25,7 @@ object VehicleMapper {
             lastServiceDate = null, // Domyślnie dla nowego pojazdu
             totalSpent = 0.0, // Domyślnie dla nowego pojazdu
             mileage = request.mileage,
+            ownerIds = emptySet(),
             audit = Audit(
                 createdAt = now,
                 updatedAt = now
@@ -45,7 +46,8 @@ object VehicleMapper {
             lastServiceDate = vehicle.lastServiceDate,
             totalSpent = vehicle.totalSpent,
             createdAt = vehicle.audit.createdAt,
-            updatedAt = vehicle.audit.updatedAt
+            updatedAt = vehicle.audit.updatedAt,
+            ownerIds = vehicle.ownerIds.map { it.toString() }.toSet()
         )
     }
 
@@ -62,7 +64,8 @@ object VehicleMapper {
             lastServiceDate = vehicle.vehicle.lastServiceDate,
             totalSpent = vehicle.stats.gmv.toDouble(),
             createdAt = vehicle.vehicle.audit.createdAt,
-            updatedAt = vehicle.vehicle.audit.updatedAt
+            updatedAt = vehicle.vehicle.audit.updatedAt,
+            ownerIds = vehicle.vehicle.ownerIds.map { it.toString() }.toSet()
         )
     }
 }

@@ -22,7 +22,8 @@ data class Vehicle(
     val lastServiceDate: LocalDateTime? = null,
     val totalSpent: Double = 0.0,
     val mileage: Long?,
-    val audit: Audit
+    val audit: Audit,
+    val ownerIds: Set<Long>
 )
 
 data class VehicleWithStats(

@@ -25,7 +25,6 @@ class JpaVehicleRepositoryAdapter(private val vehicleJpaRepository: VehicleJpaRe
             VehicleEntity.fromDomain(vehicle)
         }
 
-        println("Dupa")
         val savedEntity: VehicleEntity = vehicleJpaRepository.save(entity)
 
         return savedEntity.toDomain()

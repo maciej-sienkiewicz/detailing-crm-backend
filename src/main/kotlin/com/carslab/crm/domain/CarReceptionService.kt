@@ -37,9 +37,10 @@ class CarReceptionService(
 
         val client = findOrCreateClient(createProtocolCommand.client)
         val vehicle = findExistingVehicle(createProtocolCommand.vehicle) ?: createNewVehicle(createProtocolCommand.vehicle)
-            .also { clientVehicleRepository.newAssociation(it.id, client.id) }
             .also { initializeVehicleStatistics(it.id) }
             .also { incrementClientVehicles(client.id) }
+
+        clientVehicleRepository.newAssociation(vehicle.id, client.id)
 
         val protocolWithFilledIds = createProtocolCommand.copy(
             client = createProtocolCommand.client.copy(
@@ -314,6 +315,7 @@ class CarReceptionService(
             color = vehicle.color,
             vin = vehicle.vin,
             mileage = vehicle.mileage,
+            ownerIds = emptySet(),
             audit = Audit(
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now()
