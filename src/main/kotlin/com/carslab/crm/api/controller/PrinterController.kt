@@ -1,21 +1,23 @@
 package com.carslab.crm.api.controller
 
 import com.carslab.crm.domain.PdfService
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.core.io.ByteArrayResource
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/printer/")
+@CrossOrigin(origins = ["*"])
 class PrinterController(private val pdfService: PdfService) {
 
     @GetMapping("/protocol/{id}/pdf")
-    fun generatePdf(@PathVariable id: Long): ResponseEntity<ByteArrayResource> {
+    fun generatePdf(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<ByteArrayResource> {
+        println("Origin: ${request.getHeader("Origin")}")
+        println("Access-Control-Request-Method: ${request.getHeader("Access-Control-Request-Method")}")
+
         val pdfBytes = pdfService.generatePdf(id)
 
         val resource = ByteArrayResource(pdfBytes)

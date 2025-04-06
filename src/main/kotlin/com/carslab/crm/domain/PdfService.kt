@@ -12,6 +12,8 @@ import org.springframework.util.ResourceUtils
 import java.io.ByteArrayOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import org.springframework.core.io.ClassPathResource
+
 
 @Service
 class PdfService(
@@ -25,11 +27,12 @@ class PdfService(
         // Na razie używamy przykładowych danych
         val formData = getFormDataForProtokol(protocol)
 
-        // Ścieżka do pliku szablonu PDF
-        val pdfTemplate = ResourceUtils.getFile("classpath:static/x.pdf")
+        // Ścieżka do pliku szablonu PDF - używamy ClassPathResource zamiast ResourceUtils.getFile
+        val resource = ClassPathResource("static/x.pdf")
 
         ByteArrayOutputStream().use { outputStream ->
-            PDDocument.load(pdfTemplate).use { document ->
+            // Ładujemy dokument używając inputStream zamiast File
+            PDDocument.load(resource.inputStream).use { document ->
                 val acroForm: PDAcroForm? = document.documentCatalog.acroForm
 
                 if (acroForm == null) {

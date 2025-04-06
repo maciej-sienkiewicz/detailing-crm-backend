@@ -58,15 +58,18 @@ class SecurityConfig {
     }
 
     @Bean
-    fun corsConfigurationSource(): UrlBasedCorsConfigurationSource {
-        val config = CorsConfiguration().apply {
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration().apply {
             allowedOriginPatterns = listOf("*")
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             allowedHeaders = listOf("*")
             allowCredentials = true
+            exposedHeaders = listOf("*")
+            maxAge = 3600L
         }
-        return UrlBasedCorsConfigurationSource().apply {
-            registerCorsConfiguration("/**", config)
-        }
+
+        val source = UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
     }
 }
