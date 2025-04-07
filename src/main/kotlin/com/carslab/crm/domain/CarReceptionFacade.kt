@@ -20,6 +20,10 @@ class CarReceptionFacade(
         return carReceptionService.createProtocol(protocol)
     }
 
+    fun deleteImage(protocolId: ProtocolId, imageId: String) {
+        return carReceptionService.deleteImage(protocolId, imageId)
+    }
+
     fun updateProtocol(protocol: CarReceptionProtocol): CarReceptionProtocol {
         return carReceptionService.updateProtocol(protocol)
     }

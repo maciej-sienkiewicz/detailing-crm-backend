@@ -29,7 +29,7 @@ class CarReceptionService(
     private val clientVehicleRepository: ClientVehicleRepository,
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
-    private val protocolCommentsRepository: ProtocolCommentsRepository
+    private val protocolCommentsRepository: ProtocolCommentsRepository,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -237,6 +237,10 @@ class CarReceptionService(
     fun deleteProtocol(protocolId: ProtocolId): Boolean {
         logger.info("Deleting protocol with ID: ${protocolId.value}")
         return carReceptionRepository.deleteById(protocolId)
+    }
+
+    fun deleteImage(protocolId: ProtocolId, imageId: String) {
+        return imageStorageService.deleteFile(imageId, protocolId)
     }
 
     private fun findOrCreateClient(clientData: CreateProtocolClientModel): ClientDetails {

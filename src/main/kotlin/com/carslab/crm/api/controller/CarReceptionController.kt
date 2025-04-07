@@ -410,6 +410,16 @@ class CarReceptionController(
         }
     }
 
+    @DeleteMapping("/{id}/image/{imageId}")
+    fun deleteCarReceptionProtocolImage(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
+        @Parameter(description = "Protocol ID", required = true) @PathVariable imageId: String,
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("Deleting car reception protocol with ID: $id")
+        carReceptionFacade.deleteImage(ProtocolId(id), imageId)
+        return ok(createSuccessResponse("Protocol successfully deleted", mapOf("protocolId" to id)))
+    }
+
     @GetMapping("/{clientId}/protocols")
     @Operation(
         summary = "Get protocols for client",

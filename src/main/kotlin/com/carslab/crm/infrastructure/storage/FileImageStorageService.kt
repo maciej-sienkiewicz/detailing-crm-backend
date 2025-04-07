@@ -106,6 +106,7 @@ class FileImageStorageService(
         }
     }
 
+    @Transactional
     override fun deleteFile(fileId: String, protocolId: ProtocolId) {
         try {
             vehicleImageJpaRepository.findById(fileId).ifPresent { imageEntity ->

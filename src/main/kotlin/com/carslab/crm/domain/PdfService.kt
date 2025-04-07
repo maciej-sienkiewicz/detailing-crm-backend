@@ -71,6 +71,7 @@ class PdfService(
         .replace('ś', 's')
         .replace('ź', 'z')
         .replace('ż', 'z')
+        .replace('\u00A0', ' ')
 
     private fun addNote(note: String?): String =
         if(!note.isNullOrBlank()) "[$note]" else ""
@@ -81,7 +82,7 @@ class PdfService(
     }
 
     private fun getFormDataForProtokol(protocol: CarReceptionProtocol): Map<String, String> {
-        val notes = protocol.protocolServices?.joinToString("\n") {
+        val notes = protocol.protocolServices.joinToString(",") {
             """
                 ${it.name} (${it.quantity} szt.) ${addNote(it.note)}
                 """.trimIndent()
