@@ -7,6 +7,7 @@ import com.carslab.crm.api.model.request.ApiReferralSource
 import com.carslab.crm.api.model.request.ServiceApprovalStatus
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.protocol.*
+import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -78,6 +79,7 @@ object CarReceptionDtoMapper {
         return CreateProtocolRootModel(
             id = protocolId,
             title = command.title,
+            calendarColorId = CalendarColorId(command.calendarColorId),
             vehicle = CreateProtocolVehicleModel(
                 brand = command.make,
                 model = command.model,
@@ -209,7 +211,8 @@ object CarReceptionDtoMapper {
                 updatedAt = now,
                 statusUpdatedAt = statusUpdatedAt,
                 appointmentId = command.appointmentId
-            )
+            ),
+            calendarColorId = CalendarColorId(command.calendarColorId),
         )
     }
 
@@ -249,7 +252,21 @@ object CarReceptionDtoMapper {
             ),
             status = mapDomainStatusToApi(protocol.status),
             totalServiceCount = protocol.protocolServices.size,
-            totalAmount = protocol.protocolServices.sumOf { it.finalPrice.amount }
+            totalAmount = protocol.protocolServices.sumOf { it.finalPrice.amount },
+            calendarColorId = protocol.calendarColorId.value,
+            selectedServices = protocol.protocolServices.map { service ->
+                ServiceDto(
+                    id = service.id,
+                    name = service.name,
+                    price = service.basePrice.amount,
+                    discountType = mapDomainDiscountTypeToApi(service.discount?.type),
+                    discountValue = service.discount?.value ?: 0.0,
+                    finalPrice = service.finalPrice.amount,
+                    approvalStatus = mapDomainApprovalStatusToApi(service.approvalStatus),
+                    note = service.note,
+                    quantity = service.quantity
+                )
+            },
         )
     }
 
@@ -308,7 +325,8 @@ object CarReceptionDtoMapper {
             createdAt = protocol.audit.createdAt.format(DATETIME_FORMATTER),
             updatedAt = protocol.audit.updatedAt.format(DATETIME_FORMATTER),
             statusUpdatedAt = protocol.audit.statusUpdatedAt.format(DATETIME_FORMATTER),
-            appointmentId = protocol.audit.appointmentId
+            appointmentId = protocol.audit.appointmentId,
+            calendarColorId = protocol.calendarColorId.value,
         )
     }
 

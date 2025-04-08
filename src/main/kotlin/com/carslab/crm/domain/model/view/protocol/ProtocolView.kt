@@ -1,6 +1,7 @@
 package com.carslab.crm.domain.model.view.protocol
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import java.time.LocalDateTime
 
 data class ProtocolView(
@@ -14,4 +15,5 @@ data class ProtocolView(
     val keysProvided: Boolean,
     val documentsProvided: Boolean,
     val createdAt: LocalDateTime,
+    val calendarColorId: CalendarColorId
 )

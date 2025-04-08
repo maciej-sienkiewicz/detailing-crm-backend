@@ -3,6 +3,7 @@ package com.carslab.crm.infrastructure.persistence.entity
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.ReferralSource
+import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -17,6 +18,9 @@ class ProtocolEntity(
 
     @Column(nullable = false)
     var title: String,
+
+    @Column(nullable = false)
+    var calendarColorId: String,
 
     // Zmienione z obiektu na ID
     @Column(name = "vehicle_id", nullable = false)
@@ -86,7 +90,8 @@ class ProtocolEntity(
         notes = notes,
         createdAt = createdAt,
         keysProvided = keysProvided,
-        documentsProvided = documentsProvided
+        documentsProvided = documentsProvided,
+        calendarColorId = CalendarColorId(calendarColorId),
     )
 
     companion object {
@@ -101,7 +106,8 @@ class ProtocolEntity(
                 notes = domain.notes,
                 createdAt = domain.createdAt,
                 updatedAt = LocalDateTime.now(),
-                statusUpdatedAt = LocalDateTime.now()
+                statusUpdatedAt = LocalDateTime.now(),
+                calendarColorId = domain.calendarColorId.value,
             )
         }
     }

@@ -1,10 +1,12 @@
 package com.carslab.crm.domain.model.create.protocol
 
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 
 data class CreateProtocolRootModel(
     val id: ProtocolId,
     val title: String,
+    val calendarColorId: CalendarColorId,
     val vehicle: CreateProtocolVehicleModel,
     val client: CreateProtocolClientModel,
     val period: ServicePeriod,

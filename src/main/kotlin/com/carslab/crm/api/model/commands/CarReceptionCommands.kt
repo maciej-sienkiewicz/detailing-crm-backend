@@ -12,6 +12,9 @@ data class CreateCarReceptionCommand(
     @JsonProperty("title")
     val title: String,
 
+    @JsonProperty("calendar_color_id")
+    val calendarColorId: String,
+
     @JsonProperty("start_date")
     val startDate: String,
 
@@ -95,6 +98,9 @@ data class UpdateCarReceptionCommand(
 
     @JsonProperty("title")
     val title: String,
+
+    @JsonProperty("calendar_color_id")
+    val calendarColorId: String,
 
     @JsonProperty("start_date")
     val startDate: String,
@@ -289,6 +295,9 @@ data class CarReceptionListDto(
     @JsonProperty("vehicle")
     val vehicle: VehicleBasicDto,
 
+    @JsonProperty("calendar_color_id")
+    val calendarColorId: String,
+
     @JsonProperty("period")
     val period: PeriodDto,
 
@@ -302,7 +311,10 @@ data class CarReceptionListDto(
     val totalServiceCount: Int,
 
     @JsonProperty("total_amount")
-    val totalAmount: Double
+    val totalAmount: Double,
+
+    @JsonProperty("selected_services")
+    val selectedServices: List<ServiceDto>,
 )
 
 /**
@@ -314,6 +326,9 @@ data class CarReceptionDetailDto(
 
     @JsonProperty("title")
     val title: String,
+
+    @JsonProperty("calendar_color_id")
+    val calendarColorId: String,
 
     @JsonProperty("start_date")
     val startDate: String,

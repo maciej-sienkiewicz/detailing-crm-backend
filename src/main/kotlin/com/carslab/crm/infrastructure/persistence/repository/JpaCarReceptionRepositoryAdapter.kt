@@ -52,7 +52,8 @@ class JpaCarReceptionRepositoryAdapter(
             appointmentId = protocol.audit.appointmentId,
             createdAt = protocol.audit.createdAt,
             updatedAt = protocol.audit.updatedAt,
-            statusUpdatedAt = protocol.audit.statusUpdatedAt
+            statusUpdatedAt = protocol.audit.statusUpdatedAt,
+            calendarColorId = protocol.calendarColorId.value
         )
 
         val savedEntity = protocolJpaRepository.save(protocolEntity)
@@ -90,6 +91,7 @@ class JpaCarReceptionRepositoryAdapter(
             existingEntity.appointmentId = protocol.audit.appointmentId
             existingEntity.updatedAt = protocol.audit.updatedAt
             existingEntity.statusUpdatedAt = protocol.audit.statusUpdatedAt
+            existingEntity.calendarColorId = protocol.calendarColorId.value
 
             existingEntity
         } else {
@@ -110,7 +112,8 @@ class JpaCarReceptionRepositoryAdapter(
                 appointmentId = protocol.audit.appointmentId,
                 createdAt = protocol.audit.createdAt,
                 updatedAt = protocol.audit.updatedAt,
-                statusUpdatedAt = protocol.audit.statusUpdatedAt
+                statusUpdatedAt = protocol.audit.statusUpdatedAt,
+                calendarColorId = protocol.calendarColorId.value,
             )
         }
 

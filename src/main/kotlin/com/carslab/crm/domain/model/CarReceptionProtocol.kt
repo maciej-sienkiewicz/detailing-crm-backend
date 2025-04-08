@@ -1,5 +1,6 @@
 package com.carslab.crm.domain.model
 
+import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import java.time.LocalDateTime
 import java.util.*
 
@@ -9,6 +10,7 @@ import java.util.*
 data class CarReceptionProtocol(
     val id: ProtocolId,
     val title: String,
+    val calendarColorId: CalendarColorId,
     val vehicle: VehicleDetails,
     val client: Client,
     val period: ServicePeriod,

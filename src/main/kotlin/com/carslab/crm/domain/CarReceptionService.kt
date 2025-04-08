@@ -75,7 +75,8 @@ class CarReceptionService(
                 } else {
                     existingProtocol.audit.statusUpdatedAt
                 }
-            )
+            ),
+            calendarColorId = protocol.calendarColorId
         )
 
         protocolServicesRepository.saveServices(
@@ -203,6 +204,7 @@ class CarReceptionService(
                 )
             },
             documents = Documents(keysProvided, documentsProvided),
+            calendarColorId = calendarColorId,
         )
     }
 
