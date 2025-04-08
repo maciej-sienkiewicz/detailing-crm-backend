@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 class CalendarColorEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: String? = null,
+    val id: Long? = null,
 
     @Column(nullable = false, unique = true)
     var name: String,
@@ -28,7 +28,7 @@ class CalendarColorEntity(
 ) {
     fun toDomain(): CalendarColorView {
         return CalendarColorView(
-            id = CalendarColorId(id!!),
+            id = CalendarColorId(id!!.toString()),
             name = name,
             color = color,
             audit = Audit(
