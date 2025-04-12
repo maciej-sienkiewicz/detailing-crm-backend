@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import org.apache.catalina.connector.Connector
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -60,16 +62,42 @@ class SecurityConfig {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf("*")
+            allowedOriginPatterns = listOf("http://localhost:3000") // Konkretny wzorzec
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-            allowedHeaders = listOf("*")
+            allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
             allowCredentials = true
-            exposedHeaders = listOf("*")
+            exposedHeaders = listOf("Authorization")
             maxAge = 3600L
         }
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
         return source
+    }
+
+    @Bean
+    fun corsConfigurer(): WebMvcConfigurer {
+        return object : WebMvcConfigurer {
+            override fun addCorsMappings(registry: CorsRegistry) {
+                registry.addMapping("http://localhost:3000")
+                    .allowedOrigins("http://localhost:3000")
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                    .allowedHeaders("Authorization", "Content-Type", "Accept")
+                    .allowCredentials(true)
+                    .maxAge(3600)
+            }
+        }
+    }
+
+    @Bean
+    fun tomcatServletWebServerFactory(): TomcatServletWebServerFactory {
+        return object : TomcatServletWebServerFactory() {
+            override fun customizeConnector(connector: Connector) {
+                super.customizeConnector(connector)
+                // Ustawienie dozwolonych znaków
+                connector.setProperty("relaxedQueryChars", "[]|{}^\\`")
+                connector.setProperty("relaxedPathChars", "[]|{}^\\`")
+            }
+        }
     }
 }

@@ -38,6 +38,10 @@ dependencies {
 	// API Documentation
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
 
+	implementation("com.sun.mail:jakarta.mail:2.0.1")
+	implementation("jakarta.activation:jakarta.activation-api:2.0.1")
+	implementation("jakarta.mail:jakarta.mail-api:2.0.1")
+
 	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
