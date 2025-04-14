@@ -125,7 +125,8 @@ data class AttachmentData @JsonCreator constructor(
     @JsonProperty("size")
     val size: Int
 ) {
-    // Override equals dla porównywania obiektów z ByteArray
+    // Override equals dla porównywania ob
+    // iektów z ByteArray
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

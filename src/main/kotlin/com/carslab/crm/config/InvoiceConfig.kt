@@ -30,6 +30,7 @@ class InvoiceConfig {
      */
     @Bean("invoiceRestTemplate")
     fun invoiceRestTemplate(builder: RestTemplateBuilder): RestTemplate {
+        @Suppress("DEPRECATION")
         return builder
             .setConnectTimeout(Duration.ofMillis(connectTimeout))
             .setReadTimeout(Duration.ofMillis(readTimeout))
