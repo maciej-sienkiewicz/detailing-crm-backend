@@ -99,20 +99,30 @@ data class EmailResponse(
 )
 
 // Żądanie wysłania emaila
-data class SendEmailRequest(
+data class SendEmailRequest @JsonCreator constructor(
+    @JsonProperty("to")
     val to: List<EmailAddress>,
+    @JsonProperty("cc")
     val cc: List<EmailAddress>? = null,
+    @JsonProperty("bcc")
     val bcc: List<EmailAddress>? = null,
+    @JsonProperty("subject")
     val subject: String,
+    @JsonProperty("body")
     val body: EmailBody,
+    @JsonProperty("attachments")
     val attachments: List<AttachmentData>? = null
 )
 
 // Dane załącznika przy wysyłaniu
-data class AttachmentData(
+data class AttachmentData @JsonCreator constructor(
+    @JsonProperty("filename")
     val filename: String,
+    @JsonProperty("mimeType")
     val mimeType: String,
+    @JsonProperty("data")
     val data: ByteArray,
+    @JsonProperty("size")
     val size: Int
 ) {
     // Override equals dla porównywania obiektów z ByteArray
@@ -147,7 +157,8 @@ data class SendEmailResponse(
 )
 
 // Żądanie oznaczenia emaila jako przeczytany/nieprzeczytany
-data class MarkAsReadRequest(
+data class MarkAsReadRequest @JsonCreator constructor(
+    @JsonProperty("isRead")
     val isRead: Boolean
 )
 

@@ -1,6 +1,8 @@
 // Model classes
 package com.carslab.crm.domain.model
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.sun.mail.imap.IMAPStore
 import jakarta.activation.DataSource
 import jakarta.mail.Session
@@ -23,8 +25,10 @@ data class MailSession(
 )
 
 // Adres email
-data class EmailAddress(
+data class EmailAddress @JsonCreator constructor(
+    @JsonProperty("email")
     val email: String,
+    @JsonProperty("name")
     val name: String? = null
 )
 
