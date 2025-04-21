@@ -1,5 +1,8 @@
 package com.carslab.crm.config
 
+import com.carslab.crm.domain.CustomUserDetailsService
+import com.carslab.crm.domain.PermissionService
+import com.carslab.crm.infrastructure.validation.permissions.CustomPermissionEvaluator
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
@@ -11,10 +14,16 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
+import org.springframework.security.access.PermissionEvaluator
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler
+import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
@@ -24,7 +33,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 @EnableWebSecurity
-class SecurityConfig {
+class SecurityConfig(
+    private val userDetailsService: CustomUserDetailsService,
+    private val permissionService: PermissionService
+) {
 
     @Bean
     fun objectMapper(): ObjectMapper {
@@ -57,6 +69,24 @@ class SecurityConfig {
             .headers { headers -> headers.frameOptions { it.disable() } }
 
         return http.build()
+    }
+
+    @Bean
+    fun passwordEncoder(): PasswordEncoder {
+        return BCryptPasswordEncoder()
+    }
+
+    @Bean
+    fun authenticationProvider(userDetailsService: CustomUserDetailsService): AuthenticationProvider {
+        val provider = DaoAuthenticationProvider()
+        provider.setUserDetailsService(userDetailsService)
+        provider.setPasswordEncoder(passwordEncoder())
+        return provider
+    }
+
+    @Bean
+    fun permissionEvaluator(): PermissionEvaluator {
+        return CustomPermissionEvaluator(permissionService)
     }
 
     @Bean
