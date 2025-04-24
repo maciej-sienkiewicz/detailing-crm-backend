@@ -53,6 +53,12 @@ class UserService(
         return UserResponse.fromEntity(savedUserEntity)
     }
 
+    fun getUserById(userId: Long): UserResponse {
+        val userEntity = userRepository.findById(userId)
+            .orElseThrow { ResourceNotFoundException("User not found with id: $userId") }
+        return UserResponse.fromEntity(userEntity)
+    }
+
     @Transactional
     fun assignRole(userId: Long, roleId: Long, companyId: Long) {
         val userEntity = userRepository.findById(userId)

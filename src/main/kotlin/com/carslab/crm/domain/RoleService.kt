@@ -44,7 +44,7 @@ class RoleService(
 
         // Przypisz uprawnienia
         if (createRoleCommand.useDefaultPermissions) {
-            setDefaultPermissions(savedRoleEntity.id!!, createRoleCommand.companyId)
+            // Do nothing
         } else if (createRoleCommand.initialPermissionIds.isNotEmpty()) {
             assignPermissionsToRole(savedRoleEntity.id!!, createRoleCommand.initialPermissionIds)
         }
@@ -219,28 +219,6 @@ class RoleService(
             )
 
             val configEntity = PermissionConfigurationEntity.fromDomain(newConfig)
-            permissionConfigRepository.save(configEntity)
-        }
-    }
-
-    private fun setDefaultPermissions(roleId: Long, companyId: Long) {
-        // Pobierz domyślne uprawnienia dla firmy
-        val defaultPermissions = permissionRepository.findDefaultPermissionsForCompany(companyId)
-
-        // Przypisz uprawnienia do roli
-        defaultPermissions.forEach { permissionEntity ->
-            val config = PermissionConfiguration(
-                roleId = roleId,
-                permissionId = permissionEntity.id!!,
-                companyId = companyId,
-                enabled = true,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
-                constraints = null,
-                createdBy = null
-            )
-
-            val configEntity = PermissionConfigurationEntity.fromDomain(config)
             permissionConfigRepository.save(configEntity)
         }
     }

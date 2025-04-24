@@ -22,10 +22,6 @@ interface PermissionRepository : JpaRepository<PermissionEntity, Long> {
     @Query("SELECT p FROM PermissionEntity p ORDER BY p.resourceType, p.action")
     fun findAllOrdered(): List<PermissionEntity>
 
-    @Query("SELECT p FROM PermissionEntity p WHERE p.name IN " +
-            "(SELECT dp.permissionName FROM DefaultPermissionEntity dp WHERE dp.companyId = :companyId)")
-    fun findDefaultPermissionsForCompany(@Param("companyId") companyId: Long): List<PermissionEntity>
-
     @Query("SELECT p FROM PermissionEntity p " +
             "JOIN p.dataFields df " +
             "WHERE df = :dataField")

@@ -1,0 +1,174 @@
+### Variables
+@baseUrl = http://localhost:8080
+@companyId = 1
+
+### -----------------------------------------------
+### 1. Create Permissions
+### -----------------------------------------------
+
+### Create VIEW_CLIENT permission
+POST {{baseUrl}}/api/permissions
+Content-Type: application/json
+
+{
+  "name": "View Clients",
+  "description": "Permission to view client details",
+  "resourceType": "CLIENT",
+  "action": "VIEW",
+  "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
+}
+
+### Create CREATE_CLIENT permission
+POST {{baseUrl}}/api/permissions
+Content-Type: application/json
+
+{
+  "name": "Create Clients",
+  "description": "Permission to create new clients",
+  "resourceType": "CLIENT",
+  "action": "CREATE",
+  "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
+}
+
+### Create EDIT_CLIENT permission
+POST {{baseUrl}}/api/permissions
+Content-Type: application/json
+
+{
+  "name": "Edit Clients",
+  "description": "Permission to edit client details",
+  "resourceType": "CLIENT",
+  "action": "EDIT",
+  "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
+}
+
+### Create VIEW_PROTOCOL permission
+POST {{baseUrl}}/api/permissions
+Content-Type: application/json
+
+{
+  "name": "View Protocols",
+  "description": "Permission to view service protocols",
+  "resourceType": "PROTOCOL",
+  "action": "VIEW",
+  "dataFields": ["PROTOCOL_OWNER_DATA", "PROTOCOL_VEHICLE_DATA", "PROTOCOL_SERVICE_DATA"]
+}
+
+### -----------------------------------------------
+### 2. Add Default Permissions for the Company
+### -----------------------------------------------
+
+### Add VIEW_CLIENT as default permission
+POST {{baseUrl}}/api/default-permissions
+Content-Type: application/json
+
+{
+  "permissionName": "View Clients",
+  "companyId": {{companyId}},
+  "description": "Default permission for all roles"
+}
+
+### Add VIEW_PROTOCOL as default permission
+POST {{baseUrl}}/api/default-permissions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "permissionName": "View Protocols",
+  "companyId": {{companyId}},
+  "description": "Default permission for all roles"
+}
+
+### -----------------------------------------------
+### 3. Create a Role with Permissions
+### -----------------------------------------------
+
+### Create a Client Manager role
+POST {{baseUrl}}/api/roles
+Content-Type: application/json
+
+{
+  "name": "Client Manager",
+  "description": "Role for managing clients and their data",
+  "companyId": {{companyId}},
+  "useDefaultPermissions": true,
+  "initialPermissionIds": []
+}
+
+### Get created role (save ID for later requests)
+### Assume the role ID is 1 for subsequent requests
+@roleId = 1
+
+### -----------------------------------------------
+### 4. Configure Role Permissions
+### -----------------------------------------------
+
+### Add EDIT_CLIENT permission to role (assuming permission ID is 3)
+POST {{baseUrl}}/api/roles/{{roleId}}/permissions/3?companyId={{companyId}}&enabled=true
+Content-Type: application/json
+
+### Add CREATE_CLIENT permission to role (assuming permission ID is 2)
+POST {{baseUrl}}/api/roles/{{roleId}}/permissions/2
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+?companyId={{companyId}}&enabled=true
+
+### -----------------------------------------------
+### 5. Create a User
+### -----------------------------------------------
+
+### Create a new user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "username": "john.smith",
+  "password": "SecurePassword123!",
+  "email": "john.smith@example.com",
+  "firstName": "John",
+  "lastName": "Smith",
+  "companyId": {{companyId}}
+}
+
+### Get created user (save ID for later)
+### Assume the user ID is 1 for subsequent requests
+@userId = 1
+
+### -----------------------------------------------
+### 6. Assign Role to User
+### -----------------------------------------------
+
+### Assign Client Manager role to user
+POST {{baseUrl}}/api/users/{{userId}}/roles/{{roleId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+?companyId={{companyId}}
+
+### -----------------------------------------------
+### 7. Verify User's Permissions and Roles
+### -----------------------------------------------
+
+### Get user's roles
+GET {{baseUrl}}/api/users/{{userId}}/roles?companyId={{companyId}}
+Authorization: Bearer {{authToken}}
+
+### -----------------------------------------------
+### 8. Additional Useful Requests
+### -----------------------------------------------
+
+### Get all permissions
+GET {{baseUrl}}/api/permissions
+Authorization: Bearer {{authToken}}
+
+### Get all roles for company
+GET {{baseUrl}}/api/roles?companyId={{companyId}}
+Authorization: Bearer {{authToken}}
+
+### Get role details with permissions
+GET {{baseUrl}}/api/roles/{{roleId}}?companyId={{companyId}}
+Authorization: Bearer {{authToken}}
+
+### Get all default permissions for company
+GET {{baseUrl}}/api/default-permissions?companyId={{companyId}}
+Authorization: Bearer {{authToken}}

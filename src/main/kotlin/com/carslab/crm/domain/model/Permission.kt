@@ -3,12 +3,6 @@ package com.carslab.crm.domain.model
 import com.carslab.crm.infrastructure.persistence.entity.*
 import java.time.LocalDateTime
 
-data class PermissionCheck(
-    val resourceType: ResourceType,
-    val action: PermissionAction,
-    val resourceId: String? = null
-)
-
 data class PermissionDto(
     val id: Long,
     val name: String,
@@ -37,9 +31,9 @@ data class ConfigureRolePermissionCommand(
 )
 
 data class CreateRoleCommand(
-    val name: String,
-    val description: String,
-    val companyId: Long,
+    val name: String = "",
+    val description: String = "",
+    val companyId: Long = 0,
     val useDefaultPermissions: Boolean = true,
     val initialPermissionIds: List<Long> = emptyList()
 )

@@ -1,9 +1,9 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.ConfigureRolePermissionCommand
-import com.carslab.crm.domain.model.PermissionCheck
 import com.carslab.crm.domain.model.PermissionDto
 import com.carslab.crm.domain.model.UpdateDataFieldPermissionsCommand
+import com.carslab.crm.domain.model.view.permission.PermissionCheck
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.persistence.entity.DataField
 import com.carslab.crm.infrastructure.persistence.entity.PermissionConfiguration
