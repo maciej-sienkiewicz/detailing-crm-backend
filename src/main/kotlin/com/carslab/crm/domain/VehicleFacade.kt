@@ -41,14 +41,16 @@ class VehicleService(
 
         validateVehicle(vehicle)
 
-        val updatedVehicle = vehicle.copy(
-            totalServices = existingVehicle.totalServices,
-            lastServiceDate = existingVehicle.lastServiceDate,
-            totalSpent = existingVehicle.totalSpent,
-            audit = vehicle.audit.copy(
-                updatedAt = LocalDateTime.now()
+        val updatedVehicle = existingVehicle
+            .copy(
+                make = vehicle.make,
+                model = vehicle.model,
+                year = vehicle.year,
+                licensePlate = vehicle.licensePlate,
+                color = vehicle.color,
+                vin = vehicle.vin,
+                ownerIds = vehicle.ownerIds
             )
-        )
 
         val savedVehicle = vehicleRepository.save(updatedVehicle)
 

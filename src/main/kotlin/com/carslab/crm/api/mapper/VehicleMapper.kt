@@ -25,7 +25,7 @@ object VehicleMapper {
             lastServiceDate = null, // Domyślnie dla nowego pojazdu
             totalSpent = 0.0, // Domyślnie dla nowego pojazdu
             mileage = request.mileage,
-            ownerIds = emptySet(),
+            ownerIds = request.ownerIds.map { it.toLong() }.toSet(),
             audit = Audit(
                 createdAt = now,
                 updatedAt = now

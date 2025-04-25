@@ -39,6 +39,7 @@ class ClientService(
             ?: throw ResourceNotFoundException("Client", client.id.value)
 
         val updatedClient: ClientDetails = existingClient.copy(
+            phone = client.phone,
             audit = client.audit.copy(
                 updatedAt = LocalDateTime.now()
             )

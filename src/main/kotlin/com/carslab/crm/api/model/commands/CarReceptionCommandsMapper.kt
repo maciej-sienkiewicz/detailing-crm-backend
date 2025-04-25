@@ -267,6 +267,7 @@ object CarReceptionDtoMapper {
                     quantity = service.quantity
                 )
             },
+            title = protocol.title,
         )
     }
 

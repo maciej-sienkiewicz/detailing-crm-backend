@@ -292,6 +292,9 @@ data class CarReceptionListDto(
     @JsonProperty("id")
     val id: String,
 
+    @JsonProperty("title")
+    val title: String,
+
     @JsonProperty("vehicle")
     val vehicle: VehicleBasicDto,
 

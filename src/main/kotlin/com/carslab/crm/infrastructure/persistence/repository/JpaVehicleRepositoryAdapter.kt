@@ -3,14 +3,18 @@ package com.carslab.crm.infrastructure.persistence.adapter
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.Vehicle
 import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.domain.port.ClientRepository
 import com.carslab.crm.domain.port.VehicleRepository
+import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
-class JpaVehicleRepositoryAdapter(private val vehicleJpaRepository: VehicleJpaRepository) : VehicleRepository {
+class JpaVehicleRepositoryAdapter(
+    private val vehicleJpaRepository: VehicleJpaRepository,
+    private val clientRepository: ClientRepository) : VehicleRepository {
 
     override fun save(vehicle: Vehicle): Vehicle {
         val entity = if (vehicle.id.value > 0) {
@@ -18,7 +22,19 @@ class JpaVehicleRepositoryAdapter(private val vehicleJpaRepository: VehicleJpaRe
             val existingEntity = vehicleJpaRepository.findById(vehicle.id.value).orElse(null)
                 ?: VehicleEntity.fromDomain(vehicle)
 
-            // Update fields
+            existingEntity.make = vehicle.make!!
+            existingEntity.model = vehicle.model!!
+            existingEntity.year = vehicle.year
+            existingEntity.licensePlate = vehicle.licensePlate!!
+            existingEntity.color = vehicle.color
+            existingEntity.vin = vehicle.vin
+
+            existingEntity.owners = clientRepository.findByIds(vehicle.ownerIds.map { ClientId(it) })
+                .map {
+                    val client = ClientEntity.fromDomain(it)
+                    client.id = it.id.value
+                    client
+                }.toMutableSet()
 
             existingEntity
         } else {

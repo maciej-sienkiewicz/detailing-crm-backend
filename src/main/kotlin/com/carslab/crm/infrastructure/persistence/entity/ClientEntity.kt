@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 class ClientEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    var id: Long? = null,
 
     @Column(name = "first_name", nullable = false)
     var firstName: String,
