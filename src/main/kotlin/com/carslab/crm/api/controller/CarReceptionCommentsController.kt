@@ -18,8 +18,6 @@ class CarReceptionCommentsController(
 
     @GetMapping("/{protocolId}")
     fun getComments(@PathVariable protocolId: String): ResponseEntity<List<CommentDto>> {
-        // W prawdziwej implementacji, tutaj pobierałbyś komentarze z bazy danych
-        // Zwracam przykładową odpowiedź
         val comments = commentsRepository.findById(ProtocolId(protocolId))
             .map { CommentDto(
                 id = it.id.toString(),

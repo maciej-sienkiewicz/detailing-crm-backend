@@ -79,7 +79,7 @@ class CarReceptionController(
             val imageCommand: CreateVehicleImageCommand = objectMapper.readValue(imageDetailsJson, CreateVehicleImageCommand::class.java)
             val image = imageCommand.fromCreateImageCommand()
 
-            storeUploadedImage(request, ProtocolId(protocolId), image)
+            carReceptionFacade.storeUploadedImage(request, ProtocolId(protocolId), image)
 
             return created(ProtocolIdResponse(protocolId))
         } catch (e: Exception) {
@@ -147,22 +147,6 @@ class CarReceptionController(
             val imageRequest = vehicleImages.getOrNull(index)
             if (imageRequest != null && imageRequest.hasFile && index < mediaItems.size) {
                 imageStorageService.storeFile(file, protocolId, mediaItems[index])
-            }
-        }
-    }
-
-    /**
-     * Stores a single uploaded image from the multipart request
-     */
-    private fun storeUploadedImage(
-        request: MultipartHttpServletRequest,
-        protocolId: ProtocolId,
-        image: CreateMediaTypeModel
-    ) {
-        request.fileMap.forEach { (paramName, file) ->
-            if (extractImageIndex(paramName) != null) {
-                imageStorageService.storeFile(file, protocolId, image)
-                return
             }
         }
     }

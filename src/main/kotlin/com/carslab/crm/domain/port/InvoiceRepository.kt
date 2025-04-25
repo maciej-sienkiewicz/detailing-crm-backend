@@ -38,7 +38,7 @@ interface InvoiceRepository {
     /**
      * Generuje numer faktury na podstawie roku i typu.
      */
-    fun generateInvoiceNumber(year: Int, type: String): String
+    fun generateInvoiceNumber(year: Int, month: Int, type: String): String
 
     /**
      * Znajduje przeterminowane faktury.

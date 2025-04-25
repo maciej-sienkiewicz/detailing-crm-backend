@@ -2,8 +2,12 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.*
+import com.carslab.crm.api.model.request.CreateInvoiceRequest
+import com.carslab.crm.api.model.request.UpdateInvoiceRequest
+import com.carslab.crm.api.model.response.InvoiceResponse
 import com.carslab.crm.domain.InvoiceService
 import com.carslab.crm.domain.model.view.finance.Invoice
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -23,7 +27,8 @@ import java.time.LocalDateTime
 @CrossOrigin(origins = ["*"])
 @Tag(name = "Invoices", description = "API endpoints for invoice management")
 class InvoiceController(
-    private val invoiceService: InvoiceService
+    private val invoiceService: InvoiceService,
+    private val invoiceObjectMapper: ObjectMapper,
 ) : BaseController() {
 
     @GetMapping
@@ -77,13 +82,21 @@ class InvoiceController(
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Create a new invoice", description = "Creates a new invoice with optional attachment")
     fun createInvoice(
-        @Parameter(description = "Invoice data", required = true) @RequestPart("invoice") @Valid createRequest: CreateInvoiceRequest,
-        @Parameter(description = "Invoice attachment") @RequestPart("attachment", required = false) attachment: MultipartFile?
+        @Parameter(description = "Invoice data", required = true)
+        @RequestPart("invoice") @Valid invoice: String,
+        @Parameter(description = "Invoice attachment")
+        @RequestPart("attachment", required = false) attachment: MultipartFile?
     ): ResponseEntity<InvoiceResponse> {
-        logger.info("Creating new invoice: {}", createRequest.title)
+        logger.info("Creating new invoice from JSON string")
 
-        val invoice = invoiceService.createInvoice(createRequest, attachment)
-        val response = invoice.toResponse()
+        // Convert string to CreateInvoiceRequest
+        val createRequest = invoiceObjectMapper.readValue(invoice, CreateInvoiceRequest::class.java)
+
+        // Validate manually since we're not using automatic binding
+        logger.info("Invoice data: {}", createRequest)
+
+        val createdInvoice = invoiceService.createInvoice(createRequest, attachment)
+        val response = createdInvoice.toResponse()
 
         return created(response)
     }
@@ -92,10 +105,15 @@ class InvoiceController(
     @Operation(summary = "Update an invoice", description = "Updates an existing invoice with optional attachment")
     fun updateInvoice(
         @Parameter(description = "Invoice ID", required = true) @PathVariable id: String,
-        @Parameter(description = "Invoice data", required = true) @RequestPart("invoice") @Valid updateRequest: UpdateInvoiceRequest,
-        @Parameter(description = "Invoice attachment") @RequestPart("attachment", required = false) attachment: MultipartFile?
+        @Parameter(description = "Invoice data", required = true)
+        @RequestPart("invoice") @Valid invoice: String,
+        @Parameter(description = "Invoice attachment")
+        @RequestPart("attachment", required = false) attachment: MultipartFile?
     ): ResponseEntity<InvoiceResponse> {
         logger.info("Updating invoice with ID: {}", id)
+
+        // Convert string to UpdateInvoiceRequest
+        val updateRequest = invoiceObjectMapper.readValue(invoice, UpdateInvoiceRequest::class.java)
 
         val invoice = invoiceService.updateInvoice(id, updateRequest, attachment)
         val response = invoice.toResponse()

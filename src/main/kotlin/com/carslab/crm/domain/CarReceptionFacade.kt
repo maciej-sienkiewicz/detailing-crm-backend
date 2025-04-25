@@ -3,16 +3,18 @@ package com.carslab.crm.domain
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.LocalDateTime
 
 @Service
 class CarReceptionFacade(
-    private val carReceptionService: CarReceptionService
+    private val carReceptionService: CarReceptionService,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionFacade::class.java)
 
@@ -66,4 +68,11 @@ class CarReceptionFacade(
     fun deleteProtocol(protocolId: ProtocolId): Boolean {
         return carReceptionService.deleteProtocol(protocolId)
     }
+
+    fun storeUploadedImage(
+        request: MultipartHttpServletRequest,
+        protocolId: ProtocolId,
+        image: CreateMediaTypeModel
+    ) =
+        carReceptionService.storeUploadedImage(request, protocolId, image)
 }

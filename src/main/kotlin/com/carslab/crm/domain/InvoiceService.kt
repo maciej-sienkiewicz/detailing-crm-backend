@@ -1,6 +1,8 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.api.model.*
+import com.carslab.crm.api.model.request.CreateInvoiceRequest
+import com.carslab.crm.api.model.request.UpdateInvoiceRequest
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.view.finance.*

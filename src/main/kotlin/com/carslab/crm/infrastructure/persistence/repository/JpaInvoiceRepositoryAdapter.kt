@@ -55,7 +55,7 @@ class JpaInvoiceRepositoryAdapter(
             val newEntity = InvoiceEntity.fromDomain(invoice)
             // Jeśli numer nie został wygenerowany, generujemy go
             if (newEntity.number.isBlank()) {
-                newEntity.number = generateInvoiceNumber(invoice.issuedDate.year, invoice.type.name)
+                newEntity.number = generateInvoiceNumber(invoice.issuedDate.year, invoice.issuedDate.month.value, invoice.type.name)
             }
             newEntity
         }
@@ -131,12 +131,12 @@ class JpaInvoiceRepositoryAdapter(
         }
     }
 
-    override fun generateInvoiceNumber(year: Int, type: String): String {
+    override fun generateInvoiceNumber(year: Int, month: Int, type: String): String {
         // Przykładowy format: FV/RRRR/XXXX dla przychodów, KSZ/RRRR/XXXX dla kosztów
         val prefix = when (type) {
-            InvoiceType.INCOME.name -> "FV/$year/"
-            InvoiceType.EXPENSE.name -> "KSZ/$year/"
-            else -> "FV/$year/"
+            InvoiceType.INCOME.name -> "FV/$year/$month/"
+            InvoiceType.EXPENSE.name -> "KSZ/$year/$month"
+            else -> "FV/$year/$month/"
         }
 
         // Pobierz ostatni numer faktury z podanym prefixem

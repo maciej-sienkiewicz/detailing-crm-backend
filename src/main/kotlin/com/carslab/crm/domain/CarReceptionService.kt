@@ -2,10 +2,7 @@ package com.carslab.crm.domain
 
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
-import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
-import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
+import com.carslab.crm.domain.model.create.protocol.*
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
@@ -14,10 +11,9 @@ import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Service
 class CarReceptionService(
@@ -56,6 +52,16 @@ class CarReceptionService(
         protocolServicesRepository.saveServices(createProtocolCommand.services, savedProtocolId)
         updateStatisticsOnCreateComponent(protocolWithFilledIds)
 
+        protocolCommentsRepository.save(
+            ProtocolComment(
+                protocolId = savedProtocolId,
+                author = "Administrator",
+                content = "Zaplanowano wizytę",
+                timestamp = Instant.now().toString(),
+                type = "system"
+            )
+        )
+
         logger.info("Created protocol with ID: ${savedProtocolId.value}")
         return savedProtocolId
     }
@@ -71,6 +77,15 @@ class CarReceptionService(
             audit = protocol.audit.copy(
                 updatedAt = LocalDateTime.now(),
                 statusUpdatedAt = if (protocol.status != existingProtocol.status) {
+                    protocolCommentsRepository.save(
+                        ProtocolComment(
+                            protocolId = protocol.id,
+                            author = "Administrator",
+                            content =  "Zmieniono status protokołu z \"${existingProtocol.status.uiVale}\" na: \"${protocol.status.uiVale}\"",
+                            timestamp = Instant.now().toString(),
+                            type = "system"
+                        )
+                    )
                     LocalDateTime.now()
                 } else {
                     existingProtocol.audit.statusUpdatedAt
@@ -118,7 +133,7 @@ class CarReceptionService(
         )
 
         if (updatedProtocol.status == ProtocolStatus.COMPLETED) {
-            updateStatisticsOnCompletion(updatedProtocol)
+            updateVisitsStatistics(updatedProtocol)
         }
 
         val savedProtocol = carReceptionRepository.save(updatedProtocol)
@@ -242,6 +257,15 @@ class CarReceptionService(
     }
 
     fun deleteImage(protocolId: ProtocolId, imageId: String) {
+        protocolCommentsRepository.save(
+            ProtocolComment(
+                protocolId = protocolId,
+                author = "Administrator",
+                content = "Usunieto zdjecie",
+                timestamp = Instant.now().toString(),
+                type = "system"
+            )
+        )
         return imageStorageService.deleteFile(imageId, protocolId)
     }
 
@@ -355,7 +379,7 @@ class CarReceptionService(
         }
     }
 
-    private fun updateStatisticsOnCompletion(protocol: CarReceptionProtocol) {
+    private fun updateVisitsStatistics(protocol: CarReceptionProtocol) {
         // Aktualizacja statystyk klienta
         protocol.client.id?.let { clientId ->
             val clientStats = clientStatisticsRepository.findById(ClientId(clientId))
@@ -411,6 +435,43 @@ class CarReceptionService(
     }
 
     fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {
+        protocolCommentsRepository.save(
+            ProtocolComment(
+                protocolId = protocolId,
+                author = "Administrator",
+                content = "Dodano nowe usługi: ${services.joinToString(", ") { "${it.name} (${it.finalPrice})" }}",
+                timestamp = Instant.now().toString(),
+                type = "system"
+            )
+        )
         protocolServicesRepository.saveServices(services, protocolId)
+    }
+
+    fun storeUploadedImage(
+        request: MultipartHttpServletRequest,
+        protocolId: ProtocolId,
+        image: CreateMediaTypeModel
+    ) {
+        request.fileMap.forEach { (paramName, file) ->
+            if (extractImageIndex(paramName) != null) {
+                imageStorageService.storeFile(file, protocolId, image)
+                return
+            }
+        }
+        protocolCommentsRepository.save(
+            ProtocolComment(
+                protocolId = protocolId,
+                author = "Administrator",
+                content = "Dodano nowe zdjęcie: ${image.name}",
+                timestamp = Instant.now().toString(),
+                type = "system"
+            )
+        )
+    }
+
+    private fun extractImageIndex(paramName: String): Int? {
+        val imageIndexRegex = """images\[(\d+)\]""".toRegex()
+        val matchResult = imageIndexRegex.find(paramName) ?: return null
+        return matchResult.groupValues[1].toInt()
     }
 }

@@ -1,282 +1,198 @@
 package com.carslab.crm.api.model
 
-import com.carslab.crm.domain.model.view.finance.*
 import com.fasterxml.jackson.annotation.JsonFormat
-import jakarta.validation.Valid
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
-import jakarta.validation.constraints.Size
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/**
- * DTO pozycji faktury.
- */
 data class InvoiceItemDTO(
+    @JsonProperty("id")
     val id: String? = null,
 
     @field:NotBlank(message = "Nazwa pozycji jest wymagana")
-    val name: String,
+    @JsonProperty("name")
+    val name: String = "",
 
+    @JsonProperty("description")
     val description: String? = null,
 
     @field:NotNull(message = "Ilość jest wymagana")
     @field:Positive(message = "Ilość musi być większa od zera")
-    val quantity: BigDecimal,
+    @JsonProperty("quantity")
+    val quantity: BigDecimal = BigDecimal.ONE,
 
     @field:NotNull(message = "Cena jednostkowa jest wymagana")
     @field:Positive(message = "Cena jednostkowa musi być większa od zera")
-    val unitPrice: BigDecimal,
+    @JsonProperty("unit_price")
+    val unitPrice: BigDecimal = BigDecimal.ZERO,
 
     @field:NotNull(message = "Stawka VAT jest wymagana")
-    val taxRate: BigDecimal,
+    @JsonProperty("tax_rate")
+    val taxRate: BigDecimal = BigDecimal.ZERO,
 
-    val totalNet: BigDecimal,
-    val totalGross: BigDecimal
-)
+    @JsonProperty("total_net")
+    val totalNet: BigDecimal = BigDecimal.ZERO,
 
-/**
- * DTO załącznika faktury.
- */
+    @JsonProperty("total_gross")
+    val totalGross: BigDecimal = BigDecimal.ZERO
+) {
+    constructor() : this(
+        name = "",
+        quantity = BigDecimal.ONE,
+        unitPrice = BigDecimal.ZERO,
+        taxRate = BigDecimal.ZERO
+    )
+}
+
 data class InvoiceAttachmentDTO(
+    @JsonProperty("id")
     val id: String? = null,
+
+    @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("size")
     val size: Long,
+
+    @JsonProperty("type")
     val type: String,
+
+    @JsonProperty("url")
     val url: String? = null,
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonProperty("uploaded_at")
     val uploadedAt: LocalDateTime = LocalDateTime.now()
 )
 
-/**
- * DTO faktury (odpowiedź).
- */
-data class InvoiceResponse(
-    val id: String,
-    val number: String,
-    val title: String,
-
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val issuedDate: LocalDate,
-
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val dueDate: LocalDate,
-
-    val sellerName: String,
-    val sellerTaxId: String? = null,
-    val sellerAddress: String? = null,
-    val buyerName: String,
-    val buyerTaxId: String? = null,
-    val buyerAddress: String? = null,
-    val clientId: Long? = null,
-    val status: String,
-    val type: String,
-    val paymentMethod: String,
-    val totalNet: BigDecimal,
-    val totalTax: BigDecimal,
-    val totalGross: BigDecimal,
-    val currency: String,
-    val notes: String? = null,
-    val protocolId: String? = null,
-    val protocolNumber: String? = null,
-
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val createdAt: LocalDateTime,
-
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    val updatedAt: LocalDateTime,
-
-    val items: List<InvoiceItemDTO>,
-    val attachment: InvoiceAttachmentDTO? = null
-)
-
-/**
- * DTO faktury (żądanie utworzenia).
- */
-data class CreateInvoiceRequest(
-    @field:NotBlank(message = "Tytuł faktury jest wymagany")
-    val title: String,
-
-    @field:NotNull(message = "Data wystawienia jest wymagana")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val issuedDate: LocalDate,
-
-    @field:NotNull(message = "Termin płatności jest wymagany")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val dueDate: LocalDate,
-
-    @field:NotBlank(message = "Nazwa sprzedawcy jest wymagana")
-    val sellerName: String,
-
-    val sellerTaxId: String? = null,
-    val sellerAddress: String? = null,
-
-    @field:NotBlank(message = "Nazwa nabywcy jest wymagana")
-    val buyerName: String,
-
-    val buyerTaxId: String? = null,
-    val buyerAddress: String? = null,
-    val clientId: Long? = null,
-
-    @field:NotNull(message = "Status faktury jest wymagany")
-    val status: String,
-
-    @field:NotNull(message = "Typ faktury jest wymagany")
-    val type: String,
-
-    @field:NotNull(message = "Metoda płatności jest wymagana")
-    val paymentMethod: String,
-
-    val totalNet: BigDecimal,
-    val totalTax: BigDecimal,
-    val totalGross: BigDecimal,
-
-    @field:NotBlank(message = "Waluta jest wymagana")
-    val currency: String,
-
-    val paid: BigDecimal? = null,
-    val notes: String? = null,
-    val protocolId: String? = null,
-    val protocolNumber: String? = null,
-
-    @field:NotNull(message = "Lista pozycji jest wymagana")
-    @field:Size(min = 1, message = "Faktura musi zawierać co najmniej jedną pozycję")
-    @field:Valid
-    val items: List<InvoiceItemDTO>
-)
-
-/**
- * DTO faktury (żądanie aktualizacji).
- */
-data class UpdateInvoiceRequest(
-    @field:NotBlank(message = "Tytuł faktury jest wymagany")
-    val title: String,
-
-    @field:NotNull(message = "Data wystawienia jest wymagana")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val issuedDate: LocalDate,
-
-    @field:NotNull(message = "Termin płatności jest wymagany")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    val dueDate: LocalDate,
-
-    @field:NotBlank(message = "Nazwa sprzedawcy jest wymagana")
-    val sellerName: String,
-
-    val sellerTaxId: String? = null,
-    val sellerAddress: String? = null,
-
-    @field:NotBlank(message = "Nazwa nabywcy jest wymagana")
-    val buyerName: String,
-
-    val buyerTaxId: String? = null,
-    val buyerAddress: String? = null,
-    val clientId: Long? = null,
-
-    @field:NotNull(message = "Status faktury jest wymagany")
-    val status: String,
-
-    @field:NotNull(message = "Typ faktury jest wymagany")
-    val type: String,
-
-    @field:NotNull(message = "Metoda płatności jest wymagana")
-    val paymentMethod: String,
-
-    val totalNet: BigDecimal,
-    val totalTax: BigDecimal,
-    val totalGross: BigDecimal,
-
-    @field:NotBlank(message = "Waluta jest wymagana")
-    val currency: String,
-
-    val paid: BigDecimal? = null,
-    val notes: String? = null,
-    val protocolId: String? = null,
-    val protocolNumber: String? = null,
-
-    @field:NotNull(message = "Lista pozycji jest wymagana")
-    @field:Size(min = 1, message = "Faktura musi zawierać co najmniej jedną pozycję")
-    @field:Valid
-    val items: List<InvoiceItemDTO>
-)
-
-/**
- * DTO dla filtrów wyszukiwania faktur.
- */
 data class InvoiceFilterDTO(
+    @JsonProperty("number")
     val number: String? = null,
+
+    @JsonProperty("title")
     val title: String? = null,
+
+    @JsonProperty("buyer_name")
     val buyerName: String? = null,
+
+    @JsonProperty("status")
     val status: String? = null,
+
+    @JsonProperty("type")
     val type: String? = null,
 
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonProperty("date_from")
     val dateFrom: LocalDate? = null,
 
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonProperty("date_to")
     val dateTo: LocalDate? = null,
 
+    @JsonProperty("protocol_id")
     val protocolId: String? = null,
+
+    @JsonProperty("min_amount")
     val minAmount: BigDecimal? = null,
+
+    @JsonProperty("max_amount")
     val maxAmount: BigDecimal? = null
 )
 
-/**
- * DTO dla danych wyekstrahowanych z faktury.
- */
 data class ExtractedInvoiceDataDTO(
+    @JsonProperty("general_info")
     val generalInfo: GeneralInfoDTO,
+
+    @JsonProperty("seller")
     val seller: SellerInfoDTO,
+
+    @JsonProperty("buyer")
     val buyer: BuyerInfoDTO,
+
+    @JsonProperty("items")
     val items: List<ExtractedItemDTO>,
+
+    @JsonProperty("summary")
     val summary: SummaryDTO,
+
+    @JsonProperty("notes")
     val notes: String? = null
 )
 
 data class GeneralInfoDTO(
+    @JsonProperty("title")
     val title: String? = null,
 
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonProperty("issued_date")
     val issuedDate: LocalDate,
 
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonProperty("due_date")
     val dueDate: LocalDate
 )
 
 data class SellerInfoDTO(
+    @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("tax_id")
     val taxId: String? = null,
+
+    @JsonProperty("address")
     val address: String? = null
 )
 
 data class BuyerInfoDTO(
+    @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("tax_id")
     val taxId: String? = null,
+
+    @JsonProperty("address")
     val address: String? = null
 )
 
 data class ExtractedItemDTO(
+    @JsonProperty("name")
     val name: String,
+
+    @JsonProperty("description")
     val description: String? = null,
+
+    @JsonProperty("quantity")
     val quantity: BigDecimal,
+
+    @JsonProperty("unit_price")
     val unitPrice: BigDecimal,
+
+    @JsonProperty("tax_rate")
     val taxRate: BigDecimal,
+
+    @JsonProperty("total_net")
     val totalNet: BigDecimal,
+
+    @JsonProperty("total_gross")
     val totalGross: BigDecimal
 )
 
 data class SummaryDTO(
+    @JsonProperty("total_net")
     val totalNet: BigDecimal,
+
+    @JsonProperty("total_tax")
     val totalTax: BigDecimal,
+
+    @JsonProperty("total_gross")
     val totalGross: BigDecimal
 )
 
-/**
- * DTO dla odpowiedzi z danymi wyekstrahowanymi z faktury.
- */
 data class InvoiceDataResponse(
+    @JsonProperty("extracted_invoice_data")
     val extractedInvoiceData: ExtractedInvoiceDataDTO
 )
