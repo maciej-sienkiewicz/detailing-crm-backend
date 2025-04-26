@@ -26,9 +26,6 @@ data class CashTransactionFilterDTO(
     @JsonProperty("visit_id")
     val visitId: String? = null,
 
-    @JsonProperty("invoice_id")
-    val invoiceId: String? = null,
-
     @JsonProperty("min_amount")
     val minAmount: BigDecimal? = null,
 

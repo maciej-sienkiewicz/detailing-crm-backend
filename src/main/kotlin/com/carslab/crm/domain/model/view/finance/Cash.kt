@@ -34,9 +34,6 @@ data class CashTransaction(
     val date: LocalDate,
     val amount: BigDecimal,
     val visitId: String?,             // Powiązanie z wizytą (opcjonalne)
-    val visitNumber: String?,         // Numer wizyty (opcjonalne)
-    val invoiceId: String?,           // Powiązanie z fakturą (opcjonalne)
-    val invoiceNumber: String?,       // Numer faktury (opcjonalne)
     val createdBy: UserId,            // Użytkownik, który wprowadził transakcję
     val audit: Audit
 )

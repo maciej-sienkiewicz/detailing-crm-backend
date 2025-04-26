@@ -18,8 +18,6 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
 
     fun findByVisitId(visitId: String): List<CashTransactionEntity>
 
-    fun findByInvoiceId(invoiceId: String): List<CashTransactionEntity>
-
     fun findByDateBetween(startDate: LocalDate, endDate: LocalDate): List<CashTransactionEntity>
 
     @Query("""
@@ -56,7 +54,6 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         AND (:dateFrom IS NULL OR c.date >= :dateFrom)
         AND (:dateTo IS NULL OR c.date <= :dateTo)
         AND (:visitId IS NULL OR c.visitId = :visitId)
-        AND (:invoiceId IS NULL OR c.invoiceId = :invoiceId)
         AND (:minAmount IS NULL OR c.amount >= :minAmount)
         AND (:maxAmount IS NULL OR c.amount <= :maxAmount)
         ORDER BY c.date DESC, c.createdAt DESC
@@ -67,7 +64,6 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         @Param("dateFrom") dateFrom: LocalDate?,
         @Param("dateTo") dateTo: LocalDate?,
         @Param("visitId") visitId: String?,
-        @Param("invoiceId") invoiceId: String?,
         @Param("minAmount") minAmount: BigDecimal?,
         @Param("maxAmount") maxAmount: BigDecimal?,
         pageable: Pageable
@@ -80,7 +76,6 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         AND (:dateFrom IS NULL OR c.date >= :dateFrom)
         AND (:dateTo IS NULL OR c.date <= :dateTo)
         AND (:visitId IS NULL OR c.visitId = :visitId)
-        AND (:invoiceId IS NULL OR c.invoiceId = :invoiceId)
         AND (:minAmount IS NULL OR c.amount >= :minAmount)
         AND (:maxAmount IS NULL OR c.amount <= :maxAmount)
     """)
@@ -90,7 +85,6 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         @Param("dateFrom") dateFrom: LocalDate?,
         @Param("dateTo") dateTo: LocalDate?,
         @Param("visitId") visitId: String?,
-        @Param("invoiceId") invoiceId: String?,
         @Param("minAmount") minAmount: BigDecimal?,
         @Param("maxAmount") maxAmount: BigDecimal?
     ): Long

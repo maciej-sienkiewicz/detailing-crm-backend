@@ -57,11 +57,6 @@ interface CashRepository {
     fun findByVisitId(visitId: String): List<CashTransaction>
 
     /**
-     * Znajduje transakcje dla powiązanej faktury.
-     */
-    fun findByInvoiceId(invoiceId: String): List<CashTransaction>
-
-    /**
      * Znajduje transakcje według typu.
      */
     fun findByType(type: TransactionType): List<CashTransaction>

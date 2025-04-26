@@ -33,15 +33,6 @@ class CashTransactionEntity(
     @Column(name = "visit_id")
     var visitId: String? = null,
 
-    @Column(name = "visit_number")
-    var visitNumber: String? = null,
-
-    @Column(name = "invoice_id")
-    var invoiceId: String? = null,
-
-    @Column(name = "invoice_number")
-    var invoiceNumber: String? = null,
-
     @Column(name = "created_by", nullable = false)
     var createdBy: String,
 
@@ -59,9 +50,6 @@ class CashTransactionEntity(
             date = date,
             amount = amount,
             visitId = visitId,
-            visitNumber = visitNumber,
-            invoiceId = invoiceId,
-            invoiceNumber = invoiceNumber,
             createdBy = UserId(createdBy),
             audit = Audit(createdAt = createdAt, updatedAt = updatedAt)
         )
@@ -76,9 +64,6 @@ class CashTransactionEntity(
                 date = domain.date,
                 amount = domain.amount,
                 visitId = domain.visitId,
-                visitNumber = domain.visitNumber,
-                invoiceId = domain.invoiceId,
-                invoiceNumber = domain.invoiceNumber,
                 createdBy = domain.createdBy.value,
                 createdAt = domain.audit.createdAt,
                 updatedAt = domain.audit.updatedAt

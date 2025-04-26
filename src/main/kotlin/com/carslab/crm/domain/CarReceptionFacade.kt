@@ -6,6 +6,7 @@ import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
+import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -75,4 +76,11 @@ class CarReceptionFacade(
         image: CreateMediaTypeModel
     ) =
         carReceptionService.storeUploadedImage(request, protocolId, image)
+
+    fun releaseVehicle(existingProtocol: CarReceptionProtocol, releaseDetails: VehicleReleaseDetailsModel): CarReceptionProtocol {
+        return carReceptionService.releaseVehicle(
+            existingProtocol = existingProtocol,
+            releaseDetails = releaseDetails
+        )
+    }
 }

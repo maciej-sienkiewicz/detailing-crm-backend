@@ -36,7 +36,6 @@ class CashController(
         @Parameter(description = "Date from") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) dateFrom: LocalDate?,
         @Parameter(description = "Date to") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) dateTo: LocalDate?,
         @Parameter(description = "Visit ID") @RequestParam(required = false) visitId: String?,
-        @Parameter(description = "Invoice ID") @RequestParam(required = false) invoiceId: String?,
         @Parameter(description = "Minimum amount") @RequestParam(required = false) minAmount: BigDecimal?,
         @Parameter(description = "Maximum amount") @RequestParam(required = false) maxAmount: BigDecimal?,
         @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
@@ -50,7 +49,6 @@ class CashController(
             dateFrom = dateFrom,
             dateTo = dateTo,
             visitId = visitId,
-            invoiceId = invoiceId,
             minAmount = minAmount,
             maxAmount = maxAmount
         )
@@ -192,19 +190,6 @@ class CashController(
         return ok(response)
     }
 
-    @GetMapping("/transactions/invoice/{invoiceId}")
-    @Operation(summary = "Get transactions by invoice ID", description = "Retrieves all cash transactions related to an invoice")
-    fun getTransactionsByInvoiceId(
-        @Parameter(description = "Invoice ID", required = true) @PathVariable invoiceId: String
-    ): ResponseEntity<List<CashTransactionResponse>> {
-        logger.info("Getting cash transactions for invoice ID: {}", invoiceId)
-
-        val transactions = cashService.getTransactionsByInvoiceId(invoiceId)
-        val response = transactions.map { it.toResponse() }
-
-        return ok(response)
-    }
-
     // Helper function to convert domain model to response DTO
     private fun CashTransaction.toResponse(): CashTransactionResponse {
         return CashTransactionResponse(
@@ -214,9 +199,6 @@ class CashController(
             date = date,
             amount = amount,
             visitId = visitId,
-            visitNumber = visitNumber,
-            invoiceId = invoiceId,
-            invoiceNumber = invoiceNumber,
             createdBy = createdBy.value,
             createdAt = audit.createdAt,
             updatedAt = audit.updatedAt

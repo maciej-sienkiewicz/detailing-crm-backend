@@ -57,7 +57,6 @@ class JpaCashRepositoryAdapter(
             dateFrom = filter.dateFrom,
             dateTo = filter.dateTo,
             visitId = filter.visitId,
-            invoiceId = filter.invoiceId,
             minAmount = filter.minAmount,
             maxAmount = filter.maxAmount,
             pageable = pageable
@@ -115,11 +114,6 @@ class JpaCashRepositoryAdapter(
 
     override fun findByVisitId(visitId: String): List<CashTransaction> {
         return cashJpaRepository.findByVisitId(visitId)
-            .map { it.toDomain() }
-    }
-
-    override fun findByInvoiceId(invoiceId: String): List<CashTransaction> {
-        return cashJpaRepository.findByInvoiceId(invoiceId)
             .map { it.toDomain() }
     }
 

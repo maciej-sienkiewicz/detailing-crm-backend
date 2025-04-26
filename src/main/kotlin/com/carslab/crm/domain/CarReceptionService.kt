@@ -1,10 +1,13 @@
 package com.carslab.crm.domain
 
+import com.carslab.crm.api.model.request.CreateCashTransactionRequest
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.create.protocol.*
+import com.carslab.crm.domain.model.create.protocol.PaymentMethod
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats
+import com.carslab.crm.domain.model.view.finance.*
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
@@ -13,6 +16,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -26,6 +30,8 @@ class CarReceptionService(
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
     private val protocolCommentsRepository: ProtocolCommentsRepository,
+    private val cashRepository: CashRepository,
+    private val invoiceRepository: InvoiceRepository
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -473,5 +479,90 @@ class CarReceptionService(
         val imageIndexRegex = """images\[(\d+)\]""".toRegex()
         val matchResult = imageIndexRegex.find(paramName) ?: return null
         return matchResult.groupValues[1].toInt()
+    }
+
+    fun releaseVehicle(existingProtocol: CarReceptionProtocol, releaseDetails: VehicleReleaseDetailsModel): CarReceptionProtocol {
+        val updatedProtocol = changeStatus(existingProtocol.id, ProtocolStatus.COMPLETED)
+
+        if (releaseDetails.paymentMethod == PaymentMethod.CASH) {
+            registerCashPayment(existingProtocol)
+        }
+
+        if (releaseDetails.documentType == DocumentType.INVOICE) {
+            val gross = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+                .sumOf { it.finalPrice.amount }.toBigDecimal()
+            val nett = gross / 1.23.toBigDecimal()
+            val totalTax = gross - nett
+            val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+                .map {
+                    InvoiceItem(
+                        name = it.name,
+                        description = it.note,
+                        quantity = 1.toBigDecimal(),
+                        unitPrice = it.finalPrice.amount.toBigDecimal(),
+                        taxRate = 23.toBigDecimal(),
+                        totalNet = it.finalPrice.amount.toBigDecimal() / 1.23.toBigDecimal(),
+                        totalGross = it.finalPrice.amount.toBigDecimal()
+                    )
+                }
+            invoiceRepository.save(
+                Invoice(
+                    id = InvoiceId.generate(),
+                    number = "",
+                    title = "Faktura za wizytę",
+                    issuedDate = LocalDate.now(),
+                    dueDate = LocalDate.now().plusDays(14),
+                    sellerName = "Detailing Studio",
+                    sellerTaxId = "123456789",
+                    sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
+                    buyerName = existingProtocol.client.name,
+                    buyerTaxId = existingProtocol.client.taxId,
+                    buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
+                    clientId = existingProtocol.client.id?.let { ClientId(it.toLong()) },
+                    status = InvoiceStatus.NOT_PAID,
+                    type = InvoiceType.INCOME,
+                    paymentMethod = when (releaseDetails.paymentMethod) {
+                        PaymentMethod.CASH -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CASH
+                        PaymentMethod.CARD -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CARD
+                    },
+                    totalNet = nett,
+                    totalTax = totalTax,
+                    totalGross = gross,
+                    currency = "PLN",
+                    notes = "",
+                    protocolId = existingProtocol.id.value,
+                    protocolNumber = existingProtocol.id.value,
+                    items = items,
+                    attachment = null,
+                    audit = Audit(
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
+            )
+        }
+
+
+
+        return updatedProtocol
+    }
+
+    private fun registerCashPayment(existingProtocol: CarReceptionProtocol) {
+        cashRepository.save(
+            CashTransaction(
+                id = TransactionId.generate(),
+                type = TransactionType.INCOME,
+                description = "Opłata za wizytę",
+                date = LocalDate.now(),
+                amount = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+                    .sumOf { it.finalPrice.amount }.toBigDecimal(),
+                visitId = existingProtocol.id.value,
+                createdBy = UserId("0"),
+                audit = Audit(
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+            )
+        )
     }
 }

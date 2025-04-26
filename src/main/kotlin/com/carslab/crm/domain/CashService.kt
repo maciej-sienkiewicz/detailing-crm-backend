@@ -45,9 +45,6 @@ class CashService(
             date = request.date,
             amount = request.amount,
             visitId = request.visitId,
-            visitNumber = request.visitNumber,
-            invoiceId = request.invoiceId,
-            invoiceNumber = request.invoiceNumber,
             createdBy = UserId("0"),
             audit = Audit(
                 createdAt = LocalDateTime.now(),
@@ -84,9 +81,6 @@ class CashService(
             date = request.date,
             amount = request.amount,
             visitId = request.visitId,
-            visitNumber = request.visitNumber,
-            invoiceId = request.invoiceId,
-            invoiceNumber = request.invoiceNumber,
             createdBy = existingTransaction.createdBy, // Zachowujemy oryginalnego twórcę
             audit = Audit(
                 createdAt = existingTransaction.audit.createdAt,
@@ -190,14 +184,6 @@ class CashService(
     fun getTransactionsByVisitId(visitId: String): List<CashTransaction> {
         logger.debug("Getting cash transactions for visit ID: {}", visitId)
         return cashRepository.findByVisitId(visitId)
-    }
-
-    /**
-     * Pobiera transakcje dla powiązanej faktury.
-     */
-    fun getTransactionsByInvoiceId(invoiceId: String): List<CashTransaction> {
-        logger.debug("Getting cash transactions for invoice ID: {}", invoiceId)
-        return cashRepository.findByInvoiceId(invoiceId)
     }
 
     /**

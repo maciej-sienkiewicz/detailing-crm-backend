@@ -29,15 +29,6 @@ data class CashTransactionResponse(
     @JsonProperty("visit_id")
     val visitId: String? = null,
 
-    @JsonProperty("visit_number")
-    val visitNumber: String? = null,
-
-    @JsonProperty("invoice_id")
-    val invoiceId: String? = null,
-
-    @JsonProperty("invoice_number")
-    val invoiceNumber: String? = null,
-
     @JsonProperty("created_by")
     val createdBy: String,
 

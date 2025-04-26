@@ -9,9 +9,14 @@ import com.carslab.crm.api.model.commands.*
 import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.CarReceptionFacade
+import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.VehicleImage
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
+import com.carslab.crm.domain.model.create.protocol.DocumentType
+import com.carslab.crm.domain.model.create.protocol.PaymentMethod
+import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
@@ -430,6 +435,46 @@ class CarReceptionController(
 
         val response = protocols.map { CarReceptionDtoMapper.toClientHistoryDto(it) }
         return ok(response)
+    }
+
+    @PostMapping("/{id}/release")
+    @Operation(summary = "Release vehicle to client", description = "Completes protocol by releasing vehicle to client with payment details")
+    fun releaseVehicle(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
+        @Valid @RequestBody command: ReleaseVehicleCommand
+    ): ResponseEntity<CarReceptionDetailDto> {
+        logger.info("Releasing vehicle for protocol with ID: $id with payment method: ${command.paymentMethod}")
+
+        try {
+            // Verify protocol exists
+            val existingProtocol: CarReceptionProtocol = carReceptionFacade.getProtocolById(ProtocolId(id))
+                ?: throw ResourceNotFoundException("Protocol", id)
+
+            // Sprawdź, czy protokół jest w odpowiednim statusie (READY_FOR_PICKUP)
+            if (existingProtocol.status != ProtocolStatus.READY_FOR_PICKUP) {
+                throw ValidationException("Protocol must be in READY_FOR_PICKUP status to release vehicle")
+            }
+
+            val details = VehicleReleaseDetailsModel(
+                paymentMethod = PaymentMethod.fromString(command.paymentMethod),
+                documentType = DocumentType.fromString(command.documentType),
+                releaseDate = LocalDateTime.now()
+            )
+
+            // Zaktualizuj status protokołu na COMPLETED
+            val updatedProtocol = carReceptionFacade.releaseVehicle(
+                existingProtocol = existingProtocol,
+                releaseDetails = details
+            )
+
+            // Convert domain model to response
+            val response = CarReceptionDtoMapper.toDetailDto(updatedProtocol)
+
+            logger.info("Successfully released vehicle for protocol with ID: $id")
+            return ok(response)
+        } catch (e: Exception) {
+            return logAndRethrow("Error releasing vehicle for protocol with ID: $id", e)
+        }
     }
 
     private fun validateCarReceptionRequest(command: CreateCarReceptionCommand) {
