@@ -1,5 +1,6 @@
 package com.carslab.crm.domain
 
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
@@ -81,6 +82,28 @@ class CarReceptionFacade(
         return carReceptionService.releaseVehicle(
             existingProtocol = existingProtocol,
             releaseDetails = releaseDetails
+        )
+    }
+
+    fun searchProtocolsWithPagination(
+        clientName: String? = null,
+        clientId: Long? = null,
+        licensePlate: String? = null,
+        status: ProtocolStatus? = null,
+        startDate: LocalDateTime? = null,
+        endDate: LocalDateTime? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PaginatedResponse<CarReceptionProtocol> {
+        return carReceptionService.searchProtocolsWithPagination(
+            clientName = clientName,
+            clientId = clientId,
+            licensePlate = licensePlate,
+            status = status,
+            startDate = startDate,
+            endDate = endDate,
+            page = page,
+            size = size
         )
     }
 }

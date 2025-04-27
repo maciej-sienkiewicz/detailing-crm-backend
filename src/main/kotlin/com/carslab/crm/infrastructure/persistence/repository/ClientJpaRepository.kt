@@ -4,7 +4,10 @@ import com.carslab.crm.domain.model.ContactAttemptResult
 import com.carslab.crm.domain.model.ContactAttemptType
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.infrastructure.persistence.entity.*
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
@@ -42,9 +45,63 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
 }
 
 @Repository
-interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, String> {
+interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, String>, JpaSpecificationExecutor<ProtocolEntity> {
     fun findByStatus(status: ProtocolStatus): List<ProtocolEntity>
     fun findByClientId(clientId: Long): List<ProtocolEntity>
+
+    @Query(nativeQuery = true,
+        value = "SELECT p.* FROM protocols p " +
+                "JOIN clients c ON p.client_id = c.id " +
+                "JOIN vehicles v ON p.vehicle_id = v.id " +
+                "WHERE " +
+                "(:clientName IS NULL OR LOWER(CAST(c.first_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%')) OR LOWER(CAST(c.last_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%'))) AND " +
+                "(:clientId IS NULL OR p.client_id = :clientId) AND " +
+                "(:licensePlate IS NULL OR LOWER(CAST(v.license_plate AS text)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS text), '%'))) AND " +
+                "(:status IS NULL OR p.status = :status) AND " +
+                "(:startDate IS NULL OR p.end_date >= :startDate) AND " +
+                "(:endDate IS NULL OR p.start_date <= :endDate) " +
+                "ORDER BY p.created_at DESC " +
+                "LIMIT :limit OFFSET :offset",
+        countQuery = "SELECT COUNT(p.*) FROM protocols p " +
+                "JOIN clients c ON p.client_id = c.id " +
+                "JOIN vehicles v ON p.vehicle_id = v.id " +
+                "WHERE " +
+                "(:clientName IS NULL OR LOWER(CAST(c.first_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%')) OR LOWER(CAST(c.last_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%'))) AND " +
+                "(:clientId IS NULL OR p.client_id = :clientId) AND " +
+                "(:licensePlate IS NULL OR LOWER(CAST(v.license_plate AS text)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS text), '%'))) AND " +
+                "(:status IS NULL OR p.status = :status) AND " +
+                "(:startDate IS NULL OR p.end_date >= :startDate) AND " +
+                "(:endDate IS NULL OR p.start_date <= :endDate)")
+    fun searchProtocolsPaginated(
+        @Param("clientName") clientName: String?,
+        @Param("clientId") clientId: Long?,
+        @Param("licensePlate") licensePlate: String?,
+        @Param("status") status: String?,
+        @Param("startDate") startDate: LocalDateTime?,
+        @Param("endDate") endDate: LocalDateTime?,
+        @Param("limit") limit: Int,
+        @Param("offset") offset: Int
+    ): List<ProtocolEntity>
+
+    @Query(nativeQuery = true,
+        value = "SELECT COUNT(*) FROM protocols p " +
+                "JOIN clients c ON p.client_id = c.id " +
+                "JOIN vehicles v ON p.vehicle_id = v.id " +
+                "WHERE " +
+                "(:clientName IS NULL OR LOWER(CAST(c.first_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%')) OR LOWER(CAST(c.last_name AS text)) LIKE LOWER(CONCAT('%', CAST(:clientName AS text), '%'))) AND " +
+                "(:clientId IS NULL OR p.client_id = :clientId) AND " +
+                "(:licensePlate IS NULL OR LOWER(CAST(v.license_plate AS text)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS text), '%'))) AND " +
+                "(:status IS NULL OR p.status = :status) AND " +
+                "(:startDate IS NULL OR p.end_date >= :startDate) AND " +
+                "(:endDate IS NULL OR p.start_date <= :endDate)")
+    fun countSearchProtocols(
+        @Param("clientName") clientName: String?,
+        @Param("clientId") clientId: Long?,
+        @Param("licensePlate") licensePlate: String?,
+        @Param("status") status: String?,
+        @Param("startDate") startDate: LocalDateTime?,
+        @Param("endDate") endDate: LocalDateTime?
+    ): Long
 
     // Usunięta metoda findByClientFirstNameContainingIgnoreCaseOrClientLastNameContainingIgnoreCase
     // i zastąpiona zapytaniem JPQL, które odpowiednio łączy tabele

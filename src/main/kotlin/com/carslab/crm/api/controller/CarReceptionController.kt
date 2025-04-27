@@ -6,6 +6,7 @@ import com.carslab.crm.api.mapper.CarReceptionDtoMapper.DATETIME_FORMATTER
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper.fromCreateImageCommand
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.commands.*
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.CarReceptionFacade
@@ -199,31 +200,6 @@ class CarReceptionController(
         }
     }
 
-    @GetMapping("/list")
-    @Operation(summary = "Get list of car reception protocols", description = "Retrieves a list of car reception protocols with optional filtering")
-    fun getCarReceptionProtocolsList(
-        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
-        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
-        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
-        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
-        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
-    ): ResponseEntity<List<CarReceptionListDto>> {
-        logger.info("Getting list of car reception protocols with filters")
-
-        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
-
-        val protocols = carReceptionFacade.searchProtocols(
-            clientName = clientName,
-            licensePlate = licensePlate,
-            status = domainStatus,
-            startDate = parseDateTimeParam(startDate),
-            endDate = parseDateTimeParam(endDate)
-        )
-
-        val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
-        return ok(response)
-    }
-
 
     @GetMapping("/image/{fileId}")
     fun getImage(@PathVariable fileId: String): ResponseEntity<Resource> {
@@ -285,16 +261,52 @@ class CarReceptionController(
     }
 
 
-    @GetMapping
-    @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering")
+    @GetMapping("/list")
+    @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering and pagination")
     fun getAllCarReceptionProtocols(
         @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
         @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
         @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
         @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
+        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?,
+        @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "Page size") @RequestParam(defaultValue = "10") size: Int
+    ): ResponseEntity<PaginatedResponse<CarReceptionListDto>> {
+        logger.info("Getting all car reception protocols with filters, page: $page, size: $size")
+
+        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
+
+        val paginatedProtocols = carReceptionFacade.searchProtocolsWithPagination(
+            clientName = clientName,
+            licensePlate = licensePlate,
+            status = domainStatus,
+            startDate = parseDateTimeParam(startDate),
+            endDate = parseDateTimeParam(endDate),
+            page = page,
+            size = size
+        )
+
+        val response = PaginatedResponse(
+            data = paginatedProtocols.data.map { CarReceptionDtoMapper.toListDto(it) },
+            page = paginatedProtocols.page,
+            size = paginatedProtocols.size,
+            totalItems = paginatedProtocols.totalItems,
+            totalPages = paginatedProtocols.totalPages
+        )
+
+        return ok(response)
+    }
+
+    @GetMapping("/not-paginated")
+    @Operation(summary = "Get list of car reception protocols", description = "Retrieves a list of car reception protocols with optional filtering")
+    fun getCarReceptionProtocolsList(
+        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
+        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
+        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
         @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
-    ): ResponseEntity<List<CarReceptionBasicDto>> {
-        logger.info("Getting all car reception protocols with filters")
+    ): ResponseEntity<List<CarReceptionListDto>> {
+        logger.info("Getting list of car reception protocols with filters")
 
         val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
 
@@ -306,7 +318,7 @@ class CarReceptionController(
             endDate = parseDateTimeParam(endDate)
         )
 
-        val response = protocols.map { CarReceptionDtoMapper.toBasicDto(it) }
+        val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
         return ok(response)
     }
 

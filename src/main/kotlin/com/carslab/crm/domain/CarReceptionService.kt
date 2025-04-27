@@ -1,6 +1,7 @@
 package com.carslab.crm.domain
 
 import com.carslab.crm.api.model.request.CreateCashTransactionRequest
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.create.protocol.*
@@ -563,6 +564,40 @@ class CarReceptionService(
                     updatedAt = LocalDateTime.now()
                 )
             )
+        )
+    }
+
+    fun searchProtocolsWithPagination(
+        clientName: String? = null,
+        clientId: Long? = null,
+        licensePlate: String? = null,
+        status: ProtocolStatus? = null,
+        startDate: LocalDateTime? = null,
+        endDate: LocalDateTime? = null,
+        page: Int = 0,
+        size: Int = 10
+    ): PaginatedResponse<CarReceptionProtocol> {
+        logger.debug("Searching protocols with filters and pagination: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate, page=$page, size=$size")
+
+        val (protocolViews, totalCount) = carReceptionRepository.searchProtocolsWithPagination(
+            clientName = clientName,
+            clientId = clientId,
+            licensePlate = licensePlate,
+            status = status,
+            startDate = startDate,
+            endDate = endDate,
+            page = page,
+            size = size
+        )
+
+        val totalPages = if (totalCount % size == 0L) totalCount / size else totalCount / size + 1
+
+        return PaginatedResponse(
+            data = protocolViews.map { it.enrichProtocol() },
+            page = page,
+            size = size,
+            totalItems = totalCount,
+            totalPages = totalPages
         )
     }
 }

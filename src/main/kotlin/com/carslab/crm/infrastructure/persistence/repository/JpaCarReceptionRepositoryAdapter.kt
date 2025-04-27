@@ -6,13 +6,19 @@ import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
+import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import jakarta.persistence.criteria.Predicate
 
 @Repository
 class JpaCarReceptionRepositoryAdapter(
@@ -169,5 +175,89 @@ class JpaCarReceptionRepositoryAdapter(
         endDate: LocalDateTime?
     ): List<ProtocolView> {
         return protocolJpaRepository.findAll().map { it.toDomainView() }
+    }
+
+    override fun searchProtocolsWithPagination(
+        clientName: String?,
+        clientId: Long?,
+        licensePlate: String?,
+        status: ProtocolStatus?,
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?,
+        page: Int,
+        size: Int
+    ): Pair<List<ProtocolView>, Long> {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
+
+        // Używamy Specification API do budowania dynamicznego zapytania
+        val specification = Specification<ProtocolEntity> { root, query, criteriaBuilder ->
+            val predicates = mutableListOf<Predicate>()
+
+            // Join do powiązanych tabel jeśli jest to konieczne
+            val clientJoin = if (clientName != null) {
+                root.join<ProtocolEntity, ClientEntity>("client")
+            } else {
+                null
+            }
+
+            val vehicleJoin = if (licensePlate != null) {
+                root.join<ProtocolEntity, VehicleEntity>("vehicle")
+            } else {
+                null
+            }
+
+            // Dodanie warunków filtrowania
+            clientName?.let {
+                val firstNamePredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(clientJoin!!.get("firstName")),
+                    "%" + it.lowercase() + "%"
+                )
+                val lastNamePredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(clientJoin!!.get("lastName")),
+                    "%" + it.lowercase() + "%"
+                )
+                predicates.add(criteriaBuilder.or(firstNamePredicate, lastNamePredicate))
+            }
+
+            clientId?.let {
+                predicates.add(criteriaBuilder.equal(root.get<Long>("clientId"), it))
+            }
+
+            licensePlate?.let {
+                predicates.add(
+                    criteriaBuilder.like(
+                        criteriaBuilder.lower(vehicleJoin!!.get("licensePlate")),
+                        "%" + it.lowercase() + "%"
+                    )
+                )
+            }
+
+            status?.let {
+                predicates.add(criteriaBuilder.equal(root.get<ProtocolStatus>("status"), it))
+            }
+
+            startDate?.let {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("endDate"), it))
+            }
+
+            endDate?.let {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startDate"), it))
+            }
+
+            // Łączymy wszystkie predykaty operatorem AND
+            if (predicates.isEmpty()) {
+                null
+            } else {
+                criteriaBuilder.and(*predicates.toTypedArray())
+            }
+        }
+
+        // Pobieramy stronę wyników
+        val protocolPage = protocolJpaRepository.findAll(specification, pageable)
+
+        // Mapujemy wyniki na obiekty domeny
+        val protocolViews = protocolPage.content.map { it.toDomainView() }
+
+        return Pair(protocolViews, protocolPage.totalElements)
     }
 }

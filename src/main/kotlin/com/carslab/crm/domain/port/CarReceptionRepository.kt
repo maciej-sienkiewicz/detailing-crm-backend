@@ -60,4 +60,15 @@ interface CarReceptionRepository {
         startDate: LocalDateTime?,
         endDate: LocalDateTime?
     ): List<ProtocolView>
+
+    fun searchProtocolsWithPagination(
+        clientName: String?,
+        clientId: Long?,
+        licensePlate: String?,
+        status: ProtocolStatus?,
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?,
+        page: Int = 0,
+        size: Int = 10
+    ): Pair<List<ProtocolView>, Long>
 }
