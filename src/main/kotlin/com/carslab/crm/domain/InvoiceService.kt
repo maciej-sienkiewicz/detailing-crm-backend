@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
@@ -36,9 +38,10 @@ class InvoiceService(
         validateInvoiceRequest(request)
 
         // Tworzenie faktury z obiektu DTO
-        val invoice = convertToInvoiceModel(request)
+        val invoicee = convertToInvoiceModel(request)
+        val invoice = invoicee.copy(protocolNumber = invoicee.protocolId)
 
-        // Obsługa załącznika, jeśli istnieje
+        // Obsługa załącznika, jeśli istnxieje
         val attachment = attachmentFile?.let {
             val attachmentId = invoiceStorageService.storeInvoiceFile(it, invoice.id)
             InvoiceAttachment(
@@ -190,9 +193,6 @@ class InvoiceService(
     fun extractInvoiceData(file: MultipartFile): ExtractedInvoiceDataDTO {
         logger.info("Extracting data from invoice file: {}", file.originalFilename)
 
-        // Tutaj w rzeczywistej implementacji byłaby integracja z usługą OCR
-        // lub inną metodą ekstrakcji danych. Na potrzeby przykładu zwracamy mock.
-
         return ExtractedInvoiceDataDTO(
             generalInfo = GeneralInfoDTO(
                 title = "Faktura za usługi detailingowe",
@@ -268,7 +268,7 @@ class InvoiceService(
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
             clientId = request.clientId?.let { ClientId(it) },
-            status = InvoiceStatus.valueOf(request.status),
+            status = if (LocalDate.now().isAfter(request.dueDate)) InvoiceStatus.OVERDUE else InvoiceStatus.valueOf(request.status),
             type = InvoiceType.valueOf(request.type),
             paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
             totalNet = request.totalNet,
