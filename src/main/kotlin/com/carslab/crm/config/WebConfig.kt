@@ -92,7 +92,7 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf("http://localhost:3000") // Konkretny wzorzec
+            allowedOriginPatterns = listOf("*")  // Użyj allowedOriginPatterns zamiast allowedOrigins
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
             allowCredentials = true
@@ -109,8 +109,8 @@ class SecurityConfig(
     fun corsConfigurer(): WebMvcConfigurer {
         return object : WebMvcConfigurer {
             override fun addCorsMappings(registry: CorsRegistry) {
-                registry.addMapping("http://localhost:3000")
-                    .allowedOrigins("http://localhost:3000")
+                registry.addMapping("/**")
+                    .allowedOriginPatterns("*")  // Użyj allowedOriginPatterns zamiast allowedOrigins
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                     .allowedHeaders("Authorization", "Content-Type", "Accept")
                     .allowCredentials(true)

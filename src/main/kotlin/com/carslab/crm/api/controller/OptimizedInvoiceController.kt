@@ -18,7 +18,6 @@ import javax.imageio.ImageIO
 
 @RestController
 @RequestMapping("/api/invoice")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Invoices", description = "Invoice management endpoints")
 class OptimizedInvoiceController(
     private val invoiceExtractionService: ParallelInvoiceExtractionService

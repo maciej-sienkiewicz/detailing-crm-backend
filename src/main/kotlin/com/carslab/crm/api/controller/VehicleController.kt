@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/vehicles")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Vehicles", description = "Vehicle management endpoints")
 class VehicleController(
     private val vehicleFacade: VehicleFacade,

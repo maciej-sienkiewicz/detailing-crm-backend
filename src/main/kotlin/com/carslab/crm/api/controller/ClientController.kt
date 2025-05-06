@@ -25,7 +25,6 @@ import java.math.BigDecimal
 
 @RestController
 @RequestMapping("/api/clients")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Clients", description = "Client management endpoints")
 class ClientController(
     private val clientFacade: ClientFacade

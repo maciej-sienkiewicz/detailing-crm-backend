@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/services")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Services", description = "Service management endpoints")
 class ServiceController(
     private val serviceFacade: ServiceFacade

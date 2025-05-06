@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/printer/")
-@CrossOrigin(origins = ["*"])
 class PrinterController(private val pdfService: PdfService) {
 
     @GetMapping(

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/calendar/colors")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Calendar Colors", description = "Calendar color management endpoints")
 class CalendarColorController(
     private val calendarColorFacade: CalendarColorFacade

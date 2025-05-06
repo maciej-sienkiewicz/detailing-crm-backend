@@ -11,7 +11,6 @@ import java.util.*
 
 @RestController
 @RequestMapping("/api/receptions/comments")
-@CrossOrigin(origins = ["*"])
 class CarReceptionCommentsController(
     private val commentsRepository: ProtocolCommentsRepository
 ) {

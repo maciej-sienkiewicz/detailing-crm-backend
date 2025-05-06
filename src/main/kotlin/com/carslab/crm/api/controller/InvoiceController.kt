@@ -24,7 +24,6 @@ import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/api/invoices")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Invoices", description = "API endpoints for invoice management")
 class InvoiceController(
     private val invoiceService: InvoiceService,

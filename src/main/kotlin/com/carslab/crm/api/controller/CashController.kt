@@ -22,7 +22,6 @@ import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/cash")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Cash", description = "API endpoints for cash management")
 class CashController(
     private val cashService: CashService

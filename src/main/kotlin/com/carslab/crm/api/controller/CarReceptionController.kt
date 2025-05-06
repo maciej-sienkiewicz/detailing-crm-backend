@@ -43,7 +43,6 @@ import java.time.format.DateTimeFormatter
 
 @RestController
 @RequestMapping("/api/receptions")
-@CrossOrigin(origins = ["*"])
 @Tag(name = "Car Receptions", description = "Car reception protocol management endpoints")
 class CarReceptionController(
     private val carReceptionFacade: CarReceptionFacade,

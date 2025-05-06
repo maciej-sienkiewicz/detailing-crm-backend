@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/mail")
-@CrossOrigin(origins = ["*"])
 class MailController(private val mailService: MailService) {
 
     @PostMapping("/auth/login")
