@@ -1,5 +1,6 @@
 package com.carslab.crm.domain
 
+import com.carslab.crm.api.model.response.LoginResponse
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.infrastructure.exception.BusinessException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
@@ -7,17 +8,62 @@ import com.carslab.crm.infrastructure.persistence.entity.User
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.RoleRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
 import jakarta.transaction.Transactional
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.util.Date
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    @Value("\${security.jwt.secret:tojestdlugiehaslotojestdlugiehaslotojestdlugiehaslo}") private val jwtSecret: String,
+    @Value("\${security.jwt.token-expiration:86400000}") private val jwtExpirationInMs: Long
 ) {
+    fun authenticate(username: String, password: String): LoginResponse {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { AuthenticationException("Invalid username or password") }
+
+        if (!passwordEncoder.matches(password, user.passwordHash)) {
+            throw AuthenticationException("Invalid username or password")
+        }
+
+        val token = generateToken(user)
+
+        return LoginResponse(
+            token = token,
+            userId = user.id!!,
+            username = user.username,
+            email = user.email,
+            firstName = user.firstName,
+            lastName = user.lastName,
+            companyId = user.companyId,
+            roles = user.roles.map { it.name }
+        )
+    }
+
+    private fun generateToken(user: UserEntity): String {
+        val issuedAt = Date()
+        val expirationDate = Date(issuedAt.time + jwtExpirationInMs)
+        val key = Keys.hmacShaKeyFor(jwtSecret.toByteArray(StandardCharsets.UTF_8))
+
+        return Jwts.builder()
+            .setSubject(user.id.toString())
+            .setIssuedAt(issuedAt)
+            .setExpiration(expirationDate)
+            .claim("username", user.username)
+            .claim("companyId", user.companyId)
+            .claim("roles", user.roles.map { it.name })
+            .signWith(key)
+            .compact()
+    }
+
     @Transactional
     fun createUser(createUserCommand: CreateUserCommand): UserResponse {
         if (userRepository.existsByUsername(createUserCommand.username)) {
@@ -43,11 +89,6 @@ class UserService(
         // Konwertuj do encji i zapisz
         val userEntity = UserEntity.fromDomain(user)
 
-        // Przypisz domyślną rolę dla nowych użytkowników
-        val defaultRoleEntity = roleRepository.findByNameAndCompanyId("USER", createUserCommand.companyId)
-            ?: throw ResourceNotFoundException("Default role not found")
-
-        userEntity.addRole(defaultRoleEntity)
         val savedUserEntity = userRepository.save(userEntity)
 
         return UserResponse.fromEntity(savedUserEntity)
@@ -158,3 +199,5 @@ class UserService(
         return UserResponse.fromEntity(updatedUserEntity)
     }
 }
+
+class AuthenticationException(message: String) : RuntimeException(message)

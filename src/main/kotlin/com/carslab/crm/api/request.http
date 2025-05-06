@@ -1,6 +1,6 @@
 ### Variables
 @baseUrl = http://localhost:8080
-@companyId = 1
+@companyId = 999
 
 ### -----------------------------------------------
 ### 1. Create Permissions
@@ -11,36 +11,16 @@ POST {{baseUrl}}/api/permissions
 Content-Type: application/json
 
 {
-  "name": "View Clients",
-  "description": "Permission to view client details",
+  "name": "Przegladanie danych klientow",
+  "description": "Opis uprawnien",
   "resourceType": "CLIENT",
   "action": "VIEW",
   "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
 }
 
-### Create CREATE_CLIENT permission
-POST {{baseUrl}}/api/permissions
+###
+GET {{baseUrl}}/api/permissions
 Content-Type: application/json
-
-{
-  "name": "Create Clients",
-  "description": "Permission to create new clients",
-  "resourceType": "CLIENT",
-  "action": "CREATE",
-  "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
-}
-
-### Create EDIT_CLIENT permission
-POST {{baseUrl}}/api/permissions
-Content-Type: application/json
-
-{
-  "name": "Edit Clients",
-  "description": "Permission to edit client details",
-  "resourceType": "CLIENT",
-  "action": "EDIT",
-  "dataFields": ["CLIENT_PERSONAL_DATA", "CLIENT_CONTACT_DATA"]
-}
 
 ### Create VIEW_PROTOCOL permission
 POST {{baseUrl}}/api/permissions
@@ -54,30 +34,9 @@ Content-Type: application/json
   "dataFields": ["PROTOCOL_OWNER_DATA", "PROTOCOL_VEHICLE_DATA", "PROTOCOL_SERVICE_DATA"]
 }
 
-### -----------------------------------------------
-### 2. Add Default Permissions for the Company
-### -----------------------------------------------
-
-### Add VIEW_CLIENT as default permission
-POST {{baseUrl}}/api/default-permissions
+###GET
+GET {{baseUrl}}/api/permissions
 Content-Type: application/json
-
-{
-  "permissionName": "View Clients",
-  "companyId": {{companyId}},
-  "description": "Default permission for all roles"
-}
-
-### Add VIEW_PROTOCOL as default permission
-POST {{baseUrl}}/api/default-permissions
-Content-Type: application/json
-Authorization: Bearer {{authToken}}
-
-{
-  "permissionName": "View Protocols",
-  "companyId": {{companyId}},
-  "description": "Default permission for all roles"
-}
 
 ### -----------------------------------------------
 ### 3. Create a Role with Permissions
@@ -88,23 +47,23 @@ POST {{baseUrl}}/api/roles
 Content-Type: application/json
 
 {
-  "name": "Client Manager",
+  "name": "Domyslna rola",
   "description": "Role for managing clients and their data",
-  "companyId": {{companyId}},
-  "useDefaultPermissions": true,
-  "initialPermissionIds": []
+  "companyId": 999,
+  "useDefaultPermissions": false,
+  "initialPermissionIds": [9]
 }
 
 ### Get created role (save ID for later requests)
 ### Assume the role ID is 1 for subsequent requests
-@roleId = 1
+@roleId = 2
 
 ### -----------------------------------------------
 ### 4. Configure Role Permissions
 ### -----------------------------------------------
 
 ### Add EDIT_CLIENT permission to role (assuming permission ID is 3)
-POST {{baseUrl}}/api/roles/{{roleId}}/permissions/3?companyId={{companyId}}&enabled=true
+POST {{baseUrl}}/api/roles/6/permissions/9?companyId=999&enabled=true
 Content-Type: application/json
 
 ### Add CREATE_CLIENT permission to role (assuming permission ID is 2)
@@ -120,15 +79,14 @@ Authorization: Bearer {{authToken}}
 ### Create a new user
 POST {{baseUrl}}/api/users
 Content-Type: application/json
-Authorization: Bearer {{authToken}}
 
 {
-  "username": "john.smith",
-  "password": "SecurePassword123!",
-  "email": "john.smith@example.com",
-  "firstName": "John",
-  "lastName": "Smith",
-  "companyId": {{companyId}}
+  "username": "maciej.sienkiewicz",
+  "password": "haslo123",
+  "email": "maciej.sienkiewicz@gmail.com",
+  "firstName": "Maciej",
+  "lastName": "Sienkiewicz",
+  "companyId": 999
 }
 
 ### Get created user (save ID for later)
@@ -140,18 +98,15 @@ Authorization: Bearer {{authToken}}
 ### -----------------------------------------------
 
 ### Assign Client Manager role to user
-POST {{baseUrl}}/api/users/{{userId}}/roles/{{roleId}}
+POST {{baseUrl}}/api/users/1/roles/6?companyId=999
 Content-Type: application/json
-Authorization: Bearer {{authToken}}
-?companyId={{companyId}}
 
 ### -----------------------------------------------
 ### 7. Verify User's Permissions and Roles
 ### -----------------------------------------------
 
 ### Get user's roles
-GET {{baseUrl}}/api/users/{{userId}}/roles?companyId={{companyId}}
-Authorization: Bearer {{authToken}}
+GET {{baseUrl}}/api/users/1/roles?companyId=999
 
 ### -----------------------------------------------
 ### 8. Additional Useful Requests
@@ -172,3 +127,12 @@ Authorization: Bearer {{authToken}}
 ### Get all default permissions for company
 GET {{baseUrl}}/api/default-permissions?companyId={{companyId}}
 Authorization: Bearer {{authToken}}
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "maciej.sienkiewicz",
+  "password": "haslo123"
+}

@@ -1,6 +1,7 @@
 package com.carslab.crm.domain.model
 
 import com.carslab.crm.infrastructure.persistence.entity.*
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 
 data class PermissionDto(
@@ -31,10 +32,19 @@ data class ConfigureRolePermissionCommand(
 )
 
 data class CreateRoleCommand(
+    @JsonProperty("name")
     val name: String = "",
+
+    @JsonProperty("description")
     val description: String = "",
+
+    @JsonProperty("companyId")
     val companyId: Long = 0,
+
+    @JsonProperty("useDefaultPermissions")
     val useDefaultPermissions: Boolean = true,
+
+    @JsonProperty("initialPermissionIds")
     val initialPermissionIds: List<Long> = emptyList()
 )
 
@@ -96,12 +106,18 @@ data class RoleWithPermissionsDto(
 )
 
 data class CreateUserCommand(
-    val username: String,
-    val password: String,
-    val email: String,
-    val firstName: String,
-    val lastName: String,
-    val companyId: Long
+    @JsonProperty("username")
+    val username: String = "",
+    @JsonProperty("password")
+    val password: String = "",
+    @JsonProperty("email")
+    val email: String = "",
+    @JsonProperty("firstName")
+    val firstName: String = "",
+    @JsonProperty("lastName")
+    val lastName: String = "",
+    @JsonProperty("companyId")
+    val companyId: Long = 0
 )
 
 data class UserResponse(

@@ -22,7 +22,7 @@ class PermissionConfigurationEntity(
     @Column(nullable = false)
     var enabled: Boolean = true,
 
-    @Column(name = "constraints", columnDefinition = "jsonb")
+    @Column(name = "constraints")
     var constraints: String? = null,
 
     @Column(name = "created_at")
