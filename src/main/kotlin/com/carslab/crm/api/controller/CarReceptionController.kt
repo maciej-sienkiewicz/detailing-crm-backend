@@ -265,6 +265,7 @@ class CarReceptionController(
     fun getAllCarReceptionProtocols(
         @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
         @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
+        @Parameter(description = "Make") @RequestParam(required = false) make: String?,
         @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
         @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
         @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?,
@@ -278,6 +279,7 @@ class CarReceptionController(
         val paginatedProtocols = carReceptionFacade.searchProtocolsWithPagination(
             clientName = clientName,
             licensePlate = licensePlate,
+            make = make,
             status = domainStatus,
             startDate = parseDateTimeParam(startDate),
             endDate = parseDateTimeParam(endDate),

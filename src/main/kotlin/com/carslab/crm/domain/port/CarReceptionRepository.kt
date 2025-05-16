@@ -65,6 +65,7 @@ interface CarReceptionRepository {
         clientName: String?,
         clientId: Long?,
         licensePlate: String?,
+        make: String?,
         status: ProtocolStatus?,
         startDate: LocalDateTime?,
         endDate: LocalDateTime?,

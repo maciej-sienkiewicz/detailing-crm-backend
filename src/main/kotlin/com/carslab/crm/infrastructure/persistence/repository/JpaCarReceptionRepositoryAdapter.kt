@@ -181,6 +181,7 @@ class JpaCarReceptionRepositoryAdapter(
         clientName: String?,
         clientId: Long?,
         licensePlate: String?,
+        make: String?,
         status: ProtocolStatus?,
         startDate: LocalDateTime?,
         endDate: LocalDateTime?,
@@ -190,65 +191,89 @@ class JpaCarReceptionRepositoryAdapter(
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
 
         // Używamy Specification API do budowania dynamicznego zapytania
-        val specification = Specification<ProtocolEntity> { root, query, criteriaBuilder ->
+        val specification = Specification<ProtocolEntity> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
-            // Join do powiązanych tabel jeśli jest to konieczne
-            val clientJoin = if (clientName != null) {
-                root.join<ProtocolEntity, ClientEntity>("client")
-            } else {
-                null
-            }
+            // Filtr po kliencie (name)
+            if (clientName != null) {
+                // Tworzymy subquery dla klienta
+                val clientSubquery = query!!.subquery(ClientEntity::class.java)
+                val clientRoot = clientSubquery.from(ClientEntity::class.java)
 
-            val vehicleJoin = if (licensePlate != null) {
-                root.join<ProtocolEntity, VehicleEntity>("vehicle")
-            } else {
-                null
-            }
+                // Łączymy warunki: client.id = protocol.clientId oraz (firstName LIKE name OR lastName LIKE name)
+                val clientPredicates = mutableListOf<Predicate>()
+                clientPredicates.add(cb.equal(clientRoot.get<Long>("id"), root.get<Long>("clientId")))
 
-            // Dodanie warunków filtrowania
-            clientName?.let {
-                val firstNamePredicate = criteriaBuilder.like(
-                    criteriaBuilder.lower(clientJoin!!.get("firstName")),
-                    "%" + it.lowercase() + "%"
+                val firstNamePredicate = cb.like(
+                    cb.lower(clientRoot.get("firstName")),
+                    "%" + clientName.lowercase() + "%"
                 )
-                val lastNamePredicate = criteriaBuilder.like(
-                    criteriaBuilder.lower(clientJoin!!.get("lastName")),
-                    "%" + it.lowercase() + "%"
+                val lastNamePredicate = cb.like(
+                    cb.lower(clientRoot.get("lastName")),
+                    "%" + clientName.lowercase() + "%"
                 )
-                predicates.add(criteriaBuilder.or(firstNamePredicate, lastNamePredicate))
+                clientPredicates.add(cb.or(firstNamePredicate, lastNamePredicate))
+
+                clientSubquery.where(*clientPredicates.toTypedArray())
+                predicates.add(cb.exists(clientSubquery))
             }
 
+            // Filtr po ID klienta (bezpośrednio z encji protokołu)
             clientId?.let {
-                predicates.add(criteriaBuilder.equal(root.get<Long>("clientId"), it))
+                predicates.add(cb.equal(root.get<Long>("clientId"), it))
             }
 
-            licensePlate?.let {
-                predicates.add(
-                    criteriaBuilder.like(
-                        criteriaBuilder.lower(vehicleJoin!!.get("licensePlate")),
-                        "%" + it.lowercase() + "%"
+            // Filtr po pojeździe (licensePlate lub make)
+            if (licensePlate != null || make != null) {
+                // Tworzymy subquery dla pojazdu
+                val vehicleSubquery = query!!.subquery(VehicleEntity::class.java)
+                val vehicleRoot = vehicleSubquery.from(VehicleEntity::class.java)
+
+                // Łączymy warunki: vehicle.id = protocol.vehicleId oraz (licencePlate LIKE value OR make LIKE value)
+                val vehiclePredicates = mutableListOf<Predicate>()
+                vehiclePredicates.add(cb.equal(vehicleRoot.get<Long>("id"), root.get<Long>("vehicleId")))
+
+                licensePlate?.let {
+                    vehiclePredicates.add(
+                        cb.like(
+                            cb.lower(vehicleRoot.get("licensePlate")),
+                            "%" + it.lowercase() + "%"
+                        )
                     )
-                )
+                }
+
+                make?.let {
+                    vehiclePredicates.add(
+                        cb.like(
+                            cb.lower(vehicleRoot.get("make")),
+                            "%" + it.lowercase() + "%"
+                        )
+                    )
+                }
+
+                vehicleSubquery.where(*vehiclePredicates.toTypedArray())
+                predicates.add(cb.exists(vehicleSubquery))
             }
 
+            // Filtrowanie po statusie (bezpośrednio z encji protokołu)
             status?.let {
-                predicates.add(criteriaBuilder.equal(root.get<ProtocolStatus>("status"), it))
+                predicates.add(cb.equal(root.get<ProtocolStatus>("status"), it))
             }
 
+            // Filtrowanie po datach (bezpośrednio z encji protokołu)
             startDate?.let {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("endDate"), it))
+                predicates.add(cb.greaterThanOrEqualTo(root.get("endDate"), it))
             }
 
             endDate?.let {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startDate"), it))
+                predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), it))
             }
 
             // Łączymy wszystkie predykaty operatorem AND
             if (predicates.isEmpty()) {
                 null
             } else {
-                criteriaBuilder.and(*predicates.toTypedArray())
+                cb.and(*predicates.toTypedArray())
             }
         }
 
