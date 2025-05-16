@@ -7,9 +7,11 @@ import com.carslab.crm.domain.model.view.finance.TransactionId
 import com.carslab.crm.domain.model.view.finance.TransactionType
 import com.carslab.crm.domain.port.CashRepository
 import com.carslab.crm.infrastructure.persistence.entity.CashTransactionEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -113,12 +115,14 @@ class JpaCashRepositoryAdapter(
     }
 
     override fun findByVisitId(visitId: String): List<CashTransaction> {
-        return cashJpaRepository.findByVisitId(visitId)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return cashJpaRepository.findByVisitIdAndCompanyId(visitId, companyId)
             .map { it.toDomain() }
     }
 
     override fun findByType(type: TransactionType): List<CashTransaction> {
-        return cashJpaRepository.findByType(type)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return cashJpaRepository.findByTypeAndCompanyId(type, companyId)
             .map { it.toDomain() }
     }
 }

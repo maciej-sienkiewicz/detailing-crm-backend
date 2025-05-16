@@ -5,6 +5,8 @@ import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.domain.model.view.calendar.CalendarColorView
 import com.carslab.crm.domain.port.CalendarColorRepository
 import com.carslab.crm.infrastructure.persistence.entity.CalendarColorEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
@@ -56,10 +58,11 @@ class JpaCalendarColorRepositoryAdapter(
     }
 
     override fun isNameTaken(name: String, excludeId: CalendarColorId?): Boolean {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         return if (excludeId != null) {
-            calendarColorJpaRepository.existsByNameIgnoreCaseAndIdNot(name, excludeId.value)
+            calendarColorJpaRepository.existsByNameIgnoreCaseAndIdNot(name, excludeId.value, companyId)
         } else {
-            calendarColorJpaRepository.existsByNameIgnoreCase(name)
+            calendarColorJpaRepository.existsByNameIgnoreCaseAndCompanyId(name, companyId)
         }
     }
 }

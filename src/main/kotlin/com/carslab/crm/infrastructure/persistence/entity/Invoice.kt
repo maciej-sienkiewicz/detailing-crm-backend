@@ -3,6 +3,7 @@ package com.carslab.crm.infrastructure.persistence.entity
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -13,6 +14,9 @@ class InvoiceEntity(
     @Id
     @Column(nullable = false)
     val id: String,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(nullable = false, unique = true)
     var number: String,
@@ -126,6 +130,7 @@ class InvoiceEntity(
         fun fromDomain(domain: Invoice): InvoiceEntity {
             return InvoiceEntity(
                 id = domain.id.value,
+                companyId =(SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 number = domain.number,
                 title = domain.title,
                 issuedDate = domain.issuedDate,

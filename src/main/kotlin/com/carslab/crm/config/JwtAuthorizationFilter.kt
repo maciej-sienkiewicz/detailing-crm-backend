@@ -2,6 +2,7 @@ package com.carslab.crm.config
 
 import com.carslab.crm.domain.PermissionService
 import com.carslab.crm.domain.model.PermissionDto
+import com.carslab.crm.infrastructure.persistence.repository.UserRepository
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -22,9 +23,10 @@ import java.util.*
 @Component
 class JwtAuthorizationFilter(
     private val permissionService: PermissionService,
-    @Value("\${security.jwt.secret:your-jwt-secret-key}") private val jwtSecret: String,
+    @Value("\${security.jwt.secret}") private val jwtSecret: String,
     @Value("\${security.jwt.token-prefix:Bearer }") private val jwtTokenPrefix: String,
-    @Value("\${security.jwt.token-expiration:86400000}") private val jwtExpirationInMs: Long
+    @Value("\${security.jwt.token-expiration:86400000}") private val jwtExpirationInMs: Long,
+    private val userRepository: UserRepository,
 ) : OncePerRequestFilter() {
 
     private val logger = LoggerFactory.getLogger(JwtAuthorizationFilter::class.java)
@@ -40,18 +42,23 @@ class JwtAuthorizationFilter(
             if (token != null && isValidToken(token)) {
                 val userId = getUserIdFromToken(token)
 
-                // Set authentication in context
-                val auth = UsernamePasswordAuthenticationToken(
-                    userId,
-                    null,
-                    getAuthorities(userId)
-                )
+                // Pobierz pełny obiekt użytkownika
+                val user = userRepository.findById(userId).orElse(null)
 
-                // Add user's permissions to authentication object for use in @PreAuthorize annotations
-                (auth as AbstractAuthenticationToken).details = getUserPermissions(userId)
+                if (user != null) {
+                    // Ustaw pełny obiekt jako Principal
+                    val auth = UsernamePasswordAuthenticationToken(
+                        user,  // teraz cały obiekt użytkownika zamiast tylko ID
+                        null,
+                        getAuthorities(userId)
+                    )
 
-                SecurityContextHolder.getContext().authentication = auth
-                logger.debug("Set authentication for user ID: $userId")
+                    // Dodatkowo wciąż możesz ustawić szczegóły
+                    (auth as AbstractAuthenticationToken).details = getUserPermissions(userId)
+
+                    SecurityContextHolder.getContext().authentication = auth
+                    logger.debug("Set authentication for user: ${user.username} with company ID: ${user.companyId}")
+                }
             }
         } catch (e: Exception) {
             logger.error("Could not set user authentication in security context", e)

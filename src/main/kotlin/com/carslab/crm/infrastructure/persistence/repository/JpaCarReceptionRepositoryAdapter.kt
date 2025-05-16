@@ -8,6 +8,7 @@ import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
 import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import jakarta.persistence.criteria.Predicate
+import org.springframework.security.core.context.SecurityContextHolder
 
 @Repository
 class JpaCarReceptionRepositoryAdapter(
@@ -45,6 +47,7 @@ class JpaCarReceptionRepositoryAdapter(
 
         val protocolEntity = ProtocolEntity(
             title = protocol.title,
+            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
             vehicleId = vehicleId,
             clientId = clientId,
             startDate = protocol.period.startDate,
@@ -104,6 +107,7 @@ class JpaCarReceptionRepositoryAdapter(
             // Utwórz nową encję
             ProtocolEntity(
                 id = protocol.id.value.toLong(),
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 title = protocol.title,
                 vehicleId = vehicleId,
                 clientId = clientId,

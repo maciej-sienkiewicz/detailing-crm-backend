@@ -82,7 +82,7 @@ class ClientController(
 
         val clientStats = clientFacade.getAllClients()
         val response = clientStats.map { stats ->
-            ClientMapper.toExpandedResponse(stats)  // To powinno być ok, bo teraz mamy ClientStats
+            ClientMapper.toExpandedResponse(stats)
         }
         return ok(response)
     }

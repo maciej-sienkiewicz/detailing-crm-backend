@@ -7,6 +7,7 @@ import com.carslab.crm.domain.model.Money
 import com.carslab.crm.domain.model.view.protocol.ProtocolServiceView
 import com.carslab.crm.infrastructure.repository.ServiceId
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -16,6 +17,9 @@ class ProtocolServiceEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     // Zmienione z obiektu na ID
     @Column(name = "protocol_id", nullable = false)
@@ -75,6 +79,7 @@ class ProtocolServiceEntity(
         fun fromDomain(domain: ProtocolServiceView, protocolId: Long): ProtocolServiceEntity {
             val entity = ProtocolServiceEntity(
                 protocolId = protocolId,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 name = domain.name,
                 basePrice = BigDecimal.valueOf(domain.basePrice.amount),
                 finalPrice = BigDecimal.valueOf(domain.finalPrice.amount),

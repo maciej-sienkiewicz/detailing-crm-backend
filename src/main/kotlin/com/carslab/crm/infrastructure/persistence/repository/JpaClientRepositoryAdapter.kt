@@ -6,7 +6,9 @@ import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.port.ClientRepository
 import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -49,7 +51,10 @@ class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepos
     }
 
     override fun findById(id: ClientId): ClientDetails? {
-        return clientJpaRepository.findById(id.value).map { it.toDomain() }.orElse(null)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return clientJpaRepository.findById(id.value)
+            .filter { it.company }
+            .map { it.toDomain() }.orElse(null)
     }
 
     override fun findByIds(ids: List<ClientId>): List<ClientDetails> {

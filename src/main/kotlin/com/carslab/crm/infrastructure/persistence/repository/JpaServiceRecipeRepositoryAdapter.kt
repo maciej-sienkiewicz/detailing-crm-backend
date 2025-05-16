@@ -5,7 +5,9 @@ import com.carslab.crm.domain.model.create.protocol.ServiceRecipeId
 import com.carslab.crm.domain.model.view.ServiceRecipeView
 import com.carslab.crm.domain.port.ServiceRecipeRepository
 import com.carslab.crm.infrastructure.persistence.entity.ServiceRecipeEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ServiceRecipeJpaRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
@@ -17,6 +19,7 @@ class JpaServiceRecipeRepositoryAdapter(
     override fun save(serviceRecipe: CreateServiceRecipeModel): ServiceRecipeId {
         val entity = ServiceRecipeEntity(
             name = serviceRecipe.name,
+            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
             description = serviceRecipe.description,
             price = serviceRecipe.price,
             vatRate = serviceRecipe.vatRate,

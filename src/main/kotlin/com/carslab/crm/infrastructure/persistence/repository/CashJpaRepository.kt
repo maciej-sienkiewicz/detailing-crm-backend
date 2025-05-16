@@ -14,11 +14,11 @@ import java.time.LocalDate
 @Repository
 interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
 
-    fun findByType(type: TransactionType): List<CashTransactionEntity>
+    fun findByTypeAndCompanyId(type: TransactionType, companyId: Long): List<CashTransactionEntity>
 
-    fun findByVisitId(visitId: String): List<CashTransactionEntity>
+    fun findByVisitIdAndCompanyId(visitId: String, companyId: Long): List<CashTransactionEntity>
 
-    fun findByDateBetween(startDate: LocalDate, endDate: LocalDate): List<CashTransactionEntity>
+    fun findByDateBetween(startDate: LocalDate, endDate: LocalDate, companyId: Long): List<CashTransactionEntity>
 
     @Query("""
         SELECT SUM(CASE WHEN c.type = 'INCOME' THEN c.amount ELSE -c.amount END) 

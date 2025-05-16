@@ -81,9 +81,9 @@ POST {{baseUrl}}/api/users
 Content-Type: application/json
 
 {
-  "username": "maciej.sienkiewicz",
+  "username": "maciej.sienkiewicz2",
   "password": "haslo123",
-  "email": "maciej.sienkiewicz@gmail.com",
+  "email": "maciej.sienkiewicz2@gmail.com",
   "firstName": "Maciej",
   "lastName": "Sienkiewicz",
   "companyId": 999

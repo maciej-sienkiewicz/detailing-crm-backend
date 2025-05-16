@@ -5,6 +5,7 @@ import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
 import com.carslab.crm.domain.model.VehicleId
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -14,6 +15,9 @@ class ServiceHistoryEntity(
     @Id
     @Column(nullable = false)
     val id: String? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     // Zmiana z obiektu na ID
     @Column(name = "vehicle_id", nullable = false)
@@ -60,6 +64,7 @@ class ServiceHistoryEntity(
         fun fromDomain(domain: ServiceHistory): ServiceHistoryEntity {
             return ServiceHistoryEntity(
                 vehicleId = domain.vehicleId.value,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 date = domain.date,
                 serviceType = domain.serviceType,
                 description = domain.description,

@@ -6,6 +6,7 @@ import com.carslab.crm.domain.model.ContactAttemptId
 import com.carslab.crm.domain.model.ContactAttemptResult
 import com.carslab.crm.domain.model.ContactAttemptType
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
@@ -14,6 +15,9 @@ class ContactAttemptEntity(
     @Id
     @Column(nullable = false)
     val id: String? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(name = "client_id", nullable = false)
     var clientId: String,
@@ -57,6 +61,7 @@ class ContactAttemptEntity(
         fun fromDomain(domain: ContactAttempt): ContactAttemptEntity {
             return ContactAttemptEntity(
                 id = domain.id.value,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 clientId = domain.clientId,
                 date = domain.date,
                 type = domain.type,

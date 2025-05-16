@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository
 @Repository
 interface CalendarColorJpaRepository : JpaRepository<CalendarColorEntity, String> {
 
-    fun existsByNameIgnoreCase(name: String): Boolean
+    fun existsByNameIgnoreCaseAndCompanyId(name: String, companyId: Long): Boolean
 
-    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CalendarColorEntity c WHERE LOWER(c.name) = LOWER(:name) AND c.id <> :excludeId")
-    fun existsByNameIgnoreCaseAndIdNot(@Param("name") name: String, @Param("excludeId") excludeId: String): Boolean
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM CalendarColorEntity c WHERE LOWER(c.name) = LOWER(:name) AND c.id <> :excludeId AND c.companyId = :companyId")
+    fun existsByNameIgnoreCaseAndIdNot(@Param("name") name: String, @Param("excludeId") excludeId: String, @Param("companyId") companyId: Long): Boolean
 }

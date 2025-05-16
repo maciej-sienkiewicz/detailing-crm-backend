@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.ClientDetails
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
@@ -12,6 +13,9 @@ class ClientEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(name = "first_name", nullable = false)
     var firstName: String,
@@ -71,6 +75,7 @@ class ClientEntity(
     companion object {
         fun fromDomain(domain: ClientDetails): ClientEntity {
             return ClientEntity(
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 firstName = domain.firstName,
                 lastName = domain.lastName,
                 email = domain.email,
@@ -86,6 +91,7 @@ class ClientEntity(
 
         fun fromDomain(domain: CreateClientModel): ClientEntity {
             return ClientEntity(
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 firstName = domain.firstName,
                 lastName = domain.lastName,
                 email = domain.email,

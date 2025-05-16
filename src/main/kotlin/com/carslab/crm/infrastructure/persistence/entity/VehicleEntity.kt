@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.Vehicle
 import com.carslab.crm.domain.model.VehicleId
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
@@ -12,6 +13,9 @@ class VehicleEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(nullable = false)
     var make: String,
@@ -84,6 +88,7 @@ class VehicleEntity(
         fun fromDomain(domain: Vehicle): VehicleEntity {
             return VehicleEntity(
                 make = domain.make ?: "",
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 model = domain.model ?: "",
                 year = domain.year,
                 licensePlate = domain.licensePlate ?: "",

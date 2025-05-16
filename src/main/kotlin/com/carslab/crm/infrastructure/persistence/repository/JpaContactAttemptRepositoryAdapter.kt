@@ -6,7 +6,9 @@ import com.carslab.crm.domain.model.ContactAttemptResult
 import com.carslab.crm.domain.model.ContactAttemptType
 import com.carslab.crm.domain.port.ContactAttemptRepository
 import com.carslab.crm.infrastructure.persistence.entity.ContactAttemptEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ContactAttemptJpaRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -31,7 +33,7 @@ class JpaContactAttemptRepositoryAdapter(
         } else {
             // Utworzenie nowej encji bez ID - baza danych wygeneruje ID
             ContactAttemptEntity(
-                id = "0",
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 clientId = contactAttempt.clientId,
                 date = contactAttempt.date,
                 type = contactAttempt.type,

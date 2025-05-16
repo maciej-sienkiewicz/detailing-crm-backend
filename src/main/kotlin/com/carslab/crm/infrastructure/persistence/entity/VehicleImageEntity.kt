@@ -11,6 +11,9 @@ class VehicleImageEntity(
     @Column(nullable = false)
     val id: String,
 
+    @Column(nullable = false)
+    var companyId: Long,
+
     // Zmiana z obiektu na ID
     @Column(name = "protocol_id", nullable = false)
     var protocolId: Long,

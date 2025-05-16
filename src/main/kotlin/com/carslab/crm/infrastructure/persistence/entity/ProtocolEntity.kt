@@ -6,6 +6,7 @@ import com.carslab.crm.domain.model.ReferralSource
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
@@ -15,6 +16,9 @@ class ProtocolEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     val id: Long? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(nullable = false)
     var title: String,
@@ -98,6 +102,7 @@ class ProtocolEntity(
         fun fromDomainView(domain: ProtocolView): ProtocolEntity {
             return ProtocolEntity(
                 title = domain.title,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 vehicleId = domain.vehicleId.value,
                 clientId = domain.clientId.value,
                 startDate = domain.period.startDate,

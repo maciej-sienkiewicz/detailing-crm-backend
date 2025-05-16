@@ -5,8 +5,10 @@ import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolServiceView
 import com.carslab.crm.domain.port.ProtocolServicesRepository
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolServiceEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
@@ -44,6 +46,7 @@ class JpaProtocolServicesRepositoryAdapter(
     private fun createServiceEntity(service: CreateServiceModel, protocolId: Long): ProtocolServiceEntity {
         return ProtocolServiceEntity(
             protocolId = protocolId,
+            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
             name = service.name,
             basePrice = service.basePrice.amount.toBigDecimal(),
             finalPrice = service.finalPrice.amount.toBigDecimal(),

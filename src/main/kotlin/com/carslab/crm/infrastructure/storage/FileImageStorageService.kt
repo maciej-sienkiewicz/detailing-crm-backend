@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import com.carslab.crm.infrastructure.persistence.entity.ImageTagEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleImageEntity
 import com.carslab.crm.infrastructure.persistence.repository.ImageTagJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
@@ -12,6 +13,7 @@ import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource
 import org.springframework.core.io.UrlResource
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.util.FileSystemUtils
@@ -79,6 +81,7 @@ class FileImageStorageService(
             // Tworzymy i zapisujemy encję obrazu z metadanymi
             val imageEntity = VehicleImageEntity(
                 id = fileId,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 protocolId = protocolIdLong,
                 name = createMediaTypeModel.name,
                 contentType = file.contentType ?: "application/octet-stream",
@@ -95,6 +98,7 @@ class FileImageStorageService(
             createMediaTypeModel.tags.forEach { tag ->
                 val tagEntity = ImageTagEntity(
                     imageId = fileId,
+                    companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                     tag = tag
                 )
                 imageTagJpaRepository.save(tagEntity)
@@ -199,6 +203,7 @@ class FileImageStorageService(
         tags.forEach { tag ->
             val tagEntity = ImageTagEntity(
                 imageId = imageId,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 tag = tag
             )
             imageTagJpaRepository.save(tagEntity)

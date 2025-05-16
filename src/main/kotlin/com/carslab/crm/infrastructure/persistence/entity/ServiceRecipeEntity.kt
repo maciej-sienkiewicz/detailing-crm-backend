@@ -4,6 +4,7 @@ import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.create.protocol.ServiceRecipeId
 import com.carslab.crm.domain.model.view.ServiceRecipeView
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -13,6 +14,9 @@ class ServiceRecipeEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Column(nullable = false)
     var name: String,
@@ -50,6 +54,7 @@ class ServiceRecipeEntity(
         fun fromDomain(domain: ServiceRecipeView): ServiceRecipeEntity {
             return ServiceRecipeEntity(
                 name = domain.name,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 description = domain.description,
                 price = domain.price,
                 vatRate = domain.vatRate,

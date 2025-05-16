@@ -5,6 +5,7 @@ import com.carslab.crm.domain.model.create.CalendarColorCreate
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.domain.model.view.calendar.CalendarColorView
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
@@ -19,6 +20,9 @@ class CalendarColorEntity(
 
     @Column(nullable = false)
     var color: String,
+
+    @Column(name = "company_id", nullable = false)
+    var companyId: Long,
 
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
@@ -42,6 +46,7 @@ class CalendarColorEntity(
         fun fromDomain(domain: CalendarColorCreate): CalendarColorEntity {
             return CalendarColorEntity(
                 name = domain.name,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 color = domain.color,
                 createdAt = domain.audit.createdAt,
                 updatedAt = domain.audit.updatedAt

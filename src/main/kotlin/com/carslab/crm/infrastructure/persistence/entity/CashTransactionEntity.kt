@@ -6,6 +6,7 @@ import com.carslab.crm.domain.model.view.finance.CashTransaction
 import com.carslab.crm.domain.model.view.finance.TransactionId
 import com.carslab.crm.domain.model.view.finance.TransactionType
 import jakarta.persistence.*
+import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -16,6 +17,9 @@ class CashTransactionEntity(
     @Id
     @Column(nullable = false)
     val id: String,
+
+    @Column(nullable = false)
+    var companyId: Long,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -59,6 +63,7 @@ class CashTransactionEntity(
         fun fromDomain(domain: CashTransaction): CashTransactionEntity {
             return CashTransactionEntity(
                 id = domain.id.value,
+                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 type = domain.type,
                 description = domain.description,
                 date = domain.date,
