@@ -1,8 +1,9 @@
-package com.carslab.crm.domain
+package com.carslab.crm.infrastructure.auth
 
 import com.carslab.crm.infrastructure.persistence.repository.PermissionConfigurationRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -34,7 +35,7 @@ class CustomUserDetailsService(
             authorities.add(SimpleGrantedAuthority("ROLE_${role.name}"))
         }
 
-        return org.springframework.security.core.userdetails.User
+        return User
             .withUsername(user.username)
             .password(user.passwordHash)
             .authorities(authorities)

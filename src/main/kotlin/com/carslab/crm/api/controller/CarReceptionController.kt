@@ -10,7 +10,7 @@ import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.api.model.response.ProtocolCountersResponse
 import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
-import com.carslab.crm.domain.CarReceptionFacade
+import com.carslab.crm.domain.visits.CarReceptionFacade
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus

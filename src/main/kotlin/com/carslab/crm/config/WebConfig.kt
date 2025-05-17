@@ -1,7 +1,7 @@
 package com.carslab.crm.config
 
-import com.carslab.crm.domain.CustomUserDetailsService
-import com.carslab.crm.domain.PermissionService
+import com.carslab.crm.infrastructure.auth.CustomUserDetailsService
+import com.carslab.crm.domain.permissions.PermissionService
 import com.carslab.crm.infrastructure.validation.permissions.CustomPermissionEvaluator
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -12,15 +12,11 @@ import org.apache.catalina.connector.Connector
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.annotation.Order
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.security.access.PermissionEvaluator
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder

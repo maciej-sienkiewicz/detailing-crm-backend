@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.clients
 
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.stats.ClientStats

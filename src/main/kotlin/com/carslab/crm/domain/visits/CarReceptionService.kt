@@ -1,16 +1,55 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.visits
 
-import com.carslab.crm.api.model.request.CreateCashTransactionRequest
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.ApprovalStatus
+import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.domain.model.AuditInfo
+import com.carslab.crm.domain.model.CarReceptionProtocol
+import com.carslab.crm.domain.model.Client
+import com.carslab.crm.domain.model.ClientDetails
+import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.domain.model.Documents
+import com.carslab.crm.domain.model.MediaItem
+import com.carslab.crm.domain.model.MediaType
+import com.carslab.crm.domain.model.ProtocolComment
+import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolService
+import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.ReferralSource
+import com.carslab.crm.domain.model.UserId
+import com.carslab.crm.domain.model.Vehicle
+import com.carslab.crm.domain.model.VehicleDetails
+import com.carslab.crm.domain.model.VehicleId
 import com.carslab.crm.domain.model.create.client.CreateClientModel
-import com.carslab.crm.domain.model.create.protocol.*
+import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
+import com.carslab.crm.domain.model.create.protocol.CreateProtocolVehicleModel
+import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
+import com.carslab.crm.domain.model.create.protocol.DocumentType
 import com.carslab.crm.domain.model.create.protocol.PaymentMethod
+import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats
-import com.carslab.crm.domain.model.view.finance.*
+import com.carslab.crm.domain.model.view.finance.CashTransaction
+import com.carslab.crm.domain.model.view.finance.Invoice
+import com.carslab.crm.domain.model.view.finance.InvoiceId
+import com.carslab.crm.domain.model.view.finance.InvoiceItem
+import com.carslab.crm.domain.model.view.finance.InvoiceStatus
+import com.carslab.crm.domain.model.view.finance.InvoiceType
+import com.carslab.crm.domain.model.view.finance.TransactionId
+import com.carslab.crm.domain.model.view.finance.TransactionType
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
-import com.carslab.crm.domain.port.*
+import com.carslab.crm.domain.port.CarReceptionRepository
+import com.carslab.crm.domain.port.CashRepository
+import com.carslab.crm.domain.port.ClientRepository
+import com.carslab.crm.domain.port.ClientStatisticsRepository
+import com.carslab.crm.domain.port.ClientVehicleRepository
+import com.carslab.crm.domain.port.InvoiceRepository
+import com.carslab.crm.domain.port.ProtocolCommentsRepository
+import com.carslab.crm.domain.port.ProtocolServicesRepository
+import com.carslab.crm.domain.port.VehicleRepository
+import com.carslab.crm.domain.port.VehicleStatisticsRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import org.slf4j.LoggerFactory
@@ -88,7 +127,7 @@ class CarReceptionService(
                         ProtocolComment(
                             protocolId = protocol.id,
                             author = "Administrator",
-                            content =  "Zmieniono status protokołu z \"${existingProtocol.status.uiVale}\" na: \"${protocol.status.uiVale}\"",
+                            content = "Zmieniono status protokołu z \"${existingProtocol.status.uiVale}\" na: \"${protocol.status.uiVale}\"",
                             timestamp = Instant.now().toString(),
                             type = "system"
                         )
@@ -154,13 +193,15 @@ class CarReceptionService(
     }
 
     private fun commentOnStatusChange(newStatus: ProtocolStatus, previousStatus: ProtocolStatus, protocolId: ProtocolId) =
-        protocolCommentsRepository.save(ProtocolComment(
-            protocolId = protocolId,
-            author = "Administrator",
-            content = "Zmieniono status protokołu z \"${previousStatus.uiVale}\" na: \"${newStatus.uiVale}\"",
-            timestamp = Instant.now().toString(),
-            type = "system"
-        ))
+        protocolCommentsRepository.save(
+            ProtocolComment(
+                protocolId = protocolId,
+                author = "Administrator",
+                content = "Zmieniono status protokołu z \"${previousStatus.uiVale}\" na: \"${newStatus.uiVale}\"",
+                timestamp = Instant.now().toString(),
+                type = "system"
+            )
+        )
 
     private fun ProtocolView.enrichProtocol(): CarReceptionProtocol {
         val vehicle = vehicleRepository.findById(vehicleId)
@@ -508,7 +549,7 @@ class CarReceptionService(
                 }
             invoiceRepository.save(
                 Invoice(
-                    id = InvoiceId.generate(),
+                    id = InvoiceId.Companion.generate(),
                     number = "",
                     title = "Faktura za wizytę",
                     issuedDate = LocalDate.now(),
@@ -551,7 +592,7 @@ class CarReceptionService(
     private fun registerCashPayment(existingProtocol: CarReceptionProtocol) {
         cashRepository.save(
             CashTransaction(
-                id = TransactionId.generate(),
+                id = TransactionId.Companion.generate(),
                 type = TransactionType.INCOME,
                 description = "Opłata za wizytę",
                 date = LocalDate.now(),

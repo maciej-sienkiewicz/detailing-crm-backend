@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.clients
 
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
@@ -12,7 +12,6 @@ import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service

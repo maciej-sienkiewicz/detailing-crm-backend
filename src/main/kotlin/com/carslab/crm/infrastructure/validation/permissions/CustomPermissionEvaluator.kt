@@ -1,7 +1,7 @@
 package com.carslab.crm.infrastructure.validation.permissions
 
-import com.carslab.crm.domain.PermissionService
 import com.carslab.crm.domain.model.view.permission.PermissionCheck
+import com.carslab.crm.domain.permissions.PermissionService
 import com.carslab.crm.infrastructure.persistence.entity.PermissionAction
 import com.carslab.crm.infrastructure.persistence.entity.ResourceType
 import org.springframework.security.access.PermissionEvaluator

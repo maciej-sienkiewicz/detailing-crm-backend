@@ -6,7 +6,7 @@ import com.carslab.crm.api.model.response.ServiceHistoryResponse
 import com.carslab.crm.api.model.response.VehicleOwnerResponse
 import com.carslab.crm.api.model.request.VehicleRequest
 import com.carslab.crm.api.mapper.ServiceHistoryMapper
-import com.carslab.crm.domain.VehicleFacade
+import com.carslab.crm.domain.clients.VehicleFacade
 import com.carslab.crm.domain.model.VehicleId
 import com.carslab.crm.domain.model.ServiceHistoryId
 import com.carslab.crm.api.model.response.VehicleResponse

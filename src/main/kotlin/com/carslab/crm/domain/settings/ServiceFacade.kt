@@ -1,11 +1,10 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.settings
 
 import com.carslab.crm.domain.model.create.protocol.CreateServiceRecipeModel
 import com.carslab.crm.domain.model.create.protocol.ServiceRecipeId
 import com.carslab.crm.domain.model.view.ServiceRecipeView
 import com.carslab.crm.domain.port.ServiceRecipeRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ServiceFacade(

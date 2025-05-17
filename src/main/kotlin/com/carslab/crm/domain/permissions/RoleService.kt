@@ -1,6 +1,12 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.permissions
 
-import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.ConfigureRolePermissionCommand
+import com.carslab.crm.domain.model.CreateRoleCommand
+import com.carslab.crm.domain.model.PermissionConfigDto
+import com.carslab.crm.domain.model.PermissionSummaryDto
+import com.carslab.crm.domain.model.RoleDetailResponse
+import com.carslab.crm.domain.model.RoleResponse
+import com.carslab.crm.domain.model.UpdateRoleCommand
 import com.carslab.crm.infrastructure.exception.BusinessException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.persistence.entity.PermissionConfiguration
@@ -39,7 +45,7 @@ class RoleService(
         )
 
         // Konwertuj do encji i zapisz
-        val roleEntity = RoleEntity.fromDomain(role)
+        val roleEntity = RoleEntity.Companion.fromDomain(role)
         val savedRoleEntity = roleRepository.save(roleEntity)
 
         // Przypisz uprawnienia
@@ -49,7 +55,7 @@ class RoleService(
             assignPermissionsToRole(savedRoleEntity.id!!, createRoleCommand.initialPermissionIds)
         }
 
-        return RoleResponse.fromEntity(savedRoleEntity)
+        return RoleResponse.Companion.fromEntity(savedRoleEntity)
     }
 
     @Transactional
@@ -82,7 +88,7 @@ class RoleService(
         roleEntity.updateFromDomain(role)
         val updatedRoleEntity = roleRepository.save(roleEntity)
 
-        return RoleResponse.fromEntity(updatedRoleEntity)
+        return RoleResponse.Companion.fromEntity(updatedRoleEntity)
     }
 
     @Transactional
@@ -218,7 +224,7 @@ class RoleService(
                 createdBy = configCommand.userId
             )
 
-            val configEntity = PermissionConfigurationEntity.fromDomain(newConfig)
+            val configEntity = PermissionConfigurationEntity.Companion.fromDomain(newConfig)
             permissionConfigRepository.save(configEntity)
         }
     }
@@ -240,7 +246,7 @@ class RoleService(
                     createdBy = null
                 )
 
-                val configEntity = PermissionConfigurationEntity.fromDomain(config)
+                val configEntity = PermissionConfigurationEntity.Companion.fromDomain(config)
                 permissionConfigRepository.save(configEntity)
             }
         }

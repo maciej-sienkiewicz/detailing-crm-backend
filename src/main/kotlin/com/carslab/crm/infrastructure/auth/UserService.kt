@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.infrastructure.auth
 
 import com.carslab.crm.api.model.response.LoginResponse
 import com.carslab.crm.domain.model.*

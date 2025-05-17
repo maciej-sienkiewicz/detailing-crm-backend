@@ -1,12 +1,11 @@
 package com.carslab.crm.api.controller
 
-import com.carslab.crm.domain.UserService
+import com.carslab.crm.infrastructure.auth.UserService
 import com.carslab.crm.domain.model.CreateUserCommand
 import com.carslab.crm.domain.model.UpdateProfileCommand
 import com.carslab.crm.domain.model.UserResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid
 

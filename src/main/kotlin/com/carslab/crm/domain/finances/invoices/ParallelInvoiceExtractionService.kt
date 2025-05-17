@@ -1,9 +1,13 @@
-package com.carslab.crm.service
+package com.carslab.crm.domain.finances.invoices
 
-import com.carslab.crm.api.model.response.*
+import com.carslab.crm.api.model.response.ExtractedInvoiceData
+import com.carslab.crm.api.model.response.HeadersResponse
+import com.carslab.crm.api.model.response.InvoiceDataResponse
+import com.carslab.crm.api.model.response.ItemsResponse
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import kotlinx.coroutines.*
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.rendering.PDFRenderer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
@@ -13,14 +17,14 @@ import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.StringHttpMessageConverter
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
-import java.nio.charset.StandardCharsets
-import java.util.Base64
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.rendering.PDFRenderer
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.concurrent.CompletableFuture
+import javax.imageio.IIOImage
 import javax.imageio.ImageIO
+import javax.imageio.ImageWriteParam
 
 /**
  * Service for extracting data from invoices using AI with parallel processing
@@ -251,12 +255,12 @@ class ParallelInvoiceExtractionService(
                 val writer = writers.next()
                 val param = writer.defaultWriteParam
 
-                param.compressionMode = javax.imageio.ImageWriteParam.MODE_EXPLICIT
+                param.compressionMode = ImageWriteParam.MODE_EXPLICIT
                 param.compressionQuality = imageQuality // 0.0-1.0, lower means more compression
 
                 val ios = ImageIO.createImageOutputStream(output)
                 writer.output = ios
-                writer.write(null, javax.imageio.IIOImage(resizedImage, null, null), param)
+                writer.write(null, IIOImage(resizedImage, null, null), param)
                 ios.close()
                 writer.dispose()
 

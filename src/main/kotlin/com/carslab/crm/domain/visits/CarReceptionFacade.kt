@@ -1,6 +1,7 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.visits
 
 import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.domain.visits.CarReceptionService
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
@@ -10,7 +11,6 @@ import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.LocalDateTime
 

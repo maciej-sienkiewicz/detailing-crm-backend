@@ -7,7 +7,7 @@ import com.carslab.crm.api.model.commands.CreateClientCommand
 import com.carslab.crm.api.model.request.ClientRequest
 import com.carslab.crm.api.model.request.ContactAttemptRequest
 import com.carslab.crm.api.model.response.*
-import com.carslab.crm.domain.ClientFacade
+import com.carslab.crm.domain.clients.ClientFacade
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.ContactAttemptId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
@@ -19,9 +19,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
-import java.math.BigDecimal
 
 @RestController
 @RequestMapping("/api/clients")

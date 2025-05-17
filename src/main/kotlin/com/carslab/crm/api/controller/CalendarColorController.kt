@@ -4,7 +4,7 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.commands.CreateCalendarColorCommand
 import com.carslab.crm.api.model.commands.UpdateCalendarColorCommand
 import com.carslab.crm.api.model.response.CalendarColorResponse
-import com.carslab.crm.domain.CalendarColorFacade
+import com.carslab.crm.domain.settings.CalendarColorFacade
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.util.ValidationUtils

@@ -1,29 +1,19 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.permissions
 
-import com.carslab.crm.domain.model.ConfigureRolePermissionCommand
 import com.carslab.crm.domain.model.PermissionDto
-import com.carslab.crm.domain.model.UpdateDataFieldPermissionsCommand
 import com.carslab.crm.domain.model.view.permission.PermissionCheck
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
-import com.carslab.crm.infrastructure.persistence.entity.DataField
-import com.carslab.crm.infrastructure.persistence.entity.PermissionConfiguration
 import com.carslab.crm.infrastructure.persistence.entity.PermissionConfigurationEntity
-import com.carslab.crm.infrastructure.persistence.entity.ResourceType
 import com.carslab.crm.infrastructure.persistence.repository.PermissionConfigurationRepository
 import com.carslab.crm.infrastructure.persistence.repository.PermissionRepository
-import com.carslab.crm.infrastructure.persistence.repository.RoleRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
 
 @Service
 class PermissionService(
     private val permissionRepository: PermissionRepository,
     private val permissionConfigRepository: PermissionConfigurationRepository,
-    private val userRepository: UserRepository,
-    private val roleRepository: RoleRepository
+    private val userRepository: UserRepository
 ) {
     fun hasPermission(userId: Long, permission: PermissionCheck): Boolean {
         val user = userRepository.findById(userId)

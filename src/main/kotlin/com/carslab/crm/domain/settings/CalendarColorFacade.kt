@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.settings
 
 import com.carslab.crm.api.model.commands.CreateCalendarColorCommand
 import com.carslab.crm.api.model.commands.UpdateCalendarColorCommand

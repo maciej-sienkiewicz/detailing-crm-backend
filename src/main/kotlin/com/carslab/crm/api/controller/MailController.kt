@@ -1,7 +1,7 @@
 package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.model.*
-import com.carslab.crm.domain.MailService
+import com.carslab.crm.domain.mail.MailService
 import org.springframework.web.bind.annotation.*
 
 @RestController

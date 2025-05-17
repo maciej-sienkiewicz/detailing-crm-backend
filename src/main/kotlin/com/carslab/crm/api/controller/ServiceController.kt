@@ -4,7 +4,7 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.ServiceMapper
 import com.carslab.crm.api.model.commands.CreateServiceRecipeCommand
 import com.carslab.crm.api.model.response.ServiceResponse
-import com.carslab.crm.domain.ServiceFacade
+import com.carslab.crm.domain.settings.ServiceFacade
 import com.carslab.crm.domain.model.create.protocol.ServiceRecipeId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import io.swagger.v3.oas.annotations.Operation

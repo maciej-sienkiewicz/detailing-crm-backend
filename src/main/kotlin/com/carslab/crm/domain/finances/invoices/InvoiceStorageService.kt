@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.finances.invoices
 
 import com.carslab.crm.domain.model.view.finance.InvoiceId
 import org.slf4j.LoggerFactory

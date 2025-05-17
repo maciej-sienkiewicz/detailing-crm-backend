@@ -1,4 +1,4 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.finances.cash
 
 import com.carslab.crm.api.model.CashTransactionFilterDTO
 import com.carslab.crm.api.model.request.CreateCashTransactionRequest
@@ -39,7 +39,7 @@ class CashService(
 
         // Tworzenie transakcji
         val transaction = CashTransaction(
-            id = TransactionId.generate(),
+            id = TransactionId.Companion.generate(),
             type = TransactionType.valueOf(request.type),
             description = request.description,
             date = request.date,

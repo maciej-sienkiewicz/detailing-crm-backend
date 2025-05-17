@@ -1,23 +1,51 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.mail
 
-import com.carslab.crm.api.model.*
+import com.carslab.crm.api.model.AttachmentResponse
+import com.carslab.crm.api.model.CreateFolderResponse
+import com.carslab.crm.api.model.Email
+import com.carslab.crm.api.model.EmailResponse
+import com.carslab.crm.api.model.MailActionResponse
+import com.carslab.crm.api.model.MailFolder
+import com.carslab.crm.api.model.MailFolderSummary
+import com.carslab.crm.api.model.MailFoldersResponse
+import com.carslab.crm.api.model.MailFoldersSummaryResponse
+import com.carslab.crm.api.model.MailLoginRequest
+import com.carslab.crm.api.model.MailLoginResponse
+import com.carslab.crm.api.model.MailsResponse
+import com.carslab.crm.api.model.SendEmailRequest
+import com.carslab.crm.api.model.SendEmailResponse
 import com.carslab.crm.domain.model.EmailAddress
 import com.carslab.crm.domain.model.EmailAttachment
 import com.carslab.crm.domain.model.EmailBody
 import com.carslab.crm.domain.model.MailSession
-import org.springframework.stereotype.Service
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import com.sun.mail.imap.IMAPFolder
 import com.sun.mail.imap.IMAPStore
-import jakarta.mail.*
+import jakarta.mail.Address
+import jakarta.mail.AuthenticationFailedException
+import jakarta.mail.Authenticator
+import jakarta.mail.BodyPart
+import jakarta.mail.Flags
+import jakarta.mail.Folder
+import jakarta.mail.Message
+import jakarta.mail.MessagingException
+import jakarta.mail.Multipart
+import jakarta.mail.Part
+import jakarta.mail.PasswordAuthentication
+import jakarta.mail.Session
+import jakarta.mail.Store
+import jakarta.mail.Transport
 import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.Date
+import java.util.Properties
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class MailService {

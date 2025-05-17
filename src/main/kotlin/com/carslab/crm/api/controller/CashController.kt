@@ -7,7 +7,7 @@ import com.carslab.crm.api.model.request.UpdateCashTransactionRequest
 import com.carslab.crm.api.model.response.CashStatisticsResponse
 import com.carslab.crm.api.model.response.CashTransactionResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.domain.CashService
+import com.carslab.crm.domain.finances.cash.CashService
 import com.carslab.crm.domain.model.view.finance.CashStatistics
 import com.carslab.crm.domain.model.view.finance.CashTransaction
 import io.swagger.v3.oas.annotations.Operation

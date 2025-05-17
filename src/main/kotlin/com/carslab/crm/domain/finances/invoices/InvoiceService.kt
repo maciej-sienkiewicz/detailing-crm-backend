@@ -1,11 +1,24 @@
-package com.carslab.crm.domain
+package com.carslab.crm.domain.finances.invoices
 
-import com.carslab.crm.api.model.*
+import com.carslab.crm.api.model.BuyerInfoDTO
+import com.carslab.crm.api.model.ExtractedInvoiceDataDTO
+import com.carslab.crm.api.model.ExtractedItemDTO
+import com.carslab.crm.api.model.GeneralInfoDTO
+import com.carslab.crm.api.model.InvoiceFilterDTO
+import com.carslab.crm.api.model.SellerInfoDTO
+import com.carslab.crm.api.model.SummaryDTO
 import com.carslab.crm.api.model.request.CreateInvoiceRequest
 import com.carslab.crm.api.model.request.UpdateInvoiceRequest
+import com.carslab.crm.domain.finances.invoices.InvoiceStorageService
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ClientId
-import com.carslab.crm.domain.model.view.finance.*
+import com.carslab.crm.domain.model.view.finance.Invoice
+import com.carslab.crm.domain.model.view.finance.InvoiceAttachment
+import com.carslab.crm.domain.model.view.finance.InvoiceId
+import com.carslab.crm.domain.model.view.finance.InvoiceItem
+import com.carslab.crm.domain.model.view.finance.InvoiceStatus
+import com.carslab.crm.domain.model.view.finance.InvoiceType
+import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.domain.port.InvoiceRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
@@ -14,11 +27,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
-import java.time.Clock
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class InvoiceService(
@@ -256,7 +267,7 @@ class InvoiceService(
     private fun convertToInvoiceModel(request: CreateInvoiceRequest): Invoice {
         val now = LocalDateTime.now()
         return Invoice(
-            id = InvoiceId.generate(),
+            id = InvoiceId.Companion.generate(),
             number = "", // Będzie wygenerowany przez repozytorium
             title = request.title,
             issuedDate = request.issuedDate,
@@ -268,7 +279,9 @@ class InvoiceService(
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
             clientId = request.clientId?.let { ClientId(it) },
-            status = if (LocalDate.now().isAfter(request.dueDate)) InvoiceStatus.OVERDUE else InvoiceStatus.valueOf(request.status),
+            status = if (LocalDate.now().isAfter(request.dueDate)) InvoiceStatus.OVERDUE else InvoiceStatus.valueOf(
+                request.status
+            ),
             type = InvoiceType.valueOf(request.type),
             paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
             totalNet = request.totalNet,

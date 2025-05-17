@@ -1,7 +1,7 @@
 package com.carslab.crm.config
 
-import com.carslab.crm.domain.PermissionService
 import com.carslab.crm.domain.model.PermissionDto
+import com.carslab.crm.domain.permissions.PermissionService
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
@@ -42,22 +42,15 @@ class JwtAuthorizationFilter(
             if (token != null && isValidToken(token)) {
                 val userId = getUserIdFromToken(token)
 
-                // Pobierz pełny obiekt użytkownika
-                val user = userRepository.findById(userId).orElse(null)
+                val user = userRepository.findById(userId)
 
-                if (user != null) {
-                    // Ustaw pełny obiekt jako Principal
-                    val auth = UsernamePasswordAuthenticationToken(
-                        user,  // teraz cały obiekt użytkownika zamiast tylko ID
-                        null,
-                        getAuthorities(userId)
-                    )
+                user.ifPresent {
+                    val auth = UsernamePasswordAuthenticationToken(it, null, getAuthorities(userId))
 
-                    // Dodatkowo wciąż możesz ustawić szczegóły
                     (auth as AbstractAuthenticationToken).details = getUserPermissions(userId)
 
                     SecurityContextHolder.getContext().authentication = auth
-                    logger.debug("Set authentication for user: ${user.username} with company ID: ${user.companyId}")
+                    logger.debug("Set authentication for user: ${it.username} with company ID: ${it.companyId}")
                 }
             }
         } catch (e: Exception) {

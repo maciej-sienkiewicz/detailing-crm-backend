@@ -5,7 +5,7 @@ import com.carslab.crm.api.model.*
 import com.carslab.crm.api.model.request.CreateInvoiceRequest
 import com.carslab.crm.api.model.request.UpdateInvoiceRequest
 import com.carslab.crm.api.model.response.InvoiceResponse
-import com.carslab.crm.domain.InvoiceService
+import com.carslab.crm.domain.finances.invoices.InvoiceService
 import com.carslab.crm.domain.model.view.finance.Invoice
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation

@@ -2,7 +2,7 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.model.request.LoginRequest
 import com.carslab.crm.api.model.response.LoginResponse
-import com.carslab.crm.domain.UserService
+import com.carslab.crm.infrastructure.auth.UserService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
