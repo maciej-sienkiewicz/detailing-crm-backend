@@ -15,13 +15,13 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class ClientService(
+class ClientFacade(
     private val clientRepository: ClientRepository,
     private val contactAttemptRepository: ContactAttemptRepository,
     private val clientStatisticsRepository: ClientStatisticsRepository,
     private val vehicleRepository: VehicleRepository
 ) {
-    private val logger = LoggerFactory.getLogger(ClientService::class.java)
+    private val logger = LoggerFactory.getLogger(ClientFacade::class.java)
 
     fun createClient(client: CreateClientModel): ClientDetails {
         logger.info("Creating new client: ${client.firstName} ${client.lastName}")
@@ -57,9 +57,13 @@ class ClientService(
     fun getVehiclesByClientId(clientId: ClientId): List<Vehicle> =
         vehicleRepository.findByClientId(clientId)
 
-    fun getAllClients(): List<ClientDetails> {
-        logger.debug("Getting all clients")
+    fun getAllClients(): List<com.carslab.crm.domain.model.ClientStats> {
         return clientRepository.findAll()
+            .map { ClientStats(
+                client = it,
+                vehicles = emptyList(),
+                stats = ClientStats(0, 0, 0.toBigDecimal(), 0)
+            ) }
     }
 
     fun searchClients(
@@ -145,18 +149,9 @@ class ClientService(
             ?: ClientStats(clientId.value, 0, "0".toBigDecimal(), 0)
     }
 
-    private fun validateContactAttempt(contactAttempt: ContactAttempt) {
-        if (contactAttempt.description.isBlank()) {
-            throw ValidationException("Contact attempt description cannot be empty")
-        }
-
-        if (contactAttempt.date > LocalDateTime.now()) {
-            throw ValidationException("Contact attempt date cannot be in the future")
-        }
-
-        if (contactAttempt.clientId.isBlank()) {
-            throw ValidationException("Client ID cannot be empty")
-        }
+    private fun isValidEmail(email: String): Boolean {
+        val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}$")
+        return email.matches(emailRegex)
     }
 
     private fun validateClient(client: ClientDetails) {
@@ -173,9 +168,18 @@ class ClientService(
         }
     }
 
-    private fun isValidEmail(email: String): Boolean {
-        val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}$")
-        return email.matches(emailRegex)
+    private fun validateContactAttempt(contactAttempt: ContactAttempt) {
+        if (contactAttempt.description.isBlank()) {
+            throw ValidationException("Contact attempt description cannot be empty")
+        }
+
+        if (contactAttempt.date > LocalDateTime.now()) {
+            throw ValidationException("Contact attempt date cannot be in the future")
+        }
+
+        if (contactAttempt.clientId.isBlank()) {
+            throw ValidationException("Client ID cannot be empty")
+        }
     }
 
     private fun initializeClientStatistics(clientId: ClientId) {
@@ -186,85 +190,5 @@ class ClientService(
             vehiclesNo = 0
         )
         clientStatisticsRepository.save(stats)
-    }
-}
-
-@Service
-class ClientFacade(
-    private val clientService: ClientService,
-    private val vehicleRepository: VehicleRepository,
-    private val clientVehicleRepository: ClientVehicleRepository
-) {
-    private val logger = LoggerFactory.getLogger(ClientFacade::class.java)
-
-    fun createClient(client: CreateClientModel): ClientDetails {
-        return clientService.createClient(client)
-    }
-
-    fun updateClient(client: ClientDetails): ClientDetails {
-        return clientService.updateClient(client)
-    }
-
-    fun getClientById(clientId: ClientId): ClientDetails? {
-        return clientService.getClientById(clientId)
-    }
-
-    fun getVehiclesByClientId(clientId: ClientId): List<Vehicle> =
-        clientService.getVehiclesByClientId(clientId)
-
-    fun getAllClients(): List<com.carslab.crm.domain.model.ClientStats> {
-        val clients = clientService.getAllClients()
-        val clientIds = clients.map { it.id }.toSet()
-
-        val vehiclesByClient: Map<ClientDetails?, List<Vehicle>> = clientVehicleRepository.findVehiclesByOwnerIds(clientIds.toList())
-            .mapValues { vehicleRepository.findByIds(it.value) }
-            .mapKeys { clientService.getClientById(it.key) }
-
-        return clients
-            .map {
-                val stats = clientService.getClientStatistics(it.id)
-
-                ClientStats(
-                    client = it,
-                    vehicles = vehiclesByClient.get(it) ?: emptyList(),
-                    stats = stats
-                )
-            }
-    }
-
-    fun searchClients(
-        name: String? = null,
-        email: String? = null,
-        phone: String? = null
-    ): List<ClientDetails> {
-        return clientService.searchClients(name, email, phone)
-    }
-
-    fun deleteClient(clientId: ClientId): Boolean {
-        return clientService.deleteClient(clientId)
-    }
-
-    fun createContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
-        return clientService.createContactAttempt(contactAttempt)
-    }
-
-    fun updateContactAttempt(contactAttempt: ContactAttempt): ContactAttempt {
-        return clientService.updateContactAttempt(contactAttempt)
-    }
-
-    fun getContactAttemptsByClientId(clientId: String): List<ContactAttempt> {
-        return clientService.getContactAttemptsByClientId(clientId)
-    }
-
-    fun getContactAttemptById(contactAttemptId: ContactAttemptId): ContactAttempt? {
-        return clientService.getContactAttemptById(contactAttemptId)
-    }
-
-    fun deleteContactAttempt(contactAttemptId: ContactAttemptId): Boolean {
-        return clientService.deleteContactAttempt(contactAttemptId)
-    }
-
-    fun getClientStatistics(clientId: ClientId): ClientStats {
-        return clientService.getClientStatistics(clientId)
     }
 }
