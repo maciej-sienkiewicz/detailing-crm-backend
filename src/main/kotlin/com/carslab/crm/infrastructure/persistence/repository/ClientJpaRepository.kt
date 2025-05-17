@@ -69,6 +69,9 @@ interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, Long>, JpaSpecif
     fun findByStatusAndCompanyId(status: ProtocolStatus, companyId: Long): List<ProtocolEntity>
     fun findByClientIdAndCompanyId(clientId: Long, companyId: Long): List<ProtocolEntity>
 
+    @Query("SELECT COUNT(p) FROM ProtocolEntity p WHERE p.status = :status AND p.companyId = :companyId")
+    fun countByStatusAndCompanyId(@Param("status") status: ProtocolStatus, @Param("companyId") companyId: Long): Int
+
 
     @Query(nativeQuery = true,
         value = "SELECT p.* FROM protocols p " +

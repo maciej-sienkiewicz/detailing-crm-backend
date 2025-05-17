@@ -304,4 +304,12 @@ class JpaCarReceptionRepositoryAdapter(
 
         return Pair(protocolViews, protocolPage.totalElements)
     }
+
+    override fun countProtocolsByStatus(status: ProtocolStatus): Int {
+        // Pobierz ID firmy aktualnie zalogowanego użytkownika
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
+        // Wywołaj odpowiednią metodę z repozytorium JPA
+        return protocolJpaRepository.countByStatusAndCompanyId(status, companyId)
+    }
 }

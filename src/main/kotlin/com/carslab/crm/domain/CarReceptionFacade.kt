@@ -108,4 +108,8 @@ class CarReceptionFacade(
             size = size
         )
     }
+
+    fun countProtocolsByStatus(status: ProtocolStatus): Int {
+        return carReceptionService.countProtocolsByStatus(status)
+    }
 }

@@ -72,4 +72,6 @@ interface CarReceptionRepository {
         page: Int = 0,
         size: Int = 10
     ): Pair<List<ProtocolView>, Long>
+
+    fun countProtocolsByStatus(status: ProtocolStatus): Int
 }

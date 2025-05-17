@@ -7,6 +7,7 @@ import com.carslab.crm.api.mapper.CarReceptionDtoMapper.fromCreateImageCommand
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.commands.*
 import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.api.model.response.ProtocolCountersResponse
 import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.CarReceptionFacade
@@ -296,6 +297,38 @@ class CarReceptionController(
         )
 
         return ok(response)
+    }
+
+    @GetMapping("/counters")
+    @Operation(summary = "Get protocol counters", description = "Retrieves count of protocols for each status")
+    fun getProtocolCounters(): ResponseEntity<ProtocolCountersResponse> {
+        logger.info("Getting protocol counters for all statuses")
+
+        try {
+            // Pobierz liczniki dla poszczególnych statusów
+            val scheduledCount = carReceptionFacade.countProtocolsByStatus(ProtocolStatus.SCHEDULED)
+            val inProgressCount = carReceptionFacade.countProtocolsByStatus(ProtocolStatus.IN_PROGRESS)
+            val readyForPickupCount = carReceptionFacade.countProtocolsByStatus(ProtocolStatus.READY_FOR_PICKUP)
+            val completedCount = carReceptionFacade.countProtocolsByStatus(ProtocolStatus.COMPLETED)
+            val cancelledCount = carReceptionFacade.countProtocolsByStatus(ProtocolStatus.CANCELLED)
+
+            // Suma wszystkich protokołów
+            val totalCount = scheduledCount + inProgressCount + readyForPickupCount + completedCount + cancelledCount
+
+            val counters = ProtocolCountersResponse(
+                SCHEDULED = scheduledCount,
+                IN_PROGRESS = inProgressCount,
+                READY_FOR_PICKUP = readyForPickupCount,
+                COMPLETED = completedCount,
+                CANCELLED = cancelledCount,
+                ALL = totalCount
+            )
+
+            logger.info("Protocol counters: $counters")
+            return ok(counters)
+        } catch (e: Exception) {
+            return logAndRethrow("Error retrieving protocol counters", e)
+        }
     }
 
     @GetMapping("/not-paginated")

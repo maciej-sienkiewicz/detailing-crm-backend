@@ -602,4 +602,8 @@ class CarReceptionService(
             totalPages = totalPages
         )
     }
+
+    fun countProtocolsByStatus(status: ProtocolStatus): Int {
+        return carReceptionRepository.countProtocolsByStatus(status)
+    }
 }
