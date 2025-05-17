@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.protocols
+package com.carslab.crm.domain.visits.protocols
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
