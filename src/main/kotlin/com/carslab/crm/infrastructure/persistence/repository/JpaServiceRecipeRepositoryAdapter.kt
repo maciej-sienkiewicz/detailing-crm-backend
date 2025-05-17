@@ -17,9 +17,11 @@ class JpaServiceRecipeRepositoryAdapter(
 ) : ServiceRecipeRepository {
 
     override fun save(serviceRecipe: CreateServiceRecipeModel): ServiceRecipeId {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
         val entity = ServiceRecipeEntity(
             name = serviceRecipe.name,
-            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+            companyId = companyId,
             description = serviceRecipe.description,
             price = serviceRecipe.price,
             vatRate = serviceRecipe.vatRate,
@@ -32,12 +34,15 @@ class JpaServiceRecipeRepositoryAdapter(
     }
 
     override fun getById(id: Long): ServiceRecipeView? {
-        return serviceRecipeJpaRepository.findById(id)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return serviceRecipeJpaRepository.findByCompanyIdAndId(companyId, id)
             .map { it.toDomain() }
             .orElse(null)
     }
 
     override fun getAllServices(): List<ServiceRecipeView> {
-        return serviceRecipeJpaRepository.findAll().map { it.toDomain() }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return serviceRecipeJpaRepository.findByCompanyId(companyId)
+            .map { it.toDomain() }
     }
 }

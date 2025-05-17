@@ -30,24 +30,24 @@ class JpaCarReceptionRepositoryAdapter(
 ) : CarReceptionRepository {
 
     override fun save(protocol: CreateProtocolRootModel): ProtocolId {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
         val vehicleId = protocol.vehicle.id?.toLong()
             ?: throw IllegalStateException("Vehicle ID is required")
 
         val clientId = protocol.client.id?.toLong()
             ?: throw IllegalStateException("Client ID is required")
 
-        // Sprawdzamy tylko, czy encje istnieją
-        if (!vehicleJpaRepository.existsById(vehicleId)) {
-            throw IllegalStateException("Vehicle with ID $vehicleId not found")
-        }
+        // Sprawdzamy, czy encje istnieją i należą do tej samej firmy
+        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId)
+            .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
 
-        if (!clientJpaRepository.existsById(clientId)) {
-            throw IllegalStateException("Client with ID $clientId not found")
-        }
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId)
+            .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         val protocolEntity = ProtocolEntity(
             title = protocol.title,
-            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+            companyId = companyId,
             vehicleId = vehicleId,
             clientId = clientId,
             startDate = protocol.period.startDate,
@@ -70,22 +70,25 @@ class JpaCarReceptionRepositoryAdapter(
     }
 
     override fun save(protocol: CarReceptionProtocol): CarReceptionProtocol {
-        val vehicleId = vehicleJpaRepository.findByVinOrLicensePlate(
-            protocol.vehicle.vin,
-            protocol.vehicle.licensePlate
-        )?.id  ?: throw IllegalStateException("Vehicle ID is required")
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
+        // Sprawdź pojazd i klienta
+        val vehicle = vehicleJpaRepository.findByVinOrLicensePlateAndCompanyId(
+            protocol.vehicle.vin,
+            protocol.vehicle.licensePlate,
+            companyId
+        ) ?: throw IllegalStateException("Vehicle not found or access denied")
 
         val clientId = protocol.client.id
             ?: throw IllegalStateException("Client ID is required")
 
-        if (!clientJpaRepository.existsById(clientId)) {
-            throw IllegalStateException("Client with ID $clientId not found")
-        }
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId)
+            .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         // Sprawdź, czy protokół istnieje
-        val protocolEntity = if (protocolJpaRepository.existsById(protocol.id.value)) {
-            val existingEntity = protocolJpaRepository.findById(protocol.id.value).get()
+        val protocolEntity = if (protocolJpaRepository.existsById(protocol.id.value.toLong())) {
+            val existingEntity = protocolJpaRepository.findByCompanyIdAndId(companyId, protocol.id.value.toLong())
+                .orElse(null) ?: throw IllegalStateException("Protocol not found or access denied")
 
             // Aktualizuj istniejącą encję
             existingEntity.title = protocol.title
@@ -107,9 +110,9 @@ class JpaCarReceptionRepositoryAdapter(
             // Utwórz nową encję
             ProtocolEntity(
                 id = protocol.id.value.toLong(),
-                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                companyId = companyId,
                 title = protocol.title,
-                vehicleId = vehicleId,
+                vehicleId = vehicle.id!!,
                 clientId = clientId,
                 startDate = protocol.period.startDate,
                 endDate = protocol.period.endDate,
@@ -134,40 +137,47 @@ class JpaCarReceptionRepositoryAdapter(
     }
 
     override fun findById(id: ProtocolId): ProtocolView? {
-        return protocolJpaRepository.findById(id.value)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val protocolIdLong = id.value.toLong() // Konwersja String na Long
+
+        return protocolJpaRepository.findByCompanyIdAndId(companyId, protocolIdLong)
             .map { it.toDomainView() }
             .orElse(null)
     }
 
     override fun findAll(): List<CarReceptionProtocol> {
-        // Dla uproszczenia, zwracamy pustą listę
+        // Dla uproszczenia, zwracamy pustą listę - implementacja wymagałaby konwersji
         return emptyList()
     }
 
     override fun findByStatus(status: ProtocolStatus): List<CarReceptionProtocol> {
-        // Dla uproszczenia, zwracamy pustą listę
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        // Dla uproszczenia, zwracamy pustą listę - implementacja wymagałaby konwersji
         return emptyList()
     }
 
     override fun findByClientName(clientName: String): List<CarReceptionProtocol> {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Użycie nowej metody z repozytorium z poprawnym zapytaniem JPQL
         // Dla uproszczenia, zwracamy pustą listę
         return emptyList()
     }
 
     override fun findByLicensePlate(licensePlate: String): List<CarReceptionProtocol> {
-        // Użycie nowej metody z repozytorium z poprawnym zapytaniem JPQL
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Dla uproszczenia, zwracamy pustą listę
         return emptyList()
     }
 
     override fun deleteById(id: ProtocolId): Boolean {
-        return if (protocolJpaRepository.existsById(id.value)) {
-            protocolJpaRepository.deleteById(id.value)
-            true
-        } else {
-            false
-        }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val protocolIdLong = id.value.toLong() // Konwersja String na Long
+
+        val entity = protocolJpaRepository.findByCompanyIdAndId(companyId, protocolIdLong)
+            .orElse(null) ?: return false
+
+        protocolJpaRepository.delete(entity)
+        return true
     }
 
     override fun searchProtocols(
@@ -177,9 +187,11 @@ class JpaCarReceptionRepositoryAdapter(
         status: ProtocolStatus?,
         startDate: LocalDateTime?,
         endDate: LocalDateTime?
-    ): List<ProtocolView> {
-        return protocolJpaRepository.findAll().map { it.toDomainView() }
-    }
+    ): List<ProtocolView> =
+        protocolJpaRepository.findAll()
+            .filter { it.companyId ==  (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId}
+            .map { it.toDomainView()
+            }
 
     override fun searchProtocolsWithPagination(
         clientName: String?,
@@ -192,6 +204,7 @@ class JpaCarReceptionRepositoryAdapter(
         page: Int,
         size: Int
     ): Pair<List<ProtocolView>, Long> {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
 
         // Używamy Specification API do budowania dynamicznego zapytania
@@ -272,6 +285,8 @@ class JpaCarReceptionRepositoryAdapter(
             endDate?.let {
                 predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), it))
             }
+
+            predicates.add(cb.equal(root.get<Long>("companyId"), companyId))
 
             // Łączymy wszystkie predykaty operatorem AND
             if (predicates.isEmpty()) {

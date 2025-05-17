@@ -10,31 +10,27 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.util.Optional
 
 @Repository
 interface InvoiceJpaRepository : JpaRepository<InvoiceEntity, String> {
-    fun findByNumber(number: String): InvoiceEntity?
+    fun findByCompanyId(companyId: Long): List<InvoiceEntity>
+    fun findByCompanyIdAndId(companyId: Long, id: String): Optional<InvoiceEntity>
+    fun findByNumberAndCompanyId(number: String, companyId: Long): InvoiceEntity?
+    fun findByStatusAndCompanyId(status: InvoiceStatus, companyId: Long): List<InvoiceEntity>
+    fun findByTypeAndCompanyId(type: InvoiceType, companyId: Long): List<InvoiceEntity>
+    fun findByClientIdAndCompanyId(clientId: Long, companyId: Long): List<InvoiceEntity>
+    fun findByProtocolIdAndCompanyId(protocolId: String, companyId: Long): List<InvoiceEntity>
+    fun findByDueDateBeforeAndCompanyId(date: LocalDate, companyId: Long): List<InvoiceEntity>
+    fun findByBuyerNameContainingIgnoreCaseAndCompanyId(buyerName: String, companyId: Long): List<InvoiceEntity>
+    fun findByTitleContainingIgnoreCaseAndCompanyId(title: String, companyId: Long): List<InvoiceEntity>
 
-    fun findByStatus(status: InvoiceStatus): List<InvoiceEntity>
-
-    fun findByType(type: InvoiceType): List<InvoiceEntity>
-
-    fun findByClientId(clientId: Long): List<InvoiceEntity>
-
-    fun findByProtocolId(protocolId: String): List<InvoiceEntity>
-
-    fun findByDueDateBefore(date: LocalDate): List<InvoiceEntity>
-
-    fun findByBuyerNameContainingIgnoreCase(buyerName: String): List<InvoiceEntity>
-
-    fun findByTitleContainingIgnoreCase(title: String): List<InvoiceEntity>
-
-    @Query("SELECT MAX(e.number) FROM InvoiceEntity e WHERE e.number LIKE CONCAT(:prefix, '%')")
-    fun findLastNumberByPrefix(@Param("prefix") prefix: String): String?
+    @Query("SELECT MAX(e.number) FROM InvoiceEntity e WHERE e.number LIKE CONCAT(:prefix, '%') AND e.companyId = :companyId")
+    fun findLastNumberByPrefixAndCompanyId(@Param("prefix") prefix: String, @Param("companyId") companyId: Long): String?
 
     @Modifying
-    @Query("UPDATE InvoiceEntity e SET e.status = :status, e.updatedAt = CURRENT_TIMESTAMP WHERE e.id = :id")
-    fun updateStatus(@Param("id") id: String, @Param("status") status: InvoiceStatus): Int
+    @Query("UPDATE InvoiceEntity e SET e.status = :status, e.updatedAt = CURRENT_TIMESTAMP WHERE e.id = :id AND e.companyId = :companyId")
+    fun updateStatusAndCompanyId(@Param("id") id: String, @Param("status") status: InvoiceStatus, @Param("companyId") companyId: Long): Int
 
     @Query("""
         SELECT e FROM InvoiceEntity e 
@@ -48,9 +44,10 @@ interface InvoiceJpaRepository : JpaRepository<InvoiceEntity, String> {
         AND (:protocolId IS NULL OR e.protocolId = :protocolId)
         AND (:minAmount IS NULL OR e.totalGross >= :minAmount)
         AND (:maxAmount IS NULL OR e.totalGross <= :maxAmount)
+        AND e.companyId = :companyId
         ORDER BY e.issuedDate DESC
     """)
-    fun searchInvoices(
+    fun searchInvoicesAndCompanyId(
         @Param("number") number: String?,
         @Param("title") title: String?,
         @Param("buyerName") buyerName: String?,
@@ -60,6 +57,7 @@ interface InvoiceJpaRepository : JpaRepository<InvoiceEntity, String> {
         @Param("dateTo") dateTo: LocalDate?,
         @Param("protocolId") protocolId: String?,
         @Param("minAmount") minAmount: BigDecimal?,
-        @Param("maxAmount") maxAmount: BigDecimal?
+        @Param("maxAmount") maxAmount: BigDecimal?,
+        @Param("companyId") companyId: Long
     ): List<InvoiceEntity>
 }

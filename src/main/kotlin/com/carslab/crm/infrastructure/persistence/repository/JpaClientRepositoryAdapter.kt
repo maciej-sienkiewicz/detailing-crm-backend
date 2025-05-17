@@ -15,17 +15,24 @@ import org.springframework.stereotype.Repository
 class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepository) : ClientRepository {
 
     override fun save(clientDetails: CreateClientModel): ClientDetails {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
         clientJpaRepository.flush()
-        val savedEntity = clientJpaRepository.save(ClientEntity.fromDomain(clientDetails))
+        val entity = ClientEntity.fromDomain(clientDetails)
+        entity.companyId = companyId
+
+        val savedEntity = clientJpaRepository.save(entity)
         clientJpaRepository.flush()
         return savedEntity.toDomain()
     }
 
     override fun updateOrSave(clientDetails: ClientDetails): ClientDetails {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
         val entity = if (clientDetails.id.value > 0) {
             clientJpaRepository.flush()
-            val existingEntity = clientJpaRepository.findById(clientDetails.id.value).orElse(null)
-                ?: ClientEntity.fromDomain(clientDetails)
+            val existingEntity = clientJpaRepository.findByCompanyIdAndId(companyId, clientDetails.id.value)
+                .orElse(null) ?: ClientEntity.fromDomain(clientDetails)
             clientJpaRepository.flush()
 
             // Update fields
@@ -41,7 +48,9 @@ class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepos
 
             existingEntity
         } else {
-            ClientEntity.fromDomain(clientDetails)
+            val newEntity = ClientEntity.fromDomain(clientDetails)
+            newEntity.companyId = companyId
+            newEntity
         }
 
         clientJpaRepository.flush()
@@ -52,48 +61,60 @@ class JpaClientRepositoryAdapter(private val clientJpaRepository: ClientJpaRepos
 
     override fun findById(id: ClientId): ClientDetails? {
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-        return clientJpaRepository.findById(id.value)
-            .filter { it.company }
-            .map { it.toDomain() }.orElse(null)
+        return clientJpaRepository.findByCompanyIdAndId(companyId, id.value)
+            .map { it.toDomain() }
+            .orElse(null)
     }
 
     override fun findByIds(ids: List<ClientId>): List<ClientDetails> {
-        return clientJpaRepository.findAllById(ids.map { it.value }).map { it.toDomain() }
-    }
-
-    override fun findAll(): List<ClientDetails> {
-        return clientJpaRepository.findAll().map { it.toDomain() }
-    }
-
-    override fun deleteById(id: ClientId): Boolean {
-        return if (clientJpaRepository.existsById(id.value)) {
-            clientJpaRepository.deleteById(id.value)
-            true
-        } else {
-            false
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return ids.mapNotNull { id ->
+            clientJpaRepository.findByCompanyIdAndId(companyId, id.value)
+                .map { it.toDomain() }
+                .orElse(null)
         }
     }
 
+    override fun findAll(): List<ClientDetails> {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return clientJpaRepository.findByCompanyId(companyId)
+            .map { it.toDomain() }
+    }
+
+    override fun deleteById(id: ClientId): Boolean {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val entity = clientJpaRepository.findByCompanyIdAndId(companyId, id.value).orElse(null) ?: return false
+        clientJpaRepository.delete(entity)
+        return true
+    }
+
     override fun findByName(name: String): List<ClientDetails> {
-        return clientJpaRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(name, name)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return clientJpaRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseAndCompanyId(name, name, companyId)
             .map { it.toDomain() }
     }
 
     override fun findByEmail(email: String): List<ClientDetails> {
-        return clientJpaRepository.findByEmailContainingIgnoreCase(email).map { it.toDomain() }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return clientJpaRepository.findByEmailContainingIgnoreCaseAndCompanyId(email, companyId)
+            .map { it.toDomain() }
     }
 
     override fun findByPhone(phone: String): List<ClientDetails> {
-        return clientJpaRepository.findByPhoneContaining(phone).map { it.toDomain() }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return clientJpaRepository.findByPhoneContainingAndCompanyId(phone, companyId)
+            .map { it.toDomain() }
     }
 
     override fun findClient(client: Client): ClientDetails? {
-        val results = clientJpaRepository.findByEmailOrPhone(client.email, client.phone)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val results = clientJpaRepository.findByEmailOrPhoneAndCompanyId(client.email, client.phone, companyId)
         return results.firstOrNull()?.toDomain()
     }
 
     override fun findClient(email: String?, phoneNumber: String?): ClientDetails? {
-        val results = clientJpaRepository.findByEmailOrPhone(email, phoneNumber)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val results = clientJpaRepository.findByEmailOrPhoneAndCompanyId(email, phoneNumber, companyId)
         return results.firstOrNull()?.toDomain()
     }
 }

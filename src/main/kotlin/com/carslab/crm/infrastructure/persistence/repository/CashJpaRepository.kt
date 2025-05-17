@@ -10,41 +10,44 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.util.Optional
 
 @Repository
 interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
-
+    fun findByCompanyId(companyId: Long): List<CashTransactionEntity>
+    fun findByCompanyIdAndId(companyId: Long, id: String): Optional<CashTransactionEntity>
     fun findByTypeAndCompanyId(type: TransactionType, companyId: Long): List<CashTransactionEntity>
-
     fun findByVisitIdAndCompanyId(visitId: String, companyId: Long): List<CashTransactionEntity>
-
-    fun findByDateBetween(startDate: LocalDate, endDate: LocalDate, companyId: Long): List<CashTransactionEntity>
+    fun findByDateBetweenAndCompanyId(startDate: LocalDate, endDate: LocalDate, companyId: Long): List<CashTransactionEntity>
 
     @Query("""
         SELECT SUM(CASE WHEN c.type = 'INCOME' THEN c.amount ELSE -c.amount END) 
         FROM CashTransactionEntity c
+        WHERE c.companyId = :companyId
     """)
-    fun calculateCurrentBalance(): BigDecimal?
+    fun calculateCurrentBalanceForCompany(@Param("companyId") companyId: Long): BigDecimal?
 
     @Query("""
         SELECT SUM(c.amount) 
         FROM CashTransactionEntity c 
-        WHERE c.type = :type AND c.date BETWEEN :startDate AND :endDate
+        WHERE c.type = :type AND c.date BETWEEN :startDate AND :endDate AND c.companyId = :companyId
     """)
-    fun sumAmountByTypeAndDateRange(
+    fun sumAmountByTypeAndDateRangeAndCompanyId(
         @Param("type") type: TransactionType,
         @Param("startDate") startDate: LocalDate,
-        @Param("endDate") endDate: LocalDate
+        @Param("endDate") endDate: LocalDate,
+        @Param("companyId") companyId: Long
     ): BigDecimal?
 
     @Query("""
         SELECT COUNT(c) 
         FROM CashTransactionEntity c 
-        WHERE c.date BETWEEN :startDate AND :endDate
+        WHERE c.date BETWEEN :startDate AND :endDate AND c.companyId = :companyId
     """)
-    fun countTransactionsByDateRange(
+    fun countTransactionsByDateRangeAndCompanyId(
         @Param("startDate") startDate: LocalDate,
-        @Param("endDate") endDate: LocalDate
+        @Param("endDate") endDate: LocalDate,
+        @Param("companyId") companyId: Long
     ): Int
 
     @Query("""
@@ -56,9 +59,10 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         AND (:visitId IS NULL OR c.visitId = :visitId)
         AND (:minAmount IS NULL OR c.amount >= :minAmount)
         AND (:maxAmount IS NULL OR c.amount <= :maxAmount)
+        AND c.companyId = :companyId
         ORDER BY c.date DESC, c.createdAt DESC
     """)
-    fun searchTransactions(
+    fun searchTransactionsForCompany(
         @Param("type") type: TransactionType?,
         @Param("description") description: String?,
         @Param("dateFrom") dateFrom: LocalDate?,
@@ -66,6 +70,7 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         @Param("visitId") visitId: String?,
         @Param("minAmount") minAmount: BigDecimal?,
         @Param("maxAmount") maxAmount: BigDecimal?,
+        @Param("companyId") companyId: Long,
         pageable: Pageable
     ): Page<CashTransactionEntity>
 
@@ -78,14 +83,16 @@ interface CashJpaRepository : JpaRepository<CashTransactionEntity, String> {
         AND (:visitId IS NULL OR c.visitId = :visitId)
         AND (:minAmount IS NULL OR c.amount >= :minAmount)
         AND (:maxAmount IS NULL OR c.amount <= :maxAmount)
+        AND c.companyId = :companyId
     """)
-    fun countSearchTransactions(
+    fun countSearchTransactionsForCompany(
         @Param("type") type: TransactionType?,
         @Param("description") description: String?,
         @Param("dateFrom") dateFrom: LocalDate?,
         @Param("dateTo") dateTo: LocalDate?,
         @Param("visitId") visitId: String?,
         @Param("minAmount") minAmount: BigDecimal?,
-        @Param("maxAmount") maxAmount: BigDecimal?
+        @Param("maxAmount") maxAmount: BigDecimal?,
+        @Param("companyId") companyId: Long
     ): Long
 }

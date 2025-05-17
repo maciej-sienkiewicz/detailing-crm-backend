@@ -3,25 +3,30 @@ package com.carslab.crm.infrastructure.persistence.adapter
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.VehicleId
 import com.carslab.crm.domain.port.ClientVehicleAssociationRepository
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
+import org.springdoc.core.service.SecurityService
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaClientVehicleAssociationAdapter(
     private val clientJpaRepository: ClientJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository
+    private val vehicleJpaRepository: VehicleJpaRepository,
 ) : ClientVehicleAssociationRepository {
 
     override fun findVehiclesByClientId(clientId: ClientId): List<VehicleId> {
-        val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return emptyList()
-        return client.vehicles.map { VehicleId(0) }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId.value).orElse(null) ?: return emptyList()
+        return client.vehicles.filter { it.companyId == companyId }.map { VehicleId(it.id!!) }
     }
 
     override fun findOwnersByVehicleId(vehicleId: VehicleId): List<ClientId> {
-        val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return emptyList()
-        return vehicle.owners.map { ClientId(it.id!!) }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId.value).orElse(null) ?: return emptyList()
+        return vehicle.owners.filter { it.companyId == companyId }.map { ClientId(it.id!!) }
     }
 
     override fun findVehiclesByOwnerIds(ownerIds: List<ClientId>): Map<ClientId, List<VehicleId>> {
@@ -38,8 +43,9 @@ class JpaClientVehicleAssociationAdapter(
     }
 
     override fun newAssociation(vehicleId: VehicleId, clientId: ClientId): Boolean {
-        val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return false
-        val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return false
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId.value).orElse(null) ?: return false
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId.value).orElse(null) ?: return false
 
         // Check if the association already exists
         if (client.vehicles.any { it.id == vehicleId.value }) {
@@ -54,8 +60,9 @@ class JpaClientVehicleAssociationAdapter(
     }
 
     override fun removeAssociation(vehicleId: VehicleId, clientId: ClientId): Boolean {
-        val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return false
-        val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return false
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId.value).orElse(null) ?: return false
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId.value).orElse(null) ?: return false
 
         // Check if the association exists
         if (!client.vehicles.any { it.id == vehicleId.value }) {
@@ -64,18 +71,23 @@ class JpaClientVehicleAssociationAdapter(
 
         // Remove the association
         client.vehicles.removeIf { it.id == vehicleId.value }
+        vehicle.owners.removeIf { it.id == clientId.value }
+
         clientJpaRepository.save(client)
+        vehicleJpaRepository.save(vehicle)
 
         return true
     }
 
     override fun hasAssociation(vehicleId: VehicleId, clientId: ClientId): Boolean {
-        val client = clientJpaRepository.findById(clientId.value).orElse(null) ?: return false
-        return client.vehicles.any { it.id == vehicleId.value }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId.value).orElse(null) ?: return false
+        return client.vehicles.any { it.id == vehicleId.value && it.companyId == companyId }
     }
 
     override fun countOwnersForVehicle(vehicleId: VehicleId): Int {
-        val vehicle = vehicleJpaRepository.findById(vehicleId.value).orElse(null) ?: return 0
-        return vehicle.owners.size
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId.value).orElse(null) ?: return 0
+        return vehicle.owners.count { it.companyId == companyId }
     }
 }

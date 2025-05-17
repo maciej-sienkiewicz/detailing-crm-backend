@@ -16,51 +16,62 @@ class JpaCalendarColorRepositoryAdapter(
 ) : CalendarColorRepository {
 
     override fun save(calendarColor: CalendarColorCreate): CalendarColorView {
-        val entity = CalendarColorEntity.fromDomain(calendarColor)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
+        val entity = CalendarColorEntity(
+            name = calendarColor.name,
+            color = calendarColor.color,
+            companyId = companyId,
+            createdAt = calendarColor.audit.createdAt,
+            updatedAt = calendarColor.audit.updatedAt
+        )
 
         val savedEntity = calendarColorJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
 
     override fun update(calendarColor: CalendarColorView): CalendarColorView {
-        val entity = if (calendarColorJpaRepository.existsById(calendarColor.id.value)) {
-            val existingEntity = calendarColorJpaRepository.findById(calendarColor.id.value).get()
-            existingEntity.name = calendarColor.name
-            existingEntity.color = calendarColor.color
-            existingEntity.updatedAt = calendarColor.audit.updatedAt
-            existingEntity
-        } else {
-            throw IllegalStateException("Nie istnieje kolor kalendarza o id: ${calendarColor.id.value}")
-        }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
-        val savedEntity = calendarColorJpaRepository.save(entity)
+        // Pierwszy sprawdź czy obiekt istnieje i należy do firmy użytkownika
+        val existingEntity = calendarColorJpaRepository.findByCompanyIdAndId(companyId, calendarColor.id.value.toLong())
+            .orElseThrow { IllegalStateException("Calendar color not found or access denied: ${calendarColor.id.value}") }
+
+        existingEntity.name = calendarColor.name
+        existingEntity.color = calendarColor.color
+        existingEntity.updatedAt = calendarColor.audit.updatedAt
+
+        val savedEntity = calendarColorJpaRepository.save(existingEntity)
         return savedEntity.toDomain()
     }
 
     override fun findById(id: CalendarColorId): CalendarColorView? {
-        return calendarColorJpaRepository.findById(id.value)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return calendarColorJpaRepository.findByCompanyIdAndId(companyId, id.value.toLong())
             .map { it.toDomain() }
             .orElse(null)
     }
 
     override fun findAll(): List<CalendarColorView> {
-        return calendarColorJpaRepository.findAll().map { it.toDomain() }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return calendarColorJpaRepository.findByCompanyId(companyId)
+            .map { it.toDomain() }
     }
 
     @Transactional
     override fun deleteById(id: CalendarColorId): Boolean {
-        return if (calendarColorJpaRepository.existsById(id.value)) {
-            calendarColorJpaRepository.deleteById(id.value)
-            true
-        } else {
-            false
-        }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val entity = calendarColorJpaRepository.findByCompanyIdAndId(companyId, id.value.toLong())
+            .orElse(null) ?: return false
+
+        calendarColorJpaRepository.delete(entity)
+        return true
     }
 
     override fun isNameTaken(name: String, excludeId: CalendarColorId?): Boolean {
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         return if (excludeId != null) {
-            calendarColorJpaRepository.existsByNameIgnoreCaseAndIdNot(name, excludeId.value, companyId)
+            calendarColorJpaRepository.existsByNameIgnoreCaseAndIdNotAndCompanyId(name, excludeId.value.toLong(), companyId)
         } else {
             calendarColorJpaRepository.existsByNameIgnoreCaseAndCompanyId(name, companyId)
         }

@@ -57,7 +57,7 @@ class FileImageStorageService(
             }
 
             // Sprawdzamy czy protokół istnieje
-            if (!protocolJpaRepository.existsById(protocolId.value)) {
+            if (!protocolJpaRepository.existsById(protocolId.value.toLong())) {
                 throw RuntimeException("Protocol not found: ${protocolId.value}")
             }
 
@@ -119,7 +119,8 @@ class FileImageStorageService(
                 Files.deleteIfExists(filePath)
 
                 // Usuwamy tagi
-                imageTagJpaRepository.deleteAllByImageId(fileId)
+                val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+                imageTagJpaRepository.deleteAllByImageIdAndCompanyId(fileId, companyId)
 
                 // Usuwamy rekord z bazy danych
                 vehicleImageJpaRepository.delete(imageEntity)
@@ -142,7 +143,8 @@ class FileImageStorageService(
     override fun getFileMetadata(fileId: String): ImageMetadata? {
         try {
             val imageEntity = vehicleImageJpaRepository.findById(fileId).orElse(null) ?: return null
-            val tags = imageTagJpaRepository.findByImageId(fileId).map { it.tag }
+            val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+            val tags = imageTagJpaRepository.findByImageIdAndCompanyId(fileId, companyId).map { it.tag }
 
             return ImageMetadata(
                 originalName = imageEntity.name,
@@ -165,11 +167,12 @@ class FileImageStorageService(
     }
 
     override fun getImagesByProtocol(protocolId: ProtocolId): Set<MediaTypeView> {
-        val images = vehicleImageJpaRepository.findByProtocolId(protocolId.value.toLong())
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val images = vehicleImageJpaRepository.findByProtocolIdAndCompanyId(protocolId.value.toLong(), companyId)
 
         // Dla każdego obrazu pobieramy tagi
         val result = images.map { image ->
-            val tags = imageTagJpaRepository.findByImageId(image.id).map { it.tag }
+            val tags = imageTagJpaRepository.findByImageIdAndCompanyId(image.id, companyId).map { it.tag }
             image.setTags(tags)
             image.toDomain()
         }.toSet()
@@ -188,6 +191,8 @@ class FileImageStorageService(
         val imageEntity = vehicleImageJpaRepository.findById(imageId).orElseThrow {
             RuntimeException("Image not found: $imageId")
         }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
 
         // Sprawdzamy czy obraz należy do tego protokołu
         if (imageEntity.protocolId != protocolId.value.toLong()) {
@@ -199,7 +204,7 @@ class FileImageStorageService(
         imageEntity.location = location
 
         // Aktualizujemy tagi - usuwamy wszystkie i dodajemy nowe
-        imageTagJpaRepository.deleteAllByImageId(imageId)
+        imageTagJpaRepository.deleteAllByImageIdAndCompanyId(imageId, companyId)
         tags.forEach { tag ->
             val tagEntity = ImageTagEntity(
                 imageId = imageId,
@@ -213,7 +218,7 @@ class FileImageStorageService(
         val updatedEntity = vehicleImageJpaRepository.save(imageEntity)
 
         // Pobieramy tagi dla odpowiedzi
-        val updatedTags = imageTagJpaRepository.findByImageId(imageId).map { it.tag }
+        val updatedTags = imageTagJpaRepository.findByImageIdAndCompanyId(imageId, companyId).map { it.tag }
         updatedEntity.setTags(updatedTags)
 
         return updatedEntity.toDomain()

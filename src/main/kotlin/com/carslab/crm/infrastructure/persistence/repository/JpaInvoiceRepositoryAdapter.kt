@@ -6,7 +6,9 @@ import com.carslab.crm.domain.port.InvoiceRepository
 import com.carslab.crm.infrastructure.persistence.entity.InvoiceAttachmentEntity
 import com.carslab.crm.infrastructure.persistence.entity.InvoiceEntity
 import com.carslab.crm.infrastructure.persistence.entity.InvoiceItemEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.InvoiceJpaRepository
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -20,9 +22,10 @@ class JpaInvoiceRepositoryAdapter(
 
     @Transactional
     override fun save(invoice: Invoice): Invoice {
-        val entity = if (invoiceJpaRepository.existsById(invoice.id.value)) {
-            val existingEntity = invoiceJpaRepository.findById(invoice.id.value)
-                .orElseThrow { IllegalStateException("Invoice not found: ${invoice.id.value}") }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
+        val entity = if (invoiceJpaRepository.findByCompanyIdAndId(companyId, invoice.id.value).isPresent) {
+            val existingEntity = invoiceJpaRepository.findByCompanyIdAndId(companyId, invoice.id.value).get()
 
             // Aktualizacja podstawowych pól
             existingEntity.title = invoice.title
@@ -81,21 +84,24 @@ class JpaInvoiceRepositoryAdapter(
     }
 
     override fun findById(id: InvoiceId): Invoice? {
-        return invoiceJpaRepository.findById(id.value)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return invoiceJpaRepository.findByCompanyIdAndId(companyId, id.value)
             .map { it.toDomain() }
             .orElse(null)
     }
 
     override fun findAll(filter: InvoiceFilterDTO?): List<Invoice> {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
         if (filter == null) {
-            return invoiceJpaRepository.findAll()
+            return invoiceJpaRepository.findByCompanyId(companyId)
                 .map { it.toDomain() }
         }
 
         val status = filter.status?.let { try { InvoiceStatus.valueOf(it) } catch (e: IllegalArgumentException) { null } }
         val type = filter.type?.let { try { InvoiceType.valueOf(it) } catch (e: IllegalArgumentException) { null } }
 
-        val results = invoiceJpaRepository.searchInvoices(
+        val results = invoiceJpaRepository.searchInvoicesAndCompanyId(
             number = filter.number,
             title = filter.title,
             buyerName = filter.buyerName,
@@ -105,7 +111,8 @@ class JpaInvoiceRepositoryAdapter(
             dateTo = filter.dateTo,
             protocolId = filter.protocolId,
             minAmount = filter.minAmount,
-            maxAmount = filter.maxAmount
+            maxAmount = filter.maxAmount,
+            companyId = companyId
         )
 
         return results.map { it.toDomain() }
@@ -113,25 +120,25 @@ class JpaInvoiceRepositoryAdapter(
 
     @Transactional
     override fun deleteById(id: InvoiceId): Boolean {
-        return if (invoiceJpaRepository.existsById(id.value)) {
-            invoiceJpaRepository.deleteById(id.value)
-            true
-        } else {
-            false
-        }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val entity = invoiceJpaRepository.findByCompanyIdAndId(companyId, id.value).orElse(null) ?: return false
+        invoiceJpaRepository.delete(entity)
+        return true
     }
 
     @Transactional
     override fun updateStatus(id: InvoiceId, status: String): Boolean {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         try {
             val invoiceStatus = InvoiceStatus.valueOf(status)
-            return invoiceJpaRepository.updateStatus(id.value, invoiceStatus) > 0
+            return invoiceJpaRepository.updateStatusAndCompanyId(id.value, invoiceStatus, companyId) > 0
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException("Invalid status: $status")
         }
     }
 
     override fun generateInvoiceNumber(year: Int, month: Int, type: String): String {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Przykładowy format: FV/RRRR/XXXX dla przychodów, KSZ/RRRR/XXXX dla kosztów
         val prefix = when (type) {
             InvoiceType.INCOME.name -> "FV/$year/$month/"
@@ -139,8 +146,8 @@ class JpaInvoiceRepositoryAdapter(
             else -> "FV/$year/$month/"
         }
 
-        // Pobierz ostatni numer faktury z podanym prefixem
-        val lastNumber = invoiceJpaRepository.findLastNumberByPrefix(prefix)
+        // Pobierz ostatni numer faktury z podanym prefixem dla danej firmy
+        val lastNumber = invoiceJpaRepository.findLastNumberByPrefixAndCompanyId(prefix, companyId)
 
         // Jeśli nie ma jeszcze faktur z tym prefixem, rozpocznij od 1
         if (lastNumber == null) {
@@ -156,7 +163,8 @@ class JpaInvoiceRepositoryAdapter(
     }
 
     override fun findOverdueBefore(date: LocalDate): List<Invoice> {
-        return invoiceJpaRepository.findByDueDateBefore(date)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return invoiceJpaRepository.findByDueDateBeforeAndCompanyId(date, companyId)
             .filter { it.status == InvoiceStatus.NOT_PAID || it.status == InvoiceStatus.PARTIALLY_PAID }
             .map { it.toDomain() }
     }

@@ -1,6 +1,5 @@
 package com.carslab.crm.infrastructure.persistence.repository
 
-
 import com.carslab.crm.infrastructure.persistence.entity.ImageTagEntity
 import com.carslab.crm.infrastructure.persistence.entity.ImageTagId
 import org.springframework.data.jpa.repository.JpaRepository
@@ -12,9 +11,9 @@ import org.springframework.transaction.annotation.Transactional
 
 @Repository
 interface ImageTagJpaRepository : JpaRepository<ImageTagEntity, ImageTagId> {
-    fun findByImageId(imageId: String): List<ImageTagEntity>
+    fun findByImageIdAndCompanyId(imageId: String, companyId: Long): List<ImageTagEntity>
 
     @Modifying
-    @Query("DELETE FROM ImageTagEntity t WHERE t.imageId = :imageId")
-    fun deleteAllByImageId(@Param("imageId") imageId: String)
+    @Query("DELETE FROM ImageTagEntity t WHERE t.imageId = :imageId AND t.companyId = :companyId")
+    fun deleteAllByImageIdAndCompanyId(@Param("imageId") imageId: String, @Param("companyId") companyId: Long)
 }

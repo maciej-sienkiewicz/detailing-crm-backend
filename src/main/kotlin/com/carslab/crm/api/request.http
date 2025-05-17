@@ -86,7 +86,7 @@ Content-Type: application/json
   "email": "maciej.sienkiewicz2@gmail.com",
   "firstName": "Maciej",
   "lastName": "Sienkiewicz",
-  "companyId": 999
+  "companyId": 2
 }
 
 ### Get created user (save ID for later)

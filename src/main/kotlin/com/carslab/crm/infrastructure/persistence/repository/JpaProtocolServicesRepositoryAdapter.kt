@@ -10,7 +10,6 @@ import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaReposito
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaProtocolServicesRepositoryAdapter(
@@ -19,34 +18,36 @@ class JpaProtocolServicesRepositoryAdapter(
 ) : ProtocolServicesRepository {
 
     override fun saveServices(services: List<CreateServiceModel>, protocolId: ProtocolId): List<String> {
-        // Sprawdź, czy protokół istnieje
-        if (!protocolJpaRepository.existsById(protocolId.value)) {
-            throw IllegalStateException("Protocol with ID ${protocolId.value} not found")
-        }
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
+        // Sprawdź, czy protokół istnieje i należy do tej samej firmy
+        val protocol = protocolJpaRepository.findByCompanyIdAndId(companyId, protocolId.value.toLong())
+            .orElse(null) ?: throw IllegalStateException("Protocol with ID ${protocolId.value} not found or access denied")
 
         val protocolIdLong = protocolId.value.toLong()
 
         // Usuń istniejące serwisy
-        protocolServiceJpaRepository.findByProtocolId(protocolIdLong).forEach {
+        protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolIdLong, companyId).forEach {
             protocolServiceJpaRepository.delete(it)
         }
 
         // Zapisz nowe serwisy
-        val savedEntities = services.map { createServiceEntity(it, protocolIdLong) }
+        val savedEntities = services.map { createServiceEntity(it, protocolIdLong, companyId) }
             .map { protocolServiceJpaRepository.save(it) }
 
         return savedEntities.map { it.id.toString() }
     }
 
     override fun findByProtocolId(protocolId: ProtocolId): List<ProtocolServiceView> {
-        return protocolServiceJpaRepository.findByProtocolId(protocolId.value.toLong())
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        return protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId.value.toLong(), companyId)
             .map { it.toDomain() }
     }
 
-    private fun createServiceEntity(service: CreateServiceModel, protocolId: Long): ProtocolServiceEntity {
+    private fun createServiceEntity(service: CreateServiceModel, protocolId: Long, companyId: Long): ProtocolServiceEntity {
         return ProtocolServiceEntity(
             protocolId = protocolId,
-            companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+            companyId = companyId,
             name = service.name,
             basePrice = service.basePrice.amount.toBigDecimal(),
             finalPrice = service.finalPrice.amount.toBigDecimal(),
