@@ -318,6 +318,9 @@ data class CarReceptionListDto(
 
     @JsonProperty("selected_services")
     val selectedServices: List<ServiceDto>,
+
+    @JsonProperty("last_update")
+    val lastUpdate: String
 )
 
 /**

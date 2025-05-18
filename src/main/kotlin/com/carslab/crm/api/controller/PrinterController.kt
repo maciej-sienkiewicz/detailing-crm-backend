@@ -1,6 +1,6 @@
 package com.carslab.crm.api.controller
 
-import com.carslab.crm.domain.protocols.PdfService
+import com.carslab.crm.domain.visits.protocols.PdfService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.core.io.ByteArrayResource

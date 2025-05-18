@@ -14,6 +14,7 @@ interface ImageTagJpaRepository : JpaRepository<ImageTagEntity, ImageTagId> {
     fun findByImageIdAndCompanyId(imageId: String, companyId: Long): List<ImageTagEntity>
 
     @Modifying
+    @Transactional
     @Query("DELETE FROM ImageTagEntity t WHERE t.imageId = :imageId AND t.companyId = :companyId")
     fun deleteAllByImageIdAndCompanyId(@Param("imageId") imageId: String, @Param("companyId") companyId: Long)
 }

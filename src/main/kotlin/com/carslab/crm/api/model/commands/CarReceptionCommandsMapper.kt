@@ -8,6 +8,7 @@ import com.carslab.crm.api.model.request.ServiceApprovalStatus
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.protocol.*
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
+import org.springframework.format.datetime.DateFormatter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -268,6 +269,7 @@ object CarReceptionDtoMapper {
                 )
             },
             title = protocol.title,
+            lastUpdate = protocol.audit.updatedAt.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")),
         )
     }
 
