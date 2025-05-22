@@ -1,6 +1,7 @@
 package com.carslab.crm.domain.model
 
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
+import com.carslab.crm.domain.utils.UserFriendlyLabels
 import java.time.LocalDateTime
 import java.util.*
 
@@ -22,7 +23,15 @@ data class CarReceptionProtocol(
     val documents: Documents = Documents(),
     val mediaItems: List<MediaItem> = emptyList(),
     val audit: AuditInfo
-)
+): UserFriendlyLabels {
+    override fun getFriendlyLabels(): Map<String, String> {
+        return mapOf(
+            "period.startDate" to "Data rozpoczęcia",
+            "period.endDate" to "Data zakończenia",
+            "period" to "Okres serwisu"
+        )
+    }
+}
 
 /**
  * Value object dla identyfikatora protokołu.

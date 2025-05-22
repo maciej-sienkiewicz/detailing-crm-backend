@@ -50,6 +50,11 @@ import com.carslab.crm.domain.port.ProtocolCommentsRepository
 import com.carslab.crm.domain.port.ProtocolServicesRepository
 import com.carslab.crm.domain.port.VehicleRepository
 import com.carslab.crm.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.domain.utils.ChangeTracker
+import com.carslab.crm.domain.utils.EnhancedChangeTracker
+import com.carslab.crm.domain.utils.formatUserFriendly
+import com.carslab.crm.domain.utils.formatUserFriendlyEnhanced
+import com.carslab.crm.domain.utils.trackChangesWithFormatting
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import org.slf4j.LoggerFactory
@@ -139,6 +144,29 @@ class CarReceptionService(
             ),
             calendarColorId = protocol.calendarColorId
         )
+
+        val changeResult = EnhancedChangeTracker.trackChanges(
+            oldObject = existingProtocol,
+            newObject = updatedProtocol,
+            idProperty = { it.id },
+            ignoredFields = setOf("audit", "mediaItems")
+        )
+
+        if (changeResult.hasChanges()) {
+            // Używamy ulepszonej wersji formatowania
+            val friendlyFormatted = changeResult.formatUserFriendlyEnhanced(CarReceptionProtocol::class.java)
+
+            protocolCommentsRepository.save(
+                ProtocolComment(
+                    protocolId = protocol.id,
+                    author = "Administrator",
+                    content = friendlyFormatted,
+                    timestamp = Instant.now().toString(),
+                    type = "system"
+                )
+            )
+        }
+
 
         protocolServicesRepository.saveServices(
             services = updatedProtocol.protocolServices
