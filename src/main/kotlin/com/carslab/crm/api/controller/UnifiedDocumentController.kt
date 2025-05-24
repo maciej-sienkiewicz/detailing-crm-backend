@@ -75,7 +75,7 @@ class UnifiedDocumentController(
             page = documents.page,
             size = documents.size,
             totalItems = documents.totalItems,
-            totalPages = documents.totalPages
+            totalPages = documents.totalPages.toLong()
         )
 
         return ok(response)
