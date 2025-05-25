@@ -1,5 +1,7 @@
 package com.carslab.crm.domain.visits
 
+import com.carslab.crm.api.model.DocumentStatus
+import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.model.ApprovalStatus
 import com.carslab.crm.domain.model.Audit
@@ -32,6 +34,7 @@ import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats
 import com.carslab.crm.domain.model.view.finance.CashTransaction
+import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.Invoice
 import com.carslab.crm.domain.model.view.finance.InvoiceId
 import com.carslab.crm.domain.model.view.finance.InvoiceItem
@@ -39,6 +42,8 @@ import com.carslab.crm.domain.model.view.finance.InvoiceStatus
 import com.carslab.crm.domain.model.view.finance.InvoiceType
 import com.carslab.crm.domain.model.view.finance.TransactionId
 import com.carslab.crm.domain.model.view.finance.TransactionType
+import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
 import com.carslab.crm.domain.port.CashRepository
@@ -48,6 +53,7 @@ import com.carslab.crm.domain.port.ClientVehicleRepository
 import com.carslab.crm.domain.port.InvoiceRepository
 import com.carslab.crm.domain.port.ProtocolCommentsRepository
 import com.carslab.crm.domain.port.ProtocolServicesRepository
+import com.carslab.crm.domain.port.UnifiedDocumentRepository
 import com.carslab.crm.domain.port.VehicleRepository
 import com.carslab.crm.domain.port.VehicleStatisticsRepository
 import com.carslab.crm.domain.utils.ChangeTracker
@@ -60,6 +66,7 @@ import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartHttpServletRequest
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -76,7 +83,8 @@ class CarReceptionService(
     private val imageStorageService: FileImageStorageService,
     private val protocolCommentsRepository: ProtocolCommentsRepository,
     private val cashRepository: CashRepository,
-    private val invoiceRepository: InvoiceRepository
+    private val invoiceRepository: InvoiceRepository,
+    private val unifiedDocumentRepository: UnifiedDocumentRepository
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -565,7 +573,7 @@ class CarReceptionService(
             val totalTax = gross - nett
             val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
                 .map {
-                    InvoiceItem(
+                    DocumentItem(
                         name = it.name,
                         description = it.note,
                         quantity = 1.toBigDecimal(),
@@ -575,11 +583,13 @@ class CarReceptionService(
                         totalGross = it.finalPrice.amount.toBigDecimal()
                     )
                 }
-            invoiceRepository.save(
-                Invoice(
-                    id = InvoiceId.Companion.generate(),
+            unifiedDocumentRepository.save(
+                UnifiedFinancialDocument(
+                    id = UnifiedDocumentId.generate(),
                     number = "",
+                    type = com.carslab.crm.api.model.DocumentType.INVOICE,
                     title = "Faktura za wizytę",
+                    description = "",
                     issuedDate = LocalDate.now(),
                     dueDate = LocalDate.now().plusDays(14),
                     sellerName = "Detailing Studio",
@@ -588,9 +598,8 @@ class CarReceptionService(
                     buyerName = existingProtocol.client.name,
                     buyerTaxId = existingProtocol.client.taxId,
                     buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
-                    clientId = existingProtocol.client.id?.let { ClientId(it.toLong()) },
-                    status = InvoiceStatus.NOT_PAID,
-                    type = InvoiceType.INCOME,
+                    status = DocumentStatus.NOT_PAID,
+                    direction = TransactionDirection.INCOME,
                     paymentMethod = when (releaseDetails.paymentMethod) {
                         PaymentMethod.CASH -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CASH
                         PaymentMethod.CARD -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CARD
@@ -598,10 +607,12 @@ class CarReceptionService(
                     totalNet = nett,
                     totalTax = totalTax,
                     totalGross = gross,
+                    paidAmount = BigDecimal.ZERO,
                     currency = "PLN",
                     notes = "",
                     protocolId = existingProtocol.id.value,
                     protocolNumber = existingProtocol.id.value,
+                    visitId = null,
                     items = items,
                     attachment = null,
                     audit = Audit(

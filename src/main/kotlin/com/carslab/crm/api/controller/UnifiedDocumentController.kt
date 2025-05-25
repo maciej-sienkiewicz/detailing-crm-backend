@@ -8,6 +8,7 @@ import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.finances.documents.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -152,15 +153,15 @@ class UnifiedDocumentController(
     @Operation(summary = "Update document status", description = "Updates the status of a document")
     fun updateDocumentStatus(
         @Parameter(description = "Document ID", required = true) @PathVariable id: String,
-        @Parameter(description = "New status", required = true) @RequestParam status: String
+        @RequestBody statusRequest: StatusUpdateRequest
     ): ResponseEntity<Map<String, Any>> {
-        logger.info("Updating status of document with ID: {} to: {}", id, status)
+        logger.info("Updating status of document with ID: {} to: {}", id, statusRequest.status)
 
-        val updated = documentService.updateDocumentStatus(id, status)
+        val updated = documentService.updateDocumentStatus(id, statusRequest.status)
 
         return if (updated) {
             ok(createSuccessResponse("Document status successfully updated",
-                mapOf("documentId" to id, "status" to status)))
+                mapOf("documentId" to id, "status" to statusRequest.status)))
         } else {
             badRequest("Failed to update document status")
         }
@@ -298,3 +299,5 @@ class UnifiedDocumentController(
         )
     }
 }
+
+data class StatusUpdateRequest(@JsonProperty("status") var status: String)
