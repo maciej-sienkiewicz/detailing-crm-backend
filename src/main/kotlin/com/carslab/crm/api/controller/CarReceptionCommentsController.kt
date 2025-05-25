@@ -3,8 +3,10 @@ package com.carslab.crm.api.controller
 import com.carslab.crm.domain.model.ProtocolComment
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.port.ProtocolCommentsRepository
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.util.*
@@ -33,10 +35,11 @@ class CarReceptionCommentsController(
     fun addComment(@RequestBody comment: CommentDto): ResponseEntity<CommentDto> {
         // W prawdziwej implementacji, tutaj dodawałbyś komentarz do bazy danych
         // Zwracam przesłany komentarz z dodanym ID i timestampem
+        val user = (SecurityContextHolder.getContext().authentication.principal as UserEntity)
         val savedComment = comment.copy(
             id = UUID.randomUUID().toString(),
-            timestamp = LocalDateTime.now().toString()
-        ).also {
+            timestamp = LocalDateTime.now().toString(),
+            author = "${user.firstName} ${user.lastName}").also {
             commentsRepository.save(ProtocolComment(
                 protocolId = ProtocolId(comment.protocolId),
                 author = comment.author,
