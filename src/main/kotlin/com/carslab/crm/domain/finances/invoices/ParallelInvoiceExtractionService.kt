@@ -178,7 +178,7 @@ class ParallelInvoiceExtractionService(
      */
     private fun mergeResponses(headersResponse: HeadersResponse, itemsResponse: ItemsResponse): InvoiceDataResponse {
         return InvoiceDataResponse(
-            extractedInvoiceData = ExtractedInvoiceData(
+            extractedDocumentData = ExtractedInvoiceData(
                 generalInfo = headersResponse.extractedInvoiceHeaders.generalInfo,
                 seller = headersResponse.extractedInvoiceHeaders.seller,
                 buyer = headersResponse.extractedInvoiceHeaders.buyer,

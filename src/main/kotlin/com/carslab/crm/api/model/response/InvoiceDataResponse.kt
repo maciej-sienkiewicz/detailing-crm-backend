@@ -11,7 +11,7 @@ import java.time.LocalDate
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class InvoiceDataResponse(
     @JsonProperty("extractedInvoiceData")
-    val extractedInvoiceData: ExtractedInvoiceData
+    val extractedDocumentData: ExtractedInvoiceData
 )
 
 /**

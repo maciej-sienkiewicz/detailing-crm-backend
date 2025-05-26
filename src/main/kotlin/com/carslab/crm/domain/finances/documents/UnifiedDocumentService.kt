@@ -23,11 +23,16 @@ import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.domain.port.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.persistence.entity.CashBalanceEntity
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -35,7 +40,8 @@ import java.util.UUID
 @Service
 class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
-    private val documentStorageService: UnifiedDocumentStorageService
+    private val documentStorageService: UnifiedDocumentStorageService,
+    private val cashBalancesRepository: CashBalancesRepository
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -45,6 +51,7 @@ class UnifiedDocumentService(
     @Transactional
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Walidacja
         validateDocumentRequest(request)
@@ -74,6 +81,18 @@ class UnifiedDocumentService(
         // Zapisanie dokumentu w repozytorium
         val savedDocument = documentRepository.save(completeDocument)
         logger.info("Created document with ID: {}", savedDocument.id.value)
+
+        if(!cashBalancesRepository.findById(companyId).isPresent)
+        {
+            val cashBalance = CashBalanceEntity(
+                companyId = companyId,
+                amount = savedDocument.totalGross,
+                lastUpdate = Instant.now().toString()
+            )
+            cashBalancesRepository.save(cashBalance)
+        } else {
+            cashBalancesRepository.updateBalance(companyId, savedDocument.totalGross, Instant.now().toString())
+        }
 
         return savedDocument
     }

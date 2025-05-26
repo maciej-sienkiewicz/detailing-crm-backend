@@ -4,9 +4,11 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.*
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
 import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
+import com.carslab.crm.api.model.response.InvoiceDataResponse
 import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.finances.documents.UnifiedDocumentService
+import com.carslab.crm.domain.finances.invoices.ParallelInvoiceExtractionService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -22,6 +24,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/financial-documents")
@@ -29,6 +32,7 @@ import java.math.BigDecimal
 class UnifiedDocumentController(
     private val documentService: UnifiedDocumentService,
     private val objectMapper: ObjectMapper,
+    private val invoiceExtractionService: ParallelInvoiceExtractionService
 ) : BaseController() {
 
     @GetMapping
@@ -62,8 +66,8 @@ class UnifiedDocumentController(
             type = type,
             direction = direction,
             paymentMethod = paymentMethod,
-            dateFrom = dateFrom?.let { java.time.LocalDate.parse(it) },
-            dateTo = dateTo?.let { java.time.LocalDate.parse(it) },
+            dateFrom = dateFrom?.let { LocalDate.parse(it) },
+            dateTo = dateTo?.let { LocalDate.parse(it) },
             protocolId = protocolId,
             visitId = visitId,
             minAmount = minAmount,
@@ -208,13 +212,34 @@ class UnifiedDocumentController(
     @Operation(summary = "Extract document data", description = "Extracts data from a document file")
     fun extractDocumentData(
         @Parameter(description = "Document file", required = true) @RequestPart("file") file: MultipartFile
-    ): ResponseEntity<DocumentDataResponse> {
-        logger.info("Extracting data from document file: {}", file.originalFilename)
+    ): ResponseEntity<InvoiceDataResponse> {
+        logger.info("Received request to extract data from invoice: ${file.originalFilename}, size: ${file.size} bytes, content type: ${file.contentType}")
 
-        val extractedData = documentService.extractDocumentData(file)
-        val response = DocumentDataResponse(extractedDocumentData = extractedData)
+        try {
+            // Preprocess image if requested
+            val (processedBytes, processedContentType) = if (false && file.contentType?.contains("image") == true) {
+                logger.info("Preprocessing image before extraction")
+                val optimizedImage = null
+                Pair(optimizedImage, file.contentType ?: "image/jpeg")
+            } else {
+                Pair(file.bytes, file.contentType ?: "application/octet-stream")
+            }
 
-        return ok(response)
+            val startTime = System.currentTimeMillis()
+
+            // Process the file using AI service - conversion happens inside the service
+            val extractedData = invoiceExtractionService.extractInvoiceData(
+                fileBytes = processedBytes!!,
+                contentType = processedContentType
+            )
+
+            val totalTime = System.currentTimeMillis() - startTime
+            logger.info("Successfully extracted data from invoice in $totalTime ms")
+
+            return ok(extractedData)
+        } catch (e: Exception) {
+            return logAndRethrow("Error processing invoice file: ${e.message}", e)
+        }
     }
 
     @GetMapping("/summary")
@@ -226,8 +251,8 @@ class UnifiedDocumentController(
         logger.info("Getting financial summary for period: {} to {}", dateFrom, dateTo)
 
         val summary = documentService.getFinancialSummary(
-            dateFrom?.let { java.time.LocalDate.parse(it) },
-            dateTo?.let { java.time.LocalDate.parse(it) }
+            dateFrom?.let { LocalDate.parse(it) },
+            dateTo?.let { LocalDate.parse(it) }
         )
 
         return ok(summary)

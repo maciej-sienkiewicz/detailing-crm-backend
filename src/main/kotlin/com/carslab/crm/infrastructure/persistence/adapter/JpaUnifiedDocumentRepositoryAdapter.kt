@@ -11,6 +11,7 @@ import com.carslab.crm.infrastructure.persistence.entity.DocumentAttachmentEntit
 import com.carslab.crm.infrastructure.persistence.entity.DocumentItemEntity
 import com.carslab.crm.infrastructure.persistence.entity.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
 import com.carslab.crm.infrastructure.persistence.repository.UnifiedDocumentJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -23,10 +24,12 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
+import kotlin.jvm.optionals.getOrElse
 
 @Repository
 class JpaUnifiedDocumentRepositoryAdapter(
-    private val documentJpaRepository: UnifiedDocumentJpaRepository
+    private val documentJpaRepository: UnifiedDocumentJpaRepository,
+    private val cashBalancesRepository: CashBalancesRepository,
 ) : UnifiedDocumentRepository {
 
     @Transactional
@@ -266,7 +269,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
         }
 
         return FinancialSummaryResponse(
-            cashBalance = BigDecimal.ZERO, // Do implementacji osobno
+            cashBalance = cashBalancesRepository.findById(companyId).map { it.amount }.getOrElse { BigDecimal.ZERO },
             totalIncome = totalIncome,
             totalExpense = totalExpense,
             bankAccountBalance = BigDecimal.ZERO, // Do implementacji osobno
