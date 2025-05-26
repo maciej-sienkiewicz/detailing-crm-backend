@@ -107,7 +107,7 @@ object CarReceptionDtoMapper {
             referralSource = mapApiReferralSourceToDomain(command.referralSource),
             otherSourceDetails = command.otherSourceDetails,
             documents = Documents(
-                keysProvided = command.keysProvided ?: false,
+                keysProvided = if(command.status == ApiProtocolStatus.SCHEDULED) true else (command.keysProvided ?: false),
                 documentsProvided = command.documentsProvided ?: false
             ),
             mediaItems = command.vehicleImages

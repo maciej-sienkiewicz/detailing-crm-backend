@@ -130,6 +130,12 @@ class FileImageStorageService(
         }
     }
 
+    fun find(files: List<ImageTagEntity>): List<VehicleImageEntity> {
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+
+        return vehicleImageJpaRepository.findByCompanyIdAndIdIn(companyId, files.mapNotNull { it.imageId }.toSet())
+    }
+
     override fun getFileData(fileId: String): ByteArray? {
         try {
             val imageEntity = vehicleImageJpaRepository.findById(fileId).orElse(null) ?: return null

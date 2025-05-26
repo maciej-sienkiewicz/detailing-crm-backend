@@ -159,6 +159,7 @@ interface VehicleImageJpaRepository : JpaRepository<VehicleImageEntity, String> 
     fun findByCompanyId(companyId: Long): List<VehicleImageEntity>
     fun findByCompanyIdAndId(companyId: Long, id: String): Optional<VehicleImageEntity>
     fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<VehicleImageEntity>
+    fun findByCompanyIdAndIdIn(companyId: Long, ids: Set<String>): List<VehicleImageEntity>
 }
 
 @Repository

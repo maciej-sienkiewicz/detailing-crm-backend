@@ -33,7 +33,7 @@ class JpaClientStatisticsRepositoryAdapter(
         val entity = if (clientStatisticsJpaRepository.existsById(client.clientId)) {
             val existingEntity = clientStatisticsJpaRepository.findByClientIdAndCompanyId(client.clientId, companyId).get()
 
-            if (existingEntity.client?.companyId != companyId) {
+            if (clientEntity.companyId != companyId) {
                 throw IllegalArgumentException("Access denied to statistics for this client")
             }
 
@@ -78,7 +78,7 @@ class JpaVehicleStatisticsRepositoryAdapter(
             val existingEntity = vehicleStatisticsJpaRepository.findByVehicleIdAndCompanyId(vehicleStats.vehicleId, companyId).get()
 
             // Verify the vehicle of the statistics belongs to current company
-            if (existingEntity.vehicle?.companyId != companyId) {
+            if (vehicleEntity.companyId != companyId) {
                 throw IllegalArgumentException("Access denied to statistics for this vehicle")
             }
 

@@ -82,7 +82,8 @@ class ClientFacade(
             com.carslab.crm.domain.model.ClientStats(
                 client = client,
                 vehicles = emptyList(),
-                stats = ClientStats(0, 0, 0.toBigDecimal(), 0)
+                stats = clientStatisticsRepository.findById(client.id)
+
             )
         }
     }

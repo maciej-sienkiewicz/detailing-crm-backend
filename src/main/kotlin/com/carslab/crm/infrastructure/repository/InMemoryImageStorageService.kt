@@ -138,4 +138,9 @@ class InMemoryImageStorageService {
         val uploadTime: Long = System.currentTimeMillis(),
         val tags: List<String>
     )
+
+    data class ImageFullFile(
+        val metadata: ImageMetadata,
+        val file: ByteArray
+    )
 }

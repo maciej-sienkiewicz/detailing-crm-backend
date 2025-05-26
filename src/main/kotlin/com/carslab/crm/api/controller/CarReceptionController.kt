@@ -14,7 +14,6 @@ import com.carslab.crm.domain.visits.CarReceptionFacade
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
-import com.carslab.crm.domain.model.VehicleImage
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.DocumentType
 import com.carslab.crm.domain.model.create.protocol.PaymentMethod
