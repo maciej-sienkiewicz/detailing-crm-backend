@@ -1,5 +1,5 @@
 ### Variables
-@baseUrl = http://localhost:8080
+@baseUrl = http://srv17.mikr.us:30266/
 @companyId = 999
 
 ### -----------------------------------------------

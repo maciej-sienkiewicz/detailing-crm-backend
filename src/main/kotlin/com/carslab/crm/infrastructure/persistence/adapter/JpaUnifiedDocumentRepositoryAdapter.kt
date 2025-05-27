@@ -11,6 +11,7 @@ import com.carslab.crm.infrastructure.persistence.entity.DocumentAttachmentEntit
 import com.carslab.crm.infrastructure.persistence.entity.DocumentItemEntity
 import com.carslab.crm.infrastructure.persistence.entity.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.infrastructure.persistence.repository.BankAccountBalanceRepository
 import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
 import com.carslab.crm.infrastructure.persistence.repository.UnifiedDocumentJpaRepository
 import org.springframework.data.domain.PageRequest
@@ -22,14 +23,13 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.YearMonth
-import java.time.temporal.ChronoUnit
 import kotlin.jvm.optionals.getOrElse
 
 @Repository
 class JpaUnifiedDocumentRepositoryAdapter(
     private val documentJpaRepository: UnifiedDocumentJpaRepository,
     private val cashBalancesRepository: CashBalancesRepository,
+    private val bankAccountBalanceRepository: BankAccountBalanceRepository,
 ) : UnifiedDocumentRepository {
 
     @Transactional
@@ -256,7 +256,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
         )
 
         val today = LocalDate.now()
-        val receivablesOverdue = documentJpaRepository.calculateOverdueAmountAndCompanyId(today, companyId)
+        val receivablesOverdue = documentJpaRepository.calculateOverdueStatusAndCompanyId(today, companyId)
         val liabilitiesOverdue = BigDecimal.ZERO // Można dodać osobne zapytanie dla zobowiązań przeterminowanych
 
         val profit = totalIncome - totalExpense
@@ -272,7 +272,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
             cashBalance = cashBalancesRepository.findById(companyId).map { it.amount }.getOrElse { BigDecimal.ZERO },
             totalIncome = totalIncome,
             totalExpense = totalExpense,
-            bankAccountBalance = BigDecimal.ZERO, // Do implementacji osobno
+            bankAccountBalance = bankAccountBalanceRepository.findById(companyId).map { it.amount }.getOrElse { BigDecimal.ZERO },
             receivables = receivables,
             receivablesOverdue = receivablesOverdue,
             liabilities = liabilities,
@@ -399,7 +399,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
 
         val today = LocalDate.now()
         val overdueDocuments = documentJpaRepository.countOverdueDocumentsAndCompanyId(today, companyId)
-        val overdueAmount = documentJpaRepository.calculateOverdueAmountAndCompanyId(today, companyId)
+        val overdueAmount = documentJpaRepository.calculateOverdueStatusAndCompanyId(today, companyId)
 
         val averageDocumentValue = if (totalDocuments > 0) {
             (totalIncome + totalExpense).divide(BigDecimal(totalDocuments), 2, RoundingMode.HALF_UP)

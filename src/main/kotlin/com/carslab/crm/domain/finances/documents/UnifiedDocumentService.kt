@@ -25,6 +25,7 @@ import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.persistence.entity.CashBalanceEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.infrastructure.persistence.repository.BankAccountBalanceRepository
 import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
@@ -36,12 +37,14 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
+import javax.print.Doc
 
 @Service
 class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UnifiedDocumentStorageService,
-    private val cashBalancesRepository: CashBalancesRepository
+    private val cashBalancesRepository: CashBalancesRepository,
+    private val bankAccountBalanceRepository: BankAccountBalanceRepository
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -82,19 +85,42 @@ class UnifiedDocumentService(
         val savedDocument = documentRepository.save(completeDocument)
         logger.info("Created document with ID: {}", savedDocument.id.value)
 
-        if(!cashBalancesRepository.findById(companyId).isPresent)
-        {
-            val cashBalance = CashBalanceEntity(
-                companyId = companyId,
-                amount = savedDocument.totalGross,
-                lastUpdate = Instant.now().toString()
-            )
-            cashBalancesRepository.save(cashBalance)
-        } else {
-            cashBalancesRepository.updateBalance(companyId, savedDocument.totalGross, Instant.now().toString())
-        }
+        updateBalanceForDocument(savedDocument, companyId)
 
         return savedDocument
+    }
+
+    private fun updateBalanceForDocument(
+        document: UnifiedFinancialDocument,
+        companyId: Long
+    ) {
+        // Aktualizuj saldo tylko dla opłaconych dokumentów
+        if (document.status != DocumentStatus.PAID) return
+
+        val amount = document.totalGross
+        val timestamp = Instant.now().toString()
+        val isIncome = document.direction == TransactionDirection.INCOME
+
+        when (document.paymentMethod) {
+            PaymentMethod.CASH -> {
+                if (isIncome) {
+                    cashBalancesRepository.addAmountToBalance(companyId, amount, timestamp)
+                } else {
+                    cashBalancesRepository.subtractAmountFromBalance(companyId, amount, timestamp)
+                }
+            }
+            PaymentMethod.CARD, PaymentMethod.BANK_TRANSFER -> {
+                if (isIncome) {
+                    bankAccountBalanceRepository.addAmountToBalance(companyId, amount, timestamp)
+                } else {
+                    bankAccountBalanceRepository.subtractAmountFromBalance(companyId, amount, timestamp)
+                }
+            }
+            else -> {
+                // PaymentMethod.MOBILE_PAYMENT, OTHER - można dodać obsługę w przyszłości
+                logger.debug("Balance update not implemented for payment method: ${document.paymentMethod}")
+            }
+        }
     }
 
     /**

@@ -15,22 +15,41 @@ import java.util.Optional
 interface BankAccountBalanceRepository : JpaRepository<BackAccountBalanceEntity, Long> {
 
     /**
-     * Wyciąga stan konta dla określonej firmy
+     * Wyciąga stan konta bankowego dla określonej firmy
      */
     @Query("SELECT b FROM BackAccountBalanceEntity b WHERE b.companyId = :companyId")
     fun findByCompanyId(@Param("companyId") companyId: Long): Optional<BackAccountBalanceEntity>
 
     /**
-     * Dodaje kwotę do aktualnego stanu konta
+     * Upsert - wstawia nowy rekord lub aktualizuje istniejący (konto bankowe)
      */
     @Modifying
     @Transactional
-    @Query("""
-        UPDATE BackAccountBalanceEntity b 
-        SET b.amount = b.amount + :amount, 
-            b.lastUpdate = :lastUpdate 
-        WHERE b.companyId = :companyId
-    """)
+    @Query(value = """
+        INSERT INTO bank_account_balances (company_id, amount, last_update) 
+        VALUES (:companyId, :amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = :amount,
+            last_update = :lastUpdate
+    """, nativeQuery = true)
+    fun upsertBalance(
+        @Param("companyId") companyId: Long,
+        @Param("amount") amount: BigDecimal,
+        @Param("lastUpdate") lastUpdate: String
+    ): Int
+
+    /**
+     * Dodaje kwotę do aktualnego stanu konta bankowego
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+        INSERT INTO bank_account_balances (company_id, amount, last_update) 
+        VALUES (:companyId, :amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = bank_account_balances.amount + :amount, 
+            last_update = :lastUpdate
+    """, nativeQuery = true)
     fun addAmountToBalance(
         @Param("companyId") companyId: Long,
         @Param("amount") amount: BigDecimal,
@@ -38,16 +57,17 @@ interface BankAccountBalanceRepository : JpaRepository<BackAccountBalanceEntity,
     ): Int
 
     /**
-     * Odejmuje kwotę od aktualnego stanu konta
+     * Odejmuje kwotę od aktualnego stanu konta bankowego
      */
     @Modifying
     @Transactional
-    @Query("""
-        UPDATE BackAccountBalanceEntity b 
-        SET b.amount = b.amount - :amount, 
-            b.lastUpdate = :lastUpdate 
-        WHERE b.companyId = :companyId
-    """)
+    @Query(value = """
+        INSERT INTO bank_account_balances (company_id, amount, last_update) 
+        VALUES (:companyId, -:amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = bank_account_balances.amount - :amount, 
+            last_update = :lastUpdate
+    """, nativeQuery = true)
     fun subtractAmountFromBalance(
         @Param("companyId") companyId: Long,
         @Param("amount") amount: BigDecimal,
@@ -55,7 +75,7 @@ interface BankAccountBalanceRepository : JpaRepository<BackAccountBalanceEntity,
     ): Int
 
     /**
-     * Nadpisuje stan konta nową wartością
+     * Nadpisuje stan konta bankowego nową wartością (zwykły UPDATE - wymaga istniejącego rekordu)
      */
     @Modifying
     @Transactional
@@ -70,28 +90,57 @@ interface BankAccountBalanceRepository : JpaRepository<BackAccountBalanceEntity,
         @Param("newAmount") newAmount: BigDecimal,
         @Param("lastUpdate") lastUpdate: String
     ): Int
+
+    /**
+     * Pobiera aktualny stan konta bankowego
+     */
+    @Query(value = """
+        SELECT COALESCE(amount, 0) 
+        FROM bank_account_balances 
+        WHERE company_id = :companyId
+    """, nativeQuery = true)
+    fun getCurrentBalance(@Param("companyId") companyId: Long): BigDecimal?
 }
 
 @Repository
 interface CashBalancesRepository : JpaRepository<CashBalanceEntity, Long> {
 
     /**
-     * Wyciąga stan konta dla określonej firmy
+     * Wyciąga stan kasy dla określonej firmy
      */
-    @Query("SELECT b FROM BackAccountBalanceEntity b WHERE b.companyId = :companyId")
-    fun findByCompanyId(@Param("companyId") companyId: Long): Optional<BackAccountBalanceEntity>
+    @Query("SELECT c FROM CashBalanceEntity c WHERE c.companyId = :companyId")
+    fun findByCompanyId(@Param("companyId") companyId: Long): Optional<CashBalanceEntity>
 
     /**
-     * Dodaje kwotę do aktualnego stanu konta
+     * Upsert - wstawia nowy rekord lub aktualizuje istniejący (kasa)
      */
     @Modifying
     @Transactional
-    @Query("""
-        UPDATE BackAccountBalanceEntity b 
-        SET b.amount = b.amount + :amount, 
-            b.lastUpdate = :lastUpdate 
-        WHERE b.companyId = :companyId
-    """)
+    @Query(value = """
+        INSERT INTO cash_balances (company_id, amount, last_update) 
+        VALUES (:companyId, :amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = :amount,
+            last_update = :lastUpdate
+    """, nativeQuery = true)
+    fun upsertBalance(
+        @Param("companyId") companyId: Long,
+        @Param("amount") amount: BigDecimal,
+        @Param("lastUpdate") lastUpdate: String
+    ): Int
+
+    /**
+     * Dodaje kwotę do aktualnego stanu kasy
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+        INSERT INTO cash_balances (company_id, amount, last_update) 
+        VALUES (:companyId, :amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = cash_balances.amount + :amount, 
+            last_update = :lastUpdate
+    """, nativeQuery = true)
     fun addAmountToBalance(
         @Param("companyId") companyId: Long,
         @Param("amount") amount: BigDecimal,
@@ -99,16 +148,17 @@ interface CashBalancesRepository : JpaRepository<CashBalanceEntity, Long> {
     ): Int
 
     /**
-     * Odejmuje kwotę od aktualnego stanu konta
+     * Odejmuje kwotę od aktualnego stanu kasy
      */
     @Modifying
     @Transactional
-    @Query("""
-        UPDATE BackAccountBalanceEntity b 
-        SET b.amount = b.amount - :amount, 
-            b.lastUpdate = :lastUpdate 
-        WHERE b.companyId = :companyId
-    """)
+    @Query(value = """
+        INSERT INTO cash_balances (company_id, amount, last_update) 
+        VALUES (:companyId, -:amount, :lastUpdate)
+        ON CONFLICT (company_id) DO UPDATE SET 
+            amount = cash_balances.amount - :amount, 
+            last_update = :lastUpdate
+    """, nativeQuery = true)
     fun subtractAmountFromBalance(
         @Param("companyId") companyId: Long,
         @Param("amount") amount: BigDecimal,
@@ -116,19 +166,29 @@ interface CashBalancesRepository : JpaRepository<CashBalanceEntity, Long> {
     ): Int
 
     /**
-     * Nadpisuje stan konta nową wartością
+     * Nadpisuje stan kasy nową wartością (zwykły UPDATE - wymaga istniejącego rekordu)
      */
     @Modifying
     @Transactional
     @Query("""
-        UPDATE BackAccountBalanceEntity b 
-        SET b.amount = :newAmount, 
-            b.lastUpdate = :lastUpdate 
-        WHERE b.companyId = :companyId
+        UPDATE CashBalanceEntity c 
+        SET c.amount = :newAmount, 
+            c.lastUpdate = :lastUpdate 
+        WHERE c.companyId = :companyId
     """)
     fun updateBalance(
         @Param("companyId") companyId: Long,
         @Param("newAmount") newAmount: BigDecimal,
         @Param("lastUpdate") lastUpdate: String
     ): Int
+
+    /**
+     * Pobiera aktualny stan kasy
+     */
+    @Query(value = """
+        SELECT COALESCE(amount, 0) 
+        FROM cash_balances 
+        WHERE company_id = :companyId
+    """, nativeQuery = true)
+    fun getCurrentBalance(@Param("companyId") companyId: Long): BigDecimal?
 }

@@ -143,10 +143,10 @@ interface UnifiedDocumentJpaRepository : JpaRepository<UnifiedDocumentEntity, St
     @Query("""
         SELECT COALESCE(SUM(e.totalGross - e.paidAmount), 0) FROM UnifiedDocumentEntity e 
         WHERE e.dueDate < :date 
-        AND e.status IN ('NOT_PAID', 'PARTIALLY_PAID')
+        AND e.status IN ('NOT_PAID', 'PARTIALLY_PAID', 'OVERDUE')
         AND e.companyId = :companyId
     """)
-    fun calculateOverdueAmountAndCompanyId(@Param("date") date: LocalDate, @Param("companyId") companyId: Long): BigDecimal
+    fun calculateOverdueStatusAndCompanyId(@Param("date") date: LocalDate, @Param("companyId") companyId: Long): BigDecimal
 
     // Statystyki metod płatności
     @Query("""
