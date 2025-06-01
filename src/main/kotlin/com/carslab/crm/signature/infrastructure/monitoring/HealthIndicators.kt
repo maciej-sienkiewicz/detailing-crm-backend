@@ -1,8 +1,10 @@
 package com.carslab.crm.signature.infrastructure.monitoring
 
-import com.carslab.crm.signature.api.websocket.MultiTenantWebSocketHandler
+import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
+import org.springframework.boot.actuate.health.Status
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 import java.sql.Connection
@@ -11,7 +13,7 @@ import java.time.Instant
 @Component
 class SignatureSystemHealthIndicator(
     private val dataSource: DataSource,
-    private val webSocketHandler: MultiTenantWebSocketHandler
+    private val webSocketHandler: SignatureWebSocketHandler
 ) : HealthIndicator {
 
     override fun health(): Health {
@@ -44,17 +46,16 @@ class SignatureSystemHealthIndicator(
             val isValid = connection.isValid(5) // 5 second timeout
             val responseTime = System.currentTimeMillis() - startTime
 
-            if (isValid) {
-                builder.withDetail("database.status", "UP")
-                builder.withDetail("database.responseTime", "${responseTime}ms")
+            builder.withDetail("database.status", if (isValid) "UP" else "DOWN")
+            builder.withDetail("database.responseTime", "${responseTime}ms")
 
+            if (!isValid) {
+                builder.status(Status.DOWN)
+            } else {
                 if (responseTime > 1000) {
-                    builder.status(Status.valueOf("WARN"))
+                    builder.status(Status("WARN"))
                     builder.withDetail("database.warning", "Slow response time")
                 }
-            } else {
-                builder.status(Status.DOWN)
-                builder.withDetail("database.status", "DOWN")
             }
         }
     }
@@ -70,12 +71,15 @@ class SignatureSystemHealthIndicator(
 
         when {
             activeConnections > 1000 -> {
-                builder.status(Status.valueOf("WARN"))
+                builder.status(Status("WARN"))
                 builder.withDetail("websocket.warning", "High number of connections")
             }
             activeTablets == 0 -> {
-                builder.status(Status.valueOf("WARN"))
+                builder.status(Status("WARN"))
                 builder.withDetail("websocket.warning", "No tablets connected")
+            }
+            else -> {
+                // Status remains UP (default)
             }
         }
     }
@@ -93,8 +97,10 @@ class SignatureSystemHealthIndicator(
         builder.withDetail("memory.usage_percent", "%.2f%%".format(memoryUsagePercent))
 
         if (memoryUsagePercent > 85) {
-            builder.status(Status.valueOf("WARN"))
+            builder.status(Status("WARN"))
             builder.withDetail("memory.warning", "High memory usage")
+        } else {
+            // Status remains UP (default)
         }
     }
 }

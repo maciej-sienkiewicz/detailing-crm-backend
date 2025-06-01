@@ -162,7 +162,7 @@ class SignatureWebSocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         try {
-            val messageData = objectMapper.readValue(message.payload, Map::class.java)
+            val messageData = objectMapper.readValue(message.payload, Map::class.java) as Map<String, Any>
             val messageType = messageData["type"] as? String
 
             when (messageType) {

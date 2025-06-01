@@ -5,7 +5,7 @@ import io.jsonwebtoken.security.Keys
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.security.Key
+import javax.crypto.SecretKey
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -19,21 +19,21 @@ class JwtService(
 ) {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
-    private val key: Key = Keys.hmacShaKeyFor(jwtSecret.toByteArray())
+    private val secretKey: SecretKey = Keys.hmacShaKeyFor(jwtSecret.toByteArray())
 
     fun generateTabletToken(deviceId: UUID, tenantId: UUID): String {
         val now = Instant.now()
 
         return Jwts.builder()
-            .setSubject(deviceId.toString())
-            .setIssuedAt(Date.from(now))
-            .setExpiration(Date.from(now.plus(jwtExpirationInSeconds * 24, ChronoUnit.SECONDS))) // 24h for tablets
-            .setIssuer("crm-system")
+            .subject(deviceId.toString())
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(jwtExpirationInSeconds * 24, ChronoUnit.SECONDS))) // 24h for tablets
+            .issuer("crm-system")
             .claim("tenant_id", tenantId.toString())
             .claim("device_type", "tablet")
             .claim("roles", listOf("TABLET"))
             .claim("permissions", listOf("signature:submit", "websocket:connect"))
-            .signWith(key, SignatureAlgorithm.HS512)
+            .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact()
     }
 
@@ -41,26 +41,26 @@ class JwtService(
         val now = Instant.now()
 
         return Jwts.builder()
-            .setSubject(userId.toString())
-            .setIssuedAt(Date.from(now))
-            .setExpiration(Date.from(now.plus(jwtExpirationInSeconds, ChronoUnit.SECONDS)))
-            .setIssuer("crm-system")
+            .subject(userId.toString())
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(jwtExpirationInSeconds, ChronoUnit.SECONDS)))
+            .issuer("crm-system")
             .claim("tenant_id", tenantId.toString())
             .claim("email", email)
             .claim("roles", roles)
             .claim("permissions", getPermissionsForRoles(roles))
-            .signWith(key, SignatureAlgorithm.HS512)
+            .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact()
     }
 
     fun validateToken(token: String): Boolean {
         return try {
-            Jwts.parserBuilder()
-                .setSigningKey(key)
+            Jwts.parser()
+                .verifyWith(secretKey)
                 .requireIssuer("crm-system")
-                .setAllowedClockSkewSeconds(30)
+                .clockSkewSeconds(30)
                 .build()
-                .parseClaimsJws(token)
+                .parseSignedClaims(token)
             true
         } catch (ex: Exception) {
             logger.error("Invalid JWT token: ${ex.message}")
@@ -69,11 +69,11 @@ class JwtService(
     }
 
     fun extractClaims(token: String): JwtClaims {
-        val claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        val claims = Jwts.parser()
+            .verifyWith(secretKey)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
 
         return JwtClaims(
             userId = UUID.fromString(claims.subject),

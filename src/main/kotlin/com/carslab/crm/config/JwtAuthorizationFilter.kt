@@ -17,6 +17,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
+import javax.crypto.SecretKey
 import java.nio.charset.StandardCharsets
 import java.util.*
 
@@ -30,6 +31,7 @@ class JwtAuthorizationFilter(
 ) : OncePerRequestFilter() {
 
     private val logger = LoggerFactory.getLogger(JwtAuthorizationFilter::class.java)
+    private val secretKey: SecretKey = Keys.hmacShaKeyFor(jwtSecret.toByteArray(StandardCharsets.UTF_8))
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -69,16 +71,15 @@ class JwtAuthorizationFilter(
 
     private fun isValidToken(token: String): Boolean {
         try {
-            val key = Keys.hmacShaKeyFor(jwtSecret.toByteArray(StandardCharsets.UTF_8))
-            val claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+            val claims = Jwts.parser()
+                .verifyWith(secretKey)
                 .build()
-                .parseClaimsJws(token)
-                .body
+                .parseSignedClaims(token)
+                .payload
 
             return !isTokenExpired(claims)
         } catch (e: Exception) {
-            logger.error("Invalid JWT token: {${e.message}}")
+            logger.error("Invalid JWT token: ${e.message}")
             return false
         }
     }
@@ -88,12 +89,11 @@ class JwtAuthorizationFilter(
     }
 
     private fun getUserIdFromToken(token: String): Long {
-        val key = Keys.hmacShaKeyFor(jwtSecret.toByteArray(StandardCharsets.UTF_8))
-        val claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        val claims = Jwts.parser()
+            .verifyWith(secretKey)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
 
         return claims.subject.toLong()
     }

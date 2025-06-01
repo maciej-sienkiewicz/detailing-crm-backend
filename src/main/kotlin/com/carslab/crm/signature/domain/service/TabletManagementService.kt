@@ -6,6 +6,7 @@ import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.infrastructure.persistance.repository.WorkstationRepository
+import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -17,7 +18,7 @@ import java.util.*
 class TabletManagementService(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val workstationRepository: WorkstationRepository,
-    private val webSocketHandler: SecureWebSocketHandler
+    private val webSocketHandler: SignatureWebSocketHandler
 ) {
 
     fun listTenantTablets(tenantId: UUID): List<TabletStatus> {
@@ -73,6 +74,22 @@ class TabletManagementService(
     }
 
     fun testTablet(tabletId: UUID) {
-        webSocketHandler.sendTestRequest(tabletId)
+        // Create a test signature request to send to the tablet
+        webSocketHandler.sendSignatureRequest(
+            tabletId,
+            com.carslab.crm.signature.websocket.SignatureRequestDto(
+                sessionId = "test-${UUID.randomUUID()}",
+                tenantId = UUID.randomUUID(),
+                workstationId = UUID.randomUUID(),
+                customerName = "Test Customer",
+                vehicleInfo = com.carslab.crm.signature.websocket.VehicleInfoDto(
+                    make = "Test",
+                    model = "Test",
+                    licensePlate = "TEST-123"
+                ),
+                serviceType = "Test Service",
+                documentType = "Test Document"
+            )
+        )
     }
 }

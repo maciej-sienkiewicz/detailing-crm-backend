@@ -27,6 +27,7 @@ class AuditService(
             resourceId = sessionId,
             details = details ?: status,
             ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent(),
             severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
         )
 
@@ -41,6 +42,8 @@ class AuditService(
             resource = "signature_session",
             resourceId = sessionId,
             details = details ?: status,
+            ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent(),
             severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
         )
 
@@ -55,6 +58,8 @@ class AuditService(
             resource = "tablet_device",
             resourceId = tabletId.toString(),
             details = details ?: status,
+            ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent(),
             severity = when (status) {
                 "ERROR" -> AuditSeverity.ERROR
                 "DISCONNECTED" -> AuditSeverity.WARN
@@ -79,6 +84,8 @@ class AuditService(
             resource = "workstation",
             resourceId = workstationId.toString(),
             details = details ?: status,
+            ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent(),
             severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
         )
 
@@ -93,7 +100,8 @@ class AuditService(
             resource = "security",
             resourceId = null,
             details = details,
-            ipAddress = ipAddress,
+            ipAddress = ipAddress ?: getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent(),
             severity = AuditSeverity.CRITICAL
         )
 
@@ -110,7 +118,9 @@ class AuditService(
             action = "SIGNATURE_ACKNOWLEDGMENT",
             resource = "signature_session",
             resourceId = sessionId,
-            details = "Tablet $tabletId acknowledged signature completion: $success"
+            details = "Tablet $tabletId acknowledged signature completion: $success",
+            ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent()
         )
 
         saveAuditLog(auditLog)
@@ -123,7 +133,9 @@ class AuditService(
             action = "WORKSTATION_NOTIFICATION",
             resource = "workstation",
             resourceId = workstationId.toString(),
-            details = "Sent notification: $messageType"
+            details = "Sent notification: $messageType",
+            ipAddress = getCurrentIpAddress(),
+            userAgent = getCurrentUserAgent()
         )
 
         saveAuditLog(auditLog)
@@ -151,6 +163,15 @@ class AuditService(
         return try {
             val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
             request.getHeader("X-Forwarded-For") ?: request.remoteAddr
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun getCurrentUserAgent(): String? {
+        return try {
+            val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
+            request.getHeader("User-Agent")
         } catch (e: Exception) {
             null
         }

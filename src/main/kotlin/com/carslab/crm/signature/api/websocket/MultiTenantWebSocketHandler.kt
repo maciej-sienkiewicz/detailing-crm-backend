@@ -111,12 +111,15 @@ class MultiTenantWebSocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         try {
-            val messageData = objectMapper.readValue(message.payload, Map::class.java)
+            val messageData = objectMapper.readValue(message.payload, Map::class.java) as Map<String, Any>
             val messageType = messageData["type"] as? String
 
             when (messageType) {
                 "heartbeat" -> handleHeartbeat(session)
-                "signature_completed" -> handleSignatureCompleted(session, messageData)
+                "signature_completed" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    handleSignatureCompleted(session, messageData as Map<String, Any>)
+                }
                 else -> logger.warn("Unknown message type: $messageType")
             }
         } catch (e: Exception) {
@@ -124,6 +127,7 @@ class MultiTenantWebSocketHandler(
             sendToSession(session, ErrorMessage("Invalid message format"))
         }
     }
+
 
     private fun handleHeartbeat(session: WebSocketSession) {
         // Find tablet by session and update last seen

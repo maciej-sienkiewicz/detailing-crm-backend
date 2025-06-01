@@ -3,14 +3,13 @@ package com.carslab.crm.signature.service
 import com.carslab.crm.audit.service.AuditService
 import com.carslab.crm.signature.api.dto.CreateSignatureSessionRequest
 import com.carslab.crm.signature.api.dto.SignatureSubmission
-import com.carslab.crm.signature.api.websocket.SignatureCompletedMessage
-import com.carslab.crm.signature.api.websocket.SignatureRequestMessage
-import com.carslab.crm.signature.api.websocket.VehicleInfoWS
 import com.carslab.crm.signature.dto.*
 import com.carslab.crm.signature.infrastructure.persistance.entity.*
 import com.carslab.crm.signature.exception.*
 import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import com.carslab.crm.signature.websocket.SignatureRequestDto
+import com.carslab.crm.signature.websocket.VehicleInfoDto
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
 import io.github.resilience4j.retry.annotation.Retry
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter
@@ -140,13 +139,13 @@ class ResilientSignatureService(
         )
         signatureSessionRepository.save(updatedSession)
 
-        // Send to tablet
-        val message = SignatureRequestMessage(
+        // Send to tablet using correct DTO
+        val signatureRequest = SignatureRequestDto(
             sessionId = session.sessionId,
             tenantId = session.tenantId,
             workstationId = session.workstationId,
             customerName = session.customerName,
-            vehicleInfo = VehicleInfoWS(
+            vehicleInfo = VehicleInfoDto(
                 make = session.vehicleMake,
                 model = session.vehicleModel,
                 licensePlate = session.licensePlate,
@@ -156,7 +155,7 @@ class ResilientSignatureService(
             documentType = session.documentType
         )
 
-        return webSocketHandler.sendSignatureRequest(tablet.id, message)
+        return webSocketHandler.sendSignatureRequest(tablet.id, signatureRequest)
     }
 
     @Transactional
@@ -180,8 +179,8 @@ class ResilientSignatureService(
 
             signatureSessionRepository.save(updatedSession)
 
-            // Notify workstation
-            notifyWorkstationOfCompletion(session, true)
+            // Notify workstation with all required parameters
+            notifyWorkstationOfCompletion(session, true, submission.signedAt)
 
             // Record metrics
             val duration = Duration.between(session.createdAt, submission.signedAt)
@@ -207,13 +206,13 @@ class ResilientSignatureService(
         }
     }
 
-    private fun notifyWorkstationOfCompletion(session: SignatureSession, success: Boolean) {
-        val completedMessage = SignatureCompletedMessage(
+    private fun notifyWorkstationOfCompletion(session: SignatureSession, success: Boolean, signedAt: Instant? = null) {
+        webSocketHandler.notifyWorkstation(
+            workstationId = session.workstationId,
             sessionId = session.sessionId,
             success = success,
-            signedAt = session.signedAt
+            signedAt = signedAt
         )
-        webSocketHandler.notifyWorkstation(session.workstationId, completedMessage)
     }
 
     private fun validateSessionForSubmission(session: SignatureSession, submission: SignatureSubmission) {

@@ -30,7 +30,7 @@ class SecureSignatureController(
     fun requestSignature(
         @Valid @RequestBody request: CreateSignatureSessionRequest,
         authentication: Authentication
-    ): CompletableFuture<ResponseEntity<*>> {
+    ): CompletableFuture<ResponseEntity<SignatureSessionResponse>> {
 
         val userPrincipal = authentication.principal as UserPrincipal
         val clientKey = "${userPrincipal.tenantId}:signature_request"
@@ -38,7 +38,11 @@ class SecureSignatureController(
         if (!rateLimitingService.isAllowed(clientKey, 5)) {
             return CompletableFuture.completedFuture(
                 ResponseEntity.status(429).body(
-                    createErrorResponse("Rate limit exceeded for signature requests")
+                    SignatureSessionResponse(
+                        success = false,
+                        sessionId = null,
+                        message = "Rate limit exceeded for signature requests"
+                    )
                 )
             )
         }
@@ -50,13 +54,17 @@ class SecureSignatureController(
                 if (response.success) {
                     created(response)
                 } else {
-                    badRequest<SignatureSessionResponse>(response.message)
+                    ResponseEntity.badRequest().body(response)
                 }
             }
             .exceptionally { throwable ->
                 logger.error("Error processing signature request", throwable)
                 ResponseEntity.status(500).body(
-                    createErrorResponse("Internal server error processing signature request")
+                    SignatureSessionResponse(
+                        success = false,
+                        sessionId = null,
+                        message = "Internal server error processing signature request"
+                    )
                 )
             }
     }
@@ -90,7 +98,7 @@ class SecureSignatureController(
                 created(response)
             } else {
                 logger.warn("Signature submission failed for session: ${submission.sessionId} - ${response.message}")
-                badRequest(response.message ?: "Signature submission failed")
+                ResponseEntity.badRequest().body(response)
             }
         } catch (e: Exception) {
             logger.error("Unexpected error submitting signature for session: ${submission.sessionId}", e)

@@ -9,7 +9,7 @@ import org.springframework.web.socket.config.annotation.*
 @EnableWebSocket
 class WebSocketConfig(
     private val webSocketHandler: SignatureWebSocketHandler,
-    @Value("\${app.websocket.allowed-origins}") private val allowedOrigins: List<String>
+    @Value("\${app.websocket.allowed-origins:*}") private val allowedOrigins: List<String>
 ) : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
