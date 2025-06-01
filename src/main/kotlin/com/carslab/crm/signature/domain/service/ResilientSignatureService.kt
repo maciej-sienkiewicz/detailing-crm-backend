@@ -10,7 +10,7 @@ import com.carslab.crm.signature.dto.*
 import com.carslab.crm.signature.infrastructure.persistance.entity.*
 import com.carslab.crm.signature.exception.*
 import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
-import com.carslab.crm.signature.websocket.SecureWebSocketHandler
+import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
 import io.github.resilience4j.retry.annotation.Retry
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter
@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture
 class ResilientSignatureService(
     private val signatureSessionRepository: SignatureSessionRepository,
     private val tabletManagementService: TabletManagementService,
-    private val webSocketHandler: SecureWebSocketHandler,
+    private val webSocketHandler: SignatureWebSocketHandler,
     private val auditService: AuditService,
     private val metricsService: SignatureMetricsService
 ) {

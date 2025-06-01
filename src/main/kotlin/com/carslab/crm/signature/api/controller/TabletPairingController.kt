@@ -1,8 +1,8 @@
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.signature.domain.service.TabletPairingService
 import com.carslab.crm.signature.api.dto.*
+import com.carslab.crm.signature.service.TabletPairingService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid

@@ -1,6 +1,6 @@
 package com.carslab.crm.signature.api.exception
 
-import com.carslab.crm.signature.infrastructure.exception.*
+import com.carslab.crm.signature.exception.*
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

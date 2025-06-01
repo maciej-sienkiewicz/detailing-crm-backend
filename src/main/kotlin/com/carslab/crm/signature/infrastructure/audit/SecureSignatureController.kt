@@ -4,8 +4,9 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.ratelimit.RateLimitingService
 import com.carslab.crm.security.UserPrincipal
 import com.carslab.crm.signature.api.dto.CreateSignatureSessionRequest
-import com.carslab.crm.signature.domain.service.ResilientSignatureService
+import com.carslab.crm.signature.api.dto.SignatureSubmission
 import com.carslab.crm.signature.dto.*
+import com.carslab.crm.signature.service.ResilientSignatureService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication

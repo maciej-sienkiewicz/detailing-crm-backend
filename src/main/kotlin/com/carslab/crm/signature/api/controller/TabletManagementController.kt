@@ -1,8 +1,8 @@
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.signature.domain.service.TabletManagementService
 import com.carslab.crm.signature.api.dto.TabletStatus
+import com.carslab.crm.signature.service.TabletManagementService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*

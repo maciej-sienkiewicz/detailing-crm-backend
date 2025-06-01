@@ -1,8 +1,8 @@
 package com.carslab.crm.signature.infrastructure.monitoring
 
-import org.springframework.boot.actuator.health.Health
-import org.springframework.boot.actuator.health.HealthIndicator
-import org.springframework.boot.actuator.health.Status
+import com.carslab.crm.signature.api.websocket.MultiTenantWebSocketHandler
+import org.springframework.boot.actuate.health.Health
+import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 import java.sql.Connection

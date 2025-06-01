@@ -1,13 +1,14 @@
 package com.carslab.crm.signature.api.websocket
 
+import com.carslab.crm.signature.exception.UnauthorizedTabletException
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
-import com.carslab.crm.signature.infrastructure.exception.UnauthorizedTabletException
-import com.carslab.crm.signature.domain.service.TabletManagementService
+import com.carslab.crm.signature.service.TabletManagementService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
+import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 

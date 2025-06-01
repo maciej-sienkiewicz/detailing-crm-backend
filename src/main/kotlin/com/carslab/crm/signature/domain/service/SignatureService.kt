@@ -1,10 +1,14 @@
-package com.carslab.crm.signature.domain.service
+package com.carslab.crm.signature.service
 
-import com.carslab.crm.signature.infrastructure.persistance.entity.*
-import com.carslab.crm.signature.infrastructure.persistance.repository.*
-import com.carslab.crm.signature.infrastructure.exception.*
-import com.carslab.crm.signature.api.dto.*
-import com.carslab.crm.signature.api.websocket.*
+import com.carslab.crm.signature.api.dto.CreateSignatureSessionRequest
+import com.carslab.crm.signature.api.dto.SignatureSubmission
+import com.carslab.crm.signature.dto.*
+import com.carslab.crm.signature.entity.*
+import com.carslab.crm.signature.exception.*
+import com.carslab.crm.signature.repository.*
+import com.carslab.crm.signature.websocket.SignatureRequestDto
+import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import com.carslab.crm.signature.websocket.VehicleInfoDto
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -16,7 +20,7 @@ import java.util.*
 class SignatureService(
     private val signatureSessionRepository: SignatureSessionRepository,
     private val tabletManagementService: TabletManagementService,
-    private val webSocketHandler: MultiTenantWebSocketHandler
+    private val webSocketHandler: SignatureWebSocketHandler
 ) {
 
     fun createSignatureSession(
@@ -59,18 +63,17 @@ class SignatureService(
         // Update session with tablet info
         val updatedSession = session.copy(
             tabletId = tablet.id,
-            status = SignatureSessionStatus.SENT_TO_TABLET,
-            updatedAt = Instant.now()
+            status = SignatureSessionStatus.SENT_TO_TABLET
         )
         signatureSessionRepository.save(updatedSession)
 
-        // Send to tablet
-        val message = SignatureRequestMessage(
+        // Send to tablet - format compatible with frontend
+        val signatureRequest = SignatureRequestDto(
             sessionId = session.sessionId,
             tenantId = session.tenantId,
             workstationId = session.workstationId,
             customerName = session.customerName,
-            vehicleInfo = VehicleInfoWS(
+            vehicleInfo = VehicleInfoDto(
                 make = session.vehicleMake,
                 model = session.vehicleModel,
                 licensePlate = session.licensePlate,
@@ -80,7 +83,7 @@ class SignatureService(
             documentType = session.documentType
         )
 
-        return webSocketHandler.sendSignatureRequest(tablet.id, message)
+        return webSocketHandler.sendSignatureRequest(tablet.id, signatureRequest)
     }
 
     fun submitSignature(submission: SignatureSubmission): SignatureResponse {
@@ -107,18 +110,17 @@ class SignatureService(
         val updatedSession = session.copy(
             signatureImage = submission.signatureImage,
             signedAt = submission.signedAt,
-            status = SignatureSessionStatus.SIGNED,
-            updatedAt = Instant.now()
+            status = SignatureSessionStatus.SIGNED
         )
         signatureSessionRepository.save(updatedSession)
 
         // Notify workstation
-        val completedMessage = SignatureCompletedMessage(
-            sessionId = submission.sessionId,
-            success = true,
-            signedAt = submission.signedAt
+        webSocketHandler.notifyWorkstation(
+            session.workstationId,
+            submission.sessionId,
+            true,
+            submission.signedAt
         )
-        webSocketHandler.notifyWorkstation(session.workstationId, completedMessage)
 
         return SignatureResponse(
             success = true,
@@ -139,17 +141,12 @@ class SignatureService(
 
         expiredSessions.forEach { session ->
             val updatedSession = session.copy(
-                status = SignatureSessionStatus.EXPIRED,
-                updatedAt = Instant.now()
+                status = SignatureSessionStatus.EXPIRED
             )
             signatureSessionRepository.save(updatedSession)
 
             // Notify workstation about expiration
-            val expiredMessage = SignatureCompletedMessage(
-                sessionId = session.sessionId,
-                success = false
-            )
-            webSocketHandler.notifyWorkstation(session.workstationId, expiredMessage)
+            webSocketHandler.notifyWorkstation(session.workstationId, session.sessionId, false, null)
         }
     }
 }

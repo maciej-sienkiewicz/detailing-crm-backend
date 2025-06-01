@@ -1,9 +1,12 @@
-package com.carslab.crm.signature.domain.service
+package com.carslab.crm.signature.service
 
-import com.carslab.crm.signature.infrastructure.persistance.entity.*
-import com.carslab.crm.signature.infrastructure.persistance.repository.*
-import com.carslab.crm.signature.infrastructure.exception.InvalidPairingCodeException
+import com.carslab.crm.security.JwtService
 import com.carslab.crm.signature.api.dto.*
+import com.carslab.crm.signature.dto.*
+import com.carslab.crm.signature.entity.*
+import com.carslab.crm.signature.exception.InvalidPairingCodeException
+import com.carslab.crm.signature.repository.*
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.security.SecureRandom
@@ -16,7 +19,9 @@ import java.util.*
 class TabletPairingService(
     private val pairingCodeRepository: PairingCodeRepository,
     private val tabletDeviceRepository: TabletDeviceRepository,
-    private val workstationRepository: WorkstationRepository
+    private val workstationRepository: WorkstationRepository,
+    private val jwtService: JwtService,
+    @Value("\${app.websocket.base-url:wss://localhost:8080}") private val wsBaseUrl: String
 ) {
 
     private val secureRandom = SecureRandom()
@@ -71,7 +76,7 @@ class TabletPairingService(
         return TabletCredentials(
             deviceId = savedTablet.id,
             deviceToken = savedTablet.deviceToken,
-            websocketUrl = "wss://api.crm.com/ws/tablet/${savedTablet.id}"
+            websocketUrl = "$wsBaseUrl/ws/tablet/${savedTablet.id}"
         )
     }
 

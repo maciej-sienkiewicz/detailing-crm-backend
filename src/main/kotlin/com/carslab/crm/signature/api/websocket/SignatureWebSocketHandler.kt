@@ -2,12 +2,9 @@ package com.carslab.crm.signature.websocket
 
 import com.carslab.crm.audit.service.AuditService
 import com.carslab.crm.security.JwtService
-import com.carslab.crm.signature.domain.service.TabletManagementService
-import com.carslab.crm.signature.entity.DeviceStatus
-import com.carslab.crm.signature.entity.TabletDevice
-import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
-import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
+import com.carslab.crm.signature.entity.*
 import com.carslab.crm.signature.repository.TabletDeviceRepository
+import com.carslab.crm.signature.service.TabletManagementService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -21,26 +18,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-data class TabletConnection(
-    val session: WebSocketSession,
-    val tablet: TabletDevice,
-    val tenantId: UUID,
-    val locationId: UUID,
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant
-)
-
-data class WorkstationConnection(
-    val session: WebSocketSession,
-    val workstationId: UUID,
-    val tenantId: UUID,
-    val userId: UUID,
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant
-)
-
 @Component
-class SecureWebSocketHandler(
+class SignatureWebSocketHandler(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val tabletManagementService: TabletManagementService,
     private val objectMapper: ObjectMapper,
@@ -84,6 +63,7 @@ class SecureWebSocketHandler(
         val deviceId = extractDeviceId(session.uri.toString())
             ?: throw SecurityException("Missing device ID")
 
+        // Tablet authentication - compatible with frontend
         val token = session.handshakeHeaders.getFirst("X-Device-Token")
             ?: throw SecurityException("Missing device token")
 
@@ -101,6 +81,7 @@ class SecureWebSocketHandler(
             throw SecurityException("Device not active")
         }
 
+        // Close existing connection if any
         tabletConnections[deviceId]?.let { existingConnection ->
             if (existingConnection.session.isOpen) {
                 logger.warn("Closing existing connection for tablet: $deviceId")
@@ -123,7 +104,14 @@ class SecureWebSocketHandler(
         logger.info("Tablet connected: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
         auditService.logTabletConnection(deviceId, tablet.tenantId, "CONNECTED")
 
-        sendToSession(session, ConnectionStatusMessage("connected"))
+        // Send connection confirmation - format expected by tablet
+        sendToSession(session, mapOf(
+            "type" to "connection",
+            "payload" to mapOf(
+                "status" to "connected",
+                "timestamp" to Instant.now()
+            )
+        ))
     }
 
     private fun handleWorkstationConnection(session: WebSocketSession) {
@@ -163,7 +151,13 @@ class SecureWebSocketHandler(
         logger.info("Workstation connected: $workstationId by user ${claims.userId}")
         auditService.logWorkstationConnection(workstationId, claims.tenantId, claims.userId, "CONNECTED")
 
-        sendToSession(session, ConnectionStatusMessage("connected"))
+        sendToSession(session, mapOf(
+            "type" to "connection",
+            "payload" to mapOf(
+                "status" to "connected",
+                "timestamp" to Instant.now()
+            )
+        ))
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
@@ -177,12 +171,18 @@ class SecureWebSocketHandler(
                 "tablet_status" -> handleTabletStatusUpdate(session, messageData)
                 else -> {
                     logger.warn("Unknown message type: $messageType from ${session.remoteAddress}")
-                    sendToSession(session, ErrorMessage("Unknown message type"))
+                    sendToSession(session, mapOf(
+                        "type" to "error",
+                        "payload" to mapOf("error" to "Unknown message type")
+                    ))
                 }
             }
         } catch (e: Exception) {
             logger.error("Error handling WebSocket message from ${session.remoteAddress}", e)
-            sendToSession(session, ErrorMessage("Invalid message format"))
+            sendToSession(session, mapOf(
+                "type" to "error",
+                "payload" to mapOf("error" to "Invalid message format")
+            ))
         }
     }
 
@@ -196,12 +196,17 @@ class SecureWebSocketHandler(
             workstationConnections[connection.workstationId] = connection.copy(lastHeartbeat = Instant.now())
         }
 
-        sendToSession(session, HeartbeatMessage())
+        // Send heartbeat response - format expected by tablet
+        sendToSession(session, mapOf(
+            "type" to "heartbeat",
+            "payload" to mapOf("timestamp" to Instant.now())
+        ))
     }
 
     private fun handleSignatureCompleted(session: WebSocketSession, messageData: Map<String, Any>) {
-        val sessionId = messageData["sessionId"] as? String
-        val success = messageData["success"] as? Boolean ?: false
+        val payload = messageData["payload"] as? Map<String, Any>
+        val sessionId = payload?.get("sessionId") as? String
+        val success = payload?.get("success") as? Boolean ?: false
 
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
@@ -212,52 +217,42 @@ class SecureWebSocketHandler(
     }
 
     private fun handleTabletStatusUpdate(session: WebSocketSession, messageData: Map<String, Any>) {
+        val payload = messageData["payload"] as? Map<String, Any>
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
-        if (tabletConnection != null) {
-            val batteryLevel = messageData["batteryLevel"] as? Int
-            val orientation = messageData["orientation"] as? String
+        if (tabletConnection != null && payload != null) {
+            val batteryLevel = payload["batteryLevel"] as? Int
+            val orientation = payload["orientation"] as? String
 
             logger.debug("Status update from tablet ${tabletConnection.tablet.id}: battery=$batteryLevel, orientation=$orientation")
         }
     }
 
-    override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        val removedTablet = tabletConnections.values.find { it.session == session }
-        removedTablet?.let { connection ->
-            tabletConnections.remove(connection.tablet.id)
-            logger.info("Tablet disconnected: ${connection.tablet.friendlyName} (${connection.tablet.id})")
-            auditService.logTabletConnection(connection.tablet.id, connection.tenantId, "DISCONNECTED")
-        }
-
-        val removedWorkstation = workstationConnections.values.find { it.session == session }
-        removedWorkstation?.let { connection ->
-            workstationConnections.remove(connection.workstationId)
-            logger.info("Workstation disconnected: ${connection.workstationId}")
-            auditService.logWorkstationConnection(connection.workstationId, connection.tenantId, connection.userId, "DISCONNECTED")
-        }
-
-        logger.debug("WebSocket connection closed: ${status.reason}")
-    }
-
-    override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
-        logger.error("WebSocket transport error from ${session.remoteAddress}", exception)
-
-        tabletConnections.values.find { it.session == session }?.let { connection ->
-            auditService.logTabletConnection(connection.tablet.id, connection.tenantId, "ERROR", exception.message)
-        }
-
-        workstationConnections.values.find { it.session == session }?.let { connection ->
-            auditService.logWorkstationConnection(connection.workstationId, connection.tenantId, connection.userId, "ERROR", exception.message)
-        }
-    }
-
-    fun sendSignatureRequest(tabletId: UUID, message: SignatureRequestMessage): Boolean {
+    fun sendSignatureRequest(tabletId: UUID, request: SignatureRequestDto): Boolean {
         val connection = tabletConnections[tabletId]
         return if (connection != null && connection.session.isOpen) {
+            val message = mapOf(
+                "type" to "signature_request",
+                "payload" to mapOf(
+                    "sessionId" to request.sessionId,
+                    "tenantId" to request.tenantId,
+                    "workstationId" to request.workstationId,
+                    "customerName" to request.customerName,
+                    "vehicleInfo" to mapOf(
+                        "make" to request.vehicleInfo.make,
+                        "model" to request.vehicleInfo.model,
+                        "licensePlate" to request.vehicleInfo.licensePlate,
+                        "vin" to request.vehicleInfo.vin
+                    ),
+                    "serviceType" to request.serviceType,
+                    "documentType" to request.documentType,
+                    "timestamp" to Instant.now()
+                )
+            )
+
             val success = sendToSession(connection.session, message)
             if (success) {
-                auditService.logSignatureRequest(connection.tenantId, message.sessionId, "SENT_TO_TABLET")
+                auditService.logSignatureRequest(connection.tenantId, request.sessionId, "SENT_TO_TABLET")
             }
             success
         } else {
@@ -266,73 +261,54 @@ class SecureWebSocketHandler(
         }
     }
 
-    fun notifyWorkstation(workstationId: UUID, message: SignatureCompletedMessage) {
+    fun notifyWorkstation(workstationId: UUID, sessionId: String, success: Boolean, signedAt: Instant?) {
         val connection = workstationConnections[workstationId]
         if (connection != null && connection.session.isOpen) {
+            val message = mapOf(
+                "type" to "signature_completed",
+                "payload" to mapOf(
+                    "sessionId" to sessionId,
+                    "success" to success,
+                    "signedAt" to signedAt
+                )
+            )
             sendToSession(connection.session, message)
-            auditService.logWorkstationNotification(workstationId, connection.tenantId, message.type)
+            auditService.logWorkstationNotification(workstationId, connection.tenantId, "signature_completed")
         } else {
             logger.warn("Workstation $workstationId not connected")
         }
     }
 
-    fun sendTestRequest(tabletId: UUID) {
+    private fun sendToSession(session: WebSocketSession, message: Map<String, Any>): Boolean {
+        return try {
+            if (session.isOpen) {
+                val json = objectMapper.writeValueAsString(message)
+                session.sendMessage(TextMessage(json))
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            logger.error("Error sending WebSocket message to ${session.remoteAddress}", e)
+            false
+        }
+    }
+
+    // Monitoring methods
+    fun getActiveConnectionsCount(): Int = tabletConnections.size + workstationConnections.size
+    fun getActiveTabletsCount(): Int = tabletConnections.size
+    fun getActiveWorkstationsCount(): Int = workstationConnections.size
+
+    fun isTabletConnected(tabletId: UUID): Boolean {
         val connection = tabletConnections[tabletId]
-        if (connection != null && connection.session.isOpen) {
-            val testMessage = SignatureRequestMessage(
-                sessionId = "test-${UUID.randomUUID()}",
-                tenantId = connection.tenantId,
-                workstationId = UUID.randomUUID(),
-                customerName = "Test Customer",
-                vehicleInfo = VehicleInfoWS(
-                    make = "Test",
-                    model = "Test",
-                    licensePlate = "TEST-123"
-                ),
-                serviceType = "Test Service",
-                documentType = "Test Document"
-            )
-            sendToSession(connection.session, testMessage)
-        }
-    }
-
-    fun broadcastShutdownNotification() {
-        val shutdownMessage = ErrorMessage("Server shutting down", "Please reconnect after server restart")
-
-        tabletConnections.values.forEach { connection ->
-            sendToSession(connection.session, shutdownMessage)
-        }
-
-        workstationConnections.values.forEach { connection ->
-            sendToSession(connection.session, shutdownMessage)
-        }
-    }
-
-    fun closeAllConnections() {
-        tabletConnections.values.forEach { connection ->
-            try {
-                connection.session.close(CloseStatus.GOING_AWAY.withReason("Server shutdown"))
-            } catch (e: Exception) {
-                logger.warn("Error closing tablet connection", e)
-            }
-        }
-
-        workstationConnections.values.forEach { connection ->
-            try {
-                connection.session.close(CloseStatus.GOING_AWAY.withReason("Server shutdown"))
-            } catch (e: Exception) {
-                logger.warn("Error closing workstation connection", e)
-            }
-        }
-
-        tabletConnections.clear()
-        workstationConnections.clear()
+        return connection?.session?.isOpen == true
     }
 
     private fun cleanupStaleConnections() {
         val now = Instant.now()
         val staleThreshold = Duration.ofMinutes(2)
 
+        // Cleanup stale tablets
         val staleTablets = tabletConnections.values.filter { connection ->
             Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
         }
@@ -349,6 +325,7 @@ class SecureWebSocketHandler(
             }
         }
 
+        // Cleanup stale workstations
         val staleWorkstations = workstationConnections.values.filter { connection ->
             Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
         }
@@ -367,7 +344,10 @@ class SecureWebSocketHandler(
     }
 
     private fun sendHeartbeats() {
-        val heartbeat = HeartbeatMessage()
+        val heartbeat = mapOf(
+            "type" to "heartbeat",
+            "payload" to mapOf("timestamp" to Instant.now())
+        )
 
         tabletConnections.values.forEach { connection ->
             if (connection.session.isOpen) {
@@ -380,34 +360,6 @@ class SecureWebSocketHandler(
                 sendToSession(connection.session, heartbeat)
             }
         }
-    }
-
-    private fun sendToSession(session: WebSocketSession, message: WebSocketMessage): Boolean {
-        return try {
-            if (session.isOpen) {
-                val json = objectMapper.writeValueAsString(mapOf(
-                    "type" to message.type,
-                    "payload" to message
-                ))
-                session.sendMessage(TextMessage(json))
-                true
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            logger.error("Error sending WebSocket message to ${session.remoteAddress}", e)
-            false
-        }
-    }
-
-    // Public methods for monitoring
-    fun getActiveConnectionsCount(): Int = tabletConnections.size + workstationConnections.size
-    fun getActiveTabletsCount(): Int = tabletConnections.size
-    fun getActiveWorkstationsCount(): Int = workstationConnections.size
-
-    fun isTabletConnected(tabletId: UUID): Boolean {
-        val connection = tabletConnections[tabletId]
-        return connection?.session?.isOpen == true
     }
 
     private fun extractDeviceId(uri: String): UUID? {
@@ -434,3 +386,39 @@ class SecureWebSocketHandler(
         }
     }
 }
+
+// DTOs compatible with tablet frontend
+data class SignatureRequestDto(
+    val sessionId: String,
+    val tenantId: UUID,
+    val workstationId: UUID,
+    val customerName: String,
+    val vehicleInfo: VehicleInfoDto,
+    val serviceType: String,
+    val documentType: String
+)
+
+data class VehicleInfoDto(
+    val make: String,
+    val model: String,
+    val licensePlate: String,
+    val vin: String? = null
+)
+
+data class TabletConnection(
+    val session: WebSocketSession,
+    val tablet: TabletDevice,
+    val tenantId: UUID,
+    val locationId: UUID,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant
+)
+
+data class WorkstationConnection(
+    val session: WebSocketSession,
+    val workstationId: UUID,
+    val tenantId: UUID,
+    val userId: UUID,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant
+)

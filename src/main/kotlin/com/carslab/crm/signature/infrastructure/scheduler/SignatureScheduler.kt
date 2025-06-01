@@ -1,7 +1,7 @@
 package com.carslab.crm.signature.infrastructure.scheduler
 
-import com.carslab.crm.signature.domain.service.TabletPairingService
-import com.carslab.crm.signature.domain.service.SignatureService
+import com.carslab.crm.signature.service.SignatureService
+import com.carslab.crm.signature.service.TabletPairingService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
