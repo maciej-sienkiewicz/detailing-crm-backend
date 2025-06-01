@@ -1,75 +1,15 @@
-package com.carslab.crm.signature.infrastructure.audit
+package com.carslab.crm.audit.service
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import com.carslab.crm.audit.entity.AuditLog
+import com.carslab.crm.audit.entity.AuditSeverity
+import com.carslab.crm.audit.repository.AuditLogRepository
+import com.carslab.crm.security.UserPrincipal
 import org.slf4j.LoggerFactory
-import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.stereotype.Repository
 import org.springframework.stereotype.Service
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import java.time.Instant
 import java.util.UUID
-
-@Entity
-@Table(name = "audit_logs")
-data class AuditLog(
-    @Id
-    val id: UUID = UUID.randomUUID(),
-
-    @Column(nullable = false)
-    val tenantId: UUID?,
-
-    @Column(nullable = false)
-    val userId: UUID?,
-
-    @Column(nullable = false, length = 50)
-    val action: String,
-
-    @Column(nullable = false, length = 100)
-    val resource: String,
-
-    val resourceId: String?,
-
-    @Column(columnDefinition = "TEXT")
-    val details: String?,
-
-    @Column(length = 45)
-    val ipAddress: String?,
-
-    @Column(length = 200)
-    val userAgent: String?,
-
-    @Column(nullable = false)
-    val timestamp: Instant = Instant.now(),
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    val severity: AuditSeverity = AuditSeverity.INFO
-)
-
-enum class AuditSeverity {
-    INFO, WARN, ERROR, CRITICAL
-}
-
-@Repository
-interface AuditLogRepository : JpaRepository<AuditLog, UUID> {
-    fun findByTenantIdAndTimestampBetween(
-        tenantId: UUID,
-        startTime: Instant,
-        endTime: Instant
-    ): List<AuditLog>
-
-    fun findBySeverityAndTimestampAfter(
-        severity: AuditSeverity,
-        timestamp: Instant
-    ): List<AuditLog>
-}
 
 @Service
 class AuditService(

@@ -1,10 +1,12 @@
-package com.carslab.crm.signature.domain.service
+package com.carslab.crm.signature.service
 
-import com.carslab.crm.signature.infrastructure.persistance.entity.*
-import com.carslab.crm.signature.infrastructure.persistance.repository.*
-import com.carslab.crm.signature.infrastructure.exception.*
 import com.carslab.crm.signature.api.dto.TabletStatus
-import com.carslab.crm.signature.api.websocket.MultiTenantWebSocketHandler
+import com.carslab.crm.signature.exception.*
+import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
+import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
+import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
+import com.carslab.crm.signature.infrastructure.persistance.repository.WorkstationRepository
+import com.carslab.crm.signature.websocket.SecureWebSocketHandler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -16,7 +18,7 @@ import java.util.*
 class TabletManagementService(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val workstationRepository: WorkstationRepository,
-    private val webSocketHandler: MultiTenantWebSocketHandler
+    private val webSocketHandler: SecureWebSocketHandler
 ) {
 
     fun listTenantTablets(tenantId: UUID): List<TabletStatus> {

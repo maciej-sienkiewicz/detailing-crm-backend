@@ -1,12 +1,26 @@
-package com.carslab.crm.signature.domain.service
+package com.carslab.crm.signature.service
 
+import com.carslab.crm.audit.service.AuditService
 import com.carslab.crm.signature.api.dto.CreateSignatureSessionRequest
+import com.carslab.crm.signature.api.dto.SignatureSubmission
+import com.carslab.crm.signature.api.websocket.SignatureCompletedMessage
+import com.carslab.crm.signature.api.websocket.SignatureRequestMessage
+import com.carslab.crm.signature.api.websocket.VehicleInfoWS
+import com.carslab.crm.signature.dto.*
+import com.carslab.crm.signature.infrastructure.persistance.entity.*
+import com.carslab.crm.signature.exception.*
+import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
+import com.carslab.crm.signature.websocket.SecureWebSocketHandler
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
 import io.github.resilience4j.retry.annotation.Retry
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.util.*
 import java.util.concurrent.CompletableFuture
 
 @Service
@@ -14,10 +28,12 @@ import java.util.concurrent.CompletableFuture
 class ResilientSignatureService(
     private val signatureSessionRepository: SignatureSessionRepository,
     private val tabletManagementService: TabletManagementService,
-    private val webSocketHandler: MultiTenantWebSocketHandler,
+    private val webSocketHandler: SecureWebSocketHandler,
     private val auditService: AuditService,
     private val metricsService: SignatureMetricsService
 ) {
+
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     @CircuitBreaker(name = "signature-request", fallbackMethod = "fallbackCreateSession")
     @Retry(name = "signature-request")
@@ -80,10 +96,71 @@ class ResilientSignatureService(
         )
     }
 
+    fun createSignatureSession(
+        tenantId: UUID,
+        request: CreateSignatureSessionRequest
+    ): SignatureSession {
+        val sessionId = UUID.randomUUID().toString()
+        val expiresAt = Instant.now().plus(2, ChronoUnit.MINUTES)
+
+        val session = SignatureSession(
+            sessionId = sessionId,
+            tenantId = tenantId,
+            workstationId = request.workstationId,
+            customerId = request.customerId,
+            customerName = request.customerName,
+            vehicleMake = request.vehicleMake,
+            vehicleModel = request.vehicleModel,
+            licensePlate = request.licensePlate,
+            vin = request.vin,
+            serviceType = request.serviceType,
+            documentId = request.documentId,
+            documentType = request.documentType,
+            expiresAt = expiresAt
+        )
+
+        return signatureSessionRepository.save(session)
+    }
+
+    fun requestSignature(tenantId: UUID, sessionId: String): Boolean {
+        val session = signatureSessionRepository.findBySessionId(sessionId)
+            ?: throw SignatureSessionNotFoundException(sessionId)
+
+        if (session.tenantId != tenantId) {
+            throw UnauthorizedTabletException("Session does not belong to tenant")
+        }
+
+        val tablet = tabletManagementService.selectTablet(session.workstationId)
+            ?: throw TabletNotAvailableException()
+
+        // Update session with tablet info
+        val updatedSession = session.copy(
+            tabletId = tablet.id,
+            status = SignatureSessionStatus.SENT_TO_TABLET
+        )
+        signatureSessionRepository.save(updatedSession)
+
+        // Send to tablet
+        val message = SignatureRequestMessage(
+            sessionId = session.sessionId,
+            tenantId = session.tenantId,
+            workstationId = session.workstationId,
+            customerName = session.customerName,
+            vehicleInfo = VehicleInfoWS(
+                make = session.vehicleMake,
+                model = session.vehicleModel,
+                licensePlate = session.licensePlate,
+                vin = session.vin
+            ),
+            serviceType = session.serviceType,
+            documentType = session.documentType
+        )
+
+        return webSocketHandler.sendSignatureRequest(tablet.id, message)
+    }
+
     @Transactional
     fun submitSignatureWithValidation(submission: SignatureSubmission): SignatureResponse {
-        val startTime = Instant.now()
-
         try {
             val session = signatureSessionRepository.findBySessionId(submission.sessionId)
                 ?: throw SignatureSessionNotFoundException(submission.sessionId)
@@ -98,8 +175,7 @@ class ResilientSignatureService(
             val updatedSession = session.copy(
                 signatureImage = submission.signatureImage,
                 signedAt = submission.signedAt,
-                status = SignatureSessionStatus.SIGNED,
-                lastModifiedBy = submission.deviceId.toString()
+                status = SignatureSessionStatus.SIGNED
             )
 
             signatureSessionRepository.save(updatedSession)
@@ -129,6 +205,15 @@ class ResilientSignatureService(
             auditService.logSignatureCompletion(null, submission.sessionId, "ERROR", e.message)
             throw e
         }
+    }
+
+    private fun notifyWorkstationOfCompletion(session: SignatureSession, success: Boolean) {
+        val completedMessage = SignatureCompletedMessage(
+            sessionId = session.sessionId,
+            success = success,
+            signedAt = session.signedAt
+        )
+        webSocketHandler.notifyWorkstation(session.workstationId, completedMessage)
     }
 
     private fun validateSessionForSubmission(session: SignatureSession, submission: SignatureSubmission) {
@@ -162,5 +247,32 @@ class ResilientSignatureService(
         } catch (e: IllegalArgumentException) {
             throw InvalidSignatureFormatException("Invalid base64 encoding")
         }
+    }
+
+    fun getSignatureSession(sessionId: String): SignatureSession? {
+        return signatureSessionRepository.findBySessionId(sessionId)
+    }
+
+    fun cancelSignatureSession(sessionId: String, tenantId: UUID): Boolean {
+        val session = signatureSessionRepository.findBySessionId(sessionId)
+            ?: throw SignatureSessionNotFoundException(sessionId)
+
+        if (session.tenantId != tenantId) {
+            throw UnauthorizedTabletException("Session does not belong to tenant")
+        }
+
+        if (session.status == SignatureSessionStatus.SIGNED) {
+            return false // Cannot cancel already signed session
+        }
+
+        val updatedSession = session.copy(
+            status = SignatureSessionStatus.CANCELLED
+        )
+        signatureSessionRepository.save(updatedSession)
+
+        // Notify workstation about cancellation
+        notifyWorkstationOfCompletion(session, false)
+
+        return true
     }
 }

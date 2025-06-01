@@ -1,4 +1,4 @@
-package com.carslab.crm.signature.infrastructure.monitoring
+package com.carslab.crm.signature.service
 
 import io.micrometer.core.instrument.*
 import org.springframework.stereotype.Service
@@ -30,10 +30,6 @@ class SignatureMetricsService(private val meterRegistry: MeterRegistry) {
     private val activeSessionsGauge = Gauge.builder("signature.sessions.active")
         .description("Number of active signature sessions")
         .register(meterRegistry) { activeSignatureSessions.get().toDouble() }
-
-    private val tabletConnectionsGauge = Gauge.builder("tablets.connections.active")
-        .description("Number of active tablet connections")
-        .register(meterRegistry) { getActiveTabletConnections().toDouble() }
 
     fun recordSignatureRequestAttempt(tenantId: UUID) {
         signatureRequestsTotal
@@ -71,10 +67,5 @@ class SignatureMetricsService(private val meterRegistry: MeterRegistry) {
             .tag("error_type", errorType ?: "unknown")
             .register(meterRegistry)
             .increment()
-    }
-
-    private fun getActiveTabletConnections(): Int {
-        // This would be injected from WebSocketHandler
-        return 0 // Placeholder
     }
 }

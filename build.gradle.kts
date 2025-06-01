@@ -25,32 +25,51 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
+	implementation("org.springframework.boot:spring-boot-starter-websocket")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis") // For caching
 
 	// Database
 	implementation("org.postgresql:postgresql")
+	runtimeOnly("com.h2database:h2") // For testing
 
-	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+	// Security & JWT
+	implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+
+	// Resilience4j
+	implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+	implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+	implementation("io.github.resilience4j:resilience4j-retry:2.2.0")
+	implementation("io.github.resilience4j:resilience4j-timelimiter:2.2.0")
+
+	// Rate limiting
+	implementation("com.github.vladimir-bukhtoyarov:bucket4j-core:7.6.0")
+	implementation("com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0")
+
+	// Metrics
+	implementation("io.micrometer:micrometer-registry-prometheus")
 
 	// Kotlin
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.apache.pdfbox:pdfbox:2.0.28")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
 	// API Documentation
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
 
-	implementation("com.sun.mail:jakarta.mail:2.0.1")
-	implementation("jakarta.activation:jakarta.activation-api:2.0.1")
-	implementation("jakarta.mail:jakarta.mail-api:2.0.1")
+	// Mail (if needed)
+	implementation("org.springframework.boot:spring-boot-starter-mail")
 
 	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("com.h2database:h2")
+	testImplementation("org.testcontainers:testcontainers")
+	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:junit-jupiter")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

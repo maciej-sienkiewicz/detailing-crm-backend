@@ -1,19 +1,46 @@
-package com.carslab.crm.signature.api.websocket
+package com.carslab.crm.signature.websocket
 
+import com.carslab.crm.audit.service.AuditService
+import com.carslab.crm.security.JwtService
+import com.carslab.crm.signature.domain.service.TabletManagementService
+import com.carslab.crm.signature.entity.DeviceStatus
+import com.carslab.crm.signature.entity.TabletDevice
+import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
+import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
+import com.carslab.crm.signature.repository.TabletDeviceRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
+import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.time.Duration
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import java.time.Instant
-import java.time.Duration
+
+data class TabletConnection(
+    val session: WebSocketSession,
+    val tablet: TabletDevice,
+    val tenantId: UUID,
+    val locationId: UUID,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant
+)
+
+data class WorkstationConnection(
+    val session: WebSocketSession,
+    val workstationId: UUID,
+    val tenantId: UUID,
+    val userId: UUID,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant
+)
 
 @Component
-class MultiTenantWebSocketHandler(
+class SecureWebSocketHandler(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val tabletManagementService: TabletManagementService,
     private val objectMapper: ObjectMapper,
@@ -27,10 +54,7 @@ class MultiTenantWebSocketHandler(
     private val heartbeatExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
 
     init {
-        // Cleanup stale connections every 30 seconds
         heartbeatExecutor.scheduleAtFixedRate(::cleanupStaleConnections, 30, 30, TimeUnit.SECONDS)
-
-        // Send heartbeat every 25 seconds
         heartbeatExecutor.scheduleAtFixedRate(::sendHeartbeats, 25, 25, TimeUnit.SECONDS)
     }
 
@@ -66,7 +90,6 @@ class MultiTenantWebSocketHandler(
         val tenantId = session.handshakeHeaders.getFirst("X-Tenant-Id")?.let { UUID.fromString(it) }
             ?: throw SecurityException("Missing tenant ID")
 
-        // Validate device credentials
         val tablet = tabletDeviceRepository.findByIdAndDeviceToken(deviceId, token)
             ?: throw SecurityException("Invalid device credentials")
 
@@ -78,7 +101,6 @@ class MultiTenantWebSocketHandler(
             throw SecurityException("Device not active")
         }
 
-        // Check for existing connection (prevent duplicate connections)
         tabletConnections[deviceId]?.let { existingConnection ->
             if (existingConnection.session.isOpen) {
                 logger.warn("Closing existing connection for tablet: $deviceId")
@@ -101,7 +123,6 @@ class MultiTenantWebSocketHandler(
         logger.info("Tablet connected: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
         auditService.logTabletConnection(deviceId, tablet.tenantId, "CONNECTED")
 
-        // Send connection confirmation
         sendToSession(session, ConnectionStatusMessage("connected"))
     }
 
@@ -118,14 +139,12 @@ class MultiTenantWebSocketHandler(
             throw SecurityException("Invalid authorization format")
         }
 
-        // Validate JWT token
         if (!jwtService.validateToken(token)) {
             throw SecurityException("Invalid JWT token")
         }
 
         val claims = jwtService.extractClaims(token)
 
-        // Verify user has permission to connect to this workstation
         if (!claims.permissions.contains("workstation:connect")) {
             throw SecurityException("Insufficient permissions")
         }
@@ -144,7 +163,6 @@ class MultiTenantWebSocketHandler(
         logger.info("Workstation connected: $workstationId by user ${claims.userId}")
         auditService.logWorkstationConnection(workstationId, claims.tenantId, claims.userId, "CONNECTED")
 
-        // Send connection confirmation
         sendToSession(session, ConnectionStatusMessage("connected"))
     }
 
@@ -169,7 +187,6 @@ class MultiTenantWebSocketHandler(
     }
 
     private fun handleHeartbeat(session: WebSocketSession) {
-        // Update last heartbeat for both tablet and workstation connections
         tabletConnections.values.find { it.session == session }?.let { connection ->
             tabletConnections[connection.tablet.id] = connection.copy(lastHeartbeat = Instant.now())
             tabletManagementService.updateTabletLastSeen(connection.tablet.id)
@@ -179,7 +196,6 @@ class MultiTenantWebSocketHandler(
             workstationConnections[connection.workstationId] = connection.copy(lastHeartbeat = Instant.now())
         }
 
-        // Respond with heartbeat acknowledgment
         sendToSession(session, HeartbeatMessage())
     }
 
@@ -187,7 +203,6 @@ class MultiTenantWebSocketHandler(
         val sessionId = messageData["sessionId"] as? String
         val success = messageData["success"] as? Boolean ?: false
 
-        // Find the tablet that sent this message
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
         if (tabletConnection != null && sessionId != null) {
@@ -204,12 +219,10 @@ class MultiTenantWebSocketHandler(
             val orientation = messageData["orientation"] as? String
 
             logger.debug("Status update from tablet ${tabletConnection.tablet.id}: battery=$batteryLevel, orientation=$orientation")
-            // Could store this in cache or database for monitoring
         }
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        // Remove tablet connection
         val removedTablet = tabletConnections.values.find { it.session == session }
         removedTablet?.let { connection ->
             tabletConnections.remove(connection.tablet.id)
@@ -217,7 +230,6 @@ class MultiTenantWebSocketHandler(
             auditService.logTabletConnection(connection.tablet.id, connection.tenantId, "DISCONNECTED")
         }
 
-        // Remove workstation connection
         val removedWorkstation = workstationConnections.values.find { it.session == session }
         removedWorkstation?.let { connection ->
             workstationConnections.remove(connection.workstationId)
@@ -228,11 +240,9 @@ class MultiTenantWebSocketHandler(
         logger.debug("WebSocket connection closed: ${status.reason}")
     }
 
-    @Override
     override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
         logger.error("WebSocket transport error from ${session.remoteAddress}", exception)
 
-        // Find and log which connection had the error
         tabletConnections.values.find { it.session == session }?.let { connection ->
             auditService.logTabletConnection(connection.tablet.id, connection.tenantId, "ERROR", exception.message)
         }
@@ -263,6 +273,26 @@ class MultiTenantWebSocketHandler(
             auditService.logWorkstationNotification(workstationId, connection.tenantId, message.type)
         } else {
             logger.warn("Workstation $workstationId not connected")
+        }
+    }
+
+    fun sendTestRequest(tabletId: UUID) {
+        val connection = tabletConnections[tabletId]
+        if (connection != null && connection.session.isOpen) {
+            val testMessage = SignatureRequestMessage(
+                sessionId = "test-${UUID.randomUUID()}",
+                tenantId = connection.tenantId,
+                workstationId = UUID.randomUUID(),
+                customerName = "Test Customer",
+                vehicleInfo = VehicleInfoWS(
+                    make = "Test",
+                    model = "Test",
+                    licensePlate = "TEST-123"
+                ),
+                serviceType = "Test Service",
+                documentType = "Test Document"
+            )
+            sendToSession(connection.session, testMessage)
         }
     }
 
@@ -303,7 +333,6 @@ class MultiTenantWebSocketHandler(
         val now = Instant.now()
         val staleThreshold = Duration.ofMinutes(2)
 
-        // Cleanup stale tablet connections
         val staleTablets = tabletConnections.values.filter { connection ->
             Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
         }
@@ -320,7 +349,6 @@ class MultiTenantWebSocketHandler(
             }
         }
 
-        // Cleanup stale workstation connections
         val staleWorkstations = workstationConnections.values.filter { connection ->
             Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
         }
@@ -406,22 +434,3 @@ class MultiTenantWebSocketHandler(
         }
     }
 }
-
-// Enhanced connection data classes
-data class TabletConnection(
-    val session: WebSocketSession,
-    val tablet: TabletDevice,
-    val tenantId: UUID,
-    val locationId: UUID,
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant
-)
-
-data class WorkstationConnection(
-    val session: WebSocketSession,
-    val workstationId: UUID,
-    val tenantId: UUID,
-    val userId: UUID,
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant
-)

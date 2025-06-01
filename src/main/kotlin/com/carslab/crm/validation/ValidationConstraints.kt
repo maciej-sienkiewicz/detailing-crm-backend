@@ -43,10 +43,9 @@ annotation class ValidLicensePlate(
 
 class LicensePlateValidator : ConstraintValidator<ValidLicensePlate, String> {
 
-    // Polish license plate patterns
     private val patterns = listOf(
-        "^[A-Z]{2,3}\\s?[0-9]{4,5}$".toRegex(), // Standard format
-        "^[A-Z]{1,2}\\s?[0-9]{1,5}\\s?[A-Z]{1,3}$".toRegex() // Alternative format
+        "^[A-Z]{2,3}\\s?[0-9]{4,5}$".toRegex(),
+        "^[A-Z]{1,2}\\s?[0-9]{1,5}\\s?[A-Z]{1,3}$".toRegex()
     )
 
     override fun isValid(value: String?, context: ConstraintValidatorContext?): Boolean {
