@@ -6,7 +6,8 @@ import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.infrastructure.persistance.repository.WorkstationRepository
-import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -18,8 +19,14 @@ import java.util.*
 class TabletManagementService(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val workstationRepository: WorkstationRepository,
-    private val webSocketHandler: SignatureWebSocketHandler
+    private val applicationContext: ApplicationContext
 ) {
+
+    // Lazy initialization to break circular dependency
+    private val webSocketHandler by lazy {
+        applicationContext.getBean("signatureWebSocketHandler",
+            com.carslab.crm.signature.websocket.SignatureWebSocketHandler::class.java)
+    }
 
     fun listTenantTablets(tenantId: UUID): List<TabletStatus> {
         return tabletDeviceRepository.findByTenantId(tenantId).map { tablet ->
@@ -37,7 +44,12 @@ class TabletManagementService(
     }
 
     fun isTabletOnline(tabletId: UUID): Boolean {
-        return webSocketHandler.isTabletConnected(tabletId)
+        return try {
+            webSocketHandler.isTabletConnected(tabletId)
+        } catch (e: Exception) {
+            // If WebSocket handler is not available yet, assume offline
+            false
+        }
     }
 
     fun selectTablet(workstationId: UUID): TabletDevice? {
@@ -74,22 +86,26 @@ class TabletManagementService(
     }
 
     fun testTablet(tabletId: UUID) {
-        // Create a test signature request to send to the tablet
-        webSocketHandler.sendSignatureRequest(
-            tabletId,
-            com.carslab.crm.signature.websocket.SignatureRequestDto(
-                sessionId = "test-${UUID.randomUUID()}",
-                tenantId = UUID.randomUUID(),
-                workstationId = UUID.randomUUID(),
-                customerName = "Test Customer",
-                vehicleInfo = com.carslab.crm.signature.websocket.VehicleInfoDto(
-                    make = "Test",
-                    model = "Test",
-                    licensePlate = "TEST-123"
-                ),
-                serviceType = "Test Service",
-                documentType = "Test Document"
+        try {
+            // Create a test signature request to send to the tablet
+            webSocketHandler.sendSignatureRequest(
+                tabletId,
+                com.carslab.crm.signature.websocket.SignatureRequestDto(
+                    sessionId = "test-${UUID.randomUUID()}",
+                    tenantId = UUID.randomUUID(),
+                    workstationId = UUID.randomUUID(),
+                    customerName = "Test Customer",
+                    vehicleInfo = com.carslab.crm.signature.websocket.VehicleInfoDto(
+                        make = "Test",
+                        model = "Test",
+                        licensePlate = "TEST-123"
+                    ),
+                    serviceType = "Test Service",
+                    documentType = "Test Document"
+                )
             )
-        )
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to send test request to tablet $tabletId", e)
+        }
     }
 }

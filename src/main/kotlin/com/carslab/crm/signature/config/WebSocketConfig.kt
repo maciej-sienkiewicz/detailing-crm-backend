@@ -1,20 +1,20 @@
-package com.carslab.crm.signature.config
+package com.carslab.crm.config
 
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
-import org.springframework.web.socket.config.annotation.*
+import org.springframework.web.socket.config.annotation.EnableWebSocket
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 @Configuration
 @EnableWebSocket
 class WebSocketConfig(
-    private val webSocketHandler: SignatureWebSocketHandler,
-    @Value("\${app.websocket.allowed-origins:*}") private val allowedOrigins: List<String>
+    private val signatureWebSocketHandler: SignatureWebSocketHandler
 ) : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(webSocketHandler, "/ws/tablet/*", "/ws/workstation/*")
-            .setAllowedOrigins(*allowedOrigins.toTypedArray())
+        registry.addHandler(signatureWebSocketHandler, "/ws/tablet/*", "/ws/workstation/*")
+            .setAllowedOriginPatterns("*")
             .withSockJS()
     }
 }

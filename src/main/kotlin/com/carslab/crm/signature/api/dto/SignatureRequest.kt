@@ -6,48 +6,31 @@ import jakarta.validation.constraints.*
 import java.time.Instant
 import java.util.UUID
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
+
 data class CreateSignatureSessionRequest(
     @field:NotNull
     val workstationId: UUID,
 
-    @field:NotNull
-    val customerId: UUID,
-
     @field:NotBlank
-    @field:Size(min = 2, max = 100)
-    @field:SafeString
     val customerName: String,
 
-    @field:NotBlank
-    @field:Size(min = 1, max = 50)
-    @field:SafeString
-    val vehicleMake: String,
+    @field:Valid
+    val vehicleInfo: VehicleInfoRequest?,
 
-    @field:NotBlank
-    @field:Size(min = 1, max = 50)
-    @field:SafeString
-    val vehicleModel: String,
+    val serviceType: String?,
+    val documentType: String?,
+    val additionalNotes: String?
+)
 
-    @field:NotBlank
-    @field:ValidLicensePlate
-    val licensePlate: String,
-
-    @field:Size(max = 17)
-    @field:Pattern(regexp = "^[A-HJ-NPR-Z0-9]{17}$", message = "Invalid VIN format")
-    val vin: String? = null,
-
-    @field:NotBlank
-    @field:Size(min = 2, max = 100)
-    @field:SafeString
-    val serviceType: String,
-
-    @field:NotNull
-    val documentId: UUID,
-
-    @field:NotBlank
-    @field:Size(min = 2, max = 50)
-    @field:SafeString
-    val documentType: String
+data class VehicleInfoRequest(
+    val make: String?,
+    val model: String?,
+    val licensePlate: String?,
+    val vin: String?,
+    val year: Int?
 )
 
 data class SignatureSubmission(

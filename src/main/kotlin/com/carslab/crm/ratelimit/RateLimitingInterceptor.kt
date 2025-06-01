@@ -34,6 +34,6 @@ class RateLimitingInterceptor(
 
     private fun getClientIdentifier(request: HttpServletRequest): String {
         val userPrincipal = SecurityContextHolder.getContext().authentication?.principal as? UserPrincipal
-        return userPrincipal?.tenantId?.toString() ?: request.remoteAddr
+        return userPrincipal?.companyId?.toString() ?: request.remoteAddr
     }
 }

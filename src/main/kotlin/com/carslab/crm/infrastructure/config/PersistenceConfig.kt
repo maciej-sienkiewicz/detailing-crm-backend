@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 
 @Configuration
-@EnableJpaRepositories(basePackages = ["com.carslab.crm.infrastructure.persistence.repository"])
+@EnableJpaRepositories(basePackages = ["com.carslab.crm.infrastructure.persistence.repository", "com.carslab.crm.audit.repository", "com.carslab.crm.signature.infrastructure.persistance.repository"])
 class PersistenceConfig {
 
     @Bean

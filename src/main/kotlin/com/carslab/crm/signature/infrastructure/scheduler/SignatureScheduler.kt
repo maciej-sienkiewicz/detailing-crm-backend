@@ -23,14 +23,4 @@ class SignatureScheduler(
             logger.error("Error cleaning up expired pairing codes", e)
         }
     }
-
-    @Scheduled(fixedRate = 60000) // Every 1 minute
-    fun cleanupExpiredSignatureSessions() {
-        try {
-            signatureService.cleanupExpiredSessions()
-            logger.debug("Cleaned up expired signature sessions")
-        } catch (e: Exception) {
-            logger.error("Error cleaning up expired signature sessions", e)
-        }
-    }
 }

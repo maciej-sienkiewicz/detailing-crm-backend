@@ -8,24 +8,20 @@ import com.carslab.crm.infrastructure.persistence.entity.User
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.RoleRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.security.Keys
+import com.carslab.crm.security.JwtService
 import jakarta.transaction.Transactional
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
-import java.util.Date
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
     private val passwordEncoder: PasswordEncoder,
-    @Value("\${security.jwt.secret:tojestdlugiehaslotojestdlugiehaslotojestdlugiehaslo}") private val jwtSecret: String,
-    @Value("\${security.jwt.token-expiration:86400000}") private val jwtExpirationInMs: Long
+    private val jwtService: JwtService // Używamy nowego JwtService
 ) {
+
     fun authenticate(username: String, password: String): LoginResponse {
         val user = userRepository.findByUsername(username)
             .orElseThrow { AuthenticationException("Invalid username or password") }
@@ -34,7 +30,14 @@ class UserService(
             throw AuthenticationException("Invalid username or password")
         }
 
-        val token = generateToken(user)
+        // Używamy nowego JwtService do generowania tokenu
+        val token = jwtService.generateUserToken(
+            userId = user.id!!,
+            username = user.username,
+            email = user.email,
+            companyId = user.companyId,
+            roles = user.roles.map { it.name }
+        )
 
         return LoginResponse(
             token = token,
@@ -46,22 +49,6 @@ class UserService(
             companyId = user.companyId,
             roles = user.roles.map { it.name }
         )
-    }
-
-    private fun generateToken(user: UserEntity): String {
-        val issuedAt = Date()
-        val expirationDate = Date(issuedAt.time + jwtExpirationInMs)
-        val key = Keys.hmacShaKeyFor(jwtSecret.toByteArray(StandardCharsets.UTF_8))
-
-        return Jwts.builder()
-            .setSubject(user.id.toString())
-            .setIssuedAt(issuedAt)
-            .setExpiration(expirationDate)
-            .claim("username", user.username)
-            .claim("companyId", user.companyId)
-            .claim("roles", user.roles.map { it.name })
-            .signWith(key)
-            .compact()
     }
 
     @Transactional
@@ -88,7 +75,6 @@ class UserService(
 
         // Konwertuj do encji i zapisz
         val userEntity = UserEntity.fromDomain(user)
-
         val savedUserEntity = userRepository.save(userEntity)
 
         return UserResponse.fromEntity(savedUserEntity)
@@ -198,6 +184,65 @@ class UserService(
 
         return UserResponse.fromEntity(updatedUserEntity)
     }
+
+    /**
+     * Nowe metody dla integracji z JWT
+     */
+    fun refreshToken(currentToken: String): String? {
+        return try {
+            if (!jwtService.validateToken(currentToken)) {
+                return null
+            }
+
+            val userClaims = jwtService.extractUserClaims(currentToken)
+
+            // Sprawdź czy użytkownik nadal istnieje
+            val user = userRepository.findById(userClaims.userId)
+                .orElse(null) ?: return null
+
+            // Generuj nowy token
+            jwtService.generateUserToken(
+                userId = user.id!!,
+                username = user.username,
+                email = user.email,
+                companyId = user.companyId,
+                roles = user.roles.map { it.name }
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun validateUserToken(token: String): UserTokenInfo? {
+        return try {
+            if (!jwtService.validateToken(token)) {
+                return null
+            }
+
+            val userClaims = jwtService.extractUserClaims(token)
+
+            UserTokenInfo(
+                userId = userClaims.userId,
+                username = userClaims.username,
+                email = userClaims.email,
+                companyId = userClaims.companyId,
+                roles = userClaims.roles,
+                permissions = userClaims.permissions
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
+
+// Nowa klasa dla token info
+data class UserTokenInfo(
+    val userId: Long,
+    val username: String,
+    val email: String?,
+    val companyId: Long,
+    val roles: List<String>,
+    val permissions: List<String>
+)
 
 class AuthenticationException(message: String) : RuntimeException(message)

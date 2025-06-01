@@ -1,179 +1,236 @@
 package com.carslab.crm.audit.service
 
+import com.carslab.crm.audit.repository.AuditLogRepository
 import com.carslab.crm.audit.entity.AuditLog
 import com.carslab.crm.audit.entity.AuditSeverity
-import com.carslab.crm.audit.repository.AuditLogRepository
-import com.carslab.crm.security.UserPrincipal
-import org.slf4j.LoggerFactory
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import java.util.UUID
+import java.time.Instant
+import java.util.*
+import jakarta.servlet.http.HttpServletRequest
 
 @Service
 class AuditService(
     private val auditLogRepository: AuditLogRepository
 ) {
 
-    private val logger = LoggerFactory.getLogger(this::class.java)
-
-    fun logSignatureRequest(tenantId: UUID?, sessionId: String?, status: String, details: String? = null) {
+    // Tablet audit methods
+    fun logTabletConnection(deviceId: UUID, tenantId: UUID, action: String) {
+        val (ipAddress, userAgent) = extractRequestInfo()
         val auditLog = AuditLog(
             tenantId = tenantId,
-            userId = getCurrentUserId(),
-            action = "SIGNATURE_REQUEST",
+            userId = null,
+            action = "TABLET_$action",
+            resource = "tablet",
+            resourceId = deviceId.toString(),
+            details = "Tablet connection: $action",
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
+        )
+        auditLogRepository.save(auditLog)
+    }
+
+    fun logSignatureRequest(tenantId: UUID, sessionId: String, action: String) {
+        val (ipAddress, userAgent) = extractRequestInfo()
+        val auditLog = AuditLog(
+            tenantId = tenantId,
+            userId = null,
+            action = "SIGNATURE_REQUEST_$action",
             resource = "signature_session",
             resourceId = sessionId,
-            details = details ?: status,
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent(),
-            severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
+            details = "Signature request: $action",
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
         )
-
-        saveAuditLog(auditLog)
+        auditLogRepository.save(auditLog)
     }
 
-    fun logSignatureCompletion(tenantId: UUID?, sessionId: String, status: String, details: String? = null) {
-        val auditLog = AuditLog(
-            tenantId = tenantId,
-            userId = getCurrentUserId(),
-            action = "SIGNATURE_COMPLETION",
-            resource = "signature_session",
-            resourceId = sessionId,
-            details = details ?: status,
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent(),
-            severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
-        )
-
-        saveAuditLog(auditLog)
-    }
-
-    fun logTabletConnection(tabletId: UUID, tenantId: UUID, status: String, details: String? = null) {
-        val auditLog = AuditLog(
-            tenantId = tenantId,
-            userId = null, // System action
-            action = "TABLET_CONNECTION",
-            resource = "tablet_device",
-            resourceId = tabletId.toString(),
-            details = details ?: status,
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent(),
-            severity = when (status) {
-                "ERROR" -> AuditSeverity.ERROR
-                "DISCONNECTED" -> AuditSeverity.WARN
-                else -> AuditSeverity.INFO
-            }
-        )
-
-        saveAuditLog(auditLog)
-    }
-
-    fun logWorkstationConnection(
-        workstationId: UUID,
-        tenantId: UUID,
-        userId: UUID,
-        status: String,
-        details: String? = null
-    ) {
-        val auditLog = AuditLog(
-            tenantId = tenantId,
-            userId = userId,
-            action = "WORKSTATION_CONNECTION",
-            resource = "workstation",
-            resourceId = workstationId.toString(),
-            details = details ?: status,
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent(),
-            severity = if (status == "ERROR") AuditSeverity.ERROR else AuditSeverity.INFO
-        )
-
-        saveAuditLog(auditLog)
-    }
-
-    fun logSecurityViolation(action: String, ipAddress: String?, details: String?) {
+    fun logSignatureAcknowledgment(deviceId: UUID, sessionId: String, success: Boolean) {
+        val (ipAddress, userAgent) = extractRequestInfo()
         val auditLog = AuditLog(
             tenantId = null,
-            userId = getCurrentUserId(),
-            action = action.uppercase(),
-            resource = "security",
-            resourceId = null,
-            details = details,
-            ipAddress = ipAddress ?: getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent(),
-            severity = AuditSeverity.CRITICAL
-        )
-
-        saveAuditLog(auditLog)
-
-        // Also log to security-specific logger for SIEM integration
-        logger.warn("SECURITY_VIOLATION: $action from $ipAddress - $details")
-    }
-
-    fun logSignatureAcknowledgment(tabletId: UUID, sessionId: String, success: Boolean) {
-        val auditLog = AuditLog(
-            tenantId = null, // Will be resolved from tablet
             userId = null,
             action = "SIGNATURE_ACKNOWLEDGMENT",
             resource = "signature_session",
             resourceId = sessionId,
-            details = "Tablet $tabletId acknowledged signature completion: $success",
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent()
+            details = "Signature acknowledged by device $deviceId: success=$success",
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
         )
-
-        saveAuditLog(auditLog)
+        auditLogRepository.save(auditLog)
     }
 
-    fun logWorkstationNotification(workstationId: UUID, tenantId: UUID, messageType: String) {
+    // Workstation audit methods - overloaded for different parameter types
+
+    // UUID workstationId, UUID companyId, UUID userId
+    fun logWorkstationConnection(workstationId: UUID, companyId: UUID, userId: UUID, action: String) {
+        logWorkstationConnectionInternal(workstationId, companyId.toString(), userId.toString(), action)
+    }
+
+    // UUID workstationId, Long companyId, Long userId
+    fun logWorkstationConnection(workstationId: UUID, companyId: Long, userId: Long, action: String) {
+        logWorkstationConnectionInternal(workstationId, companyId.toString(), userId.toString(), action)
+    }
+
+    // UUID workstationId, String companyId, String userId
+    fun logWorkstationConnection(workstationId: UUID, companyId: String, userId: String, action: String) {
+        logWorkstationConnectionInternal(workstationId, companyId, userId, action)
+    }
+
+    // UUID workstationId, UUID companyId
+    fun logWorkstationNotification(workstationId: UUID, companyId: UUID, action: String) {
+        logWorkstationNotificationInternal(workstationId, companyId.toString(), action)
+    }
+
+    // UUID workstationId, Long companyId
+    fun logWorkstationNotification(workstationId: UUID, companyId: Long, action: String) {
+        logWorkstationNotificationInternal(workstationId, companyId.toString(), action)
+    }
+
+    // UUID workstationId, String companyId
+    fun logWorkstationNotification(workstationId: UUID, companyId: String, action: String) {
+        logWorkstationNotificationInternal(workstationId, companyId, action)
+    }
+
+    // Internal implementation methods
+    private fun logWorkstationConnectionInternal(workstationId: UUID, companyId: String, userId: String, action: String) {
+        val (ipAddress, userAgent) = extractRequestInfo()
         val auditLog = AuditLog(
-            tenantId = tenantId,
-            userId = getCurrentUserId(),
+            tenantId = null,
+            userId = tryConvertToUUID(userId),
+            action = "WORKSTATION_$action",
+            resource = "workstation",
+            resourceId = workstationId.toString(),
+            details = "Workstation connection by user $userId from company $companyId: $action",
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
+        )
+        auditLogRepository.save(auditLog)
+    }
+
+    private fun logWorkstationNotificationInternal(workstationId: UUID, companyId: String, action: String) {
+        val (ipAddress, userAgent) = extractRequestInfo()
+        val auditLog = AuditLog(
+            tenantId = null,
+            userId = null,
             action = "WORKSTATION_NOTIFICATION",
             resource = "workstation",
             resourceId = workstationId.toString(),
-            details = "Sent notification: $messageType",
-            ipAddress = getCurrentIpAddress(),
-            userAgent = getCurrentUserAgent()
+            details = "Workstation notification to company $companyId: $action",
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
         )
-
-        saveAuditLog(auditLog)
+        auditLogRepository.save(auditLog)
     }
 
-    private fun saveAuditLog(auditLog: AuditLog) {
-        try {
-            auditLogRepository.save(auditLog)
+    // Security audit methods
+    fun logSecurityViolation(action: String, ipAddress: String?, details: String?) {
+        val (extractedIp, userAgent) = extractRequestInfo()
+        val auditLog = AuditLog(
+            tenantId = null,
+            userId = null,
+            action = "SECURITY_VIOLATION",
+            resource = "security",
+            resourceId = null,
+            details = details,
+            ipAddress = ipAddress ?: extractedIp, // Use provided IP or extract from request
+            userAgent = userAgent,
+            timestamp = Instant.now(),
+            severity = AuditSeverity.CRITICAL
+        )
+        auditLogRepository.save(auditLog)
+    }
+
+    // General audit methods
+    fun logUserAction(userId: Any, action: String, resource: String, details: String? = null) {
+        val (ipAddress, userAgent) = extractRequestInfo()
+        val auditLog = AuditLog(
+            tenantId = null,
+            userId = tryConvertToUUID(userId),
+            action = action,
+            resource = resource,
+            resourceId = null,
+            details = details,
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
+        )
+        auditLogRepository.save(auditLog)
+    }
+
+    fun logSystemEvent(action: String, details: String? = null) {
+        val (ipAddress, userAgent) = extractRequestInfo()
+        val auditLog = AuditLog(
+            tenantId = null,
+            userId = null,
+            action = "SYSTEM_$action",
+            resource = "system",
+            resourceId = null,
+            details = details,
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            timestamp = Instant.now()
+        )
+        auditLogRepository.save(auditLog)
+    }
+
+    // Helper methods
+    private fun extractRequestInfo(): Pair<String?, String?> {
+        return try {
+            val requestAttributes = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
+            val request = requestAttributes?.request
+
+            val ipAddress = request?.let { extractClientIpAddress(it) }
+            val userAgent = request?.getHeader("User-Agent")
+
+            Pair(ipAddress, userAgent)
         } catch (e: Exception) {
-            // Never let audit logging break the main flow
-            logger.error("Failed to save audit log", e)
+            // Not in a web request context (e.g., async task, scheduled job)
+            Pair(null, null)
         }
     }
 
-    private fun getCurrentUserId(): UUID? {
-        return try {
-            val authentication = SecurityContextHolder.getContext().authentication
-            (authentication?.principal as? UserPrincipal)?.id
-        } catch (e: Exception) {
-            null
+    private fun extractClientIpAddress(request: HttpServletRequest): String? {
+        val xForwardedFor = request.getHeader("X-Forwarded-For")
+        if (!xForwardedFor.isNullOrBlank()) {
+            return xForwardedFor.split(",")[0].trim()
         }
+
+        val xRealIp = request.getHeader("X-Real-IP")
+        if (!xRealIp.isNullOrBlank()) {
+            return xRealIp
+        }
+
+        return request.remoteAddr
     }
 
-    private fun getCurrentIpAddress(): String? {
-        return try {
-            val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
-            request.getHeader("X-Forwarded-For") ?: request.remoteAddr
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun getCurrentUserAgent(): String? {
-        return try {
-            val request = (RequestContextHolder.currentRequestAttributes() as ServletRequestAttributes).request
-            request.getHeader("User-Agent")
-        } catch (e: Exception) {
-            null
+    private fun tryConvertToUUID(value: Any?): UUID? {
+        return when (value) {
+            null -> null
+            is UUID -> value
+            is String -> try {
+                UUID.fromString(value)
+            } catch (e: Exception) {
+                null
+            }
+            is Long -> try {
+                // Create a deterministic UUID from Long
+                UUID.fromString("${String.format("%08d", value)}-0000-0000-0000-000000000000")
+            } catch (e: Exception) {
+                null
+            }
+            is Int -> try {
+                UUID.fromString("${String.format("%08d", value)}-0000-0000-0000-000000000000")
+            } catch (e: Exception) {
+                null
+            }
+            else -> null
         }
     }
 }

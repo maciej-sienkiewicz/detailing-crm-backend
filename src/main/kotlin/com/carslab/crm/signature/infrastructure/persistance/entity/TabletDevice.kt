@@ -64,79 +64,62 @@ data class Workstation(
 @Table(
     name = "signature_sessions",
     indexes = [
-        Index(name = "idx_signature_sessions_tenant_status", columnList = "tenant_id, status"),
-        Index(name = "idx_signature_sessions_workstation", columnList = "workstation_id"),
-        Index(name = "idx_signature_sessions_expires_at", columnList = "expires_at"),
         Index(name = "idx_signature_sessions_session_id", columnList = "session_id", unique = true),
-        Index(name = "idx_signature_sessions_created_at", columnList = "created_at")
+        Index(name = "idx_signature_sessions_tenant_id", columnList = "tenant_id"),
+        Index(name = "idx_signature_sessions_workstation_id", columnList = "workstation_id"),
+        Index(name = "idx_signature_sessions_status", columnList = "status"),
+        Index(name = "idx_signature_sessions_created_at", columnList = "created_at"),
+        Index(name = "idx_signature_sessions_expires_at", columnList = "expires_at")
     ]
 )
 data class SignatureSession(
     @Id
-    val id: UUID = UUID.randomUUID(),
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
 
-    @Column(nullable = false, unique = true, length = 36)
+    @Column(name = "session_id", nullable = false, unique = true, length = 36)
     val sessionId: String,
 
-    @Column(nullable = false)
+    @Column(name = "tenant_id", nullable = false)
     val tenantId: UUID,
 
-    @Column(nullable = false)
+    @Column(name = "workstation_id", nullable = false)
     val workstationId: UUID,
 
-    val tabletId: UUID? = null,
-
-    @Column(nullable = false)
-    val customerId: UUID,
-
-    @Column(nullable = false, length = 100)
+    @Column(name = "customer_name", nullable = false, length = 255)
     val customerName: String,
 
-    @Column(nullable = false, length = 50)
-    val vehicleMake: String,
+    @Column(name = "vehicle_info", length = 500)
+    val vehicleInfo: String?,
 
-    @Column(nullable = false, length = 50)
-    val vehicleModel: String,
+    @Column(name = "service_type", length = 100)
+    val serviceType: String?,
 
-    @Column(nullable = false, length = 20)
-    val licensePlate: String,
-
-    @Column(length = 17)
-    val vin: String? = null,
-
-    @Column(nullable = false, length = 100)
-    val serviceType: String,
-
-    @Column(nullable = false)
-    val documentId: UUID,
-
-    @Column(nullable = false, length = 50)
-    val documentType: String,
+    @Column(name = "document_type", length = 100)
+    val documentType: String?,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    val status: SignatureSessionStatus = SignatureSessionStatus.PENDING,
+    @Column(name = "status", nullable = false, length = 20)
+    var status: SignatureStatus,
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    val signatureImage: String? = null,
-
-    val signedAt: Instant? = null,
-
-    @Column(nullable = false)
+    @Column(name = "expires_at", nullable = false)
     val expiresAt: Instant,
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    val dataRetentionPolicy: DataRetentionPolicy = DataRetentionPolicy.BUSINESS_REQUIREMENT,
+    @Lob
+    @Column(name = "signature_image", columnDefinition = "TEXT")
+    var signatureImage: String?,
 
-    @Column(nullable = false)
-    val gdprConsent: Boolean = false,
-
-    @Column(nullable = false, length = 200)
-    val dataProcessingPurpose: String = "Digital signature collection"
-
+    @Column(name = "signed_at")
+    var signedAt: Instant?
 ) : AuditableEntity()
+
+enum class SignatureStatus {
+    PENDING,    // Oczekuje na podpis
+    COMPLETED,  // Podpisane pomyślnie
+    EXPIRED,    // Sesja wygasła
+    CANCELLED,  // Anulowane przez użytkownika
+    FAILED      // Błąd podczas przetwarzania
+}
 
 enum class DataRetentionPolicy(val retentionDays: Long) {
     BUSINESS_REQUIREMENT(2555), // 7 years

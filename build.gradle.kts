@@ -54,6 +54,8 @@ dependencies {
 	implementation("com.github.vladimir-bukhtoyarov:bucket4j-core:7.6.0")
 	implementation("com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0")
 
+	implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
 	// Metrics
 	implementation("io.micrometer:micrometer-registry-prometheus")
 

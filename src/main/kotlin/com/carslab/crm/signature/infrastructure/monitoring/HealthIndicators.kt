@@ -1,6 +1,6 @@
 package com.carslab.crm.signature.infrastructure.monitoring
 
-import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import com.carslab.crm.signature.service.WebSocketService
 import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
@@ -13,7 +13,7 @@ import java.time.Instant
 @Component
 class SignatureSystemHealthIndicator(
     private val dataSource: DataSource,
-    private val webSocketHandler: SignatureWebSocketHandler
+    private val webSocketService: WebSocketService
 ) : HealthIndicator {
 
     override fun health(): Health {
@@ -49,21 +49,13 @@ class SignatureSystemHealthIndicator(
             builder.withDetail("database.status", if (isValid) "UP" else "DOWN")
             builder.withDetail("database.responseTime", "${responseTime}ms")
 
-            if (!isValid) {
-                builder.status(Status.DOWN)
-            } else {
-                if (responseTime > 1000) {
-                    builder.status(Status("WARN"))
-                    builder.withDetail("database.warning", "Slow response time")
-                }
-            }
         }
     }
 
     private fun checkWebSocketHealth(builder: Health.Builder) {
-        val activeConnections = webSocketHandler.getActiveConnectionsCount()
-        val activeTablets = webSocketHandler.getActiveTabletsCount()
-        val activeWorkstations = webSocketHandler.getActiveWorkstationsCount()
+        val activeConnections = webSocketService.getActiveConnectionsCount()
+        val activeTablets = webSocketService.getActiveTabletsCount()
+        val activeWorkstations = webSocketService.getActiveWorkstationsCount()
 
         builder.withDetail("websocket.active_connections", activeConnections)
         builder.withDetail("websocket.active_tablets", activeTablets)
