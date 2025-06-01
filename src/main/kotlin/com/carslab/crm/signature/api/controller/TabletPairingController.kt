@@ -1,56 +1,39 @@
 package com.carslab.crm.signature.api.controller
 
-import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
+import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.signature.domain.service.TabletPairingService
+import com.carslab.crm.signature.api.dto.*
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/api/tablets")
-class TabletPairingController {
+class TabletPairingController(
+    private val tabletPairingService: TabletPairingService
+) : BaseController() {
 
     @PostMapping("/register")
-    fun initiateRegistration(@RequestBody request: TabletRegistrationRequest): PairingCode {
-        val code = generatePairingCode()
+    fun initiateRegistration(
+        @Valid @RequestBody request: TabletRegistrationRequest
+    ): ResponseEntity<PairingCodeResponse> {
+        logger.info("Initiating tablet registration for tenant: ${request.tenantId}")
 
-        redis.setex(
-            "pairing:$code",
-            300, // 5 minut
-            TabletPairingData(
-                tenantId = request.tenantId,
-                locationId = request.locationId,
-                workstationId = request.workstationId
-            )
-        )
+        val response = tabletPairingService.initiateRegistration(request)
 
-        return PairingCode(code, expiresIn = 300)
+        logger.info("Generated pairing code: ${response.code}")
+        return ok(response)
     }
 
     @PostMapping("/pair")
-    fun completeTabletPairing(@RequestBody request: TabletPairingRequest): TabletCredentials {
-        val pairingData = redis.get("pairing:${request.code}")
-            ?: throw InvalidPairingCodeException()
+    fun completeTabletPairing(
+        @Valid @RequestBody request: TabletPairingRequest
+    ): ResponseEntity<TabletCredentials> {
+        logger.info("Completing tablet pairing with code: ${request.code}")
 
-        val tablet = TabletDevice(
-            id = UUID.randomUUID(),
-            tenantId = pairingData.tenantId,
-            locationId = pairingData.locationId,
-            deviceToken = generateSecureToken(),
-            friendlyName = request.deviceName,
-            workstationId = pairingData.workstationId,
-            status = DeviceStatus.ACTIVE,
-            lastSeen = Instant.now()
-        )
+        val credentials = tabletPairingService.completeTabletPairing(request)
 
-        tabletRepository.save(tablet)
-        redis.del("pairing:${request.code}")
-
-        return TabletCredentials(
-            deviceId = tablet.id,
-            deviceToken = tablet.deviceToken,
-            websocketUrl = "wss://api.crm.com/ws/tablet/${tablet.id}"
-        )
+        logger.info("Tablet paired successfully: ${credentials.deviceId}")
+        return created(credentials)
     }
 }
