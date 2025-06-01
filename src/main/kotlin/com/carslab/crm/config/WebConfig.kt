@@ -87,17 +87,32 @@ class SecurityConfig(
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration().apply {
+        val source = UrlBasedCorsConfigurationSource()
+
+        val defaultConfiguration = CorsConfiguration().apply {
             allowedOriginPatterns = listOf("*")
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
             allowCredentials = true
-            exposedHeaders = listOf("Authorization")
+            exposedHeaders = listOf("Authorization", "Content-Disposition")
             maxAge = 3600L
         }
 
-        val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/**", configuration)
+        // Specjalna konfiguracja dla endpointów binarnych (PDF, obrazy)
+        val binaryConfiguration = CorsConfiguration().apply {
+            allowedOriginPatterns = listOf("*")
+            allowedMethods = listOf("GET", "OPTIONS")
+            allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
+            allowCredentials = true
+            exposedHeaders = listOf("Content-Disposition", "Content-Type", "Content-Length")
+            maxAge = 3600L
+        }
+
+        // Rejestracja konfiguracji
+        source.registerCorsConfiguration("/**", defaultConfiguration)
+        source.registerCorsConfiguration("/api/printer/protocol/*/pdf", binaryConfiguration)
+        source.registerCorsConfiguration("/api/receptions/image/*", binaryConfiguration)
+
         return source
     }
 
@@ -105,11 +120,30 @@ class SecurityConfig(
     fun corsConfigurer(): WebMvcConfigurer {
         return object : WebMvcConfigurer {
             override fun addCorsMappings(registry: CorsRegistry) {
-                registry.addMapping("/**")
-                    .allowedOriginPatterns("*")  // Użyj allowedOriginPatterns zamiast allowedOrigins
+                // Standardowe endpointy
+                registry.addMapping("/api/**")
+                    .allowedOriginPatterns("*")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                     .allowedHeaders("Authorization", "Content-Type", "Accept")
                     .allowCredentials(true)
+                    .exposedHeaders("Authorization", "Content-Disposition")
+                    .maxAge(3600)
+
+                // Specjalne mapowanie dla binarnych endpointów
+                registry.addMapping("/api/printer/protocol/*/pdf")
+                    .allowedOriginPatterns("*")
+                    .allowedMethods("GET", "OPTIONS")
+                    .allowedHeaders("Authorization", "Content-Type", "Accept")
+                    .allowCredentials(true)
+                    .exposedHeaders("Content-Disposition", "Content-Type", "Content-Length")
+                    .maxAge(3600)
+
+                registry.addMapping("/api/receptions/image/*")
+                    .allowedOriginPatterns("*")
+                    .allowedMethods("GET", "OPTIONS")
+                    .allowedHeaders("Authorization", "Content-Type", "Accept")
+                    .allowCredentials(true)
+                    .exposedHeaders("Content-Disposition", "Content-Type", "Content-Length")
                     .maxAge(3600)
             }
         }

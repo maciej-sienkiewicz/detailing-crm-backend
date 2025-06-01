@@ -168,6 +168,10 @@ class UnifiedDocumentService(
 
         // Zapisanie zaktualizowanego dokumentu
         val savedDocument = documentRepository.save(completeDocument)
+
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        updateBalanceForDocument(savedDocument, companyId)
+
         logger.info("Updated document with ID: {}", savedDocument.id.value)
 
         return savedDocument

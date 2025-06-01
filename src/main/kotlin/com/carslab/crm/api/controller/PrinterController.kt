@@ -27,10 +27,6 @@ class PrinterController(private val pdfService: PdfService) {
             println("$headerName: ${request.getHeader(headerName)}")
         }
 
-        // Ustaw ręcznie nagłówki CORS
-        response.setHeader("Access-Control-Allow-Credentials", "true")
-        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition, Content-Type")
-
         val pdfBytes = pdfService.generatePdf(id)
         val resource = ByteArrayResource(pdfBytes)
 
