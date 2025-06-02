@@ -1,107 +1,139 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
 import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.domain.model.stats.ClientStats
-import com.carslab.crm.domain.model.stats.VehicleStats
+import com.carslab.crm.clients.domain.model.ClientStatistics
 import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
-import com.carslab.crm.infrastructure.persistence.entity.ClientStatisticsEntity
-import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.entity.VehicleStatisticsEntity
+import com.carslab.crm.clients.infrastructure.persistence.entity.ClientStatisticsEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientStatisticsJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
-import org.springframework.security.core.context.SecurityContextHolder
+import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
-
+import java.time.LocalDateTime
 
 @Repository
-class JpaClientStatisticsRepositoryAdapter(
+class ClientStatisticsRepositoryAdapter(
     private val clientStatisticsJpaRepository: ClientStatisticsJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository
+    private val clientJpaRepository: ClientJpaRepository,
+    private val securityContext: SecurityContext
 ) : ClientStatisticsRepository {
 
-    override fun save(client: ClientStats): ClientStats {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun save(statistics: ClientStatistics): ClientStatistics {
+        val companyId = securityContext.getCurrentCompanyId()
 
-        val clientEntity = clientJpaRepository.findByCompanyIdAndId(companyId, client.clientId)
+        // Verify client exists and belongs to company
+        val clientEntity = clientJpaRepository.findByIdAndCompanyId(statistics.clientId, companyId)
             .orElse(null) ?: throw IllegalStateException("Client not found or access denied")
 
-        val entity = if (clientStatisticsJpaRepository.existsById(client.clientId)) {
-            val existingEntity = clientStatisticsJpaRepository.findByClientIdAndCompanyId(client.clientId, companyId).get()
-
-            if (clientEntity.companyId != companyId) {
-                throw IllegalArgumentException("Access denied to statistics for this client")
-            }
-
-            existingEntity.visitNo = client.visitNo
-            existingEntity.gmv = client.gmv
-            existingEntity.vehiclesNo = client.vehiclesNo
+        val entity = if (clientStatisticsJpaRepository.existsById(statistics.clientId)) {
+            val existingEntity = clientStatisticsJpaRepository.findByClientId(statistics.clientId).get()
+            existingEntity.visitNo = statistics.visitCount
+            existingEntity.gmv = statistics.totalRevenue
+            existingEntity.vehiclesNo = statistics.vehicleCount
             existingEntity
         } else {
-            ClientStatisticsEntity.fromDomain(client)
+            ClientStatisticsEntity.fromDomain(statistics)
         }
 
         val savedEntity = clientStatisticsJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
 
-    override fun findById(id: ClientId): ClientStats? {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun findByClientId(clientId: ClientId): ClientStatistics? {
+        val companyId = securityContext.getCurrentCompanyId()
 
-        val clientEntity = clientJpaRepository.findByCompanyIdAndId(companyId, id.value)
+        // Verify client exists and belongs to company
+        val clientEntity = clientJpaRepository.findByIdAndCompanyId(clientId.value, companyId)
             .orElse(null) ?: return null
 
-        return clientStatisticsJpaRepository.findById(id.value)
+        return clientStatisticsJpaRepository.findByClientId(clientId.value)
             .map { it.toDomain() }
             .orElse(null)
+    }
+
+    override fun updateVisitCount(clientId: ClientId, increment: Long) {
+        clientStatisticsJpaRepository.updateVisitCount(clientId.value, increment, LocalDateTime.now())
+    }
+
+    override fun updateRevenue(clientId: ClientId, amount: BigDecimal) {
+        clientStatisticsJpaRepository.updateRevenue(clientId.value, amount, LocalDateTime.now())
+    }
+
+    override fun updateVehicleCount(clientId: ClientId, increment: Long) {
+        clientStatisticsJpaRepository.updateVehicleCount(clientId.value, increment, LocalDateTime.now())
+    }
+
+    override fun recalculateStatistics(clientId: ClientId): ClientStatistics {
+        // Implementation for recalculating statistics
+        // This would involve aggregating data from visits, vehicles, etc.
+        val currentStats = findByClientId(clientId) ?: ClientStatistics(clientId = clientId.value)
+        return save(currentStats)
+    }
+
+    override fun deleteByClientId(clientId: ClientId): Boolean {
+        val deleted = clientStatisticsJpaRepository.deleteByClientId(clientId.value)
+        return deleted > 0
     }
 }
 
 @Repository
-class JpaVehicleStatisticsRepositoryAdapter(
-    private val vehicleStatisticsJpaRepository: VehicleStatisticsJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository
-) : VehicleStatisticsRepository {
+class ClientStatisticsRepositoryAdapter(
+    private val clientStatisticsJpaRepository: ClientStatisticsJpaRepository,
+    private val clientJpaRepository: ClientJpaRepository,
+    private val securityContext: SecurityContext
+) : ClientStatisticsRepository {
 
-    override fun save(vehicleStats: VehicleStats): VehicleStats {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun save(statistics: ClientStatistics): ClientStatistics {
+        val companyId = securityContext.getCurrentCompanyId()
 
-        // Verify vehicle belongs to current company
-        val vehicleEntity = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleStats.vehicleId)
-            .orElse(null) ?: throw IllegalStateException("Vehicle not found or access denied")
+        // Verify client exists and belongs to company
+        val clientEntity = clientJpaRepository.findByIdAndCompanyId(statistics.clientId, companyId)
+            .orElse(null) ?: throw IllegalStateException("Client not found or access denied")
 
-        val entity = if (vehicleStatisticsJpaRepository.existsById(vehicleStats.vehicleId)) {
-            val existingEntity = vehicleStatisticsJpaRepository.findByVehicleIdAndCompanyId(vehicleStats.vehicleId, companyId).get()
-
-            // Verify the vehicle of the statistics belongs to current company
-            if (vehicleEntity.companyId != companyId) {
-                throw IllegalArgumentException("Access denied to statistics for this vehicle")
-            }
-
-            existingEntity.visitNo = vehicleStats.visitNo
-            existingEntity.gmv = vehicleStats.gmv
+        val entity = if (clientStatisticsJpaRepository.existsById(statistics.clientId)) {
+            val existingEntity = clientStatisticsJpaRepository.findByClientId(statistics.clientId).get()
+            existingEntity.visitNo = statistics.visitCount
+            existingEntity.gmv = statistics.totalRevenue
+            existingEntity.vehiclesNo = statistics.vehicleCount
             existingEntity
         } else {
-            VehicleStatisticsEntity.fromDomain(vehicleStats)
+            ClientStatisticsEntity.fromDomain(statistics)
         }
 
-        val savedEntity = vehicleStatisticsJpaRepository.save(entity)
+        val savedEntity = clientStatisticsJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
 
-    override fun findById(id: VehicleId): VehicleStats {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun findByClientId(clientId: ClientId): ClientStatistics? {
+        val companyId = securityContext.getCurrentCompanyId()
 
-        // First check if vehicle exists and belongs to company
-        val vehicleEntity = vehicleJpaRepository.findByCompanyIdAndId(companyId, id.value)
-            .orElse(null) ?: return VehicleStats(id.value, 0, BigDecimal.ZERO)
+        // Verify client exists and belongs to company
+        val clientEntity = clientJpaRepository.findByIdAndCompanyId(clientId.value, companyId)
+            .orElse(null) ?: return null
 
-        return vehicleStatisticsJpaRepository.findById(id.value)
+        return clientStatisticsJpaRepository.findByClientId(clientId.value)
             .map { it.toDomain() }
-            .orElse(VehicleStats(id.value, 0, BigDecimal.ZERO))
+    }
+
+    override fun updateVisitCount(clientId: ClientId, increment: Long) {
+        clientStatisticsJpaRepository.updateVisitCount(clientId.value, increment, LocalDateTime.now())
+    }
+
+    override fun updateRevenue(clientId: ClientId, amount: BigDecimal) {
+        clientStatisticsJpaRepository.updateRevenue(clientId.value, amount, LocalDateTime.now())
+    }
+
+    override fun updateVehicleCount(clientId: ClientId, increment: Long) {
+        clientStatisticsJpaRepository.updateVehicleCount(clientId.value, increment, LocalDateTime.now())
+    }
+
+    override fun recalculateStatistics(clientId: ClientId): ClientStatistics {
+        val currentStats = findByClientId(clientId) ?: ClientStatistics(clientId = clientId.value)
+        return save(currentStats)
+    }
+
+    override fun deleteByClientId(clientId: ClientId): Boolean {
+        val deleted = clientStatisticsJpaRepository.deleteByClientId(clientId.value)
+        return deleted > 0
     }
 }

@@ -1,14 +1,13 @@
 package com.carslab.crm.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.api.mapper.ContactAttemptMapper
+import com.carslab.crm.clients.api.mapper.ContactAttemptMapper
 import com.carslab.crm.api.model.commands.CreateClientCommand
 import com.carslab.crm.api.model.request.ClientRequest
 import com.carslab.crm.api.model.request.ContactAttemptRequest
 import com.carslab.crm.api.model.response.*
-import com.carslab.crm.clients.domain.model.ClientApplicationService
-import com.carslab.crm.clients.domain.model.CreateClientRequest
-import com.carslab.crm.clients.domain.model.UpdateClientRequest
+import com.carslab.crm.clients.domain.ClientApplicationService
+import com.carslab.crm.clients.domain.CreateClientRequest
 import com.carslab.crm.domain.model.ContactAttemptId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.util.ValidationUtils

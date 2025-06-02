@@ -7,6 +7,8 @@ import com.carslab.crm.api.model.response.VehicleOwnerResponse
 import com.carslab.crm.api.model.request.VehicleRequest
 import com.carslab.crm.api.model.response.VehicleResponse
 import com.carslab.crm.api.model.response.VehicleStatisticsResponse
+import com.carslab.crm.clients.domain.ClientApplicationService
+import com.carslab.crm.clients.domain.CreateVehicleRequest
 import com.carslab.crm.clients.domain.model.ClientApplicationService
 import com.carslab.crm.clients.domain.model.CreateVehicleRequest
 import com.carslab.crm.clients.domain.model.UpdateVehicleRequest

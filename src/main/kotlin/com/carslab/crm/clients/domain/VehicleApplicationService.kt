@@ -41,7 +41,7 @@ class VehicleApplicationService(
             request.ownerIds.forEach { ownerId ->
                 try {
                     associationService.associateClientWithVehicle(
-                        ClientId.Companion.of(ownerId),
+                        ClientId.of(ownerId),
                         vehicle.id,
                         VehicleRelationshipType.OWNER,
                         isPrimary = request.ownerIds.size == 1
@@ -79,7 +79,7 @@ class VehicleApplicationService(
                 mileage = request.mileage
             )
 
-            val vehicle = vehicleDomainService.updateVehicle(VehicleId.Companion.of(id), command)
+            val vehicle = vehicleDomainService.updateVehicle(VehicleId.of(id), command)
 
             logger.info("Successfully updated vehicle with ID: $id")
             return VehicleResponse.from(vehicle)
@@ -96,10 +96,10 @@ class VehicleApplicationService(
     fun getVehicleById(id: Long): VehicleDetailResponse? {
         logger.debug("Getting vehicle by ID: $id")
 
-        val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(VehicleId.Companion.of(id))
+        val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(VehicleId.of(id))
             ?: return null
 
-        val owners = associationService.getVehicleOwners(VehicleId.Companion.of(id))
+        val owners = associationService.getVehicleOwners(VehicleId.of(id))
 
         return VehicleDetailResponse.from(vehicleWithStats, owners)
     }
@@ -130,7 +130,7 @@ class VehicleApplicationService(
     fun deleteVehicle(id: Long): Boolean {
         logger.info("Deleting vehicle with ID: $id")
 
-        val deleted = vehicleDomainService.deleteVehicle(VehicleId.Companion.of(id))
+        val deleted = vehicleDomainService.deleteVehicle(VehicleId.of(id))
 
         if (deleted) {
             logger.info("Successfully deleted vehicle with ID: $id")
@@ -146,8 +146,8 @@ class VehicleApplicationService(
 
         try {
             associationService.associateClientWithVehicle(
-                ClientId.Companion.of(clientId),
-                VehicleId.Companion.of(vehicleId),
+                ClientId.of(clientId),
+                VehicleId.of(vehicleId),
                 VehicleRelationshipType.OWNER
             )
             return true
@@ -161,8 +161,8 @@ class VehicleApplicationService(
         logger.info("Removing owner $clientId from vehicle $vehicleId")
 
         return associationService.removeAssociation(
-            ClientId.Companion.of(clientId),
-            VehicleId.Companion.of(vehicleId)
+            ClientId.of(clientId),
+            VehicleId.of(vehicleId)
         )
     }
 
