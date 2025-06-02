@@ -1,15 +1,15 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
+import com.carslab.crm.clients.infrastructure.persistence.entity.ClientEntity
+import com.carslab.crm.clients.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
-import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
@@ -38,10 +38,10 @@ class JpaCarReceptionRepositoryAdapter(
             ?: throw IllegalStateException("Client ID is required")
 
         // Sprawdzamy, czy encje istnieją i należą do tej samej firmy
-        val vehicle = vehicleJpaRepository.findByCompanyIdAndId(companyId, vehicleId)
+        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
             .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
 
-        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId)
+        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id  = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         val protocolEntity = ProtocolEntity(
@@ -81,7 +81,7 @@ class JpaCarReceptionRepositoryAdapter(
         val clientId = protocol.client.id
             ?: throw IllegalStateException("Client ID is required")
 
-        val client = clientJpaRepository.findByCompanyIdAndId(companyId, clientId)
+        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         // Sprawdź, czy protokół istnieje
@@ -111,7 +111,7 @@ class JpaCarReceptionRepositoryAdapter(
                 id = protocol.id.value.toLong(),
                 companyId = companyId,
                 title = protocol.title,
-                vehicleId = vehicle.id!!,
+                vehicleId = vehicle.get().id!!,
                 clientId = clientId,
                 startDate = protocol.period.startDate,
                 endDate = protocol.period.endDate,

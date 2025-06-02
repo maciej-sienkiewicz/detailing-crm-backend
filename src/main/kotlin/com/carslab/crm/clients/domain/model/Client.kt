@@ -2,7 +2,6 @@ package com.carslab.crm.clients.domain.model
 
 import com.carslab.crm.clients.domain.model.shared.AuditInfo
 import com.carslab.crm.domain.model.events.ClientEvent
-import com.carslab.crm.domain.model.shared.AuditInfo
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -68,11 +67,9 @@ data class ClientStatistics(
     val lastVisitDate: LocalDateTime? = null
 )
 
-
-/**
- * Informacje audytowe dla klienta.
- */
-data class ClientAudit(
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+data class ClientSummary(
+    val id: ClientId,
+    val fullName: String,
+    val email: String,
+    val phone: String
 )

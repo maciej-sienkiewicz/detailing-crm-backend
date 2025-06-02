@@ -2,9 +2,13 @@ package com.carslab.crm.infrastructure.config
 
 import com.carslab.crm.clients.domain.port.ClientRepository
 import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
 import com.carslab.crm.clients.domain.port.ClientVehicleRepository
 import com.carslab.crm.clients.domain.port.VehicleRepository
 import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.clients.infrastructure.persistence.adapter.ClientVehicleAssociationRepositoryAdapter
+import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleRepositoryAdapter
+import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleStatisticsRepositoryAdapter
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
@@ -15,16 +19,16 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 
 @Configuration
-@EnableJpaRepositories(basePackages = ["com.carslab.crm.infrastructure.persistence.repository", "com.carslab.crm.audit.repository", "com.carslab.crm.signature.infrastructure.persistance.repository"])
+@EnableJpaRepositories(basePackages = ["com.carslab.crm.infrastructure.persistence.repository", "com.carslab.crm.audit.repository", "com.carslab.crm.signature.infrastructure.persistance.repository", "com.carslab.crm.clients.infrastructure.persistance"])
 class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientRepository(adapter: JpaClientRepositoryAdapter): ClientRepository = adapter
+    fun clientRepository(adapter: ClientRepositoryAdapter): ClientRepository = adapter
 
     @Bean
     @Primary
-    fun vehicleRepository(adapter: JpaVehicleRepositoryAdapter): VehicleRepository = adapter
+    fun vehicleRepository(adapter: VehicleRepositoryAdapter): VehicleRepository = adapter
 
     @Bean
     @Primary
@@ -44,11 +48,11 @@ class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientStatisticsRepository(adapter: JpaClientStatisticsRepositoryAdapter): ClientStatisticsRepository = adapter
+    fun clientStatisticsRepository(adapter: ClientStatisticsRepositoryAdapter): ClientStatisticsRepository = adapter
 
     @Bean
     @Primary
-    fun vehicleStatisticsRepository(adapter: JpaVehicleStatisticsRepositoryAdapter): VehicleStatisticsRepository = adapter
+    fun vehicleStatisticsRepository(adapter: VehicleStatisticsRepositoryAdapter): VehicleStatisticsRepository = adapter
 
     @Bean
     @Primary
@@ -56,7 +60,7 @@ class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientVehicleRepository(adapter: JpaClientVehicleRepositoryAdapter): ClientVehicleRepository = adapter
+    fun clientVehicleRepository(adapter: ClientVehicleAssociationRepositoryAdapter): ClientVehicleAssociationRepository = adapter
 
     @Bean
     @Primary

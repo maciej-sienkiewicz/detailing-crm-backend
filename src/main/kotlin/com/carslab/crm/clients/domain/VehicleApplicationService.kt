@@ -1,12 +1,14 @@
 package com.carslab.crm.clients.domain
 
-import com.carslab.crm.api.model.commands.CreateVehicleCommand
-import com.carslab.crm.api.model.commands.UpdateVehicleCommand
-import com.carslab.crm.api.model.response.VehicleResponse
+import com.carslab.crm.clients.api.CreateVehicleCommand
+import com.carslab.crm.clients.api.UpdateVehicleCommand
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.clients.domain.port.VehicleSearchCriteria
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +21,7 @@ class VehicleApplicationService(
 ) {
     private val logger = LoggerFactory.getLogger(VehicleApplicationService::class.java)
 
-    fun createVehicle(request: CreateVehicleRequest): VehicleResponse {
+    fun createVehicle(request: CreateVehicleRequest): VehicleDetailResponse {
         logger.info("Creating vehicle: ${request.make} ${request.model} (${request.licensePlate})")
 
         try {
@@ -28,11 +30,12 @@ class VehicleApplicationService(
             val command = CreateVehicleCommand(
                 make = request.make,
                 model = request.model,
-                year = request.year,
+                year = request.year ?: 2024, // Default year if null
                 licensePlate = request.licensePlate,
                 color = request.color,
                 vin = request.vin,
-                mileage = request.mileage
+                mileage = request.mileage,
+                ownerIds = request.ownerIds.map { it.toString() }
             )
 
             val vehicle = vehicleDomainService.createVehicle(command)
@@ -53,7 +56,12 @@ class VehicleApplicationService(
             }
 
             logger.info("Successfully created vehicle with ID: ${vehicle.id.value}")
-            return VehicleResponse.from(vehicle)
+
+            // Get vehicle with statistics and owners
+            val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+            val owners = associationService.getVehicleOwners(vehicle.id)
+
+            return VehicleDetailResponse.from(vehicleWithStats, owners)
         } catch (e: DomainException) {
             logger.error("Failed to create vehicle: ${e.message}")
             throw e
@@ -63,7 +71,7 @@ class VehicleApplicationService(
         }
     }
 
-    fun updateVehicle(id: Long, request: UpdateVehicleRequest): VehicleResponse {
+    fun updateVehicle(id: Long, request: UpdateVehicleRequest): VehicleDetailResponse {
         logger.info("Updating vehicle with ID: $id")
 
         try {
@@ -72,7 +80,7 @@ class VehicleApplicationService(
             val command = UpdateVehicleCommand(
                 make = request.make,
                 model = request.model,
-                year = request.year,
+                year = request.year ?: 2024, // Default year if null
                 licensePlate = request.licensePlate,
                 color = request.color,
                 vin = request.vin,
@@ -82,7 +90,12 @@ class VehicleApplicationService(
             val vehicle = vehicleDomainService.updateVehicle(VehicleId.of(id), command)
 
             logger.info("Successfully updated vehicle with ID: $id")
-            return VehicleResponse.from(vehicle)
+
+            // Get vehicle with statistics and owners
+            val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+            val owners = associationService.getVehicleOwners(vehicle.id)
+
+            return VehicleDetailResponse.from(vehicleWithStats, owners)
         } catch (e: DomainException) {
             logger.error("Failed to update vehicle $id: ${e.message}")
             throw e
@@ -112,7 +125,7 @@ class VehicleApplicationService(
         vin: String? = null,
         year: Int? = null,
         pageable: Pageable
-    ): Page<VehicleResponse> {
+    ): Page<VehicleDetailResponse> {
         logger.debug("Searching vehicles with criteria")
 
         val criteria = VehicleSearchCriteria(
@@ -124,7 +137,11 @@ class VehicleApplicationService(
         )
 
         return vehicleDomainService.searchVehicles(criteria, pageable)
-            .map { VehicleResponse.from(it) }
+            .map { vehicle ->
+                val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+                val owners = associationService.getVehicleOwners(vehicle.id)
+                VehicleDetailResponse.from(vehicleWithStats, owners)
+            }
     }
 
     fun deleteVehicle(id: Long): Boolean {

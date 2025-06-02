@@ -14,7 +14,7 @@ data class CarReceptionProtocol(
     val title: String,
     val calendarColorId: CalendarColorId,
     val vehicle: VehicleDetails,
-    val client: Client,
+    val client: ClientDetails,
     val period: ServicePeriod,
     val status: ProtocolStatus,
     val protocolServices: List<ProtocolService>,
@@ -61,7 +61,7 @@ data class VehicleDetails(
 /**
  * Informacje o kliencie.
  */
-data class Client(
+data class ClientDetails(
     val id: Long? = null,
     val name: String,
     val email: String? = null,

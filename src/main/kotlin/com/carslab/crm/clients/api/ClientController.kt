@@ -1,18 +1,18 @@
 package com.carslab.crm.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.clients.api.mapper.ContactAttemptMapper
-import com.carslab.crm.api.model.commands.CreateClientCommand
-import com.carslab.crm.api.model.request.ClientRequest
-import com.carslab.crm.api.model.request.ContactAttemptRequest
-import com.carslab.crm.api.model.response.*
 import com.carslab.crm.clients.domain.ClientApplicationService
 import com.carslab.crm.clients.domain.CreateClientRequest
-import com.carslab.crm.domain.model.ContactAttemptId
+import com.carslab.crm.clients.domain.UpdateClientRequest
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.util.ValidationUtils
-import com.carslab.crm.presentation.mapper.ClientMapper
-import com.carslab.crm.presentation.mapper.VehicleMapper
+import com.carslab.crm.clients.api.mapper.ClientMapper
+import com.carslab.crm.clients.api.mapper.VehicleMapper
+import com.carslab.crm.clients.api.requests.ClientRequest
+import com.carslab.crm.clients.api.responses.ClientExpandedResponse
+import com.carslab.crm.clients.api.responses.ClientResponse
+import com.carslab.crm.clients.api.responses.ClientStatisticsResponse
+import com.carslab.crm.clients.api.responses.VehicleResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -21,6 +21,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
+@RestController
 @RequestMapping("/api/clients")
 @Tag(name = "Clients", description = "Client management endpoints")
 class ClientController(
@@ -173,41 +174,6 @@ class ClientController(
         }
     }
 
-    @PostMapping("/contact-attempts")
-    @Operation(summary = "Create a contact attempt", description = "Records a new contact attempt for a client")
-    fun createContactAttempt(@Valid @RequestBody request: ContactAttemptRequest): ResponseEntity<ContactAttemptResponse> {
-        logger.info("Received request to create new contact attempt for client: ${request.clientId}")
-
-        try {
-            ValidationUtils.validateNotBlank(request.clientId, "Client ID")
-            ValidationUtils.validateNotBlank(request.type, "Contact type")
-            ValidationUtils.validateNotBlank(request.description, "Description")
-            ValidationUtils.validateNotBlank(request.result, "Result")
-
-            val domainContactAttempt = ContactAttemptMapper.toDomain(request)
-            val createdContactAttempt = clientFacade.createContactAttempt(domainContactAttempt)
-            val response = ContactAttemptMapper.toResponse(createdContactAttempt)
-
-            logger.info("Successfully created contact attempt with ID: ${response.id}")
-            return created(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error creating contact attempt", e)
-        }
-    }
-
-    @GetMapping("/{clientId}/contact-attempts")
-    @Operation(summary = "Get client contact attempts", description = "Retrieves all contact attempts for a specific client")
-    fun getContactAttemptsByClientId(
-        @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
-    ): ResponseEntity<List<ContactAttemptResponse>> {
-        logger.info("Getting contact attempts for client: $clientId")
-
-        val contactAttempts = clientFacade.getContactAttemptsByClientId(clientId)
-        val response = contactAttempts.map { ContactAttemptMapper.toResponse(it) }
-
-        return ok(response)
-    }
-
     @GetMapping("/{clientId}/statistics")
     @Operation(summary = "Get client statistics", description = "Retrieves statistical information about a client")
     fun getStatistics(
@@ -218,11 +184,13 @@ class ClientController(
         val clientWithStats = clientApplicationService.getClientById(clientId.toLong())
             ?: throw ResourceNotFoundException("Client", clientId.toLong())
 
-        return ok(ClientStatisticsResponse(
-            totalVisits = clientWithStats.statistics.visitCount,
-            totalRevenue = clientWithStats.statistics.totalRevenue,
-            vehicleNo = clientWithStats.statistics.vehicleCount
-        ))
+        return ok(
+            ClientStatisticsResponse(
+                totalVisits = clientWithStats.statistics.visitCount,
+                totalRevenue = clientWithStats.statistics.totalRevenue,
+                vehicleNo = clientWithStats.statistics.vehicleCount
+            )
+        )
     }
 
     @GetMapping("/{clientId}/vehicles")
@@ -236,60 +204,5 @@ class ClientController(
             ?: throw ResourceNotFoundException("Client", clientId.toLong())
 
         return ok(clientWithDetails.vehicles.map { VehicleMapper.toResponse(it) })
-    }
-
-    @PutMapping("/contact-attempts/{id}")
-    @Operation(summary = "Update a contact attempt", description = "Updates an existing contact attempt")
-    fun updateContactAttempt(
-        @Parameter(description = "Contact attempt ID", required = true) @PathVariable id: String,
-        @Valid @RequestBody request: ContactAttemptRequest
-    ): ResponseEntity<ContactAttemptResponse> {
-        logger.info("Updating contact attempt with ID: $id")
-
-        val existingContactAttempt = findResourceById(
-            id,
-            clientFacade.getContactAttemptById(ContactAttemptId(id)),
-            "Contact attempt"
-        )
-
-        try {
-            ValidationUtils.validateNotBlank(request.clientId, "Client ID")
-            ValidationUtils.validateNotBlank(request.type, "Contact type")
-            ValidationUtils.validateNotBlank(request.description, "Description")
-            ValidationUtils.validateNotBlank(request.result, "Result")
-
-            val requestWithId = request.apply { this.id = id }
-            val domainContactAttempt = ContactAttemptMapper.toDomain(requestWithId).copy(
-                audit = existingContactAttempt.audit.copy(
-                    createdAt = existingContactAttempt.audit.createdAt
-                )
-            )
-
-            val updatedContactAttempt = clientFacade.updateContactAttempt(domainContactAttempt)
-            val response = ContactAttemptMapper.toResponse(updatedContactAttempt)
-
-            logger.info("Successfully updated contact attempt with ID: $id")
-            return ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating contact attempt with ID: $id", e)
-        }
-    }
-
-    @DeleteMapping("/contact-attempts/{id}")
-    @Operation(summary = "Delete a contact attempt", description = "Deletes a contact attempt by its ID")
-    fun deleteContactAttempt(
-        @Parameter(description = "Contact attempt ID", required = true) @PathVariable id: String
-    ): ResponseEntity<Map<String, Any>> {
-        logger.info("Deleting contact attempt with ID: $id")
-
-        val deleted = clientFacade.deleteContactAttempt(ContactAttemptId(id))
-
-        return if (deleted) {
-            logger.info("Successfully deleted contact attempt with ID: $id")
-            ok(createSuccessResponse("Contact attempt successfully deleted", mapOf("contactAttemptId" to id)))
-        } else {
-            logger.warn("Contact attempt with ID: $id not found for deletion")
-            throw ResourceNotFoundException("Contact attempt", id)
-        }
     }
 }

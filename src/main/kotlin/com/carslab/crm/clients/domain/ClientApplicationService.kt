@@ -1,7 +1,7 @@
 package com.carslab.crm.clients.domain
 
-import com.carslab.crm.api.model.commands.CreateClientCommand
-import com.carslab.crm.api.model.commands.UpdateClientCommand
+import com.carslab.crm.clients.api.CreateClientCommand
+import com.carslab.crm.clients.api.UpdateClientCommand
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
@@ -29,7 +29,7 @@ class ClientApplicationService(
 ) {
     private val logger = LoggerFactory.getLogger(ClientApplicationService::class.java)
 
-    fun createClient(request: CreateClientRequest): ClientResponse {
+    fun createClient(request: CreateClientRequest): ClientDetailResponse {
         logger.info("Creating client: ${request.firstName} ${request.lastName}")
 
         try {
@@ -49,7 +49,12 @@ class ClientApplicationService(
             val client = clientDomainService.createClient(command)
 
             logger.info("Successfully created client with ID: ${client.id.value}")
-            return ClientResponse.from(client)
+
+            // Get client with statistics and vehicles
+            val clientWithStats = clientDomainService.getClientWithStatistics(client.id)!!
+            val vehicles = associationService.getClientVehicles(client.id)
+
+            return ClientDetailResponse.from(clientWithStats, vehicles)
         } catch (e: DomainException) {
             logger.error("Failed to create client: ${e.message}")
             throw e
@@ -59,13 +64,14 @@ class ClientApplicationService(
         }
     }
 
-    fun updateClient(id: Long, request: UpdateClientRequest): ClientResponse {
+    fun updateClient(id: Long, request: UpdateClientRequest): ClientDetailResponse {
         logger.info("Updating client with ID: $id")
 
         try {
             validateUpdateClientRequest(request)
 
             val command = UpdateClientCommand(
+                id = id.toString(),
                 firstName = request.firstName,
                 lastName = request.lastName,
                 email = request.email,
@@ -79,7 +85,12 @@ class ClientApplicationService(
             val client = clientDomainService.updateClient(ClientId.of(id), command)
 
             logger.info("Successfully updated client with ID: $id")
-            return ClientResponse.from(client)
+
+            // Get client with statistics and vehicles
+            val clientWithStats = clientDomainService.getClientWithStatistics(client.id)!!
+            val vehicles = associationService.getClientVehicles(client.id)
+
+            return ClientDetailResponse.from(clientWithStats, vehicles)
         } catch (e: DomainException) {
             logger.error("Failed to update client $id: ${e.message}")
             throw e
@@ -108,7 +119,7 @@ class ClientApplicationService(
         phone: String? = null,
         company: String? = null,
         pageable: Pageable
-    ): Page<ClientResponse> {
+    ): Page<ClientDetailResponse> {
         logger.debug("Searching clients with criteria")
 
         val criteria = ClientSearchCriteria(
@@ -119,7 +130,14 @@ class ClientApplicationService(
         )
 
         return clientDomainService.searchClients(criteria, pageable)
-            .map { ClientResponse.from(it) }
+            .map { client ->
+                val clientWithStats = ClientWithStatistics(
+                    client = client,
+                    statistics = ClientStatistics(clientId = client.id.value)
+                )
+                val vehicles = associationService.getClientVehicles(client.id)
+                ClientDetailResponse.from(clientWithStats, vehicles)
+            }
     }
 
     fun deleteClient(id: Long): Boolean {

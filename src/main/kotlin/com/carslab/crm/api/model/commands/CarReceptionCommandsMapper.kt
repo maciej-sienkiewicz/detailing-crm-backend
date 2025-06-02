@@ -184,7 +184,7 @@ object CarReceptionDtoMapper {
                 mileage = command.mileage,
                 color = command.color
             ),
-            client = Client(
+            client = ClientDetails(
                 id = command.ownerId,
                 name = command.ownerName,
                 email = command.email,

@@ -3,7 +3,7 @@ package com.carslab.crm.clients.infrastructure.persistence.entity
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.clients.domain.model.VehicleServiceInfo
-import com.carslab.crm.domain.model.shared.AuditInfo
+import com.carslab.crm.clients.domain.model.shared.AuditInfo
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
 import org.hibernate.annotations.CacheConcurrencyStrategy
@@ -21,7 +21,6 @@ import java.time.LocalDateTime
         Index(name = "idx_vehicle_make_model", columnList = "make, model")
     ]
 )
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 class VehicleEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

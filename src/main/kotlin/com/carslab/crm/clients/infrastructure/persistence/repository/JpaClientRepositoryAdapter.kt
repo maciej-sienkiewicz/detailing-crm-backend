@@ -4,7 +4,7 @@ import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.clients.domain.port.ClientRepository
 import com.carslab.crm.clients.domain.port.ClientSearchCriteria
-import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
+import com.carslab.crm.clients.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.data.domain.Page

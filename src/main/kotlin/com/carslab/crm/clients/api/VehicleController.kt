@@ -1,22 +1,19 @@
 package com.carslab.crm.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.api.model.request.ServiceHistoryRequest
-import com.carslab.crm.api.model.response.ServiceHistoryResponse
-import com.carslab.crm.api.model.response.VehicleOwnerResponse
-import com.carslab.crm.api.model.request.VehicleRequest
-import com.carslab.crm.api.model.response.VehicleResponse
-import com.carslab.crm.api.model.response.VehicleStatisticsResponse
+import com.carslab.crm.clients.api.mapper.VehicleMapper
+import com.carslab.crm.clients.api.requests.*
+import com.carslab.crm.clients.api.responses.ServiceHistoryResponse
+import com.carslab.crm.clients.api.responses.VehicleOwnerResponse
+import com.carslab.crm.clients.api.responses.VehicleResponse
+import com.carslab.crm.clients.api.responses.VehicleStatisticsResponse
 import com.carslab.crm.clients.domain.ClientApplicationService
 import com.carslab.crm.clients.domain.CreateVehicleRequest
-import com.carslab.crm.clients.domain.model.ClientApplicationService
-import com.carslab.crm.clients.domain.model.CreateVehicleRequest
-import com.carslab.crm.clients.domain.model.UpdateVehicleRequest
+import com.carslab.crm.clients.domain.UpdateVehicleRequest
 import com.carslab.crm.clients.domain.VehicleApplicationService
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.util.ValidationUtils
-import com.carslab.crm.presentation.mapper.VehicleMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -44,7 +41,6 @@ class VehicleController(
             ValidationUtils.validateNotBlank(request.make, "Make")
             ValidationUtils.validateNotBlank(request.model, "Model")
             ValidationUtils.validateNotBlank(request.licensePlate, "License plate")
-            ValidationUtils.validateInRange(request.year, 1900, 2100, "Year")
 
             if (request.ownerIds.isEmpty()) {
                 throw ValidationException("Vehicle must have at least one owner")
@@ -129,7 +125,8 @@ class VehicleController(
 
         val stats = VehicleStatisticsResponse(
             visitNo = vehicleDetail.statistics.visitCount,
-            gmv = vehicleDetail.statistics.totalRevenue
+            servicesNo = vehicleDetail.serviceInfo.totalServices,
+            totalRevenue = vehicleDetail.statistics.totalRevenue
         )
 
         return ok(stats)
@@ -162,7 +159,6 @@ class VehicleController(
             ValidationUtils.validateNotBlank(request.make, "Make")
             ValidationUtils.validateNotBlank(request.model, "Model")
             ValidationUtils.validateNotBlank(request.licensePlate, "License plate")
-            ValidationUtils.validateInRange(request.year, 1900, 2100, "Year")
 
             if (request.ownerIds.isEmpty()) {
                 throw ValidationException("Vehicle must have at least one owner")

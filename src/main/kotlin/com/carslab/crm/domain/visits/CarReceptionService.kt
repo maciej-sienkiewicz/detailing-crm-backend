@@ -8,7 +8,6 @@ import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.AuditInfo
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.clients.domain.model.Client
-import com.carslab.crm.domain.model.ClientDetails
 import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.domain.model.Documents
 import com.carslab.crm.domain.model.MediaItem
@@ -19,10 +18,8 @@ import com.carslab.crm.domain.model.ProtocolService
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.ReferralSource
 import com.carslab.crm.domain.model.UserId
-import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.domain.model.VehicleDetails
 import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolClientModel
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
@@ -42,9 +39,6 @@ import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
 import com.carslab.crm.finances.domain.ports.CashRepository
-import com.carslab.crm.clients.domain.port.ClientRepository
-import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.clients.domain.port.ClientVehicleRepository
 import com.carslab.crm.finances.domain.ports.InvoiceRepository
 import com.carslab.crm.domain.port.ProtocolCommentsRepository
 import com.carslab.crm.domain.port.ProtocolServicesRepository
@@ -55,6 +49,15 @@ import com.carslab.crm.domain.utils.EnhancedChangeTracker
 import com.carslab.crm.domain.utils.formatUserFriendlyEnhanced
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
+import com.carslab.crm.clients.domain.ClientApplicationService
+import com.carslab.crm.clients.domain.ClientDetailResponse
+import com.carslab.crm.clients.domain.VehicleApplicationService
+import com.carslab.crm.clients.domain.CreateClientRequest
+import com.carslab.crm.clients.domain.CreateVehicleRequest
+import com.carslab.crm.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.clients.domain.ClientVehicleAssociationService
+import com.carslab.crm.clients.domain.VehicleDetailResponse
+import com.carslab.crm.domain.model.ClientDetails
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -66,11 +69,9 @@ import java.time.LocalDateTime
 @Service
 class CarReceptionService(
     private val carReceptionRepository: CarReceptionRepository,
-    private val clientRepository: ClientRepository,
-    private val vehicleRepository: VehicleRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository,
-    private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val clientVehicleRepository: ClientVehicleRepository,
+    private val clientApplicationService: ClientApplicationService,
+    private val vehicleApplicationService: VehicleApplicationService,
+    private val clientVehicleAssociationService: ClientVehicleAssociationService,
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
     private val protocolCommentsRepository: ProtocolCommentsRepository,
@@ -85,25 +86,30 @@ class CarReceptionService(
 
         val client = findOrCreateClient(createProtocolCommand.client)
         val vehicle = findExistingVehicle(createProtocolCommand.vehicle) ?: createNewVehicle(createProtocolCommand.vehicle)
-            .also { initializeVehicleStatistics(it.id) }
 
-        if(!vehicle.ownerIds.contains(client.id.value)) {
-            clientVehicleRepository.newAssociation(vehicle.id, client.id)
-            incrementClientVehicles(client.id)
+        // Associate vehicle with client if not already associated
+        val existingAssociation = clientVehicleAssociationService.getClientVehicles(ClientId.of(client.id))
+            .any { it.id.value == vehicle.id }
+
+        if (!existingAssociation) {
+            clientVehicleAssociationService.associateClientWithVehicle(
+                ClientId.of(client.id),
+                VehicleId.of(vehicle.id),
+                VehicleRelationshipType.OWNER
+            )
         }
 
         val protocolWithFilledIds = createProtocolCommand.copy(
             client = createProtocolCommand.client.copy(
-                id = client.id.value.toString()
+                id = client.id.toString()
             ),
             vehicle = createProtocolCommand.vehicle.copy(
-                id = vehicle.id.value.toString()
+                id = vehicle.id.toString()
             )
         )
 
         val savedProtocolId = carReceptionRepository.save(protocolWithFilledIds)
         protocolServicesRepository.saveServices(createProtocolCommand.services, savedProtocolId)
-        updateStatisticsOnCreateComponent(protocolWithFilledIds)
 
         protocolCommentsRepository.save(
             ProtocolComment(
@@ -155,7 +161,6 @@ class CarReceptionService(
         )
 
         if (changeResult.hasChanges()) {
-            // Używamy ulepszonej wersji formatowania
             val friendlyFormatted = changeResult.formatUserFriendlyEnhanced(CarReceptionProtocol::class.java)
 
             protocolCommentsRepository.save(
@@ -168,7 +173,6 @@ class CarReceptionService(
                 )
             )
         }
-
 
         protocolServicesRepository.saveServices(
             services = updatedProtocol.protocolServices
@@ -234,8 +238,8 @@ class CarReceptionService(
         )
 
     private fun ProtocolView.enrichProtocol(): CarReceptionProtocol {
-        val vehicle = vehicleRepository.findById(vehicleId)
-        val client = clientRepository.findById(clientId)
+        val vehicleDetail = vehicleApplicationService.getVehicleById(vehicleId.value)
+        val clientDetail = clientApplicationService.getClientById(clientId.value)
         val services = protocolServicesRepository.findByProtocolId(id)
         val images = imageStorageService.getImagesByProtocol(id)
 
@@ -243,21 +247,21 @@ class CarReceptionService(
             id = id,
             title = title,
             vehicle = VehicleDetails(
-                make = vehicle?.make ?: "",
-                model = vehicle?.model ?: "",
-                licensePlate = vehicle?.licensePlate ?: "",
-                productionYear = vehicle?.year ?: 0,
-                vin = vehicle?.vin ?: "",
-                color = vehicle?.color ?: "",
-                mileage = vehicle?.mileage
+                make = vehicleDetail?.make ?: "",
+                model = vehicleDetail?.model ?: "",
+                licensePlate = vehicleDetail?.licensePlate ?: "",
+                productionYear = vehicleDetail?.year ?: 0,
+                vin = vehicleDetail?.vin ?: "",
+                color = vehicleDetail?.color ?: "",
+                mileage = vehicleDetail?.mileage
             ),
-            client = Client(
-                id = client?.id?.value,
-                name = "${client?.firstName} ${client?.lastName}",
-                email = client?.email,
-                phone = client?.phone,
-                companyName = client?.company,
-                taxId = client?.taxId
+            client = ClientDetails(
+                id = clientId.value,
+                name = clientDetail?.fullName ?: "",
+                email = clientDetail?.email ?: "",
+                phone = clientDetail?.phone ?: "",
+                companyName = clientDetail?.company,
+                taxId = clientDetail?.taxId
             ),
             period = period,
             status = status,
@@ -316,7 +320,6 @@ class CarReceptionService(
     ): List<CarReceptionProtocol> {
         logger.debug("Searching protocols with filters: clientName=$clientName, clientId=$clientId, licensePlate=$licensePlate, status=$status, startDate=$startDate, endDate=$endDate")
 
-        // Używamy zaktualizowanej metody w repozytorium
         val protocolViews = carReceptionRepository.searchProtocols(
             clientName = clientName,
             clientId = clientId,
@@ -347,10 +350,10 @@ class CarReceptionService(
         return imageStorageService.deleteFile(imageId, protocolId)
     }
 
-    private fun findOrCreateClient(clientData: CreateProtocolClientModel): ClientDetails {
+    private fun findOrCreateClient(clientData: CreateProtocolClientModel): ClientDetailResponse {
         // Jeśli klient ma ID, próbujemy go znaleźć
         if (clientData.id != null) {
-            clientRepository.findById(ClientId(clientData.id.toLong()))?.let {
+            clientApplicationService.getClientById(clientData.id.toLong())?.let {
                 logger.debug("Found existing client with ID: ${clientData.id}")
                 return it
             }
@@ -368,28 +371,27 @@ class CarReceptionService(
         return createNewClient(clientData)
     }
 
-    private fun findClientByContactInfo(client: Client): ClientDetails? {
-        if (client.email.isNullOrBlank() && client.phone.isNullOrBlank()) {
-            return null
-        }
-
-        return clientRepository.findClient(client)
-    }
-
-    private fun findClientByContactInfo(email: String?, phoneNumber: String?): ClientDetails? {
+    private fun findClientByContactInfo(email: String?, phoneNumber: String?): ClientDetailResponse? {
         if (email.isNullOrBlank() && phoneNumber.isNullOrBlank()) {
             return null
         }
 
-        return clientRepository.findClient(email, phoneNumber)
+        // Use search functionality to find client by email or phone
+        val searchResults = clientApplicationService.searchClients(
+            email = email,
+            phone = phoneNumber,
+            pageable = org.springframework.data.domain.PageRequest.of(0, 1)
+        )
+
+        return searchResults.content.firstOrNull()
     }
 
-    private fun createNewClient(client: CreateProtocolClientModel): ClientDetails {
+    private fun createNewClient(client: CreateProtocolClientModel): ClientDetailResponse {
         val nameParts = client.name.split(" ")
         val firstName = nameParts.getOrNull(0) ?: ""
         val lastName = if (nameParts.size > 1) nameParts.subList(1, nameParts.size).joinToString(" ") else ""
 
-        val newClient = CreateClientModel(
+        val newClientRequest = CreateClientRequest(
             firstName = firstName,
             lastName = lastName,
             email = client.email ?: "",
@@ -398,118 +400,37 @@ class CarReceptionService(
             taxId = client.taxId,
         )
 
-        val savedClient = clientRepository.save(newClient)
-
-        // Inicjalizacja statystyk klienta
-        initializeClientStatistics(savedClient.id)
-
-        return savedClient
+        return clientApplicationService.createClient(newClientRequest)
     }
 
-    private fun findExistingVehicle(protocol: CreateProtocolVehicleModel): Vehicle? {
-        return vehicleRepository.findByVinOrLicensePlate(
-            protocol.vin,
-            protocol.licensePlate
+    private fun findExistingVehicle(protocol: CreateProtocolVehicleModel): VehicleDetailResponse? {
+        val searchResults = vehicleApplicationService.searchVehicles(
+            licensePlate = protocol.licensePlate,
+            vin = protocol.vin,
+            pageable = org.springframework.data.domain.PageRequest.of(0, 1)
         )
+        return searchResults.content.firstOrNull()
     }
 
-    private fun createNewVehicle(vehicle: CreateProtocolVehicleModel): Vehicle {
-        val newVehicle = Vehicle(
-            id = VehicleId(0), // ID zostanie wygenerowane przez bazę danych
-            make = vehicle.brand,
-            model = vehicle.model,
+    private fun createNewVehicle(vehicle: CreateProtocolVehicleModel): VehicleDetailResponse {
+        val newVehicleRequest = CreateVehicleRequest(
+            make = vehicle.brand ?: "",
+            model = vehicle.model ?: "",
             year = vehicle.productionYear,
-            licensePlate = vehicle.licensePlate,
+            licensePlate = vehicle.licensePlate ?: "",
             color = vehicle.color,
             vin = vehicle.vin,
             mileage = vehicle.mileage,
-            ownerIds = emptySet(),
-            audit = Audit(
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            )
+            ownerIds = emptyList() // Will be associated separately
         )
-        return vehicleRepository.save(newVehicle)
-    }
 
-    private fun updateStatisticsOnCreateComponent(protocol: CreateProtocolRootModel) {
-        // Aktualizacja statystyk klienta
-        protocol.client.id?.let { clientId ->
-            val clientStats = clientStatisticsRepository.findById(ClientId(clientId.toLong()))
-                ?: ClientStats(clientId.toLong(), 0, "0".toBigDecimal(), 0)
-
-            val updatedClientStats = clientStats.copy(
-                visitNo = clientStats.visitNo + 1,
-            )
-
-            clientStatisticsRepository.save(updatedClientStats)
-        }
-
-        // Aktualizacja statystyk pojazdu
-        val vehicle = vehicleRepository.findByVinOrLicensePlate(protocol.vehicle.vin, protocol.vehicle.licensePlate)
-        vehicle?.let {
-            val vehicleStats = vehicleStatisticsRepository.findById(it.id)
-            val updatedStats = vehicleStats.copy(
-                visitNo = vehicleStats.visitNo + 1,
-            )
-
-            vehicleStatisticsRepository.save(updatedStats)
-        }
+        return vehicleApplicationService.createVehicle(newVehicleRequest)
     }
 
     private fun updateVisitsStatistics(protocol: CarReceptionProtocol) {
-        // Aktualizacja statystyk klienta
-        protocol.client.id?.let { clientId ->
-            val clientStats = clientStatisticsRepository.findById(ClientId(clientId))
-                ?: ClientStats(clientId, 0, "0".toBigDecimal(), 0)
-
-            val updatedClientStats = clientStats.copy(
-                gmv = clientStats.gmv + protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
-            )
-
-            clientStatisticsRepository.save(updatedClientStats)
-        }
-
-        // Aktualizacja statystyk pojazdu
-        val vehicle = vehicleRepository.findByVinOrLicensePlate(protocol.vehicle.vin, protocol.vehicle.licensePlate)
-        vehicle?.let {
-            val vehicleStats = vehicleStatisticsRepository.findById(it.id)
-            val updatedStats = vehicleStats.copy(
-                gmv = vehicleStats.gmv + protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
-            )
-
-            vehicleStatisticsRepository.save(updatedStats)
-        }
-    }
-
-    private fun initializeClientStatistics(clientId: ClientId) {
-        val stats = ClientStats(
-            clientId = clientId.value,
-            visitNo = 0,
-            gmv = "0".toBigDecimal(),
-            vehiclesNo = 0
-        )
-        clientStatisticsRepository.save(stats)
-    }
-
-    private fun initializeVehicleStatistics(vehicleId: VehicleId) {
-        val stats = VehicleStats(
-            vehicleId = vehicleId.value,
-            visitNo = 0,
-            gmv = "0".toBigDecimal()
-        )
-        vehicleStatisticsRepository.save(stats)
-    }
-
-    private fun incrementClientVehicles(clientId: ClientId) {
-        val clientStats = clientStatisticsRepository.findById(clientId)
-            ?: ClientStats(clientId.value, 0, "0".toBigDecimal(), 0)
-
-        val updatedStats = clientStats.copy(
-            vehiclesNo = clientStats.vehiclesNo + 1
-        )
-
-        clientStatisticsRepository.save(updatedStats)
+        // Statistics are automatically updated by the application services
+        // when protocols are completed
+        logger.debug("Statistics updated for completed protocol: ${protocol.id.value}")
     }
 
     fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {
@@ -561,65 +482,67 @@ class CarReceptionService(
         }
 
         if (releaseDetails.documentType == DocumentType.INVOICE) {
-            val gross = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
-                .sumOf { it.finalPrice.amount }.toBigDecimal()
-            val nett = gross / 1.23.toBigDecimal()
-            val totalTax = gross - nett
-            val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
-                .map {
-                    DocumentItem(
-                        name = it.name,
-                        description = it.note,
-                        quantity = 1.toBigDecimal(),
-                        unitPrice = it.finalPrice.amount.toBigDecimal(),
-                        taxRate = 23.toBigDecimal(),
-                        totalNet = it.finalPrice.amount.toBigDecimal() / 1.23.toBigDecimal(),
-                        totalGross = it.finalPrice.amount.toBigDecimal()
-                    )
-                }
-            unifiedDocumentRepository.save(
-                UnifiedFinancialDocument(
-                    id = UnifiedDocumentId.generate(),
-                    number = "",
-                    type = com.carslab.crm.api.model.DocumentType.INVOICE,
-                    title = "Faktura za wizytę",
-                    description = "",
-                    issuedDate = LocalDate.now(),
-                    dueDate = LocalDate.now().plusDays(14),
-                    sellerName = "Detailing Studio",
-                    sellerTaxId = "123456789",
-                    sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
-                    buyerName = existingProtocol.client.name,
-                    buyerTaxId = existingProtocol.client.taxId,
-                    buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
-                    status = DocumentStatus.NOT_PAID,
-                    direction = TransactionDirection.INCOME,
-                    paymentMethod = when (releaseDetails.paymentMethod) {
-                        PaymentMethod.CASH -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CASH
-                        PaymentMethod.CARD -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CARD
-                    },
-                    totalNet = nett,
-                    totalTax = totalTax,
-                    totalGross = gross,
-                    paidAmount = BigDecimal.ZERO,
-                    currency = "PLN",
-                    notes = "",
-                    protocolId = existingProtocol.id.value,
-                    protocolNumber = existingProtocol.id.value,
-                    visitId = null,
-                    items = items,
-                    attachment = null,
-                    audit = Audit(
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now()
-                    )
-                )
-            )
+            createInvoiceDocument(existingProtocol, releaseDetails)
         }
 
-
-
         return updatedProtocol
+    }
+
+    private fun createInvoiceDocument(existingProtocol: CarReceptionProtocol, releaseDetails: VehicleReleaseDetailsModel) {
+        val gross = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+            .sumOf { it.finalPrice.amount }.toBigDecimal()
+        val nett = gross / 1.23.toBigDecimal()
+        val totalTax = gross - nett
+        val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+            .map {
+                DocumentItem(
+                    name = it.name,
+                    description = it.note,
+                    quantity = 1.toBigDecimal(),
+                    unitPrice = it.finalPrice.amount.toBigDecimal(),
+                    taxRate = 23.toBigDecimal(),
+                    totalNet = it.finalPrice.amount.toBigDecimal() / 1.23.toBigDecimal(),
+                    totalGross = it.finalPrice.amount.toBigDecimal()
+                )
+            }
+        unifiedDocumentRepository.save(
+            UnifiedFinancialDocument(
+                id = UnifiedDocumentId.generate(),
+                number = "",
+                type = com.carslab.crm.api.model.DocumentType.INVOICE,
+                title = "Faktura za wizytę",
+                description = "",
+                issuedDate = LocalDate.now(),
+                dueDate = LocalDate.now().plusDays(14),
+                sellerName = "Detailing Studio",
+                sellerTaxId = "123456789",
+                sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
+                buyerName = existingProtocol.client.name,
+                buyerTaxId = existingProtocol.client.taxId,
+                buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
+                status = DocumentStatus.NOT_PAID,
+                direction = TransactionDirection.INCOME,
+                paymentMethod = when (releaseDetails.paymentMethod) {
+                    PaymentMethod.CASH -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CASH
+                    PaymentMethod.CARD -> com.carslab.crm.domain.model.view.finance.PaymentMethod.CARD
+                },
+                totalNet = nett,
+                totalTax = totalTax,
+                totalGross = gross,
+                paidAmount = BigDecimal.ZERO,
+                currency = "PLN",
+                notes = "",
+                protocolId = existingProtocol.id.value,
+                protocolNumber = existingProtocol.id.value,
+                visitId = null,
+                items = items,
+                attachment = null,
+                audit = Audit(
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+            )
+        )
     }
 
     private fun registerCashPayment(existingProtocol: CarReceptionProtocol) {

@@ -1,6 +1,6 @@
 package com.carslab.crm.clients.infrastructure.persistence.repository
 
-import com.carslab.crm.infrastructure.persistence.entity.ClientVehicleAssociationEntity
+import com.carslab.crm.clients.infrastructure.persistence.entity.ClientVehicleAssociationEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query

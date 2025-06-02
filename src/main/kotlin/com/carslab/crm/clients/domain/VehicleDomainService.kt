@@ -1,7 +1,7 @@
 package com.carslab.crm.clients.domain
 
-import com.carslab.crm.api.model.commands.CreateVehicleCommand
-import com.carslab.crm.api.model.commands.UpdateVehicleCommand
+import com.carslab.crm.clients.api.CreateVehicleCommand
+import com.carslab.crm.clients.api.UpdateVehicleCommand
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId

@@ -1,8 +1,8 @@
 package com.carslab.crm.clients.domain.model
 
+import com.carslab.crm.clients.domain.model.shared.AuditInfo
 import com.carslab.crm.domain.model.events.VehicleEvent
 import java.time.LocalDateTime
-import com.carslab.crm.domain.model.shared.AuditInfo
 import java.math.BigDecimal
 
 data class VehicleId(val value: Long) {
@@ -73,11 +73,4 @@ data class VehicleStatistics(
     val visitCount: Long = 0,
     val totalRevenue: BigDecimal = BigDecimal.ZERO,
     val lastVisitDate: LocalDateTime? = null
-)
-
-data class ClientSummary(
-    val id: ClientId,
-    val fullName: String,
-    val email: String,
-    val phone: String
 )

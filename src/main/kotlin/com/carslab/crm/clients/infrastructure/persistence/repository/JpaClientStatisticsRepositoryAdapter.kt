@@ -27,9 +27,9 @@ class ClientStatisticsRepositoryAdapter(
 
         val entity = if (clientStatisticsJpaRepository.existsById(statistics.clientId)) {
             val existingEntity = clientStatisticsJpaRepository.findByClientId(statistics.clientId).get()
-            existingEntity.visitNo = statistics.visitCount
-            existingEntity.gmv = statistics.totalRevenue
-            existingEntity.vehiclesNo = statistics.vehicleCount
+            existingEntity.visitCount = statistics.visitCount
+            existingEntity.totalRevenue = statistics.totalRevenue
+            existingEntity.vehicleCount = statistics.vehicleCount
             existingEntity
         } else {
             ClientStatisticsEntity.fromDomain(statistics)
@@ -66,68 +66,6 @@ class ClientStatisticsRepositoryAdapter(
     override fun recalculateStatistics(clientId: ClientId): ClientStatistics {
         // Implementation for recalculating statistics
         // This would involve aggregating data from visits, vehicles, etc.
-        val currentStats = findByClientId(clientId) ?: ClientStatistics(clientId = clientId.value)
-        return save(currentStats)
-    }
-
-    override fun deleteByClientId(clientId: ClientId): Boolean {
-        val deleted = clientStatisticsJpaRepository.deleteByClientId(clientId.value)
-        return deleted > 0
-    }
-}
-
-@Repository
-class ClientStatisticsRepositoryAdapter(
-    private val clientStatisticsJpaRepository: ClientStatisticsJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository,
-    private val securityContext: SecurityContext
-) : ClientStatisticsRepository {
-
-    override fun save(statistics: ClientStatistics): ClientStatistics {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        // Verify client exists and belongs to company
-        val clientEntity = clientJpaRepository.findByIdAndCompanyId(statistics.clientId, companyId)
-            .orElse(null) ?: throw IllegalStateException("Client not found or access denied")
-
-        val entity = if (clientStatisticsJpaRepository.existsById(statistics.clientId)) {
-            val existingEntity = clientStatisticsJpaRepository.findByClientId(statistics.clientId).get()
-            existingEntity.visitNo = statistics.visitCount
-            existingEntity.gmv = statistics.totalRevenue
-            existingEntity.vehiclesNo = statistics.vehicleCount
-            existingEntity
-        } else {
-            ClientStatisticsEntity.fromDomain(statistics)
-        }
-
-        val savedEntity = clientStatisticsJpaRepository.save(entity)
-        return savedEntity.toDomain()
-    }
-
-    override fun findByClientId(clientId: ClientId): ClientStatistics? {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        // Verify client exists and belongs to company
-        val clientEntity = clientJpaRepository.findByIdAndCompanyId(clientId.value, companyId)
-            .orElse(null) ?: return null
-
-        return clientStatisticsJpaRepository.findByClientId(clientId.value)
-            .map { it.toDomain() }
-    }
-
-    override fun updateVisitCount(clientId: ClientId, increment: Long) {
-        clientStatisticsJpaRepository.updateVisitCount(clientId.value, increment, LocalDateTime.now())
-    }
-
-    override fun updateRevenue(clientId: ClientId, amount: BigDecimal) {
-        clientStatisticsJpaRepository.updateRevenue(clientId.value, amount, LocalDateTime.now())
-    }
-
-    override fun updateVehicleCount(clientId: ClientId, increment: Long) {
-        clientStatisticsJpaRepository.updateVehicleCount(clientId.value, increment, LocalDateTime.now())
-    }
-
-    override fun recalculateStatistics(clientId: ClientId): ClientStatistics {
         val currentStats = findByClientId(clientId) ?: ClientStatistics(clientId = clientId.value)
         return save(currentStats)
     }
