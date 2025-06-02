@@ -1,12 +1,12 @@
-package com.carslab.crm.api.controller
+package com.carslab.crm.finances.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.*
 import com.carslab.crm.api.model.request.CreateInvoiceRequest
 import com.carslab.crm.api.model.request.UpdateInvoiceRequest
 import com.carslab.crm.api.model.response.InvoiceResponse
-import com.carslab.crm.domain.finances.invoices.InvoiceService
 import com.carslab.crm.domain.model.view.finance.Invoice
+import com.carslab.crm.finances.domain.InvoiceService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
-import java.time.LocalDateTime
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/invoices")
@@ -52,8 +52,8 @@ class InvoiceController(
             buyerName = buyerName,
             status = status,
             type = type,
-            dateFrom = dateFrom?.let { java.time.LocalDate.parse(it) },
-            dateTo = dateTo?.let { java.time.LocalDate.parse(it) },
+            dateFrom = dateFrom?.let { LocalDate.parse(it) },
+            dateTo = dateTo?.let { LocalDate.parse(it) },
             protocolId = protocolId,
             minAmount = minAmount,
             maxAmount = maxAmount

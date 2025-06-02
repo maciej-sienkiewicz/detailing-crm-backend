@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.finances.invoices
+package com.carslab.crm.finances.domain
 
 import com.carslab.crm.api.model.BuyerInfoDTO
 import com.carslab.crm.api.model.ExtractedInvoiceDataDTO
@@ -9,7 +9,6 @@ import com.carslab.crm.api.model.SellerInfoDTO
 import com.carslab.crm.api.model.SummaryDTO
 import com.carslab.crm.api.model.request.CreateInvoiceRequest
 import com.carslab.crm.api.model.request.UpdateInvoiceRequest
-import com.carslab.crm.domain.finances.invoices.InvoiceStorageService
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ClientId
 import com.carslab.crm.domain.model.view.finance.Invoice

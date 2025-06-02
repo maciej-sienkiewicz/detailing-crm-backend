@@ -1,8 +1,8 @@
-package com.carslab.crm.infrastructure.persistence.repository
+package com.carslab.crm.finances.infrastructure.repository
 
 import com.carslab.crm.domain.model.view.finance.InvoiceStatus
 import com.carslab.crm.domain.model.view.finance.InvoiceType
-import com.carslab.crm.infrastructure.persistence.entity.InvoiceEntity
+import com.carslab.crm.finances.infrastructure.entitiy.InvoiceEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query

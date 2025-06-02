@@ -1,17 +1,18 @@
-package com.carslab.crm.infrastructure.persistence.adapter
+package com.carslab.crm.finances.infrastructure.repository
 
 import com.carslab.crm.api.model.InvoiceFilterDTO
-import com.carslab.crm.domain.model.view.finance.*
+import com.carslab.crm.domain.model.view.finance.Invoice
+import com.carslab.crm.domain.model.view.finance.InvoiceId
+import com.carslab.crm.domain.model.view.finance.InvoiceStatus
+import com.carslab.crm.domain.model.view.finance.InvoiceType
 import com.carslab.crm.domain.port.InvoiceRepository
-import com.carslab.crm.infrastructure.persistence.entity.InvoiceAttachmentEntity
-import com.carslab.crm.infrastructure.persistence.entity.InvoiceEntity
-import com.carslab.crm.infrastructure.persistence.entity.InvoiceItemEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.InvoiceJpaRepository
+import com.carslab.crm.finances.infrastructure.entitiy.InvoiceAttachmentEntity
+import com.carslab.crm.finances.infrastructure.entitiy.InvoiceEntity
+import com.carslab.crm.finances.infrastructure.entitiy.InvoiceItemEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 

@@ -1,4 +1,4 @@
-package com.carslab.crm.api.controller
+package com.carslab.crm.finances.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.response.InvoiceDataResponse

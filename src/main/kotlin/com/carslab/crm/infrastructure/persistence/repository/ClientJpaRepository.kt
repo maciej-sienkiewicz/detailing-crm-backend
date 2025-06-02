@@ -38,7 +38,10 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
 
 @Repository
 interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
-    fun findByCompanyId(companyId: Long): List<VehicleEntity>
+
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE v.companyId = :companyId")
+    fun findByCompanyId(@Param("companyId") companyId: Long): List<VehicleEntity>
+
     fun findByCompanyIdAndId(companyId: Long, id: Long): Optional<VehicleEntity>
     fun findByLicensePlateIgnoreCaseAndCompanyId(licensePlate: String, companyId: Long): VehicleEntity?
     fun findByVinIgnoreCaseAndCompanyId(vin: String, companyId: Long): VehicleEntity?
@@ -53,11 +56,123 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
         @Param("companyId") companyId: Long
     ): VehicleEntity?
 
-    @Query("SELECT v FROM VehicleEntity v JOIN v.owners c WHERE c.id = :clientId AND v.companyId = :companyId")
+    // ✅ FIXED: Original query with LEFT JOIN FETCH to load owners
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners c WHERE c.id = :clientId AND v.companyId = :companyId")
     fun findAllByClientIdAndCompanyId(@Param("clientId") clientId: Long, @Param("companyId") companyId: Long): List<VehicleEntity>
 
     fun findByMakeContainingIgnoreCaseAndCompanyId(make: String, companyId: Long): List<VehicleEntity>
     fun findByModelContainingIgnoreCaseAndCompanyId(model: String, companyId: Long): List<VehicleEntity>
+
+    // ✅ NEW METHODS: Eager loading versions to avoid LazyInitializationException
+
+    /**
+     * Find all vehicles with owners loaded (for full detail views)
+     */
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE v.companyId = :companyId")
+    fun findByCompanyIdWithOwners(@Param("companyId") companyId: Long): List<VehicleEntity>
+
+    /**
+     * Find single vehicle with owners loaded
+     */
+    @Query("SELECT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE v.id = :id AND v.companyId = :companyId")
+    fun findByIdAndCompanyIdWithOwners(@Param("id") id: Long, @Param("companyId") companyId: Long): VehicleEntity?
+
+    /**
+     * Find all vehicles with owners loaded (for admin views)
+     */
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners")
+    fun findAllWithOwners(): List<VehicleEntity>
+
+    /**
+     * Find by VIN or License Plate with owners loaded
+     */
+    @Query("SELECT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE " +
+            "((v.vin = :vin AND :vin IS NOT NULL) OR " +
+            "(v.licensePlate = :licensePlate AND :licensePlate IS NOT NULL)) " +
+            "AND v.companyId = :companyId")
+    fun findByVinOrLicensePlateAndCompanyIdWithOwners(
+        @Param("vin") vin: String?,
+        @Param("licensePlate") licensePlate: String?,
+        @Param("companyId") companyId: Long
+    ): VehicleEntity?
+
+    /**
+     * Search by make with owners loaded
+     */
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE " +
+            "LOWER(v.make) LIKE LOWER(CONCAT('%', :make, '%')) AND v.companyId = :companyId")
+    fun findByMakeContainingIgnoreCaseAndCompanyIdWithOwners(
+        @Param("make") make: String,
+        @Param("companyId") companyId: Long
+    ): List<VehicleEntity>
+
+    /**
+     * Search by model with owners loaded
+     */
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE " +
+            "LOWER(v.model) LIKE LOWER(CONCAT('%', :model, '%')) AND v.companyId = :companyId")
+    fun findByModelContainingIgnoreCaseAndCompanyIdWithOwners(
+        @Param("model") model: String,
+        @Param("companyId") companyId: Long
+    ): List<VehicleEntity>
+
+    // ✅ UTILITY QUERIES: For statistics and counts
+
+    /**
+     * Count vehicles by company
+     */
+    @Query("SELECT COUNT(v) FROM VehicleEntity v WHERE v.companyId = :companyId")
+    fun countByCompanyId(@Param("companyId") companyId: Long): Long
+
+    /**
+     * Get vehicle IDs and owner counts for efficient list views
+     */
+    @Query("SELECT v.id, COUNT(o.id) FROM VehicleEntity v LEFT JOIN v.owners o WHERE v.companyId = :companyId GROUP BY v.id")
+    fun findVehicleOwnerCounts(@Param("companyId") companyId: Long): List<Array<Any>>
+
+    /**
+     * Check if vehicle exists by license plate
+     */
+    fun existsByLicensePlateIgnoreCaseAndCompanyId(licensePlate: String, companyId: Long): Boolean
+
+    /**
+     * Check if vehicle exists by VIN
+     */
+    fun existsByVinIgnoreCaseAndCompanyId(vin: String, companyId: Long): Boolean
+
+    /**
+     * Find vehicles by multiple criteria (for advanced search)
+     */
+    @Query("SELECT DISTINCT v FROM VehicleEntity v LEFT JOIN FETCH v.owners WHERE " +
+            "(:make IS NULL OR LOWER(v.make) LIKE LOWER(CONCAT('%', :make, '%'))) AND " +
+            "(:model IS NULL OR LOWER(v.model) LIKE LOWER(CONCAT('%', :model, '%'))) AND " +
+            "(:year IS NULL OR v.year = :year) AND " +
+            "(:licensePlate IS NULL OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) AND " +
+            "v.companyId = :companyId")
+    fun findByCriteriaWithOwners(
+        @Param("make") make: String?,
+        @Param("model") model: String?,
+        @Param("year") year: Int?,
+        @Param("licensePlate") licensePlate: String?,
+        @Param("companyId") companyId: Long
+    ): List<VehicleEntity>
+
+    /**
+     * Find vehicles without owners (for performance in list views)
+     */
+    @Query("SELECT v FROM VehicleEntity v WHERE " +
+            "(:make IS NULL OR LOWER(v.make) LIKE LOWER(CONCAT('%', :make, '%'))) AND " +
+            "(:model IS NULL OR LOWER(v.model) LIKE LOWER(CONCAT('%', :model, '%'))) AND " +
+            "(:year IS NULL OR v.year = :year) AND " +
+            "(:licensePlate IS NULL OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) AND " +
+            "v.companyId = :companyId")
+    fun findByCriteriaWithoutOwners(
+        @Param("make") make: String?,
+        @Param("model") model: String?,
+        @Param("year") year: Int?,
+        @Param("licensePlate") licensePlate: String?,
+        @Param("companyId") companyId: Long
+    ): List<VehicleEntity>
 }
 
 interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, Long>, JpaSpecificationExecutor<ProtocolEntity> {
