@@ -2,7 +2,7 @@ package com.carslab.crm.finances.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.response.InvoiceDataResponse
-import com.carslab.crm.domain.finances.invoices.ParallelInvoiceExtractionService
+import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

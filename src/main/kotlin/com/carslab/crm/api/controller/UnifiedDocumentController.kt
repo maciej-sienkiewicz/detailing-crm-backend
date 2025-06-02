@@ -8,8 +8,8 @@ import com.carslab.crm.api.model.response.InvoiceDataResponse
 import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.finances.documents.UnifiedDocumentService
-import com.carslab.crm.domain.finances.invoices.ParallelInvoiceExtractionService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
