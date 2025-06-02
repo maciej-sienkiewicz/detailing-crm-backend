@@ -1,5 +1,6 @@
 package com.carslab.crm.domain.model
 
+import com.carslab.crm.clients.domain.model.VehicleId
 import java.time.LocalDate
 import java.util.UUID
 

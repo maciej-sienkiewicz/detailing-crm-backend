@@ -1,5 +1,13 @@
 package com.carslab.crm.domain.clients
 
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.Vehicle
+import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.clients.domain.port.ClientRepository
+import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
+import com.carslab.crm.clients.domain.port.VehicleRepository
+import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats

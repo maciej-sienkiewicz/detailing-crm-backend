@@ -10,14 +10,13 @@ import com.carslab.crm.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleEntity
-import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import jakarta.persistence.criteria.Predicate
 import org.springframework.security.core.context.SecurityContextHolder

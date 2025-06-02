@@ -2,8 +2,8 @@ package com.carslab.crm.presentation.mapper
 
 import com.carslab.crm.api.model.request.VehicleRequest
 import com.carslab.crm.domain.model.Audit
-import com.carslab.crm.domain.model.Vehicle
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.Vehicle
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.api.model.response.VehicleResponse
 import com.carslab.crm.domain.model.VehicleWithStats
 import java.time.LocalDateTime

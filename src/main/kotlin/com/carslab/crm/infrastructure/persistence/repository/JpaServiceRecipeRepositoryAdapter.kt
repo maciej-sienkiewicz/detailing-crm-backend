@@ -6,10 +6,9 @@ import com.carslab.crm.domain.model.view.ServiceRecipeView
 import com.carslab.crm.domain.port.ServiceRecipeRepository
 import com.carslab.crm.infrastructure.persistence.entity.ServiceRecipeEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.ServiceRecipeJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ServiceRecipeJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaServiceRecipeRepositoryAdapter(

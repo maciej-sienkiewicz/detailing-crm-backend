@@ -1,12 +1,14 @@
 package com.carslab.crm.domain.clients
 
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.stats.ClientStats
-import com.carslab.crm.domain.port.ClientRepository
-import com.carslab.crm.domain.port.ClientStatisticsRepository
+import com.carslab.crm.clients.domain.port.ClientRepository
+import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
 import com.carslab.crm.domain.port.ContactAttemptRepository
-import com.carslab.crm.domain.port.VehicleRepository
+import com.carslab.crm.clients.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.logging.LogOperation
 import org.slf4j.Logger

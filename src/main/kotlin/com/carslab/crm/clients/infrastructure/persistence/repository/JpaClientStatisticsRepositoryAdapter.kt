@@ -1,18 +1,18 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
-import com.carslab.crm.domain.model.ClientId
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.domain.model.stats.ClientStats
 import com.carslab.crm.domain.model.stats.VehicleStats
-import com.carslab.crm.domain.port.ClientStatisticsRepository
-import com.carslab.crm.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
 import com.carslab.crm.infrastructure.persistence.entity.ClientStatisticsEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleStatisticsEntity
-import com.carslab.crm.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.ClientStatisticsJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.VehicleJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ClientStatisticsJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal

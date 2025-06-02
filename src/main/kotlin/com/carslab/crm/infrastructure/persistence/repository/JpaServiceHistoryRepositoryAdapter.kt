@@ -2,15 +2,14 @@ package com.carslab.crm.infrastructure.persistence.adapter
 
 import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.domain.port.ServiceHistoryRepository
-import com.carslab.crm.domain.port.VehicleRepository
+import com.carslab.crm.clients.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.persistence.entity.ServiceHistoryEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.ServiceHistoryJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ServiceHistoryJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaServiceHistoryRepositoryAdapter(

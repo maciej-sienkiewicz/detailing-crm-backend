@@ -1,5 +1,7 @@
 package com.carslab.crm.api.model.commands
 
+import com.carslab.crm.clients.domain.model.ClientAudit
+import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.client.CreateClientModel
 import com.carslab.crm.domain.model.stats.ClientStats

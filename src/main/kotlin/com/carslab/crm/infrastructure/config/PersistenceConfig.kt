@@ -1,9 +1,13 @@
 package com.carslab.crm.infrastructure.config
 
+import com.carslab.crm.clients.domain.port.ClientRepository
+import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.clients.domain.port.ClientVehicleRepository
+import com.carslab.crm.clients.domain.port.VehicleRepository
+import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
-import com.carslab.crm.infrastructure.persistence.repository.UserRepository
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

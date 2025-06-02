@@ -1,0 +1,187 @@
+package com.carslab.crm.clients.domain
+
+import com.carslab.crm.api.model.commands.CreateVehicleCommand
+import com.carslab.crm.api.model.commands.UpdateVehicleCommand
+import com.carslab.crm.api.model.response.VehicleResponse
+import com.carslab.crm.domain.exception.DomainException
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.VehicleRelationshipType
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+@Service
+@Transactional
+class VehicleApplicationService(
+    private val vehicleDomainService: VehicleDomainService,
+    private val associationService: ClientVehicleAssociationService
+) {
+    private val logger = LoggerFactory.getLogger(VehicleApplicationService::class.java)
+
+    fun createVehicle(request: CreateVehicleRequest): VehicleResponse {
+        logger.info("Creating vehicle: ${request.make} ${request.model} (${request.licensePlate})")
+
+        try {
+            validateCreateVehicleRequest(request)
+
+            val command = CreateVehicleCommand(
+                make = request.make,
+                model = request.model,
+                year = request.year,
+                licensePlate = request.licensePlate,
+                color = request.color,
+                vin = request.vin,
+                mileage = request.mileage
+            )
+
+            val vehicle = vehicleDomainService.createVehicle(command)
+
+            // Associate with owners if provided
+            request.ownerIds.forEach { ownerId ->
+                try {
+                    associationService.associateClientWithVehicle(
+                        ClientId.Companion.of(ownerId),
+                        vehicle.id,
+                        VehicleRelationshipType.OWNER,
+                        isPrimary = request.ownerIds.size == 1
+                    )
+                } catch (e: DomainException) {
+                    logger.warn("Failed to associate client $ownerId with vehicle ${vehicle.id.value}: ${e.message}")
+                    // Continue with other associations
+                }
+            }
+
+            logger.info("Successfully created vehicle with ID: ${vehicle.id.value}")
+            return VehicleResponse.from(vehicle)
+        } catch (e: DomainException) {
+            logger.error("Failed to create vehicle: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            logger.error("Unexpected error creating vehicle", e)
+            throw RuntimeException("Failed to create vehicle", e)
+        }
+    }
+
+    fun updateVehicle(id: Long, request: UpdateVehicleRequest): VehicleResponse {
+        logger.info("Updating vehicle with ID: $id")
+
+        try {
+            validateUpdateVehicleRequest(request)
+
+            val command = UpdateVehicleCommand(
+                make = request.make,
+                model = request.model,
+                year = request.year,
+                licensePlate = request.licensePlate,
+                color = request.color,
+                vin = request.vin,
+                mileage = request.mileage
+            )
+
+            val vehicle = vehicleDomainService.updateVehicle(VehicleId.Companion.of(id), command)
+
+            logger.info("Successfully updated vehicle with ID: $id")
+            return VehicleResponse.from(vehicle)
+        } catch (e: DomainException) {
+            logger.error("Failed to update vehicle $id: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            logger.error("Unexpected error updating vehicle $id", e)
+            throw RuntimeException("Failed to update vehicle", e)
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getVehicleById(id: Long): VehicleDetailResponse? {
+        logger.debug("Getting vehicle by ID: $id")
+
+        val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(VehicleId.Companion.of(id))
+            ?: return null
+
+        val owners = associationService.getVehicleOwners(VehicleId.Companion.of(id))
+
+        return VehicleDetailResponse.from(vehicleWithStats, owners)
+    }
+
+    @Transactional(readOnly = true)
+    fun searchVehicles(
+        make: String? = null,
+        model: String? = null,
+        licensePlate: String? = null,
+        vin: String? = null,
+        year: Int? = null,
+        pageable: Pageable
+    ): Page<VehicleResponse> {
+        logger.debug("Searching vehicles with criteria")
+
+        val criteria = VehicleSearchCriteria(
+            make = make,
+            model = model,
+            licensePlate = licensePlate,
+            vin = vin,
+            year = year
+        )
+
+        return vehicleDomainService.searchVehicles(criteria, pageable)
+            .map { VehicleResponse.from(it) }
+    }
+
+    fun deleteVehicle(id: Long): Boolean {
+        logger.info("Deleting vehicle with ID: $id")
+
+        val deleted = vehicleDomainService.deleteVehicle(VehicleId.Companion.of(id))
+
+        if (deleted) {
+            logger.info("Successfully deleted vehicle with ID: $id")
+        } else {
+            logger.warn("Vehicle with ID: $id not found for deletion")
+        }
+
+        return deleted
+    }
+
+    fun addOwnerToVehicle(vehicleId: Long, clientId: Long): Boolean {
+        logger.info("Adding owner $clientId to vehicle $vehicleId")
+
+        try {
+            associationService.associateClientWithVehicle(
+                ClientId.Companion.of(clientId),
+                VehicleId.Companion.of(vehicleId),
+                VehicleRelationshipType.OWNER
+            )
+            return true
+        } catch (e: DomainException) {
+            logger.error("Failed to add owner to vehicle: ${e.message}")
+            throw e
+        }
+    }
+
+    fun removeOwnerFromVehicle(vehicleId: Long, clientId: Long): Boolean {
+        logger.info("Removing owner $clientId from vehicle $vehicleId")
+
+        return associationService.removeAssociation(
+            ClientId.Companion.of(clientId),
+            VehicleId.Companion.of(vehicleId)
+        )
+    }
+
+    private fun validateCreateVehicleRequest(request: CreateVehicleRequest) {
+        require(request.make.isNotBlank()) { "Make cannot be blank" }
+        require(request.model.isNotBlank()) { "Model cannot be blank" }
+        require(request.licensePlate.isNotBlank()) { "License plate cannot be blank" }
+        request.year?.let { year ->
+            require(year in 1900..2100) { "Year must be between 1900 and 2100" }
+        }
+        require(request.ownerIds.isNotEmpty()) { "Vehicle must have at least one owner" }
+    }
+
+    private fun validateUpdateVehicleRequest(request: UpdateVehicleRequest) {
+        require(request.make.isNotBlank()) { "Make cannot be blank" }
+        require(request.model.isNotBlank()) { "Model cannot be blank" }
+        require(request.licensePlate.isNotBlank()) { "License plate cannot be blank" }
+        request.year?.let { year ->
+            require(year in 1900..2100) { "Year must be between 1900 and 2100" }
+        }
+    }
+}

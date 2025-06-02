@@ -1,14 +1,14 @@
-package com.carslab.crm.api.controller
+package com.carslab.crm.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.ContactAttemptMapper
-import com.carslab.crm.api.model.commands.ClientCommandMapper
 import com.carslab.crm.api.model.commands.CreateClientCommand
 import com.carslab.crm.api.model.request.ClientRequest
 import com.carslab.crm.api.model.request.ContactAttemptRequest
 import com.carslab.crm.api.model.response.*
-import com.carslab.crm.domain.clients.ClientFacade
-import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.ClientApplicationService
+import com.carslab.crm.clients.domain.model.CreateClientRequest
+import com.carslab.crm.clients.domain.model.UpdateClientRequest
 import com.carslab.crm.domain.model.ContactAttemptId
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.util.ValidationUtils
@@ -18,14 +18,14 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
-@RestController
 @RequestMapping("/api/clients")
 @Tag(name = "Clients", description = "Client management endpoints")
 class ClientController(
-    private val clientFacade: ClientFacade
+    private val clientApplicationService: ClientApplicationService
 ) : BaseController() {
 
     @PostMapping
@@ -43,8 +43,18 @@ class ClientController(
                 "Phone" to request.phone
             ))
 
-            val domainClient = ClientCommandMapper.fromCreateCommand(request)
-            val createdClient = clientFacade.createClient(domainClient)
+            val appRequest = CreateClientRequest(
+                firstName = request.firstName,
+                lastName = request.lastName,
+                email = request.email,
+                phone = request.phone,
+                address = request.address,
+                company = request.company,
+                taxId = request.taxId,
+                notes = request.notes
+            )
+
+            val createdClient = clientApplicationService.createClient(appRequest)
             val response = ClientMapper.toExpandedResponse(createdClient)
 
             logger.info("Successfully created client with ID: ${response.id}")
@@ -63,13 +73,15 @@ class ClientController(
     ): ResponseEntity<List<ClientResponse>> {
         logger.info("Searching clients with filters: name=$name, email=$email, phone=$phone")
 
-        val clients = clientFacade.searchClients(
+        val clients = clientApplicationService.searchClients(
             name = name,
             email = email,
-            phone = phone
+            phone = phone,
+            company = null,
+            pageable = PageRequest.of(0, 1000)
         )
 
-        val response = clients.map { ClientMapper.toResponse(it) }
+        val response = clients.content.map { ClientMapper.toResponse(it) }
         return ok(response)
     }
 
@@ -78,9 +90,16 @@ class ClientController(
     fun getAllClients(): ResponseEntity<List<ClientExpandedResponse>> {
         logger.info("Getting all clients")
 
-        val clientStats = clientFacade.getAllClients()
-        val response = clientStats.map { stats ->
-            ClientMapper.toExpandedResponse(stats)
+        val clients = clientApplicationService.searchClients(
+            name = null,
+            email = null,
+            phone = null,
+            company = null,
+            pageable = PageRequest.of(0, 1000)
+        )
+
+        val response = clients.content.map { client ->
+            ClientMapper.toExpandedResponse(client)
         }
         return ok(response)
     }
@@ -92,7 +111,7 @@ class ClientController(
     ): ResponseEntity<ClientResponse> {
         logger.info("Getting client by ID: $id")
 
-        val client = clientFacade.getClientById(ClientId(id))
+        val client = clientApplicationService.getClientById(id)
             ?: throw ResourceNotFoundException("Client", id)
 
         return ok(ClientMapper.toResponse(client))
@@ -106,12 +125,6 @@ class ClientController(
     ): ResponseEntity<ClientResponse> {
         logger.info("Updating client with ID: $id")
 
-        val existingClient = findResourceById(
-            id,
-            clientFacade.getClientById(ClientId(id)),
-            "Client"
-        )
-
         try {
             ValidationUtils.validateNotBlank(request.firstName, "First name")
             ValidationUtils.validateNotBlank(request.lastName, "Last name")
@@ -122,14 +135,18 @@ class ClientController(
                 "Phone" to request.phone
             ))
 
-            val requestWithId = request.apply { this.id = id.toString() }
-            val domainClient = ClientMapper.toDomain(requestWithId).copy(
-                audit = existingClient.audit.copy(
-                    createdAt = existingClient.audit.createdAt
-                )
+            val appRequest = UpdateClientRequest(
+                firstName = request.firstName,
+                lastName = request.lastName,
+                email = request.email,
+                phone = request.phone,
+                address = request.address,
+                company = request.company,
+                taxId = request.taxId,
+                notes = request.notes
             )
 
-            val updatedClient = clientFacade.updateClient(domainClient)
+            val updatedClient = clientApplicationService.updateClient(id, appRequest)
             val response = ClientMapper.toResponse(updatedClient)
 
             logger.info("Successfully updated client with ID: $id")
@@ -146,7 +163,7 @@ class ClientController(
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Deleting client with ID: $id")
 
-        val deleted = clientFacade.deleteClient(ClientId(id))
+        val deleted = clientApplicationService.deleteClient(id)
 
         return if (deleted) {
             logger.info("Successfully deleted client with ID: $id")
@@ -199,13 +216,14 @@ class ClientController(
     ): ResponseEntity<ClientStatisticsResponse> {
         logger.info("Getting statistics for client: $clientId")
 
-        return ok(clientFacade.getClientStatistics(ClientId(clientId.toLong())).let {
-            ClientStatisticsResponse(
-                totalVisits = it.visitNo,
-                totalRevenue = it.gmv,
-                vehicleNo = it.vehiclesNo
-            )
-        })
+        val clientWithStats = clientApplicationService.getClientById(clientId.toLong())
+            ?: throw ResourceNotFoundException("Client", clientId.toLong())
+
+        return ok(ClientStatisticsResponse(
+            totalVisits = clientWithStats.statistics.visitCount,
+            totalRevenue = clientWithStats.statistics.totalRevenue,
+            vehicleNo = clientWithStats.statistics.vehicleCount
+        ))
     }
 
     @GetMapping("/{clientId}/vehicles")
@@ -215,9 +233,10 @@ class ClientController(
     ): ResponseEntity<List<VehicleResponse>> {
         logger.info("Getting vehicles for client: $clientId")
 
-        val clientVehicles = clientFacade.getVehiclesByClientId(ClientId(clientId.toLong()))
+        val clientWithDetails = clientApplicationService.getClientById(clientId.toLong())
+            ?: throw ResourceNotFoundException("Client", clientId.toLong())
 
-        return ok(clientVehicles.map { VehicleMapper.toResponse(it) })
+        return ok(clientWithDetails.vehicles.map { VehicleMapper.toResponse(it) })
     }
 
     @PutMapping("/contact-attempts/{id}")

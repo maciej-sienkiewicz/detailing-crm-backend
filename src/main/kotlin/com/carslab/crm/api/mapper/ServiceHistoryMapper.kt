@@ -5,7 +5,7 @@ import com.carslab.crm.api.model.response.ServiceHistoryResponse
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.VehicleId
 import java.time.LocalDateTime
 
 object ServiceHistoryMapper {

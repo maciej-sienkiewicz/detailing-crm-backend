@@ -10,7 +10,7 @@ import com.carslab.crm.api.model.SummaryDTO
 import com.carslab.crm.api.model.request.CreateInvoiceRequest
 import com.carslab.crm.api.model.request.UpdateInvoiceRequest
 import com.carslab.crm.domain.model.Audit
-import com.carslab.crm.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.domain.model.view.finance.Invoice
 import com.carslab.crm.domain.model.view.finance.InvoiceAttachment
 import com.carslab.crm.domain.model.view.finance.InvoiceId

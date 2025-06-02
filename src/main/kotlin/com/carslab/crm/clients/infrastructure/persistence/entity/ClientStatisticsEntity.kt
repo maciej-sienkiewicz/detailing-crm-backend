@@ -1,11 +1,10 @@
-package com.carslab.crm.infrastructure.persistence.entity
+package com.carslab.crm.clients.infrastructure.persistence.entity
 
-import com.carslab.crm.domain.model.ClientId
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.VehicleStatistics
 import com.carslab.crm.domain.model.stats.ClientStats
-import com.carslab.crm.domain.model.stats.VehicleStats
 import jakarta.persistence.*
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "client_statistics")
@@ -55,31 +54,35 @@ class VehicleStatisticsEntity(
     @Column(name = "vehicle_id")
     val vehicleId: Long,
 
-    @Column(name = "visit_no")
-    var visitNo: Long = 0,
-
-    @Column
-    var gmv: BigDecimal = BigDecimal.ZERO,
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", insertable = false, updatable = false)
-    var vehicle: VehicleEntity? = null
+    val vehicle: VehicleEntity? = null,
+
+    @Column(name = "visit_count", nullable = false)
+    var visitCount: Long = 0,
+
+    @Column(name = "total_revenue", nullable = false, precision = 12, scale = 2)
+    var totalRevenue: BigDecimal = BigDecimal.ZERO,
+
+    @Column(name = "last_visit_date")
+    var lastVisitDate: LocalDateTime? = null,
+
+    @Column(name = "updated_at", nullable = false)
+    var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
-    fun toDomain(): VehicleStats {
-        return VehicleStats(
-            vehicleId = vehicleId,
-            visitNo = visitNo,
-            gmv = gmv
-        )
-    }
+    fun toDomain(): VehicleStatistics = VehicleStatistics(
+        vehicleId = vehicleId,
+        visitCount = visitCount,
+        totalRevenue = totalRevenue,
+        lastVisitDate = lastVisitDate
+    )
 
     companion object {
-        fun fromDomain(domain: VehicleStats): VehicleStatisticsEntity {
-            return VehicleStatisticsEntity(
-                vehicleId = domain.vehicleId,
-                visitNo = domain.visitNo,
-                gmv = domain.gmv
-            )
-        }
+        fun fromDomain(statistics: VehicleStatistics): VehicleStatisticsEntity = VehicleStatisticsEntity(
+            vehicleId = statistics.vehicleId,
+            visitCount = statistics.visitCount,
+            totalRevenue = statistics.totalRevenue,
+            lastVisitDate = statistics.lastVisitDate
+        )
     }
 }

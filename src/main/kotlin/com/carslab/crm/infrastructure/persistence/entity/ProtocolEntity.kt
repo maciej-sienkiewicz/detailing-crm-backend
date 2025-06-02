@@ -1,5 +1,7 @@
 package com.carslab.crm.infrastructure.persistence.entity
 
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.ReferralSource
@@ -84,8 +86,8 @@ class ProtocolEntity(
     fun toDomainView(): ProtocolView = ProtocolView(
         id = ProtocolId(id.toString()),
         title = title,
-        vehicleId = com.carslab.crm.domain.model.VehicleId(vehicleId),
-        clientId = com.carslab.crm.domain.model.ClientId(clientId),
+        vehicleId = VehicleId(vehicleId),
+        clientId = ClientId(clientId),
         period = com.carslab.crm.domain.model.ServicePeriod(
             startDate = startDate,
             endDate = endDate

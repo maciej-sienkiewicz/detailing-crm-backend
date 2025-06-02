@@ -1,5 +1,7 @@
 package com.carslab.crm.domain.model.view.protocol
 
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import java.time.LocalDateTime

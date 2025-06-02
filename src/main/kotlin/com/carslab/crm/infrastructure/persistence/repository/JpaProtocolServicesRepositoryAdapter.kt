@@ -6,8 +6,8 @@ import com.carslab.crm.domain.model.view.protocol.ProtocolServiceView
 import com.carslab.crm.domain.port.ProtocolServicesRepository
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolServiceEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolJpaRepository
+import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 

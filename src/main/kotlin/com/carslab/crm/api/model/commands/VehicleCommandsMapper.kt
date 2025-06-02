@@ -1,5 +1,7 @@
 package com.carslab.crm.api.model.commands
 
+import com.carslab.crm.clients.domain.model.Vehicle
+import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.stats.VehicleStats
 import java.time.LocalDate
@@ -140,7 +142,9 @@ object VehicleDtoMapper {
 
         return ServiceHistory(
             id = ServiceHistoryId.generate(),
-            vehicleId = VehicleId(command.vehicleId?.toLong() ?: throw IllegalArgumentException("Vehicle ID is required")),
+            vehicleId = VehicleId(
+                command.vehicleId?.toLong() ?: throw IllegalArgumentException("Vehicle ID is required")
+            ),
             date = date,
             serviceType = command.serviceType,
             description = command.description,

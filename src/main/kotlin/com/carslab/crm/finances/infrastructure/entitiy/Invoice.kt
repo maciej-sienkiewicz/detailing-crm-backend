@@ -1,5 +1,6 @@
 package com.carslab.crm.finances.infrastructure.entitiy
 
+import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
@@ -110,7 +111,7 @@ class InvoiceEntity(
             buyerName = buyerName,
             buyerTaxId = buyerTaxId,
             buyerAddress = buyerAddress,
-            clientId = clientId?.let { com.carslab.crm.domain.model.ClientId(it) },
+            clientId = clientId?.let { ClientId(it) },
             status = status,
             type = type,
             paymentMethod = paymentMethod,

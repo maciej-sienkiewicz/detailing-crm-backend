@@ -1,7 +1,7 @@
-package com.carslab.crm.domain.port
+package com.carslab.crm.clients.domain.port
 
-import com.carslab.crm.domain.model.ClientId
-import com.carslab.crm.domain.model.VehicleId
+import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.VehicleId
 
 /**
  * Port repozytorium dla asocjacji pomiędzy klientami a pojazdami.

@@ -1,6 +1,6 @@
 package com.carslab.crm.domain.model.create.client
 
-import com.carslab.crm.domain.model.ClientAudit
+import com.carslab.crm.clients.domain.model.ClientAudit
 
 data class CreateClientModel(
     val firstName: String,
