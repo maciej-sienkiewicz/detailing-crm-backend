@@ -1,19 +1,22 @@
-package com.carslab.crm.infrastructure.persistence.adapter
+package com.carslab.crm.finances.infrastructure.repository
 
-import com.carslab.crm.api.model.*
-import com.carslab.crm.domain.finances.documents.PaginatedResult
-import com.carslab.crm.domain.model.view.finance.*
-import com.carslab.crm.domain.port.CounterpartyUsage
-import com.carslab.crm.domain.port.DocumentStatistics
-import com.carslab.crm.domain.port.PaymentMethodUsage
-import com.carslab.crm.domain.port.UnifiedDocumentRepository
-import com.carslab.crm.infrastructure.persistence.entity.DocumentAttachmentEntity
-import com.carslab.crm.infrastructure.persistence.entity.DocumentItemEntity
-import com.carslab.crm.infrastructure.persistence.entity.UnifiedDocumentEntity
+import com.carslab.crm.api.model.DocumentStatus
+import com.carslab.crm.api.model.DocumentType
+import com.carslab.crm.api.model.FinancialSummaryResponse
+import com.carslab.crm.api.model.TransactionDirection
+import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
+import com.carslab.crm.domain.model.view.finance.PaymentMethod
+import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.finances.domain.PaginatedResult
+import com.carslab.crm.finances.domain.ports.CounterpartyUsage
+import com.carslab.crm.finances.domain.ports.DocumentStatistics
+import com.carslab.crm.finances.domain.ports.PaymentMethodUsage
+import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.finances.infrastructure.entitiy.DocumentAttachmentEntity
+import com.carslab.crm.finances.infrastructure.entitiy.DocumentItemEntity
+import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.BankAccountBalanceRepository
-import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
-import com.carslab.crm.infrastructure.persistence.repository.UnifiedDocumentJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.security.core.context.SecurityContextHolder
@@ -272,7 +275,8 @@ class JpaUnifiedDocumentRepositoryAdapter(
             cashBalance = cashBalancesRepository.findById(companyId).map { it.amount }.getOrElse { BigDecimal.ZERO },
             totalIncome = totalIncome,
             totalExpense = totalExpense,
-            bankAccountBalance = bankAccountBalanceRepository.findById(companyId).map { it.amount }.getOrElse { BigDecimal.ZERO },
+            bankAccountBalance = bankAccountBalanceRepository.findById(companyId).map { it.amount }
+                .getOrElse { BigDecimal.ZERO },
             receivables = receivables,
             receivablesOverdue = receivablesOverdue,
             liabilities = liabilities,

@@ -1,7 +1,7 @@
-package com.carslab.crm.infrastructure.persistence.repository
+package com.carslab.crm.finances.infrastructure.repository
 
-import com.carslab.crm.infrastructure.persistence.entity.BackAccountBalanceEntity
-import com.carslab.crm.infrastructure.persistence.entity.CashBalanceEntity
+import com.carslab.crm.finances.infrastructure.entitiy.BackAccountBalanceEntity
+import com.carslab.crm.finances.infrastructure.entitiy.CashBalanceEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query

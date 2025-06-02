@@ -1,7 +1,7 @@
 package com.carslab.crm.infrastructure.persistence.repository
 
 import com.carslab.crm.domain.model.view.finance.TransactionType
-import com.carslab.crm.infrastructure.persistence.entity.CashTransactionEntity
+import com.carslab.crm.finances.infrastructure.entitiy.CashTransactionEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

@@ -1,9 +1,8 @@
-package com.carslab.crm.domain.port
+package com.carslab.crm.finances.domain.ports
 
 import com.carslab.crm.api.model.InvoiceFilterDTO
 import com.carslab.crm.domain.model.view.finance.Invoice
 import com.carslab.crm.domain.model.view.finance.InvoiceId
-import java.math.BigDecimal
 import java.time.LocalDate
 
 /**

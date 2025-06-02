@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.port
+package com.carslab.crm.finances.domain.ports
 
 import com.carslab.crm.api.model.CashTransactionFilterDTO
 import com.carslab.crm.domain.model.view.finance.CashStatistics

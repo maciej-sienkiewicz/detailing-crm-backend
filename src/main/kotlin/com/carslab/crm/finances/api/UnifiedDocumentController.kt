@@ -1,4 +1,4 @@
-package com.carslab.crm.api.controller
+package com.carslab.crm.finances.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.*
@@ -7,7 +7,7 @@ import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
 import com.carslab.crm.api.model.response.InvoiceDataResponse
 import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.domain.finances.documents.UnifiedDocumentService
+import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import com.fasterxml.jackson.annotation.JsonProperty

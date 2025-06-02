@@ -18,7 +18,7 @@ import com.carslab.crm.domain.model.view.finance.InvoiceItem
 import com.carslab.crm.domain.model.view.finance.InvoiceStatus
 import com.carslab.crm.domain.model.view.finance.InvoiceType
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
-import com.carslab.crm.domain.port.InvoiceRepository
+import com.carslab.crm.finances.domain.ports.InvoiceRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory

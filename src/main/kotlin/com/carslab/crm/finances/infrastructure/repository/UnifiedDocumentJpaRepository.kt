@@ -1,10 +1,10 @@
-package com.carslab.crm.infrastructure.persistence.repository
+package com.carslab.crm.finances.infrastructure.repository
 
 import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
-import com.carslab.crm.infrastructure.persistence.entity.UnifiedDocumentEntity
+import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

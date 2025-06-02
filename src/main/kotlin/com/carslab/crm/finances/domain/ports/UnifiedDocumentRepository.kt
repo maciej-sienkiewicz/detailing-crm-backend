@@ -1,10 +1,10 @@
-package com.carslab.crm.domain.port
+package com.carslab.crm.finances.domain.ports
 
 import com.carslab.crm.api.model.FinancialSummaryResponse
 import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
-import com.carslab.crm.domain.finances.documents.PaginatedResult
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.finances.domain.PaginatedResult
 import java.math.BigDecimal
 import java.time.LocalDate
 

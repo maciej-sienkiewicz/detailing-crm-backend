@@ -1,13 +1,14 @@
-package com.carslab.crm.infrastructure.persistence.repository
+package com.carslab.crm.finances.infrastructure.repository
 
 import com.carslab.crm.api.model.CashTransactionFilterDTO
 import com.carslab.crm.domain.model.view.finance.CashStatistics
 import com.carslab.crm.domain.model.view.finance.CashTransaction
 import com.carslab.crm.domain.model.view.finance.TransactionId
 import com.carslab.crm.domain.model.view.finance.TransactionType
-import com.carslab.crm.domain.port.CashRepository
-import com.carslab.crm.infrastructure.persistence.entity.CashTransactionEntity
+import com.carslab.crm.finances.domain.ports.CashRepository
+import com.carslab.crm.finances.infrastructure.entitiy.CashTransactionEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.infrastructure.persistence.repository.CashJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort

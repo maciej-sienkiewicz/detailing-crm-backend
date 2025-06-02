@@ -1,16 +1,14 @@
-package com.carslab.crm.infrastructure.persistence.entity
+package com.carslab.crm.finances.infrastructure.entitiy
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.math.BigDecimal
 
 @Entity
-@Table(name = "cash_balances")
-class CashBalanceEntity(
+@Table(name = "bank_account_balances")
+class BackAccountBalanceEntity(
     @Id
     @Column(name = "company_id", nullable = false)
     var companyId: Long,

@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.finances.documents
+package com.carslab.crm.finances.domain
 
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import org.slf4j.LoggerFactory
@@ -14,6 +14,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -253,7 +254,7 @@ data class DocumentFileInfo(
     val name: String,
     val size: Long,
     val contentType: String,
-    val lastModified: java.time.Instant
+    val lastModified: Instant
 )
 
 /**

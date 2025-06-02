@@ -1,10 +1,11 @@
-package com.carslab.crm.infrastructure.persistence.entity
+package com.carslab.crm.finances.infrastructure.entitiy
 
 import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import jakarta.persistence.*
 import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal

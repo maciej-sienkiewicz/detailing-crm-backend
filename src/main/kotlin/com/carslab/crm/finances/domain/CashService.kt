@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.finances.cash
+package com.carslab.crm.finances.domain
 
 import com.carslab.crm.api.model.CashTransactionFilterDTO
 import com.carslab.crm.api.model.request.CreateCashTransactionRequest
@@ -10,7 +10,7 @@ import com.carslab.crm.domain.model.view.finance.CashStatistics
 import com.carslab.crm.domain.model.view.finance.CashTransaction
 import com.carslab.crm.domain.model.view.finance.TransactionId
 import com.carslab.crm.domain.model.view.finance.TransactionType
-import com.carslab.crm.domain.port.CashRepository
+import com.carslab.crm.finances.domain.ports.CashRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory

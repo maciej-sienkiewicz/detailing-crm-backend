@@ -5,7 +5,7 @@ import com.carslab.crm.domain.model.view.finance.Invoice
 import com.carslab.crm.domain.model.view.finance.InvoiceId
 import com.carslab.crm.domain.model.view.finance.InvoiceStatus
 import com.carslab.crm.domain.model.view.finance.InvoiceType
-import com.carslab.crm.domain.port.InvoiceRepository
+import com.carslab.crm.finances.domain.ports.InvoiceRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.finances.infrastructure.entitiy.InvoiceAttachmentEntity
 import com.carslab.crm.finances.infrastructure.entitiy.InvoiceEntity

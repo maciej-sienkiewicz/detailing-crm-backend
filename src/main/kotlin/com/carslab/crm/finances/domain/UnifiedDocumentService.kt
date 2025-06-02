@@ -1,4 +1,4 @@
-package com.carslab.crm.domain.finances.documents
+package com.carslab.crm.finances.domain
 
 import com.carslab.crm.api.model.BuyerInfoDTO
 import com.carslab.crm.api.model.DocumentType
@@ -13,20 +13,18 @@ import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
 import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
-import com.carslab.crm.domain.finances.documents.UnifiedDocumentStorageService
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
-import com.carslab.crm.domain.port.UnifiedDocumentRepository
+import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
-import com.carslab.crm.infrastructure.persistence.entity.CashBalanceEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.infrastructure.persistence.repository.BankAccountBalanceRepository
-import com.carslab.crm.infrastructure.persistence.repository.CashBalancesRepository
+import com.carslab.crm.finances.infrastructure.repository.BankAccountBalanceRepository
+import com.carslab.crm.finances.infrastructure.repository.CashBalancesRepository
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -37,7 +35,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
-import javax.print.Doc
 
 @Service
 class UnifiedDocumentService(
