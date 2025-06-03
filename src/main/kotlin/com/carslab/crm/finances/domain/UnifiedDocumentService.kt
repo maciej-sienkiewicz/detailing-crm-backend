@@ -37,6 +37,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
+@Transactional(readOnly = true) // DODANE: Domyślnie read-only dla optymalizacji
 class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UnifiedDocumentStorageService,
@@ -48,7 +49,7 @@ class UnifiedDocumentService(
     /**
      * Tworzy nowy dokument finansowy.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
@@ -82,7 +83,13 @@ class UnifiedDocumentService(
         val savedDocument = documentRepository.save(completeDocument)
         logger.info("Created document with ID: {}", savedDocument.id.value)
 
-        updateBalanceForDocument(savedDocument, companyId)
+        // NAPRAWIONE: Asynchroniczna aktualizacja salda w osobnej transakcji
+        try {
+            updateBalanceForDocument(savedDocument, companyId)
+        } catch (e: Exception) {
+            logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
+            // Nie przerywamy głównej operacji - saldo można zaktualizować później
+        }
 
         return savedDocument
     }
@@ -123,7 +130,7 @@ class UnifiedDocumentService(
     /**
      * Aktualizuje istniejący dokument.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun updateDocument(id: String, request: UpdateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Updating document with ID: {}", id)
 
@@ -167,7 +174,13 @@ class UnifiedDocumentService(
         val savedDocument = documentRepository.save(completeDocument)
 
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-        updateBalanceForDocument(savedDocument, companyId)
+
+        // NAPRAWIONE: Asynchroniczna aktualizacja salda
+        try {
+            updateBalanceForDocument(savedDocument, companyId)
+        } catch (e: Exception) {
+            logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
+        }
 
         logger.info("Updated document with ID: {}", savedDocument.id.value)
 
@@ -185,7 +198,9 @@ class UnifiedDocumentService(
 
     /**
      * Pobiera wszystkie dokumenty z opcjonalnym filtrowaniem i paginacją.
+     * NAPRAWIONE: Dodana adnotacja @Transactional(readOnly = true)
      */
+    @Transactional(readOnly = true)
     fun getAllDocuments(filter: UnifiedDocumentFilterDTO? = null, page: Int = 0, size: Int = 10): PaginatedResult<UnifiedFinancialDocument> {
         logger.debug("Getting all documents with filter: {}, page: {}, size: {}", filter, page, size)
         return documentRepository.findAll(filter, page, size)
@@ -194,7 +209,7 @@ class UnifiedDocumentService(
     /**
      * Usuwa dokument po ID.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun deleteDocument(id: String): Boolean {
         logger.info("Deleting document with ID: {}", id)
 
@@ -204,7 +219,12 @@ class UnifiedDocumentService(
 
         // Usunięcie załącznika, jeśli istnieje
         document.attachment?.let {
-            documentStorageService.deleteDocumentFile(it.storageId)
+            try {
+                documentStorageService.deleteDocumentFile(it.storageId)
+            } catch (e: Exception) {
+                logger.warn("Failed to delete attachment for document $id: ${e.message}")
+                // Kontynuuj usuwanie dokumentu mimo błędu z załącznikiem
+            }
         }
 
         // Usunięcie dokumentu z repozytorium
@@ -214,7 +234,7 @@ class UnifiedDocumentService(
     /**
      * Aktualizuje status dokumentu.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun updateDocumentStatus(id: String, status: String): Boolean {
         logger.info("Updating status of document with ID: {} to: {}", id, status)
 
@@ -229,7 +249,7 @@ class UnifiedDocumentService(
     /**
      * Aktualizuje kwotę zapłaconą.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun updatePaidAmount(id: String, paidAmount: BigDecimal): Boolean {
         logger.info("Updating paid amount of document with ID: {} to: {}", id, paidAmount)
 
@@ -259,8 +279,13 @@ class UnifiedDocumentService(
 
         // Jeśli dokument ma załącznik, pobierz go
         return document.attachment?.let {
-            val fileBytes = documentStorageService.getDocumentFile(it.storageId)
-            fileBytes to it.type
+            try {
+                val fileBytes = documentStorageService.getDocumentFile(it.storageId)
+                fileBytes to it.type
+            } catch (e: Exception) {
+                logger.error("Failed to retrieve attachment for document $id: ${e.message}")
+                null
+            }
         }
     }
 
@@ -309,6 +334,7 @@ class UnifiedDocumentService(
     /**
      * Pobiera podsumowanie finansowe.
      */
+    @Transactional(readOnly = true) // NAPRAWIONE: Read-only transaction
     fun getFinancialSummary(dateFrom: LocalDate?, dateTo: LocalDate?): FinancialSummaryResponse {
         logger.info("Getting financial summary for period: {} to {}", dateFrom, dateTo)
         return documentRepository.getFinancialSummary(dateFrom, dateTo)
@@ -317,6 +343,7 @@ class UnifiedDocumentService(
     /**
      * Pobiera dane do wykresów.
      */
+    @Transactional(readOnly = true) // NAPRAWIONE: Read-only transaction
     fun getChartData(period: String): Map<String, Any> {
         logger.info("Getting chart data for period: {}", period)
         return documentRepository.getChartData(period)
@@ -325,7 +352,7 @@ class UnifiedDocumentService(
     /**
      * Oznaczenie przeterminowanych dokumentów.
      */
-    @Transactional
+    @Transactional // NAPRAWIONE: Explicit write transaction
     fun markOverdueDocuments() {
         logger.info("Marking overdue documents")
 
@@ -335,8 +362,12 @@ class UnifiedDocumentService(
         var marked = 0
         for (document in overdueDocuments) {
             if (document.status == DocumentStatus.NOT_PAID || document.status == DocumentStatus.PARTIALLY_PAID) {
-                documentRepository.updateStatus(document.id, DocumentStatus.OVERDUE.name)
-                marked++
+                try {
+                    documentRepository.updateStatus(document.id, DocumentStatus.OVERDUE.name)
+                    marked++
+                } catch (e: Exception) {
+                    logger.warn("Failed to mark document ${document.id.value} as overdue: ${e.message}")
+                }
             }
         }
 

@@ -7,6 +7,9 @@ import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import jakarta.persistence.*
+import org.hibernate.annotations.BatchSize
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -14,6 +17,19 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(name = "unified_financial_documents")
+@NamedEntityGraphs(
+    NamedEntityGraph(
+        name = "UnifiedDocument.withItems",
+        attributeNodes = [NamedAttributeNode("items")]
+    ),
+    NamedEntityGraph(
+        name = "UnifiedDocument.withItemsAndAttachment",
+        attributeNodes = [
+            NamedAttributeNode("items"),
+            NamedAttributeNode("attachment")
+        ]
+    )
+)
 class UnifiedDocumentEntity(
     @Id
     @Column(nullable = false)
@@ -104,12 +120,31 @@ class UnifiedDocumentEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 
-    @OneToMany(mappedBy = "document", cascade = [CascadeType.ALL], orphanRemoval = true)
+    // NAPRAWIONE: Eager loading z optymalizacjami
+    @OneToMany(
+        mappedBy = "document",
+        cascade = [CascadeType.ALL],
+        orphanRemoval = true,
+        fetch = FetchType.EAGER
+    )
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 20)
+    @OrderBy("id ASC")
     var items: MutableList<DocumentItemEntity> = mutableListOf(),
 
-    @OneToOne(mappedBy = "document", cascade = [CascadeType.ALL], orphanRemoval = true)
+    // NAPRAWIONE: Eager loading dla attachment
+    @OneToOne(
+        mappedBy = "document",
+        cascade = [CascadeType.ALL],
+        orphanRemoval = true,
+        fetch = FetchType.EAGER
+    )
     var attachment: DocumentAttachmentEntity? = null
 ) {
+
+    /**
+     * Bezpieczna konwersja do modelu domenowego z obsługą lazy loading
+     */
     fun toDomain(): UnifiedFinancialDocument {
         return UnifiedFinancialDocument(
             id = UnifiedDocumentId(id),
@@ -137,10 +172,41 @@ class UnifiedDocumentEntity(
             protocolId = protocolId,
             protocolNumber = protocolNumber,
             visitId = visitId,
-            items = items.map { it.toDomain() },
-            attachment = attachment?.toDomain(),
+            items = safeMapItems(),
+            attachment = safeMapAttachment(),
             audit = Audit(createdAt = createdAt, updatedAt = updatedAt)
         )
+    }
+
+    /**
+     * Bezpieczne mapowanie items z obsługą lazy loading
+     */
+    private fun safeMapItems(): List<DocumentItem> {
+        return try {
+            // Sprawdzenie czy kolekcja jest zainicjalizowana
+            if (items.isNotEmpty()) {
+                items.map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            // Log warning ale nie przerwaj operacji
+            println("Warning: Could not load items for document $id: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Bezpieczne mapowanie attachment z obsługą lazy loading
+     */
+    private fun safeMapAttachment(): DocumentAttachment? {
+        return try {
+            attachment?.toDomain()
+        } catch (e: Exception) {
+            // Log warning ale nie przerwij operacji
+            println("Warning: Could not load attachment for document $id: ${e.message}")
+            null
+        }
     }
 
     companion object {

@@ -7,6 +7,7 @@ import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -19,19 +20,44 @@ import java.util.Optional
 @Repository
 interface UnifiedDocumentJpaRepository : JpaRepository<UnifiedDocumentEntity, String> {
 
-    // Podstawowe zapytania z uwzględnieniem companyId
+    // Podstawowe zapytania z Entity Graph dla optymalnego ładowania
+    @EntityGraph(value = "UnifiedDocument.withItemsAndAttachment", type = EntityGraph.EntityGraphType.FETCH)
     fun findByCompanyId(companyId: Long, pageable: Pageable): Page<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItemsAndAttachment", type = EntityGraph.EntityGraphType.FETCH)
     fun findByCompanyIdAndId(companyId: Long, id: String): Optional<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByNumberAndCompanyId(number: String, companyId: Long): UnifiedDocumentEntity?
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByStatusAndCompanyId(status: DocumentStatus, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByTypeAndCompanyId(type: DocumentType, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByDirectionAndCompanyId(direction: TransactionDirection, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByTypeAndDirectionAndCompanyId(type: DocumentType, direction: TransactionDirection, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByProtocolIdAndCompanyId(protocolId: String, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByVisitIdAndCompanyId(visitId: String, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByDueDateBeforeAndCompanyId(date: LocalDate, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByBuyerNameContainingIgnoreCaseAndCompanyId(buyerName: String, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findBySellerNameContainingIgnoreCaseAndCompanyId(sellerName: String, companyId: Long): List<UnifiedDocumentEntity>
+
+    @EntityGraph(value = "UnifiedDocument.withItems", type = EntityGraph.EntityGraphType.FETCH)
     fun findByTitleContainingIgnoreCaseAndCompanyId(title: String, companyId: Long): List<UnifiedDocumentEntity>
 
     // Generowanie numerów dokumentów
@@ -52,9 +78,11 @@ interface UnifiedDocumentJpaRepository : JpaRepository<UnifiedDocumentEntity, St
         @Param("companyId") companyId: Long
     ): Int
 
-    // Kompleksowe wyszukiwanie z filtrami
+    // Kompleksowe wyszukiwanie z filtrami - ZOPTYMALIZOWANE
     @Query("""
-        SELECT e FROM UnifiedDocumentEntity e 
+        SELECT DISTINCT e FROM UnifiedDocumentEntity e 
+        LEFT JOIN FETCH e.items
+        LEFT JOIN FETCH e.attachment
         WHERE (:number IS NULL OR e.number LIKE CONCAT('%', CAST(:number AS string), '%'))
         AND (:title IS NULL OR LOWER(e.title) LIKE LOWER(CONCAT('%', CAST(:title AS string), '%')))
         AND (:buyerName IS NULL OR LOWER(e.buyerName) LIKE LOWER(CONCAT('%', CAST(:buyerName AS string), '%')))
@@ -91,7 +119,7 @@ interface UnifiedDocumentJpaRepository : JpaRepository<UnifiedDocumentEntity, St
         pageable: Pageable
     ): Page<UnifiedDocumentEntity>
 
-    // Zapytania finansowe i statystyczne
+    // Zapytania finansowe i statystyczne - zoptymalizowane bez JOIN FETCH
     @Query("""
         SELECT COALESCE(SUM(e.totalGross), 0) FROM UnifiedDocumentEntity e 
         WHERE (:dateFrom IS NULL OR e.issuedDate >= :dateFrom)

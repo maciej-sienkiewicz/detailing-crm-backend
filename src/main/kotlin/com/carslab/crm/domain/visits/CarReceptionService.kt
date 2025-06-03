@@ -376,7 +376,6 @@ class CarReceptionService(
             return null
         }
 
-        // Use search functionality to find client by email or phone
         val searchResults = clientApplicationService.searchClients(
             email = email,
             phone = phoneNumber,
