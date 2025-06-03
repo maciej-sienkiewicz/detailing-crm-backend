@@ -2,11 +2,13 @@ package com.carslab.crm.clients.domain.port
 
 import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.CreateClient
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
 interface ClientRepository {
     fun save(client: Client): Client
+    fun saveNew(client: CreateClient): Client
     fun findById(id: ClientId): Client?
     fun findByIds(ids: List<ClientId>): List<Client>
     fun findAll(pageable: Pageable): Page<Client>

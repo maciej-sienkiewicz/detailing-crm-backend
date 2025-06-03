@@ -187,10 +187,6 @@ class VehicleApplicationService(
         require(request.make.isNotBlank()) { "Make cannot be blank" }
         require(request.model.isNotBlank()) { "Model cannot be blank" }
         require(request.licensePlate.isNotBlank()) { "License plate cannot be blank" }
-        request.year?.let { year ->
-            require(year in 1900..2100) { "Year must be between 1900 and 2100" }
-        }
-        require(request.ownerIds.isNotEmpty()) { "Vehicle must have at least one owner" }
     }
 
     private fun validateUpdateVehicleRequest(request: UpdateVehicleRequest) {

@@ -2,6 +2,7 @@ package com.carslab.crm.clients.domain
 
 import com.carslab.crm.clients.api.CreateVehicleCommand
 import com.carslab.crm.clients.api.UpdateVehicleCommand
+import com.carslab.crm.clients.domain.model.CreateVehicle
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId
@@ -27,8 +28,7 @@ class VehicleDomainService(
     fun createVehicle(command: CreateVehicleCommand): Vehicle {
         validateVehicleUniqueness(command.licensePlate, command.vin)
 
-        val vehicle = Vehicle(
-            id = VehicleId.Companion.generate(),
+        val vehicle = CreateVehicle(
             make = command.make,
             model = command.model,
             year = command.year,

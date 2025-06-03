@@ -1,5 +1,7 @@
 package com.carslab.crm.api.model.request
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 enum class ApiDiscountType {
     PERCENTAGE,
     AMOUNT,
@@ -12,11 +14,25 @@ enum class ServiceApprovalStatus {
     REJECTED
 }
 
+/**
+ * Najprostsze rozwiązanie - używaj @JsonProperty dla każdej wartości enum
+ */
 enum class ApiReferralSource {
+    @JsonProperty("other")
+    OTHER,
+
+    @JsonProperty("regular_customer")
     REGULAR_CUSTOMER,
-    RECOMMENDATION,
-    SEARCH_ENGINE,
+
+    @JsonProperty("social_media")
     SOCIAL_MEDIA,
+
+    @JsonProperty("local_ad")
     LOCAL_AD,
-    OTHER
+
+    @JsonProperty("search_engine")
+    SEARCH_ENGINE,
+
+    @JsonProperty("recommendation")
+    RECOMMENDATION
 }

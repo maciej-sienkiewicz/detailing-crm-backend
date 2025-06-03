@@ -2,6 +2,7 @@ package com.carslab.crm.clients.infrastructure.persistence.entity
 
 import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.CreateClient
 import com.carslab.crm.clients.domain.model.shared.AuditInfo
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
@@ -106,8 +107,8 @@ class ClientEntity(
     )
 
     companion object {
-        fun fromDomain(client: Client, companyId: Long): ClientEntity = ClientEntity(
-            id = if (client.id.value > 0) client.id.value else null,
+        fun fromDomain(client: CreateClient, companyId: Long): ClientEntity = ClientEntity(
+            id = null,
             companyId = companyId,
             firstName = client.firstName,
             lastName = client.lastName,

@@ -19,7 +19,7 @@ class UserService(
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtService: JwtService // Używamy nowego JwtService
+    private val jwtService: JwtService
 ) {
 
     fun authenticate(username: String, password: String): LoginResponse {

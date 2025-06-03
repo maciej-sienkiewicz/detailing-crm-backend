@@ -1,5 +1,5 @@
 ### Variables
-@baseUrl = http://srv17.mikr.us:30266/
+@baseUrl = localhost:8080
 @companyId = 999
 
 ### -----------------------------------------------
@@ -81,9 +81,9 @@ POST {{baseUrl}}/api/users
 Content-Type: application/json
 
 {
-  "username": "maciej.sienkiewicz",
+  "username": "maciej.sienkiewicz1",
   "password": "haslo123",
-  "email": "maciej.sienkiewicz2@gmail.com",
+  "email": "maciej.sienkiewicz4@gmail.com",
   "firstName": "Maciej",
   "lastName": "Sienkiewicz",
   "companyId": 2

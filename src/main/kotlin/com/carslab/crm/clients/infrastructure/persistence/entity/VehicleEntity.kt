@@ -1,5 +1,6 @@
 package com.carslab.crm.clients.infrastructure.persistence.entity
 
+import com.carslab.crm.clients.domain.model.CreateVehicle
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.clients.domain.model.VehicleServiceInfo
@@ -119,8 +120,8 @@ class VehicleEntity(
     )
 
     companion object {
-        fun fromDomain(vehicle: Vehicle, companyId: Long): VehicleEntity = VehicleEntity(
-            id = if (vehicle.id.value > 0) vehicle.id.value else null,
+        fun fromDomain(vehicle: CreateVehicle, companyId: Long): VehicleEntity = VehicleEntity(
+            id = null,
             companyId = companyId,
             make = vehicle.make,
             model = vehicle.model,

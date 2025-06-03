@@ -7,7 +7,7 @@ import com.carslab.crm.domain.port.ServiceHistoryRepository
 import com.carslab.crm.clients.domain.port.VehicleRepository
 import com.carslab.crm.infrastructure.persistence.entity.ServiceHistoryEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.ServiceHistoryJpaRepository
+import com.carslab.crm.infrastructure.persistence.repository.ServiceHistoryJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 

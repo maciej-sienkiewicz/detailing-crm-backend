@@ -21,23 +21,4 @@ object ClientMapper {
             updatedAt = clientDetail.updatedAt
         )
     }
-
-    fun toExpandedResponse(clientDetail: ClientDetailResponse): ClientExpandedResponse {
-        return ClientExpandedResponse(
-            id = clientDetail.id,
-            firstName = clientDetail.firstName,
-            lastName = clientDetail.lastName,
-            fullName = clientDetail.fullName,
-            email = clientDetail.email,
-            phone = clientDetail.phone,
-            address = clientDetail.address,
-            company = clientDetail.company,
-            taxId = clientDetail.taxId,
-            notes = clientDetail.notes,
-            statistics = clientDetail.statistics,
-            vehicles = clientDetail.vehicles,
-            createdAt = clientDetail.createdAt,
-            updatedAt = clientDetail.updatedAt
-        )
-    }
 }

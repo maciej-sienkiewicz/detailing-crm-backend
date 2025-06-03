@@ -23,6 +23,13 @@ class JwtAuthenticationFilter(
         filterChain: FilterChain
     ) {
         try {
+            // ZAWSZE pozwól na OPTIONS requests (preflight)
+            if ("OPTIONS".equals(request.method, ignoreCase = true)) {
+                logger.debug("Allowing OPTIONS request for: ${request.requestURI}")
+                filterChain.doFilter(request, response)
+                return
+            }
+
             val authHeader = request.getHeader("Authorization")
 
             // Skip JWT validation for public endpoints
@@ -122,7 +129,10 @@ class JwtAuthenticationFilter(
             "/api/auth/register",
             "/api/tablets/auth",
             "/api/tablets/register",
+            "/api/tablets/pair",
             "/api/debug/token",
+            "/api/health",
+            "/api/users",
             "/actuator",
             "/error",
             "/favicon.ico",

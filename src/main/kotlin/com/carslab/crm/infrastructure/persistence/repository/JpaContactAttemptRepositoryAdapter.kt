@@ -7,7 +7,7 @@ import com.carslab.crm.domain.model.ContactAttemptType
 import com.carslab.crm.domain.port.ContactAttemptRepository
 import com.carslab.crm.infrastructure.persistence.entity.ContactAttemptEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.ContactAttemptJpaRepository
+import com.carslab.crm.infrastructure.persistence.repository.ContactAttemptJpaRepository
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime

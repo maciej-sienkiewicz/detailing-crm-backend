@@ -1,7 +1,9 @@
 package com.carslab.crm.security
 
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -22,6 +24,8 @@ class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter
 ) {
 
+    private val logger = LoggerFactory.getLogger(SecurityConfig::class.java)
+
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder(12)
 
@@ -29,12 +33,25 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
             allowedOriginPatterns = listOf(
-                "https://*.crm.com",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
                 "https://localhost:*",
-                "http://localhost:*" // For development
+                "https://*.crm.com"
             )
-            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+
+            allowedMethods = listOf(
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+            )
+
             allowedHeaders = listOf("*")
+
+            exposedHeaders = listOf(
+                "Authorization",
+                "Content-Type",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"
+            )
+
             allowCredentials = true
             maxAge = 3600L
         }
@@ -46,19 +63,26 @@ class SecurityConfig(
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
+        logger.info("Configuring Security Filter Chain")
+
         return http
             .csrf { it.disable() }
             .cors { it.configurationSource(corsConfigurationSource()) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+
             .authorizeHttpRequests { auth ->
                 auth
+                    // OPTIONS requests MUSZĄ być dozwolone dla wszystkich endpointów
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                     // Public endpoints
                     .requestMatchers(
                         "/api/health/**",
+                        "/api/users",
                         "/actuator/health",
-                        "/api/tablets/pair", // Tablet pairing MUST be public
+                        "/api/tablets/pair",
                         "/api/auth/**",
-                        "/ws/**" // WebSocket - security handled at handler level
+                        "/ws/**"
                     ).permitAll()
 
                     // Admin endpoints
@@ -70,10 +94,15 @@ class SecurityConfig(
                     // Tablet management
                     .requestMatchers("/api/tablets/**").hasAnyRole("MANAGER", "ADMIN")
 
+                    // Reception endpoints - ZMIENIONE: pozwolenie dla wszystkich uwierzytelnionych
+                    .requestMatchers("/api/receptions/**").authenticated()
+
                     .anyRequest().authenticated()
             }
+
             .exceptionHandling { it.authenticationEntryPoint(jwtAuthenticationEntryPoint) }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+
             .build()
     }
 }

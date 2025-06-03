@@ -1,10 +1,14 @@
 package com.carslab.crm.clients.api.responses
 
+import com.carslab.crm.clients.domain.ClientDetailResponse
 import com.carslab.crm.clients.domain.ClientStatisticsResponse
 import com.carslab.crm.clients.domain.VehicleSummaryResponse
 import com.carslab.crm.clients.domain.VehicleServiceInfoResponse
+import com.carslab.crm.clients.domain.model.Client
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 data class ClientResponse(
     val id: Long,
@@ -22,21 +26,64 @@ data class ClientResponse(
 )
 
 data class ClientExpandedResponse(
-    val id: Long,
+    val id: String,
+    @JsonProperty("firstName")
     val firstName: String,
+    @JsonProperty("lastName")
     val lastName: String,
-    val fullName: String,
     val email: String,
     val phone: String,
-    val address: String?,
-    val company: String?,
-    val taxId: String?,
-    val notes: String?,
-    val statistics: ClientStatisticsResponse,
-    val vehicles: List<VehicleSummaryResponse>,
-    val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
-)
+    val address: String? = null,
+    val company: String? = null,
+    @JsonProperty("taxId")
+    val taxId: String? = null,
+
+    // Statystyki - dopasowane do oczekiwań frontendu
+    @JsonProperty("totalVisits")
+    val totalVisits: Int,
+    @JsonProperty("totalTransactions")
+    val totalTransactions: Int,
+    @JsonProperty("abandonedSales")
+    val abandonedSales: Int,
+    @JsonProperty("totalRevenue")
+    val totalRevenue: Double,
+    @JsonProperty("contactAttempts")
+    val contactAttempts: Int,
+    @JsonProperty("lastVisitDate")
+    val lastVisitDate: String? = null,
+
+    val notes: String? = null,
+    val vehicles: List<String> = emptyList()
+) {
+    companion object {
+        private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+        fun fromDomain(client: ClientDetailResponse): ClientExpandedResponse {
+            return ClientExpandedResponse(
+                id = client.id.toString(),
+                firstName = client.firstName,
+                lastName = client.lastName,
+                email = client.email,
+                phone = client.phone,
+                address = client.address?.takeIf { it.isNotBlank() },
+                company = client.company?.takeIf { it.isNotBlank() },
+                taxId = client.taxId?.takeIf { it.isNotBlank() },
+
+
+                // Mapowanie statystyk z domeny
+                totalVisits = client.statistics.visitCount.toInt(),
+                totalTransactions = 0,
+                abandonedSales = 0, // Dodaj to pole do domeny
+                totalRevenue = client.statistics.totalRevenue.toDouble(),
+                lastVisitDate = client.statistics.lastVisitDate?.format(dateFormatter),
+
+                notes = client.notes?.takeIf { it.isNotBlank() },
+                contactAttempts = 0,
+                vehicles = client.vehicles.map { it.id.toString() }
+            )
+        }
+    }
+}
 
 data class VehicleResponse(
     val id: Long,

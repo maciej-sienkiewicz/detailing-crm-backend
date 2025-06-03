@@ -7,6 +7,7 @@ import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
 import com.carslab.crm.clients.domain.model.ClientStatistics
 import com.carslab.crm.clients.domain.model.ClientWithStatistics
+import com.carslab.crm.clients.domain.model.CreateClient
 import com.carslab.crm.clients.domain.port.ClientRepository
 import com.carslab.crm.clients.domain.port.ClientSearchCriteria
 import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 
 @Service
 @Transactional
@@ -27,19 +29,18 @@ class ClientDomainService(
     fun createClient(command: CreateClientCommand): Client {
         validateClientUniqueness(command.email, command.phone)
 
-        val client = Client(
-            id = ClientId.Companion.generate(),
+        val client = CreateClient(
             firstName = command.firstName,
             lastName = command.lastName,
-            email = command.email,
-            phone = command.phone,
+            email = command.email ?: "",
+            phone = command.phone ?: "",
             address = command.address,
             company = command.company,
             taxId = command.taxId,
             notes = command.notes
         )
 
-        val savedClient = clientRepository.save(client)
+        val savedClient = clientRepository.saveNew(client)
         initializeClientStatistics(savedClient.id)
 
         return savedClient
@@ -66,6 +67,11 @@ class ClientDomainService(
         )
 
         return clientRepository.save(updatedClient)
+    }
+
+    fun updateClientStatistics(id: ClientId, gmv: BigDecimal): Unit {
+        clientStatisticsRepository.updateVisitCount(id, 1)
+        clientStatisticsRepository.updateRevenue(id, gmv)
     }
 
     @Transactional(readOnly = true)
@@ -97,15 +103,15 @@ class ClientDomainService(
         return clientRepository.deleteById(id)
     }
 
-    private fun validateClientUniqueness(email: String, phone: String, excludeId: ClientId? = null) {
-        if (email.isNotBlank()) {
+    private fun validateClientUniqueness(email: String?, phone: String?, excludeId: ClientId? = null) {
+        if (!email.isNullOrBlank()) {
             val existingByEmail = clientRepository.findByEmail(email)
             if (existingByEmail != null && existingByEmail.id != excludeId) {
                 throw DomainException("Client with email $email already exists")
             }
         }
 
-        if (phone.isNotBlank()) {
+        if (!phone.isNullOrBlank()) {
             val existingByPhone = clientRepository.findByPhone(phone)
             if (existingByPhone != null && existingByPhone.id != excludeId) {
                 throw DomainException("Client with phone $phone already exists")

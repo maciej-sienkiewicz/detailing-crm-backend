@@ -2,12 +2,14 @@ package com.carslab.crm.infrastructure.persistence.adapter
 
 import com.carslab.crm.clients.domain.model.Client
 import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.clients.domain.model.CreateClient
 import com.carslab.crm.clients.domain.port.ClientRepository
 import com.carslab.crm.clients.domain.port.ClientSearchCriteria
 import com.carslab.crm.clients.infrastructure.persistence.entity.ClientEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -22,15 +24,18 @@ class ClientRepositoryAdapter(
 
     override fun save(client: Client): Client {
         val companyId = securityContext.getCurrentCompanyId()
-        val entity = if (client.id.value > 0) {
-            val existing = clientJpaRepository.findByIdAndCompanyId(client.id.value, companyId)
-                .orElseThrow { IllegalArgumentException("Client not found or access denied") }
-            updateEntityFromDomain(existing, client)
-            existing
-        } else {
-            // Create new
-            ClientEntity.fromDomain(client, companyId)
-        }
+        val existing = clientJpaRepository.findByIdAndCompanyId(client.id.value, companyId)
+            .orElseThrow { IllegalArgumentException("Client not found or access denied") }
+        updateEntityFromDomain(existing, client)
+        val entity = existing
+
+        val saved = clientJpaRepository.save(entity)
+        return saved.toDomain()
+    }
+
+    override fun saveNew(client: CreateClient): Client {
+        val companyId = securityContext.getCurrentCompanyId()
+        val entity = ClientEntity.fromDomain(client, companyId)
 
         val saved = clientJpaRepository.save(entity)
         return saved.toDomain()
@@ -88,9 +93,30 @@ class ClientRepositoryAdapter(
     @Transactional(readOnly = true)
     override fun searchClients(criteria: ClientSearchCriteria, pageable: Pageable): Page<Client> {
         val companyId = securityContext.getCurrentCompanyId()
-        return clientJpaRepository.searchClients(
-            criteria.name, criteria.email, criteria.phone, criteria.company, companyId, pageable
+
+        // Używamy native query zamiast problematycznego JPQL
+        val offset = pageable.pageNumber * pageable.pageSize
+        val limit = pageable.pageSize
+
+        val clients = clientJpaRepository.searchClientsNative(
+            criteria.name,
+            criteria.email,
+            criteria.phone,
+            criteria.company,
+            companyId,
+            limit,
+            offset
         ).map { it.toDomain() }
+
+        val total = clientJpaRepository.countSearchClients(
+            criteria.name,
+            criteria.email,
+            criteria.phone,
+            criteria.company,
+            companyId
+        )
+
+        return PageImpl(clients, pageable, total)
     }
 
     @Transactional(readOnly = true)

@@ -1,5 +1,6 @@
 package com.carslab.crm.clients.domain.port
 
+import com.carslab.crm.clients.domain.model.CreateVehicle
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId
 import org.springframework.data.domain.Page
@@ -7,6 +8,7 @@ import org.springframework.data.domain.Pageable
 
 interface VehicleRepository {
     fun save(vehicle: Vehicle): Vehicle
+    fun save(vehicle: CreateVehicle): Vehicle
     fun findById(id: VehicleId): Vehicle?
     fun findByIds(ids: List<VehicleId>): List<Vehicle>
     fun findAll(pageable: Pageable): Page<Vehicle>

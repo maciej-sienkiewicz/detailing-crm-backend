@@ -100,6 +100,20 @@ class ClientApplicationService(
         }
     }
 
+    fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal): Unit {
+        logger.info("Updating statistics for client with ID: $clientId")
+        try {
+            clientDomainService.updateClientStatistics(clientId, totalGmv)
+            logger.info("Successfully updated statistics for client with ID: $clientId")
+        } catch (e: DomainException) {
+            logger.error("Failed to update statistics for client $clientId: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            logger.error("Unexpected error updating statistics for client $clientId", e)
+            throw RuntimeException("Failed to update client statistics", e)
+        }
+    }
+
     @Transactional(readOnly = true)
     fun getClientById(id: Long): ClientDetailResponse? {
         logger.debug("Getting client by ID: $id")
@@ -133,7 +147,7 @@ class ClientApplicationService(
             .map { client ->
                 val clientWithStats = ClientWithStatistics(
                     client = client,
-                    statistics = ClientStatistics(clientId = client.id.value)
+                    statistics = clientDomainService.getClientWithStatistics(client.id)?.statistics ?: ClientStatistics(clientId = client.id.value)
                 )
                 val vehicles = associationService.getClientVehicles(client.id)
                 ClientDetailResponse.from(clientWithStats, vehicles)
@@ -157,11 +171,8 @@ class ClientApplicationService(
     private fun validateCreateClientRequest(request: CreateClientRequest) {
         require(request.firstName.isNotBlank()) { "First name cannot be blank" }
         require(request.lastName.isNotBlank()) { "Last name cannot be blank" }
-        require(request.email.isNotBlank() || request.phone.isNotBlank()) {
+        require(request.email?.isNotBlank() ?: false || request.phone?.isNotBlank() ?: false) {
             "Either email or phone must be provided"
-        }
-        if (request.email.isNotBlank()) {
-            require(isValidEmail(request.email)) { "Invalid email format" }
         }
     }
 
@@ -184,8 +195,8 @@ class ClientApplicationService(
 data class CreateClientRequest(
     val firstName: String,
     val lastName: String,
-    val email: String,
-    val phone: String,
+    val email: String? = null,
+    val phone : String? = null,
     val address: String? = null,
     val company: String? = null,
     val taxId: String? = null,

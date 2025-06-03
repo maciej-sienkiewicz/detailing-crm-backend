@@ -55,7 +55,7 @@ class ClientController(
             )
 
             val createdClient = clientApplicationService.createClient(appRequest)
-            val response = ClientMapper.toExpandedResponse(createdClient)
+            val response = ClientExpandedResponse.fromDomain(createdClient)
 
             logger.info("Successfully created client with ID: ${response.id}")
             return created(response)
@@ -99,7 +99,7 @@ class ClientController(
         )
 
         val response = clients.content.map { client ->
-            ClientMapper.toExpandedResponse(client)
+                ClientExpandedResponse.fromDomain(client)
         }
         return ok(response)
     }

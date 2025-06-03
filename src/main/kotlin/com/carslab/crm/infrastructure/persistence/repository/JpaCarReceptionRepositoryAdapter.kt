@@ -11,7 +11,7 @@ import com.carslab.crm.domain.port.CarReceptionRepository
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolJpaRepository
+import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort

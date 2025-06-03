@@ -1,5 +1,6 @@
 package com.carslab.crm.clients.infrastructure.persistence.adapter
 
+import com.carslab.crm.clients.domain.model.CreateVehicle
 import com.carslab.crm.clients.domain.model.Vehicle
 import com.carslab.crm.clients.domain.model.VehicleId
 import com.carslab.crm.clients.domain.port.VehicleRepository
@@ -8,6 +9,7 @@ import com.carslab.crm.clients.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -22,16 +24,18 @@ class VehicleRepositoryAdapter(
 
     override fun save(vehicle: Vehicle): Vehicle {
         val companyId = securityContext.getCurrentCompanyId()
-        val entity = if (vehicle.id.value > 0) {
-            val existing = vehicleJpaRepository.findByIdAndCompanyId(vehicle.id.value, companyId)
-                .orElseThrow { IllegalArgumentException("Vehicle not found or access denied") }
-            updateEntityFromDomain(existing, vehicle)
-            existing
-        } else {
-            // Create new
-            VehicleEntity.fromDomain(vehicle, companyId)
-        }
+        val existing = vehicleJpaRepository.findByIdAndCompanyId(vehicle.id.value, companyId)
+            .orElseThrow { IllegalArgumentException("Vehicle not found or access denied") }
+        updateEntityFromDomain(existing, vehicle)
+        val entity = existing
 
+        val saved = vehicleJpaRepository.save(entity)
+        return saved.toDomain()
+    }
+
+    override fun save(vehicle: CreateVehicle): Vehicle {
+        val companyId = securityContext.getCurrentCompanyId()
+        val entity = VehicleEntity.fromDomain(vehicle, companyId)
         val saved = vehicleJpaRepository.save(entity)
         return saved.toDomain()
     }
@@ -88,10 +92,32 @@ class VehicleRepositoryAdapter(
     @Transactional(readOnly = true)
     override fun searchVehicles(criteria: VehicleSearchCriteria, pageable: Pageable): Page<Vehicle> {
         val companyId = securityContext.getCurrentCompanyId()
-        return vehicleJpaRepository.searchVehicles(
-            criteria.make, criteria.model, criteria.licensePlate,
-            criteria.vin, criteria.year, companyId, pageable
+
+        // Używamy native query zamiast problematycznego JPQL
+        val offset = pageable.pageNumber * pageable.pageSize
+        val limit = pageable.pageSize
+
+        val vehicles = vehicleJpaRepository.searchVehiclesNative(
+            criteria.make,
+            criteria.model,
+            criteria.licensePlate,
+            criteria.vin,
+            criteria.year,
+            companyId,
+            limit,
+            offset
         ).map { it.toDomain() }
+
+        val total = vehicleJpaRepository.countSearchVehicles(
+            criteria.make,
+            criteria.model,
+            criteria.licensePlate,
+            criteria.vin,
+            criteria.year,
+            companyId
+        )
+
+        return PageImpl(vehicles, pageable, total)
     }
 
     @Transactional(readOnly = true)
@@ -117,12 +143,9 @@ class VehicleRepositoryAdapter(
         entity.model = domain.model
         entity.year = domain.year
         entity.licensePlate = domain.licensePlate
-        entity.color = domain.color
         entity.vin = domain.vin
+        entity.color = domain.color
         entity.mileage = domain.mileage
-        entity.totalServices = domain.serviceInfo.totalServices
-        entity.lastServiceDate = domain.serviceInfo.lastServiceDate
-        entity.totalSpent = domain.serviceInfo.totalSpent
         entity.updatedAt = domain.audit.updatedAt
         entity.updatedBy = domain.audit.updatedBy
     }

@@ -15,6 +15,18 @@ data class ClientId(val value: Long) {
     }
 }
 
+
+data class CreateClient(
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val phone: String,
+    val address: String? = null,
+    val company: String? = null,
+    val taxId: String? = null,
+    val notes: String? = null,
+    val audit: AuditInfo = AuditInfo()
+)
 /**
  * Dane klienta z informacjami audytowymi.
  */

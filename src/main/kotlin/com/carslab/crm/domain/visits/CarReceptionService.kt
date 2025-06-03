@@ -428,9 +428,10 @@ class CarReceptionService(
     }
 
     private fun updateVisitsStatistics(protocol: CarReceptionProtocol) {
-        // Statistics are automatically updated by the application services
-        // when protocols are completed
-        logger.debug("Statistics updated for completed protocol: ${protocol.id.value}")
+        clientApplicationService.updateClientStatistics(
+            clientId = ClientId(protocol.client.id!!),
+            totalGmv = protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
+        )
     }
 
     fun updateServices(protocolId: ProtocolId, services: List<CreateServiceModel>) {

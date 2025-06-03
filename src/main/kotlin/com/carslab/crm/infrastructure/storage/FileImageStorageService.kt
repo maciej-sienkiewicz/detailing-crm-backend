@@ -7,8 +7,8 @@ import com.carslab.crm.infrastructure.persistence.entity.ImageTagEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.entity.VehicleImageEntity
 import com.carslab.crm.infrastructure.persistence.repository.ImageTagJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleImageJpaRepository
+import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
+import com.carslab.crm.infrastructure.persistence.repository.VehicleImageJpaRepository
 import com.carslab.crm.infrastructure.repository.InMemoryImageStorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource

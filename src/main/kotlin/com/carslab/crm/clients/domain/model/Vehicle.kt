@@ -12,6 +12,18 @@ data class VehicleId(val value: Long) {
     }
 }
 
+data class CreateVehicle(
+    val make: String,
+    val model: String,
+    val year: Int?,
+    val licensePlate: String,
+    val color: String? = null,
+    val vin: String? = null,
+    val mileage: Long? = null,
+    val serviceInfo: VehicleServiceInfo = VehicleServiceInfo(),
+    val audit: AuditInfo = AuditInfo()
+)
+
 data class Vehicle(
     val id: VehicleId,
     val make: String,
