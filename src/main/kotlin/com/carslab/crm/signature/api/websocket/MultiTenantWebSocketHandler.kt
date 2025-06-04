@@ -152,46 +152,6 @@ class MultiTenantWebSocketHandler(
         logger.info("WebSocket connection closed: ${status.reason}")
     }
 
-    fun sendSignatureRequest(tabletId: UUID, message: SignatureRequestMessage): Boolean {
-        val connection = tabletConnections[tabletId]
-        return if (connection != null && connection.session.isOpen) {
-            sendToSession(connection.session, message)
-            true
-        } else {
-            logger.warn("Tablet $tabletId not connected")
-            false
-        }
-    }
-
-    fun notifyWorkstation(workstationId: UUID, message: SignatureCompletedMessage) {
-        val connection = workstationConnections[workstationId]
-        if (connection != null && connection.session.isOpen) {
-            sendToSession(connection.session, message)
-        } else {
-            logger.warn("Workstation $workstationId not connected")
-        }
-    }
-
-    fun sendTestRequest(tabletId: UUID) {
-        val connection = tabletConnections[tabletId]
-        if (connection != null && connection.session.isOpen) {
-            val testMessage = SignatureRequestMessage(
-                sessionId = "test-${UUID.randomUUID()}",
-                tenantId = connection.tenantId,
-                workstationId = UUID.randomUUID(),
-                customerName = "Test Customer",
-                vehicleInfo = VehicleInfoWS(
-                    make = "Test",
-                    model = "Test",
-                    licensePlate = "TEST-123"
-                ),
-                serviceType = "Test Service",
-                documentType = "Test Document"
-            )
-            sendToSession(connection.session, testMessage)
-        }
-    }
-
     fun isTabletConnected(tabletId: UUID): Boolean {
         val connection = tabletConnections[tabletId]
         return connection?.session?.isOpen == true
