@@ -19,7 +19,7 @@ class JwtService(
     @Value("\${security.jwt.token-expiration:86400000}")
     private val jwtExpirationInMs: Long,
 
-    @Value("\${app.jwt.expiration:3600}")
+    @Value("\${app.jwt.expiration:86400}") // 24 hours in seconds
     private val deviceExpirationInSeconds: Long
 ) {
 
@@ -58,7 +58,7 @@ class JwtService(
      */
     fun generateTabletToken(deviceId: UUID, tenantId: UUID): String {
         val now = Instant.now()
-        val expirationDate = Date.from(now.plus(deviceExpirationInSeconds * 24, ChronoUnit.SECONDS))
+        val expirationDate = Date.from(now.plus(deviceExpirationInSeconds, ChronoUnit.SECONDS))
 
         return Jwts.builder()
             .subject(deviceId.toString())
@@ -74,7 +74,7 @@ class JwtService(
     }
 
     /**
-     * Waliduj token (backward compatible)
+     * Waliduj token
      */
     fun validateToken(token: String): Boolean {
         return try {
@@ -85,9 +85,9 @@ class JwtService(
                 .parseSignedClaims(token)
                 .payload
 
-            // BACKWARD COMPATIBILITY: issuer opcjonalny
+            // Sprawdź issuer
             val issuer = claims.issuer
-            if (issuer != null && issuer != "crm-system") {
+            if (issuer != "crm-system") {
                 logger.warn("Invalid JWT token: Wrong issuer '$issuer', expected 'crm-system'")
                 return false
             }
@@ -109,7 +109,7 @@ class JwtService(
     }
 
     /**
-     * Wyciągnij claims dla użytkownika (kompatybilne z istniejącym systemem)
+     * Wyciągnij claims dla użytkownika
      */
     fun extractUserClaims(token: String): UserTokenClaims {
         val claims = extractAllClaims(token)
@@ -141,7 +141,7 @@ class JwtService(
     }
 
     /**
-     * Sprawdź typ tokenu (user vs tablet)
+     * Sprawdź typ tokenu
      */
     fun getTokenType(token: String): TokenType {
         return try {
@@ -153,17 +153,6 @@ class JwtService(
             }
         } catch (e: Exception) {
             TokenType.UNKNOWN
-        }
-    }
-
-    /**
-     * Uniwersalna metoda do wyciągnięcia claims
-     */
-    fun extractClaims(token: String): Any {
-        return when (getTokenType(token)) {
-            TokenType.USER -> extractUserClaims(token)
-            TokenType.TABLET -> extractTabletClaims(token)
-            TokenType.UNKNOWN -> throw IllegalArgumentException("Unknown token type")
         }
     }
 
@@ -190,32 +179,6 @@ class JwtService(
         }
 
         return permissions.distinct()
-    }
-
-    /**
-     * Debug metoda
-     */
-    fun debugToken(token: String): Map<String, Any?> {
-        return try {
-            val claims = extractAllClaims(token)
-            mapOf(
-                "subject" to claims.subject,
-                "issuer" to claims.issuer,
-                "issuedAt" to claims.issuedAt,
-                "expiration" to claims.expiration,
-                "username" to claims["username"],
-                "email" to claims["email"],
-                "companyId" to claims["companyId"],
-                "tenant_id" to claims["tenant_id"],
-                "device_type" to claims["device_type"],
-                "roles" to claims["roles"],
-                "permissions" to claims["permissions"],
-                "isExpired" to claims.expiration.before(Date()),
-                "tokenType" to getTokenType(token).name
-            )
-        } catch (e: Exception) {
-            mapOf("error" to e.message)
-        }
     }
 }
 

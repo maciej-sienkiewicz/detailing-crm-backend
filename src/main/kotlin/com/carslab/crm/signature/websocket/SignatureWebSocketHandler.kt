@@ -183,8 +183,7 @@ class SignatureWebSocketHandler(
         val token = payload?.get("token") as? String
         val deviceId = payload?.get("deviceId") as? String
 
-        logger.info("JWT token validation error: Invalid compact JWT string: Compact JWSs must contain exactly 2 period characters, and compact JWEs must contain exactly 4.  Found: 0")
-        logger.info("Authentication failed from ${session.remoteAddress}: Invalid JWT token")
+        logger.info("Authentication attempt from ${session.remoteAddress}")
 
         if (token == null) {
             logger.warn("Authentication attempt without token from ${session.remoteAddress}")
@@ -196,9 +195,6 @@ class SignatureWebSocketHandler(
         }
 
         try {
-            // POPRAWKA: Lepsze logowanie i walidacja tokenu
-            logger.debug("Received authentication token: ${token.take(20)}...")
-
             // Validate JWT token
             if (!jwtService.validateToken(token)) {
                 logger.warn("Invalid JWT token received from ${session.remoteAddress}")
@@ -206,7 +202,7 @@ class SignatureWebSocketHandler(
             }
 
             val tokenType = jwtService.getTokenType(token)
-            logger.debug("Token type: $tokenType")
+            logger.debug("Token type: $tokenType for ${session.remoteAddress}")
 
             when (tokenType) {
                 TokenType.TABLET -> handleTabletAuthentication(session, token, deviceId)
@@ -218,7 +214,7 @@ class SignatureWebSocketHandler(
             }
 
         } catch (e: Exception) {
-            logger.error("Authentication failed from ${session.remoteAddress}: ${e.message}", e)
+            logger.error("Authentication failed from ${session.remoteAddress}: ${e.message}")
             sendToSession(session, mapOf(
                 "type" to "authentication",
                 "payload" to mapOf(

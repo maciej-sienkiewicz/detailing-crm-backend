@@ -95,24 +95,6 @@ class JwtAuthenticationFilter(
                 }
             } else {
                 logger.debug("Invalid JWT token for ${request.requestURI}")
-
-                // Debug info tylko w trybie DEBUG
-                if (logger.isDebugEnabled) {
-                    val tokenPreview = if (token.length > 20) {
-                        "${token.take(10)}...${token.takeLast(10)}"
-                    } else {
-                        "short_token"
-                    }
-                    logger.debug("Token preview: $tokenPreview")
-
-                    // Debug token details
-                    try {
-                        val debugInfo = jwtService.debugToken(token)
-                        logger.debug("Token debug info: $debugInfo")
-                    } catch (e: Exception) {
-                        logger.debug("Cannot parse token for debugging: ${e.message}")
-                    }
-                }
             }
 
         } catch (e: Exception) {

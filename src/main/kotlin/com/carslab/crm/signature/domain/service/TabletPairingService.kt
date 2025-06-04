@@ -14,6 +14,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
 
+
 @Service
 @Transactional
 class TabletPairingService(
@@ -21,7 +22,7 @@ class TabletPairingService(
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val workstationRepository: WorkstationRepository,
     private val jwtService: JwtService,
-    @Value("\${app.websocket.base-url:wss://localhost:8080}") private val wsBaseUrl: String
+    @Value("\${app.websocket.base-url:ws://localhost:8080}") private val wsBaseUrl: String
 ) {
 
     private val secureRandom = SecureRandom()
@@ -52,10 +53,14 @@ class TabletPairingService(
             Instant.now()
         ) ?: throw InvalidPairingCodeException()
 
+        // Generate secure device token first
+        val deviceToken = generateSecureToken()
+
+        // Create tablet device
         val tablet = TabletDevice(
             tenantId = pairingData.tenantId,
             locationId = pairingData.locationId,
-            deviceToken = generateSecureToken(),
+            deviceToken = deviceToken, // Use the generated token, not JWT
             friendlyName = request.deviceName,
             workstationId = pairingData.workstationId,
             status = DeviceStatus.ACTIVE
@@ -71,11 +76,15 @@ class TabletPairingService(
             }
         }
 
+        // Clean up pairing code
         pairingCodeRepository.delete(pairingData)
+
+        // Generate JWT token for authentication (separate from device token)
+        val jwtToken = jwtService.generateTabletToken(savedTablet.id, savedTablet.tenantId)
 
         return TabletCredentials(
             deviceId = savedTablet.id,
-            deviceToken = savedTablet.deviceToken,
+            deviceToken = jwtToken, // Return JWT token for authentication
             websocketUrl = "$wsBaseUrl/ws/tablet/${savedTablet.id}"
         )
     }
