@@ -80,7 +80,8 @@ class SecurityConfig(
                         "/api/health/**",
                         "/api/users",
                         "/actuator/health",
-                        "/api/tablets/pair",
+                        "/api/tablets/pair",        // Parowanie tabletu
+                        "/api/tablets/register",    // DODANE - Rejestracja tabletu
                         "/api/auth/**",
                         "/ws/**"
                     ).permitAll()
@@ -91,10 +92,10 @@ class SecurityConfig(
                     // Signature endpoints
                     .requestMatchers("/api/signatures/**").hasAnyRole("USER", "ADMIN", "TABLET")
 
-                    // Tablet management
-                    .requestMatchers("/api/tablets/**").hasAnyRole("MANAGER", "ADMIN")
+                    // Tablet management - wymagane role
+                    .requestMatchers("/api/tablets/**").hasAnyRole("MANAGER", "ADMIN", "USER")
 
-                    // Reception endpoints - ZMIENIONE: pozwolenie dla wszystkich uwierzytelnionych
+                    // Reception endpoints
                     .requestMatchers("/api/receptions/**").authenticated()
 
                     .anyRequest().authenticated()
