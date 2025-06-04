@@ -39,18 +39,3 @@ class TabletNotAvailableException(message: String = "No tablet available for sig
 
 class UnauthorizedTabletException(message: String = "Unauthorized tablet access") :
     SecurityException(message, "UNAUTHORIZED_TABLET")
-
-class InvalidSessionStateException(message: String) :
-    BusinessException(message, "INVALID_SESSION_STATE")
-
-class SessionExpiredException(message: String = "Signature session has expired") :
-    BusinessException(message, "SESSION_EXPIRED")
-
-class UnauthorizedDeviceException(message: String = "Unauthorized device") :
-    SecurityException(message, "UNAUTHORIZED_DEVICE")
-
-class InvalidSignatureFormatException(message: String) :
-    ValidationException(message, "INVALID_SIGNATURE_FORMAT")
-
-class SignatureImageTooLargeException(message: String) :
-    ValidationException(message, "SIGNATURE_TOO_LARGE")

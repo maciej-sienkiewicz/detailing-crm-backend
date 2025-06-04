@@ -1,7 +1,6 @@
 package com.carslab.crm.signature.infrastructure.monitoring
 
 import com.carslab.crm.signature.service.WebSocketService
-import com.carslab.crm.signature.infrastructure.persistance.repository.SignatureSessionRepository
 import org.springframework.boot.actuate.health.Health
 import org.springframework.boot.actuate.health.HealthIndicator
 import org.springframework.boot.actuate.health.Status
@@ -93,34 +92,6 @@ class SignatureSystemHealthIndicator(
             builder.withDetail("memory.warning", "High memory usage")
         } else {
             // Status remains UP (default)
-        }
-    }
-}
-
-@Component
-class DatabaseHealthIndicator(
-    private val signatureSessionRepository: SignatureSessionRepository
-) : HealthIndicator {
-
-    override fun health(): Health {
-        return try {
-            val startTime = System.currentTimeMillis()
-
-            // Simple query to test DB connectivity
-            val count = signatureSessionRepository.count()
-            val responseTime = System.currentTimeMillis() - startTime
-
-            Health.up()
-                .withDetail("database.signature_sessions_count", count)
-                .withDetail("database.query_time", "${responseTime}ms")
-                .withDetail("timestamp", Instant.now())
-                .build()
-
-        } catch (e: Exception) {
-            Health.down()
-                .withException(e)
-                .withDetail("timestamp", Instant.now())
-                .build()
         }
     }
 }
