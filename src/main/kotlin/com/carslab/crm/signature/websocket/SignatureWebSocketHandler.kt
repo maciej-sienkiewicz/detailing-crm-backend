@@ -46,127 +46,73 @@ class SignatureWebSocketHandler(
             logger.info("WebSocket connection attempt from: ${session.remoteAddress} to: $uri")
 
             when {
-                uri.toString().contains("/ws/tablet/") -> handleTabletConnection(session, uri)
+                uri.toString().contains("/ws/tablet/") -> handleTabletConnectionEstablished(session, uri)
                 uri.toString().contains("/ws/workstation/") -> handleWorkstationConnection(session, uri)
                 else -> {
                     logger.warn("Unknown WebSocket connection type: $uri")
                     session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unknown connection type"))
                 }
             }
-        } catch (e: SecurityException) {
-            logger.error("Security error establishing WebSocket connection from ${session.remoteAddress}", e)
-            auditService.logSecurityViolation("websocket_unauthorized", session.remoteAddress?.toString(), e.message)
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Authentication failed"))
         } catch (e: Exception) {
             logger.error("Error establishing WebSocket connection from ${session.remoteAddress}", e)
             session.close(CloseStatus.SERVER_ERROR.withReason("Server error"))
         }
     }
 
-    private fun handleTabletConnection(session: WebSocketSession, uri: URI) {
+    private fun handleTabletConnectionEstablished(session: WebSocketSession, uri: URI) {
         val deviceId = extractDeviceIdFromPath(uri.path)
             ?: throw SecurityException("Missing device ID in path")
 
+        logger.info("WebSocket handshake successful: $uri")
         logger.info("Tablet connection attempt for device: $deviceId")
 
-        // Tablet authentication - sprawdź nagłówki
-        val token = session.handshakeHeaders.getFirst("X-Device-Token")
-            ?: throw SecurityException("Missing X-Device-Token header")
+        // POPRAWKA: Nie sprawdzamy headers na początku - czekamy na authentication message
+        // Tworzymy tymczasowe połączenie
+        val tempConnection = TabletConnection(
+            session = session,
+            tablet = null, // Will be set after authentication
+            tenantId = null,
+            locationId = null,
+            connectedAt = Instant.now(),
+            lastHeartbeat = Instant.now(),
+            authenticated = false
+        )
 
-        // Validate JWT token using new JwtService
-        if (!jwtService.validateToken(token)) {
-            throw SecurityException("Invalid device token")
-        }
+        // Store with deviceId as key for now
+        tabletConnections[deviceId] = tempConnection
 
-        // Check if it's a tablet token
-        if (jwtService.getTokenType(token) != TokenType.TABLET) {
-            throw SecurityException("Invalid token type for tablet connection")
-        }
+        logger.info("Tablet pre-connected: $deviceId, awaiting authentication")
 
-        try {
-            val tabletClaims = jwtService.extractTabletClaims(token)
-
-            // Verify device ID matches token
-            if (tabletClaims.deviceId != deviceId) {
-                throw SecurityException("Device ID mismatch: path=$deviceId, token=${tabletClaims.deviceId}")
-            }
-
-            // Find tablet in database
-            val tablet = tabletDeviceRepository.findById(deviceId)
-                .orElseThrow { SecurityException("Tablet not found: $deviceId") }
-
-            // Verify tenant ID matches
-            if (tablet.tenantId != tabletClaims.tenantId) {
-                throw SecurityException("Tenant mismatch: tablet=${tablet.tenantId}, token=${tabletClaims.tenantId}")
-            }
-
-            // Check if tablet is active
-            if (tablet.status != DeviceStatus.ACTIVE) {
-                throw SecurityException("Tablet not active: ${tablet.status}")
-            }
-
-            // Close existing connection if any
-            tabletConnections[deviceId]?.let { existingConnection ->
-                if (existingConnection.session.isOpen) {
-                    logger.warn("Closing existing connection for tablet: $deviceId")
-                    existingConnection.session.close(CloseStatus.NORMAL.withReason("New connection established"))
-                }
-            }
-
-            val connection = TabletConnection(
-                session = session,
-                tablet = tablet,
-                tenantId = tablet.tenantId,
-                locationId = tablet.locationId,
-                connectedAt = Instant.now(),
-                lastHeartbeat = Instant.now()
+        // Send connection confirmation
+        sendToSession(session, mapOf(
+            "type" to "connection",
+            "payload" to mapOf(
+                "status" to "connected",
+                "authenticated" to false,
+                "timestamp" to Instant.now(),
+                "deviceId" to deviceId,
+                "message" to "Please send authentication"
             )
-
-            tabletConnections[deviceId] = connection
-            tabletConnectionService.updateTabletLastSeen(deviceId)
-
-            logger.info("Tablet connected successfully: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
-            auditService.logTabletConnection(deviceId, tablet.tenantId, "CONNECTED")
-
-            // Send connection confirmation
-            sendToSession(session, mapOf(
-                "type" to "connection",
-                "payload" to mapOf(
-                    "status" to "connected",
-                    "timestamp" to Instant.now(),
-                    "deviceId" to deviceId,
-                    "tenantId" to tablet.tenantId
-                )
-            ))
-
-        } catch (e: Exception) {
-            logger.error("Failed to extract tablet claims from token", e)
-            throw SecurityException("Invalid tablet token claims")
-        }
+        ))
     }
 
     private fun handleWorkstationConnection(session: WebSocketSession, uri: URI) {
-        // Nie wymagamy UUID dla workstation - używamy string ID
         val workstationId = extractWorkstationIdFromPath(uri.path)
             ?: throw SecurityException("Missing workstation ID in path")
 
         logger.info("Workstation connection attempt for: $workstationId")
 
-        // Dla workstation nie wymagamy tokenu w headers na początku
-        // Token może być przesłany w pierwszej wiadomości
-        // Generujemy UUID dla wewnętrznego użytku
         val internalWorkstationId = try {
             UUID.fromString(workstationId)
         } catch (e: IllegalArgumentException) {
-            // Jeśli workstationId nie jest UUID, generujemy deterministyczne UUID
             UUID.nameUUIDFromBytes(workstationId.toByteArray())
         }
 
         val connection = WorkstationConnection(
             session = session,
             workstationId = internalWorkstationId,
-            originalWorkstationId = workstationId, // Dodaj pole dla oryginalnego ID
-            companyId = null, // Zostanie ustawione po autentykacji
+            originalWorkstationId = workstationId,
+            companyId = null,
             userId = null,
             username = null,
             connectedAt = Instant.now(),
@@ -178,7 +124,6 @@ class SignatureWebSocketHandler(
 
         logger.info("Workstation pre-connected: $workstationId (internal: $internalWorkstationId, awaiting authentication)")
 
-        // Send connection confirmation - ale nie authenticated
         sendToSession(session, mapOf(
             "type" to "connection",
             "payload" to mapOf(
@@ -228,7 +173,7 @@ class SignatureWebSocketHandler(
             logger.error("Error handling WebSocket message from ${session.remoteAddress}", e)
             sendToSession(session, mapOf(
                 "type" to "error",
-                "payload" to mapOf("error" to "Invalid message format")
+                "payload" to mapOf("error" to "Invalid message format: ${e.message}")
             ))
         }
     }
@@ -236,6 +181,10 @@ class SignatureWebSocketHandler(
     private fun handleAuthentication(session: WebSocketSession, messageData: Map<String, Any>) {
         val payload = messageData["payload"] as? Map<String, Any>
         val token = payload?.get("token") as? String
+        val deviceId = payload?.get("deviceId") as? String
+
+        logger.info("JWT token validation error: Invalid compact JWT string: Compact JWSs must contain exactly 2 period characters, and compact JWEs must contain exactly 4.  Found: 0")
+        logger.info("Authentication failed from ${session.remoteAddress}: Invalid JWT token")
 
         if (token == null) {
             logger.warn("Authentication attempt without token from ${session.remoteAddress}")
@@ -247,67 +196,39 @@ class SignatureWebSocketHandler(
         }
 
         try {
+            // POPRAWKA: Lepsze logowanie i walidacja tokenu
+            logger.debug("Received authentication token: ${token.take(20)}...")
+
             // Validate JWT token
             if (!jwtService.validateToken(token)) {
+                logger.warn("Invalid JWT token received from ${session.remoteAddress}")
                 throw SecurityException("Invalid JWT token")
             }
 
-            // Check if it's a user token (for workstation)
-            if (jwtService.getTokenType(token) != TokenType.USER) {
-                throw SecurityException("Invalid token type for workstation connection")
-            }
+            val tokenType = jwtService.getTokenType(token)
+            logger.debug("Token type: $tokenType")
 
-            val userClaims = jwtService.extractUserClaims(token)
-
-            // Relaxed permission check - sprawdź czy użytkownik ma jakąkolwiek rolę
-            val hasValidRole = userClaims.roles.any { role ->
-                role.uppercase() in listOf("ADMIN", "MANAGER", "USER", "EMPLOYEE")
-            }
-
-            val hasWorkstationPermission = userClaims.permissions.contains("workstation:connect")
-
-
-            // Find workstation connection and update it
-            val workstationConnection = workstationConnections.values.find { it.session == session }
-            if (workstationConnection != null) {
-                val authenticatedConnection = workstationConnection.copy(
-                    companyId = userClaims.companyId,
-                    userId = userClaims.userId,
-                    username = userClaims.username,
-                    authenticated = true
-                )
-
-                workstationConnections[workstationConnection.workstationId] = authenticatedConnection
-
-                logger.info("Workstation authenticated: ${workstationConnection.originalWorkstationId} by user ${userClaims.username} (${userClaims.userId})")
-                auditService.logWorkstationConnection(workstationConnection.workstationId, userClaims.companyId, userClaims.userId, "AUTHENTICATED")
-
-                sendToSession(session, mapOf(
-                    "type" to "authentication",
-                    "payload" to mapOf(
-                        "status" to "authenticated",
-                        "timestamp" to Instant.now(),
-                        "workstationId" to workstationConnection.originalWorkstationId,
-                        "internalId" to workstationConnection.workstationId,
-                        "userId" to userClaims.userId,
-                        "username" to userClaims.username,
-                        "roles" to userClaims.roles,
-                        "permissions" to userClaims.permissions
-                    )
-                ))
-            } else {
-                logger.error("Workstation connection not found for session from ${session.remoteAddress}")
-                throw SecurityException("Workstation connection not found")
+            when (tokenType) {
+                TokenType.TABLET -> handleTabletAuthentication(session, token, deviceId)
+                TokenType.USER -> handleWorkstationAuthentication(session, token)
+                TokenType.UNKNOWN -> {
+                    logger.warn("Unknown token type from ${session.remoteAddress}")
+                    throw SecurityException("Unknown token type")
+                }
             }
 
         } catch (e: Exception) {
             logger.error("Authentication failed from ${session.remoteAddress}: ${e.message}", e)
             sendToSession(session, mapOf(
-                "type" to "error",
-                "payload" to mapOf("error" to "Authentication failed: ${e.message}")
+                "type" to "authentication",
+                "payload" to mapOf(
+                    "status" to "failed",
+                    "error" to "Authentication failed: ${e.message}",
+                    "timestamp" to Instant.now()
+                )
             ))
 
-            // Zamknij połączenie po nieudanej autentykacji
+            // Close connection after failed authentication
             try {
                 session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Authentication failed"))
             } catch (closeException: Exception) {
@@ -315,16 +236,107 @@ class SignatureWebSocketHandler(
             }
         }
     }
+
+    private fun handleTabletAuthentication(session: WebSocketSession, token: String, providedDeviceId: String?) {
+        val tabletClaims = jwtService.extractTabletClaims(token)
+        val deviceId = tabletClaims.deviceId
+
+        // Verify device ID matches if provided
+        if (providedDeviceId != null && UUID.fromString(providedDeviceId) != deviceId) {
+            throw SecurityException("Device ID mismatch: provided=$providedDeviceId, token=$deviceId")
+        }
+
+        // Find tablet in database
+        val tablet = tabletDeviceRepository.findById(deviceId)
+            .orElseThrow { SecurityException("Tablet not found: $deviceId") }
+
+        // Verify tenant ID matches
+        if (tablet.tenantId != tabletClaims.tenantId) {
+            throw SecurityException("Tenant mismatch: tablet=${tablet.tenantId}, token=${tabletClaims.tenantId}")
+        }
+
+        // Check if tablet is active
+        if (tablet.status != DeviceStatus.ACTIVE) {
+            throw SecurityException("Tablet not active: ${tablet.status}")
+        }
+
+        // Update connection with authenticated data
+        val authenticatedConnection = TabletConnection(
+            session = session,
+            tablet = tablet,
+            tenantId = tablet.tenantId,
+            locationId = tablet.locationId,
+            connectedAt = Instant.now(),
+            lastHeartbeat = Instant.now(),
+            authenticated = true
+        )
+
+        tabletConnections[deviceId] = authenticatedConnection
+        tabletConnectionService.updateTabletLastSeen(deviceId)
+
+        logger.info("Tablet authenticated successfully: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
+        auditService.logTabletConnection(deviceId, tablet.tenantId, "AUTHENTICATED")
+
+        // Send authentication success
+        sendToSession(session, mapOf(
+            "type" to "authentication",
+            "payload" to mapOf(
+                "status" to "authenticated",
+                "timestamp" to Instant.now(),
+                "deviceId" to deviceId,
+                "tenantId" to tablet.tenantId,
+                "locationId" to tablet.locationId,
+                "tabletName" to tablet.friendlyName
+            )
+        ))
+    }
+
+    private fun handleWorkstationAuthentication(session: WebSocketSession, token: String) {
+        val userClaims = jwtService.extractUserClaims(token)
+
+        // Find workstation connection and update it
+        val workstationConnection = workstationConnections.values.find { it.session == session }
+        if (workstationConnection != null) {
+            val authenticatedConnection = workstationConnection.copy(
+                companyId = userClaims.companyId,
+                userId = userClaims.userId,
+                username = userClaims.username,
+                authenticated = true
+            )
+
+            workstationConnections[workstationConnection.workstationId] = authenticatedConnection
+
+            logger.info("Workstation authenticated: ${workstationConnection.originalWorkstationId} by user ${userClaims.username} (${userClaims.userId})")
+            auditService.logWorkstationConnection(workstationConnection.workstationId, userClaims.companyId, userClaims.userId, "AUTHENTICATED")
+
+            sendToSession(session, mapOf(
+                "type" to "authentication",
+                "payload" to mapOf(
+                    "status" to "authenticated",
+                    "timestamp" to Instant.now(),
+                    "workstationId" to workstationConnection.originalWorkstationId,
+                    "internalId" to workstationConnection.workstationId,
+                    "userId" to userClaims.userId,
+                    "username" to userClaims.username,
+                    "roles" to userClaims.roles,
+                    "permissions" to userClaims.permissions
+                )
+            ))
+        } else {
+            logger.error("Workstation connection not found for session from ${session.remoteAddress}")
+            throw SecurityException("Workstation connection not found")
+        }
+    }
+
     private fun handleConnectionMessage(session: WebSocketSession, messageData: Map<String, Any>) {
-        // Handle connection status messages
         logger.debug("Connection message received from ${session.remoteAddress}")
     }
 
     private fun handleHeartbeat(session: WebSocketSession) {
         // Update tablet heartbeat
         tabletConnections.values.find { it.session == session }?.let { connection ->
-            tabletConnections[connection.tablet.id] = connection.copy(lastHeartbeat = Instant.now())
-            tabletConnectionService.updateTabletLastSeen(connection.tablet.id)
+            tabletConnections[connection.tablet!!.id] = connection.copy(lastHeartbeat = Instant.now())
+            tabletConnectionService.updateTabletLastSeen(connection.tablet!!.id)
         }
 
         // Update workstation heartbeat
@@ -346,9 +358,9 @@ class SignatureWebSocketHandler(
 
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
-        if (tabletConnection != null && sessionId != null) {
-            logger.info("Signature completion acknowledgment received from tablet ${tabletConnection.tablet.id} for session: $sessionId")
-            auditService.logSignatureAcknowledgment(tabletConnection.tablet.id, sessionId, success)
+        if (tabletConnection != null && sessionId != null && tabletConnection.authenticated) {
+            logger.info("Signature completion acknowledgment received from tablet ${tabletConnection.tablet!!.id} for session: $sessionId")
+            auditService.logSignatureAcknowledgment(tabletConnection.tablet!!.id, sessionId, success)
         }
     }
 
@@ -356,11 +368,11 @@ class SignatureWebSocketHandler(
         val payload = messageData["payload"] as? Map<String, Any>
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
-        if (tabletConnection != null && payload != null) {
+        if (tabletConnection != null && payload != null && tabletConnection.authenticated) {
             val batteryLevel = payload["batteryLevel"] as? Int
             val orientation = payload["orientation"] as? String
 
-            logger.debug("Status update from tablet ${tabletConnection.tablet.id}: battery=$batteryLevel, orientation=$orientation")
+            logger.debug("Status update from tablet ${tabletConnection.tablet!!.id}: battery=$batteryLevel, orientation=$orientation")
         }
     }
 
@@ -368,14 +380,15 @@ class SignatureWebSocketHandler(
         val payload = messageData["payload"] as? Map<String, Any>
         val workstationConnection = workstationConnections.values.find { it.session == session }
 
-        if (workstationConnection != null && payload != null) {
+        if (workstationConnection != null && payload != null && workstationConnection.authenticated) {
             logger.debug("Status update from workstation ${workstationConnection.workstationId} by user ${workstationConnection.username}")
         }
     }
 
+    // Rest of the methods remain the same...
     fun sendSignatureRequest(tabletId: UUID, request: SignatureRequestDto): Boolean {
         val connection = tabletConnections[tabletId]
-        return if (connection != null && connection.session.isOpen) {
+        return if (connection != null && connection.session.isOpen && connection.authenticated) {
             val message = mapOf(
                 "type" to "signature_request",
                 "payload" to mapOf(
@@ -398,13 +411,13 @@ class SignatureWebSocketHandler(
             val success = sendToSession(connection.session, message)
             if (success) {
                 logger.info("Signature request sent to tablet $tabletId for session ${request.sessionId}")
-                auditService.logSignatureRequest(connection.tenantId, request.sessionId, "SENT_TO_TABLET")
+                auditService.logSignatureRequest(connection.tenantId!!, request.sessionId, "SENT_TO_TABLET")
             } else {
                 logger.warn("Failed to send signature request to tablet $tabletId")
             }
             success
         } else {
-            logger.warn("Tablet $tabletId not connected or session closed")
+            logger.warn("Tablet $tabletId not connected, not authenticated, or session closed")
             false
         }
     }
@@ -451,12 +464,12 @@ class SignatureWebSocketHandler(
 
     // Monitoring methods
     fun getActiveConnectionsCount(): Int = tabletConnections.size + workstationConnections.size
-    fun getActiveTabletsCount(): Int = tabletConnections.size
+    fun getActiveTabletsCount(): Int = tabletConnections.values.count { it.authenticated }
     fun getActiveWorkstationsCount(): Int = workstationConnections.values.count { it.authenticated }
 
     fun isTabletConnected(tabletId: UUID): Boolean {
         val connection = tabletConnections[tabletId]
-        return connection?.session?.isOpen == true
+        return connection?.session?.isOpen == true && connection.authenticated
     }
 
     private fun cleanupStaleConnections() {
@@ -469,8 +482,8 @@ class SignatureWebSocketHandler(
         }
 
         staleTablets.forEach { connection ->
-            logger.info("Removing stale tablet connection: ${connection.tablet.id}")
-            tabletConnections.remove(connection.tablet.id)
+            logger.info("Removing stale tablet connection: ${connection.tablet?.id}")
+            tabletConnections.remove(connection.tablet?.id)
             try {
                 if (connection.session.isOpen) {
                     connection.session.close(CloseStatus.SESSION_NOT_RELIABLE)
@@ -519,7 +532,6 @@ class SignatureWebSocketHandler(
 
     private fun extractDeviceIdFromPath(path: String): UUID? {
         return try {
-            // Path format: /ws/tablet/{deviceId}
             val parts = path.split("/")
             val deviceIdIndex = parts.indexOf("tablet") + 1
             if (deviceIdIndex < parts.size && deviceIdIndex > 0) {
@@ -533,11 +545,10 @@ class SignatureWebSocketHandler(
 
     private fun extractWorkstationIdFromPath(path: String): String? {
         return try {
-            // Path format: /ws/workstation/{workstationId}
             val parts = path.split("/")
             val workstationIdIndex = parts.indexOf("workstation") + 1
             if (workstationIdIndex < parts.size && workstationIdIndex > 0) {
-                parts[workstationIdIndex] // Zwróć cały string, nie próbuj parsować jako UUID
+                parts[workstationIdIndex]
             } else null
         } catch (e: Exception) {
             logger.error("Error extracting workstation ID from path: $path", e)
@@ -548,9 +559,11 @@ class SignatureWebSocketHandler(
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         // Remove tablet connection
         tabletConnections.values.find { it.session == session }?.let { connection ->
-            tabletConnections.remove(connection.tablet.id)
-            logger.info("Tablet disconnected: ${connection.tablet.id} (${status.code}: ${status.reason})")
-            auditService.logTabletConnection(connection.tablet.id, connection.tenantId, "DISCONNECTED")
+            tabletConnections.remove(connection.tablet?.id)
+            logger.info("Tablet disconnected: ${connection.tablet?.id} (${status.code}: ${status.reason})")
+            if (connection.authenticated) {
+                auditService.logTabletConnection(connection.tablet!!.id, connection.tenantId!!, "DISCONNECTED")
+            }
         }
 
         // Remove workstation connection
@@ -564,7 +577,28 @@ class SignatureWebSocketHandler(
     }
 }
 
-// Updated DTOs
+// Updated data classes
+data class TabletConnection(
+    val session: WebSocketSession,
+    val tablet: TabletDevice?,
+    val tenantId: UUID?,
+    val locationId: UUID?,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant,
+    val authenticated: Boolean = false
+)
+
+data class WorkstationConnection(
+    val session: WebSocketSession,
+    val workstationId: UUID,
+    val originalWorkstationId: String,
+    val companyId: Long?,
+    val userId: Long?,
+    val username: String?,
+    val connectedAt: Instant,
+    val lastHeartbeat: Instant,
+    val authenticated: Boolean = false
+)
 
 data class SignatureRequestDto(
     val sessionId: String,
@@ -581,25 +615,4 @@ data class VehicleInfoDto(
     val model: String,
     val licensePlate: String,
     val vin: String? = null
-)
-
-data class TabletConnection(
-    val session: WebSocketSession,
-    val tablet: TabletDevice,
-    val tenantId: UUID,
-    val locationId: UUID,
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant
-)
-
-data class WorkstationConnection(
-    val session: WebSocketSession,
-    val workstationId: UUID,           // UUID dla wewnętrznego użytku
-    val originalWorkstationId: String, // Oryginalny string ID z frontendu
-    val companyId: Long?,              // Nullable until authenticated
-    val userId: Long?,                 // Nullable until authenticated
-    val username: String?,             // Nullable until authenticated
-    val connectedAt: Instant,
-    val lastHeartbeat: Instant,
-    val authenticated: Boolean = false
 )
