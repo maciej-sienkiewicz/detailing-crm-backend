@@ -1,6 +1,7 @@
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.signature.api.dto.*
 import com.carslab.crm.signature.service.TabletPairingService
 import org.springframework.http.ResponseEntity
@@ -10,16 +11,14 @@ import jakarta.validation.Valid
 @RestController
 @RequestMapping("/api/tablets")
 class TabletPairingController(
-    private val tabletPairingService: TabletPairingService
+    private val tabletPairingService: TabletPairingService,
+    private val securityContext: SecurityContext
 ) : BaseController() {
 
     @PostMapping("/register")
-    fun initiateRegistration(
-        @Valid @RequestBody request: TabletRegistrationRequest
-    ): ResponseEntity<PairingCodeResponse> {
-        logger.info("Initiating tablet registration for tenant: ${request.tenantId}")
-
-        val response = tabletPairingService.initiateRegistration(request)
+    fun initiateRegistration(): ResponseEntity<PairingCodeResponse> {
+        val companyId = securityContext.getCurrentCompanyId()
+        val response = tabletPairingService.initiateRegistration(companyId)
 
         logger.info("Generated pairing code: ${response.code}")
         return ok(response)

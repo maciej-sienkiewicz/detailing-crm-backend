@@ -2,7 +2,6 @@ package com.carslab.crm.signature.service
 
 import com.carslab.crm.security.JwtService
 import com.carslab.crm.signature.api.dto.*
-import com.carslab.crm.signature.dto.*
 import com.carslab.crm.signature.entity.*
 import com.carslab.crm.signature.exception.InvalidPairingCodeException
 import com.carslab.crm.signature.repository.*
@@ -27,15 +26,15 @@ class TabletPairingService(
 
     private val secureRandom = SecureRandom()
 
-    fun initiateRegistration(request: TabletRegistrationRequest): PairingCodeResponse {
+    fun initiateRegistration(companyId: Long): PairingCodeResponse {
         val code = generatePairingCode()
         val expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES)
 
         val pairingCode = PairingCode(
             code = code,
-            tenantId = request.tenantId,
-            locationId = request.locationId,
-            workstationId = request.workstationId,
+            companyId = companyId,
+            locationId = UUID.randomUUID(),
+            workstationId = UUID.randomUUID(),
             expiresAt = expiresAt
         )
 
@@ -58,7 +57,7 @@ class TabletPairingService(
 
         // Create tablet device
         val tablet = TabletDevice(
-            tenantId = pairingData.tenantId,
+            companyId = pairingData.companyId,
             locationId = pairingData.locationId,
             deviceToken = deviceToken, // Use the generated token, not JWT
             friendlyName = request.deviceName,
@@ -80,7 +79,7 @@ class TabletPairingService(
         pairingCodeRepository.delete(pairingData)
 
         // Generate JWT token for authentication (separate from device token)
-        val jwtToken = jwtService.generateTabletToken(savedTablet.id, savedTablet.tenantId)
+        val jwtToken = jwtService.generateTabletToken(savedTablet.id, savedTablet.companyId)
 
         return TabletCredentials(
             deviceId = savedTablet.id,

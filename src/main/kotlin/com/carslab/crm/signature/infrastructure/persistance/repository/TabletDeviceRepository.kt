@@ -13,24 +13,22 @@ import java.util.UUID
 @Repository
 interface TabletDeviceRepository : JpaRepository<TabletDevice, UUID> {
 
-    fun findByDeviceToken(deviceToken: String): TabletDevice?
-
     fun findByIdAndDeviceToken(id: UUID, deviceToken: String): TabletDevice?
 
-    fun findByTenantId(tenantId: UUID): List<TabletDevice>
+    fun findByCompanyId(companyId: Long): List<TabletDevice>
 
-    fun findByTenantIdAndLocationId(tenantId: UUID, locationId: UUID): List<TabletDevice>
-
-    @Query("""
+    @Query(
+        """
         SELECT t FROM TabletDevice t 
-        WHERE t.tenantId = :tenantId 
+        WHERE t.companyId = :companyId 
         AND t.locationId = :locationId 
         AND t.status = :status 
         AND t.lastSeen > :lastSeenAfter
         ORDER BY t.lastSeen DESC
-    """)
+    """
+    )
     fun findAvailableTablets(
-        tenantId: UUID,
+        companyId: Long,
         locationId: UUID,
         status: DeviceStatus,
         lastSeenAfter: Instant

@@ -71,7 +71,7 @@ class SignatureWebSocketHandler(
         val tempConnection = TabletConnection(
             session = session,
             tablet = null, // Will be set after authentication
-            tenantId = null,
+            companyId = null,
             locationId = null,
             connectedAt = Instant.now(),
             lastHeartbeat = Instant.now(),
@@ -246,9 +246,8 @@ class SignatureWebSocketHandler(
         val tablet = tabletDeviceRepository.findById(deviceId)
             .orElseThrow { SecurityException("Tablet not found: $deviceId") }
 
-        // Verify tenant ID matches
-        if (tablet.tenantId != tabletClaims.tenantId) {
-            throw SecurityException("Tenant mismatch: tablet=${tablet.tenantId}, token=${tabletClaims.tenantId}")
+        if (tablet.companyId != tabletClaims.companyId) {
+            throw SecurityException("Company mismatch: tablet=${tablet.companyId}, token=${tabletClaims.companyId}")
         }
 
         // Check if tablet is active
@@ -260,7 +259,7 @@ class SignatureWebSocketHandler(
         val authenticatedConnection = TabletConnection(
             session = session,
             tablet = tablet,
-            tenantId = tablet.tenantId,
+            companyId = tablet.companyId,
             locationId = tablet.locationId,
             connectedAt = Instant.now(),
             lastHeartbeat = Instant.now(),
@@ -271,7 +270,6 @@ class SignatureWebSocketHandler(
         tabletConnectionService.updateTabletLastSeen(deviceId)
 
         logger.info("Tablet authenticated successfully: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
-        auditService.logTabletConnection(deviceId, tablet.tenantId, "AUTHENTICATED")
 
         // Send authentication success
         sendToSession(session, mapOf(
@@ -280,7 +278,7 @@ class SignatureWebSocketHandler(
                 "status" to "authenticated",
                 "timestamp" to Instant.now(),
                 "deviceId" to deviceId,
-                "tenantId" to tablet.tenantId,
+                "companyId" to tablet.companyId,
                 "locationId" to tablet.locationId,
                 "tabletName" to tablet.friendlyName
             )
@@ -389,7 +387,7 @@ class SignatureWebSocketHandler(
                 "type" to "signature_request",
                 "payload" to mapOf(
                     "sessionId" to request.sessionId,
-                    "tenantId" to request.tenantId,
+                    "companyId" to request.companyId,
                     "workstationId" to request.workstationId,
                     "customerName" to request.customerName,
                     "vehicleInfo" to mapOf(
@@ -407,7 +405,6 @@ class SignatureWebSocketHandler(
             val success = sendToSession(connection.session, message)
             if (success) {
                 logger.info("Signature request sent to tablet $tabletId for session ${request.sessionId}")
-                auditService.logSignatureRequest(connection.tenantId!!, request.sessionId, "SENT_TO_TABLET")
             } else {
                 logger.warn("Failed to send signature request to tablet $tabletId")
             }
@@ -557,9 +554,6 @@ class SignatureWebSocketHandler(
         tabletConnections.values.find { it.session == session }?.let { connection ->
             tabletConnections.remove(connection.tablet?.id)
             logger.info("Tablet disconnected: ${connection.tablet?.id} (${status.code}: ${status.reason})")
-            if (connection.authenticated) {
-                auditService.logTabletConnection(connection.tablet!!.id, connection.tenantId!!, "DISCONNECTED")
-            }
         }
 
         // Remove workstation connection
@@ -625,7 +619,7 @@ class SignatureWebSocketHandler(
         return if (connection != null) {
             mapOf(
                 "deviceId" to tabletId,
-                "tenantId" to (connection.tenantId ?: "unknown"),
+                "companyId" to (connection.companyId ?: "unknown"),
                 "locationId" to (connection.locationId ?: "unknown"),
                 "isAuthenticated" to connection.authenticated,
                 "connectedAt" to connection.connectedAt,
@@ -647,7 +641,7 @@ class SignatureWebSocketHandler(
                 "connectedAt" to connection.connectedAt,
                 "lastHeartbeat" to connection.lastHeartbeat,
                 "tabletName" to (connection.tablet?.friendlyName ?: "unknown"),
-                "tenantId" to (connection.tenantId ?: "unknown")
+                "companyId" to (connection.companyId ?: "unknown")
             )
         }
     }
@@ -729,25 +723,6 @@ class SignatureWebSocketHandler(
     }
 
     /**
-     * Get tablets by tenant
-     */
-    fun getTabletsByTenant(tenantId: UUID): List<UUID> {
-        return tabletConnections.values
-            .filter { it.tenantId == tenantId && it.authenticated }
-            .map { it.tablet?.id }
-            .filterNotNull()
-    }
-
-    /**
-     * Check if tenant has any connected tablets
-     */
-    fun hasTenantConnectedTablets(tenantId: UUID): Boolean {
-        return tabletConnections.values.any {
-            it.tenantId == tenantId && it.authenticated && it.session.isOpen
-        }
-    }
-
-    /**
      * Get connection statistics
      */
     fun getConnectionStatistics(): Map<String, Any> {
@@ -760,9 +735,9 @@ class SignatureWebSocketHandler(
             it.session.isOpen && Duration.between(it.lastHeartbeat, now) < staleThreshold
         }
 
-        val tenantStats = tabletConnections.values
+        val companyStats = tabletConnections.values
             .filter { it.authenticated }
-            .groupBy { it.tenantId }
+            .groupBy { it.companyId }
             .mapValues { (_, connections) -> connections.size }
 
         return mapOf(
@@ -770,7 +745,7 @@ class SignatureWebSocketHandler(
             "authenticatedConnections" to authenticatedConnections,
             "activeConnections" to activeConnections,
             "staleConnections" to (totalConnections - activeConnections),
-            "tenantStats" to tenantStats,
+            "companyStats" to companyStats,
             "timestamp" to now
         )
     }
@@ -780,7 +755,7 @@ class SignatureWebSocketHandler(
 data class TabletConnection(
     val session: WebSocketSession,
     val tablet: TabletDevice?,
-    val tenantId: UUID?,
+    val companyId: Long?,
     val locationId: UUID?,
     val connectedAt: Instant,
     val lastHeartbeat: Instant,
@@ -801,7 +776,7 @@ data class WorkstationConnection(
 
 data class SignatureRequestDto(
     val sessionId: String,
-    val tenantId: UUID,
+    val companyId: Long,
     val workstationId: UUID,
     val customerName: String,
     val vehicleInfo: VehicleInfoDto,

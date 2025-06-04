@@ -2,19 +2,14 @@ package com.carslab.crm.signature.service
 
 import com.carslab.crm.signature.api.dto.TabletConnectionInfo
 import com.carslab.crm.signature.api.dto.TabletDeviceDto
-import com.carslab.crm.signature.api.dto.TabletStatus
-import com.carslab.crm.signature.exception.*
 import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
-import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.infrastructure.persistance.repository.WorkstationRepository
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 @Service
@@ -25,25 +20,21 @@ class TabletManagementService(
     private val applicationContext: ApplicationContext
 ) {
 
-    // Lazy initialization to break circular dependency
     private val webSocketHandler by lazy {
         try {
             applicationContext.getBean(SignatureWebSocketHandler::class.java)
         } catch (e: Exception) {
-            null // WebSocket handler might not be available in all contexts
+            null
         }
     }
 
-    /**
-     * Get list of tablets for tenant with online status information
-     */
-    fun listTenantTabletsWithStatus(tenantId: UUID): List<TabletDeviceDto> {
-        return tabletDeviceRepository.findByTenantId(tenantId).map { tablet ->
+    fun listingAllTablets(companyId: Long): List<TabletDeviceDto> {
+        return tabletDeviceRepository.findByCompanyId(companyId).map { tablet ->
             val connectionInfo = getTabletConnectionInfo(tablet.id)
 
             TabletDeviceDto(
                 id = tablet.id.toString(),
-                tenantId = tablet.tenantId.toString(),
+                companyId = tablet.companyId,
                 locationId = tablet.locationId.toString(),
                 friendlyName = tablet.friendlyName,
                 workstationId = tablet.workstationId?.toString(),
@@ -56,13 +47,10 @@ class TabletManagementService(
         }
     }
 
-    /**
-     * Get detailed tablet information with connection status
-     */
-    fun getTabletDetailsWithStatus(tabletId: UUID, tenantId: UUID): TabletDeviceDto? {
+    fun getTabletDetailsWithStatus(tabletId: UUID, companyId: Long): TabletDeviceDto? {
         val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
 
-        return if (tablet?.tenantId == tenantId) {
+        return if (tablet?.companyId == companyId) {
             val connectionInfo = getTabletConnectionInfo(tabletId)
             val workstationName = tablet.workstationId?.let {
                 workstationRepository.findById(it).orElse(null)?.workstationName
@@ -70,7 +58,7 @@ class TabletManagementService(
 
             TabletDeviceDto(
                 id = tablet.id.toString(),
-                tenantId = tablet.tenantId.toString(),
+                companyId = tablet.companyId,
                 locationId = tablet.locationId.toString(),
                 friendlyName = tablet.friendlyName,
                 workstationId = workstationName,
@@ -102,31 +90,6 @@ class TabletManagementService(
         } catch (e: Exception) {
             null
         }
-    }
-
-    fun listTenantTablets(tenantId: UUID): List<TabletStatus> {
-        return tabletDeviceRepository.findByTenantId(tenantId).map { tablet ->
-            TabletStatus(
-                id = tablet.id,
-                name = tablet.friendlyName,
-                location = getLocationName(tablet.locationId),
-                isOnline = isTabletOnline(tablet.id),
-                lastSeen = tablet.lastSeen,
-                assignedWorkstation = tablet.workstationId?.let {
-                    workstationRepository.findById(it).orElse(null)?.workstationName
-                }
-            )
-        }
-    }
-
-    fun getTabletDetails(tabletId: UUID, tenantId: UUID): TabletDevice? {
-        val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
-        return if (tablet?.tenantId == tenantId) tablet else null
-    }
-
-    fun checkTabletAccess(tabletId: UUID, tenantId: UUID): Boolean {
-        val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
-        return tablet?.tenantId == tenantId
     }
 
     fun getTabletConnectionStats(tabletId: UUID): Map<String, Any> {
@@ -209,8 +172,8 @@ class TabletManagementService(
         }
     }
 
-    fun getTabletStats(tenantId: UUID): Map<String, Any> {
-        val allTablets = tabletDeviceRepository.findByTenantId(tenantId)
+    fun getTabletStats(companyId: Long): Map<String, Any> {
+        val allTablets = tabletDeviceRepository.findByCompanyId(companyId)
         val onlineTablets = allTablets.filter { isTabletOnline(it.id) }
         val activeTablets = allTablets.filter { it.status == DeviceStatus.ACTIVE }
 
@@ -235,32 +198,9 @@ class TabletManagementService(
         }
     }
 
-    fun selectTablet(workstationId: UUID): TabletDevice? {
-        val workstation = workstationRepository.findById(workstationId).orElseThrow {
-            WorkstationNotFoundException(workstationId)
-        }
-
-        // 1. Check assigned tablet first
-        workstation.pairedTabletId?.let { tabletId ->
-            val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
-            if (tablet?.status == DeviceStatus.ACTIVE && isTabletOnline(tabletId)) {
-                return tablet
-            }
-        }
-
-        // 2. Find nearest available tablet
-        return findNearestAvailableTablet(workstation.tenantId, workstation.locationId)
-    }
-
-    private fun findNearestAvailableTablet(tenantId: UUID, locationId: UUID): TabletDevice? {
-        val fiveMinutesAgo = Instant.now().minus(5, ChronoUnit.MINUTES)
-
-        return tabletDeviceRepository.findAvailableTablets(
-            tenantId = tenantId,
-            locationId = locationId,
-            status = DeviceStatus.ACTIVE,
-            lastSeenAfter = fiveMinutesAgo
-        ).firstOrNull { isTabletOnline(it.id) }
+    fun checkTabletAccess(tabletId: UUID, companyId: Long): Boolean {
+        val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
+        return tablet?.companyId == companyId
     }
 
     @Transactional
@@ -274,10 +214,5 @@ class TabletManagementService(
         } catch (e: Exception) {
             throw RuntimeException("Failed to send test request to tablet $tabletId", e)
         }
-    }
-
-    private fun getLocationName(locationId: UUID): String {
-        // TODO: Implement location service or add location table
-        return "Location ${locationId.toString().take(8)}"
     }
 }

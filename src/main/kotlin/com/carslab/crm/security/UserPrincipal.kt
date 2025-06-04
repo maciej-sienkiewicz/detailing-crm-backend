@@ -11,7 +11,7 @@ data class UserPrincipal(
     val id: Long,                    // Long zamiast UUID dla kompatybilności
     val userUsername: String,        // Zmienione z 'username' żeby uniknąć konfliktu
     val email: String?,
-    val companyId: Long,             // companyId zamiast tenantId
+    val companyId: Long,
     private val grantedAuthorities: Collection<GrantedAuthority>
 ) : UserDetails {
 
@@ -78,7 +78,7 @@ data class UserPrincipal(
                 id = -1L, // Placeholder dla tabletów
                 userUsername = "tablet-${claims.deviceId}",
                 email = null,
-                companyId = -1L, // Placeholder - tablety używają tenantId
+                companyId = -1L,
                 grantedAuthorities = authorities
             )
         }
@@ -90,7 +90,7 @@ data class UserPrincipal(
  */
 data class TabletPrincipal(
     val deviceId: java.util.UUID,
-    val tenantId: java.util.UUID,
+    val companyId: Long,
     val deviceType: String,
     private val grantedAuthorities: Collection<GrantedAuthority>
 ) : UserDetails {
@@ -117,7 +117,7 @@ data class TabletPrincipal(
 
             return TabletPrincipal(
                 deviceId = claims.deviceId,
-                tenantId = claims.tenantId,
+                companyId = claims.companyId,
                 deviceType = claims.deviceType,
                 grantedAuthorities = authorities
             )

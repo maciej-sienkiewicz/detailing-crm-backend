@@ -11,7 +11,7 @@ data class TabletDevice(
     val id: UUID = UUID.randomUUID(),
 
     @Column(nullable = false)
-    val tenantId: UUID,
+    val companyId: Long,
 
     @Column(nullable = false)
     val locationId: UUID,
@@ -44,7 +44,7 @@ data class Workstation(
     val id: UUID = UUID.randomUUID(),
 
     @Column(nullable = false)
-    val tenantId: UUID,
+    val companyId: Long,
 
     @Column(nullable = false)
     val locationId: UUID,
@@ -73,7 +73,7 @@ data class PairingCode(
     val code: String,
 
     @Column(nullable = false)
-    val tenantId: UUID,
+    val companyId: Long,
 
     @Column(nullable = false)
     val locationId: UUID,
