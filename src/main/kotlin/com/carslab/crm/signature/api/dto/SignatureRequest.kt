@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull
 
 data class CreateSignatureSessionRequest(
     @field:NotNull
-    val workstationId: Long,
+    val workstationId: UUID,
 
     @field:NotBlank
     val customerName: String,

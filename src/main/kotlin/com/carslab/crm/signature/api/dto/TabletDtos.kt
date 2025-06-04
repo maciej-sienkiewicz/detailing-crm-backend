@@ -1,66 +1,32 @@
 package com.carslab.crm.signature.api.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
-import jakarta.validation.constraints.Positive
-import jakarta.validation.constraints.Size
 import java.time.Instant
 import java.util.UUID
 
 data class TabletRegistrationRequest(
-    @field:NotNull(message = "Company ID is required")
-    @field:Positive(message = "Company ID must be positive")
-    @JsonProperty("company_id")
-    val companyId: Long,
-
-    @field:NotNull(message = "Location ID is required")
-    @field:Positive(message = "Location ID must be positive")
+    @JsonProperty("tenant_id")
+    val tenantId: UUID,
     @JsonProperty("location_id")
-    val locationId: Long,
-
+    val locationId: UUID,
     @JsonProperty("workstation_id")
-    val workstationId: Long? = null,
-
-    @JsonProperty("device_name")
-    @field:Size(max = 100, message = "Device name cannot exceed 100 characters")
-    val deviceName: String? = null
+    val workstationId: UUID?
 )
 
 data class TabletPairingRequest(
-    @field:NotBlank(message = "Pairing code is required")
-    @field:Size(min = 6, max = 10, message = "Pairing code must be between 6 and 10 characters")
     val code: String,
-
-    @field:NotBlank(message = "Device name is required")
-    @field:Size(min = 3, max = 100, message = "Device name must be between 3 and 100 characters")
-    @JsonProperty("device_name")
     val deviceName: String
 )
 
 data class PairingCodeResponse(
     val code: String,
-    @JsonProperty("expires_in")
-    val expiresIn: Int, // seconds until expiration
-    @JsonProperty("expires_at")
-    val expiresAt: Instant,
-    @JsonProperty("company_id")
-    val companyId: Long,
-    @JsonProperty("location_id")
-    val locationId: Long
+    val expiresIn: Int
 )
 
 data class TabletCredentials(
-    @JsonProperty("device_id")
-    val deviceId: Long,
-    @JsonProperty("device_token")
+    val deviceId: UUID,
     val deviceToken: String,
-    @JsonProperty("websocket_url")
-    val websocketUrl: String,
-    @JsonProperty("company_id")
-    val companyId: Long,
-    @JsonProperty("location_id")
-    val locationId: Long
+    val websocketUrl: String
 )
 
 data class TabletStatus(
@@ -76,45 +42,37 @@ data class TabletStatus(
  * Detailed tablet information for frontend
  */
 data class TabletDeviceDto(
-    val id: Long,
-    @JsonProperty("company_id")
-    val companyId: Long,
+    val id: String,
+    @JsonProperty("tenant_id")
+    val tenantId: String,
     @JsonProperty("location_id")
-    val locationId: Long,
+    val locationId: String,
     @JsonProperty("friendly_name")
     val friendlyName: String,
     @JsonProperty("workstation_id")
-    val workstationId: Long?,
-    @JsonProperty("workstation_name")
-    val workstationName: String?,
+    val workstationId: String?,
     val status: String,
     @JsonProperty("is_online")
     val isOnline: Boolean,
     @JsonProperty("last_seen")
-    val lastSeen: Instant,
+    val lastSeen: String,
     @JsonProperty("created_at")
-    val createdAt: Instant,
-    @JsonProperty("updated_at")
-    val updatedAt: Instant,
+    val createdAt: String,
     @JsonProperty("connection_info")
     val connectionInfo: TabletConnectionInfo?
 )
 
 data class TabletConnectionInfo(
     @JsonProperty("connected_at")
-    val connectedAt: Instant?,
+    val connectedAt: String?,
     @JsonProperty("last_heartbeat")
-    val lastHeartbeat: Instant?,
+    val lastHeartbeat: String?,
     @JsonProperty("is_authenticated")
     val isAuthenticated: Boolean,
     @JsonProperty("session_open")
     val sessionOpen: Boolean,
     @JsonProperty("uptime_minutes")
-    val uptimeMinutes: Long?,
-    @JsonProperty("signal_strength")
-    val signalStrength: String? = null,
-    @JsonProperty("battery_level")
-    val batteryLevel: Int? = null
+    val uptimeMinutes: Long?
 )
 
 /**
@@ -127,8 +85,6 @@ data class TabletListResponse(
     val totalCount: Int,
     @JsonProperty("online_count")
     val onlineCount: Int,
-    @JsonProperty("company_id")
-    val companyId: Long,
     val timestamp: Instant
 )
 
@@ -140,21 +96,7 @@ data class TabletDetailsResponse(
     val tablet: TabletDeviceDto,
     @JsonProperty("connection_stats")
     val connectionStats: Map<String, Any>,
-    @JsonProperty("recent_sessions")
-    val recentSessions: List<SessionSummaryDto>?,
     val timestamp: Instant
-)
-
-data class SessionSummaryDto(
-    @JsonProperty("session_id")
-    val sessionId: String,
-    @JsonProperty("customer_name")
-    val customerName: String,
-    val status: String,
-    @JsonProperty("created_at")
-    val createdAt: Instant,
-    @JsonProperty("signed_at")
-    val signedAt: Instant?
 )
 
 /**
@@ -165,8 +107,6 @@ data class ApiResponse<T>(
     val data: T? = null,
     val message: String? = null,
     val error: String? = null,
-    @JsonProperty("company_id")
-    val companyId: Long? = null,
     val timestamp: Instant = Instant.now()
 )
 
@@ -179,8 +119,6 @@ data class PaginatedApiResponse<T>(
     val pagination: PaginationInfo,
     val message: String? = null,
     val error: String? = null,
-    @JsonProperty("company_id")
-    val companyId: Long? = null,
     val timestamp: Instant = Instant.now()
 )
 
@@ -190,50 +128,44 @@ data class PaginationInfo(
     @JsonProperty("page_size")
     val pageSize: Int,
     @JsonProperty("total_items")
-    val totalItems: Long,
+    val totalItems: Int,
     @JsonProperty("total_pages")
-    val totalPages: Int,
-    @JsonProperty("has_next")
-    val hasNext: Boolean,
-    @JsonProperty("has_previous")
-    val hasPrevious: Boolean
+    val totalPages: Int
 )
 
 /**
  * Enhanced tablet response that matches frontend expectations
  */
 data class TabletResponse(
-    val id: Long,
-    @JsonProperty("company_id")
-    val companyId: Long,
+    val id: String,
+    @JsonProperty("tenant_id")
+    val tenantId: String,
     @JsonProperty("location_id")
-    val locationId: Long,
+    val locationId: String,
     @JsonProperty("friendly_name")
     val friendlyName: String,
     @JsonProperty("workstation_id")
-    val workstationId: Long?,
+    val workstationId: String?,
     val status: String,
     @JsonProperty("is_online")
     val isOnline: Boolean,
     @JsonProperty("last_seen")
-    val lastSeen: Instant,
+    val lastSeen: String,
     @JsonProperty("created_at")
-    val createdAt: Instant
+    val createdAt: String
 )
 
 /**
  * Session response for frontend
  */
 data class SessionResponse(
-    val id: Long,
+    val id: String,
     @JsonProperty("session_id")
     val sessionId: String,
-    @JsonProperty("company_id")
-    val companyId: Long,
+    @JsonProperty("tenant_id")
+    val tenantId: String,
     @JsonProperty("workstation_id")
-    val workstationId: Long,
-    @JsonProperty("assigned_tablet_id")
-    val assignedTabletId: Long?,
+    val workstationId: String,
     @JsonProperty("customer_name")
     val customerName: String,
     @JsonProperty("customer_email")
@@ -243,30 +175,30 @@ data class SessionResponse(
     @JsonProperty("vehicle_info")
     val vehicleInfo: VehicleInfo?,
     @JsonProperty("service_type")
-    val serviceType: String?,
+    val serviceType: String,
     @JsonProperty("document_type")
-    val documentType: String?,
+    val documentType: String,
     val status: String,
     @JsonProperty("expires_at")
-    val expiresAt: Instant,
+    val expiresAt: String,
     @JsonProperty("created_at")
-    val createdAt: Instant,
+    val createdAt: String,
     @JsonProperty("signed_at")
-    val signedAt: Instant?,
+    val signedAt: String?,
+    @JsonProperty("assigned_tablet_id")
+    val assignedTabletId: String?,
     @JsonProperty("signature_image_url")
     val signatureImageUrl: String?,
-    @JsonProperty("additional_notes")
-    val additionalNotes: String?,
-    @JsonProperty("signature_duration_seconds")
-    val signatureDurationSeconds: Int?,
+    val location: String?,
+    val notes: String?,
     val metadata: Map<String, Any>?
 )
 
 data class VehicleInfo(
-    val make: String?,
-    val model: String?,
+    val make: String,
+    val model: String,
     @JsonProperty("license_plate")
-    val licensePlate: String?,
+    val licensePlate: String,
     val vin: String?,
     val year: Int?,
     val color: String?
@@ -283,94 +215,5 @@ data class RealtimeStatsResponse(
     @JsonProperty("completed_today")
     val completedToday: Int,
     @JsonProperty("success_rate")
-    val successRate: Double,
-    @JsonProperty("average_completion_time")
-    val averageCompletionTime: Double?, // in seconds
-    @JsonProperty("company_id")
-    val companyId: Long,
-    val timestamp: Instant
-)
-
-data class TabletStatsResponse(
-    @JsonProperty("company_id")
-    val companyId: Long,
-    @JsonProperty("total_tablets")
-    val totalTablets: Int,
-    @JsonProperty("online_tablets")
-    val onlineTablets: Int,
-    @JsonProperty("active_tablets")
-    val activeTablets: Int,
-    @JsonProperty("tablets_by_status")
-    val tabletsByStatus: Map<String, Int>,
-    @JsonProperty("tablets_by_location")
-    val tabletsByLocation: Map<Long, Int>,
-    @JsonProperty("sessions_today")
-    val sessionsToday: Int,
-    @JsonProperty("sessions_this_week")
-    val sessionsThisWeek: Int,
-    @JsonProperty("sessions_this_month")
-    val sessionsThisMonth: Int,
-    val timestamp: Instant
-)
-
-/**
- * Location information
- */
-data class LocationDto(
-    val id: Long,
-    @JsonProperty("company_id")
-    val companyId: Long,
-    val name: String,
-    val address: String?,
-    @JsonProperty("is_active")
-    val isActive: Boolean,
-    @JsonProperty("tablet_count")
-    val tabletCount: Int,
-    @JsonProperty("workstation_count")
-    val workstationCount: Int
-)
-
-/**
- * Workstation information
- */
-data class WorkstationDto(
-    val id: Long,
-    @JsonProperty("company_id")
-    val companyId: Long,
-    @JsonProperty("location_id")
-    val locationId: Long,
-    @JsonProperty("workstation_name")
-    val workstationName: String,
-    @JsonProperty("workstation_code")
-    val workstationCode: String?,
-    @JsonProperty("paired_tablet_id")
-    val pairedTabletId: Long?,
-    @JsonProperty("paired_tablet_name")
-    val pairedTabletName: String?,
-    @JsonProperty("is_active")
-    val isActive: Boolean,
-    @JsonProperty("last_activity")
-    val lastActivity: Instant?,
-    @JsonProperty("created_at")
-    val createdAt: Instant
-)
-
-/**
- * Error response format
- */
-data class ErrorResponse(
-    val success: Boolean = false,
-    val message: String,
-    val code: String,
-    val details: Map<String, Any>? = null,
-    val timestamp: Instant = Instant.now()
-)
-
-/**
- * Health check response
- */
-data class HealthResponse(
-    val status: String, // UP, DOWN, DEGRADED
-    val timestamp: Instant,
-    val details: Map<String, Any> = emptyMap()
+    val successRate: Double
 )

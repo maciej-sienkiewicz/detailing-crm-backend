@@ -6,7 +6,7 @@ import java.util.UUID
 interface WebSocketService {
     fun isTabletConnected(tabletId: UUID): Boolean
     fun sendSignatureRequest(tabletId: UUID, request: SignatureRequestDto): Boolean
-    fun notifyWorkstation(workstationId: Long, sessionId: String, success: Boolean, signedAt: java.time.Instant?)
+    fun notifyWorkstation(workstationId: UUID, sessionId: String, success: Boolean, signedAt: java.time.Instant?)
     fun getActiveConnectionsCount(): Int
     fun getActiveTabletsCount(): Int
     fun getActiveWorkstationsCount(): Int

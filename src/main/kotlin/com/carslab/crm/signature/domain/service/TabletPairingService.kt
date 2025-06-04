@@ -1,18 +1,19 @@
-
-// src/main/kotlin/com/carslab/crm/signature/service/TabletPairingService.kt
 package com.carslab.crm.signature.service
 
 import com.carslab.crm.security.JwtService
 import com.carslab.crm.signature.api.dto.*
-import com.carslab.crm.signature.infrastructure.persistance.entity.*
+import com.carslab.crm.signature.dto.*
+import com.carslab.crm.signature.entity.*
 import com.carslab.crm.signature.exception.InvalidPairingCodeException
-import com.carslab.crm.signature.infrastructure.persistance.repository.*
+import com.carslab.crm.signature.repository.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.security.SecureRandom
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.*
+
 
 @Service
 @Transactional
@@ -28,27 +29,21 @@ class TabletPairingService(
 
     fun initiateRegistration(request: TabletRegistrationRequest): PairingCodeResponse {
         val code = generatePairingCode()
-        val now = Instant.now()
-        val expiresAt = now.plus(5, ChronoUnit.MINUTES)
+        val expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES)
 
         val pairingCode = PairingCode(
             code = code,
-            companyId = request.companyId,
+            tenantId = request.tenantId,
             locationId = request.locationId,
             workstationId = request.workstationId,
-            deviceName = request.deviceName,
-            expiresAt = expiresAt,
-            createdAt = now
+            expiresAt = expiresAt
         )
 
         pairingCodeRepository.save(pairingCode)
 
         return PairingCodeResponse(
             code = code,
-            expiresIn = 300, // 5 minutes
-            expiresAt = expiresAt,
-            companyId = request.companyId,
-            locationId = request.locationId
+            expiresIn = 300
         )
     }
 
@@ -58,19 +53,17 @@ class TabletPairingService(
             Instant.now()
         ) ?: throw InvalidPairingCodeException()
 
-        // Generate secure device token
+        // Generate secure device token first
         val deviceToken = generateSecureToken()
-        val now = Instant.now()
 
         // Create tablet device
         val tablet = TabletDevice(
-            companyId = pairingData.companyId,
+            tenantId = pairingData.tenantId,
             locationId = pairingData.locationId,
-            deviceToken = deviceToken,
+            deviceToken = deviceToken, // Use the generated token, not JWT
             friendlyName = request.deviceName,
             workstationId = pairingData.workstationId,
-            status = DeviceStatus.ACTIVE,
-            lastSeen = now
+            status = DeviceStatus.ACTIVE
         )
 
         val savedTablet = tabletDeviceRepository.save(tablet)
@@ -79,25 +72,20 @@ class TabletPairingService(
         pairingData.workstationId?.let { workstationId ->
             val workstation = workstationRepository.findById(workstationId).orElse(null)
             workstation?.let {
-                val updatedWorkstation = it.copy(
-                    pairedTabletId = savedTablet.id!!,
-                )
-                workstationRepository.save(updatedWorkstation)
+                workstationRepository.save(it.copy(pairedTabletId = savedTablet.id))
             }
         }
 
-        // Mark pairing code as used
-        pairingCodeRepository.markAsUsed(pairingData.code, now, savedTablet.id!!)
+        // Clean up pairing code
+        pairingCodeRepository.delete(pairingData)
 
-        // Generate JWT token for authentication
-        val jwtToken = jwtService.generateTabletToken(savedTablet.id!!, savedTablet.companyId)
+        // Generate JWT token for authentication (separate from device token)
+        val jwtToken = jwtService.generateTabletToken(savedTablet.id, savedTablet.tenantId)
 
         return TabletCredentials(
-            deviceId = savedTablet.id!!,
-            deviceToken = jwtToken,
-            websocketUrl = "$wsBaseUrl/ws/tablet/${savedTablet.id}",
-            companyId = savedTablet.companyId,
-            locationId = savedTablet.locationId
+            deviceId = savedTablet.id,
+            deviceToken = jwtToken, // Return JWT token for authentication
+            websocketUrl = "$wsBaseUrl/ws/tablet/${savedTablet.id}"
         )
     }
 
@@ -108,30 +96,10 @@ class TabletPairingService(
     private fun generateSecureToken(): String {
         val bytes = ByteArray(32)
         secureRandom.nextBytes(bytes)
-        return java.util.Base64.getEncoder().encodeToString(bytes)
+        return Base64.getEncoder().encodeToString(bytes)
     }
 
-    @Transactional
     fun cleanupExpiredCodes() {
-        val deletedCount = pairingCodeRepository.deleteExpiredCodes(Instant.now())
-        if (deletedCount > 0) {
-            println("Cleaned up $deletedCount expired pairing codes")
-        }
-    }
-
-    /**
-     * Get pairing statistics for company
-     */
-    fun getPairingStats(companyId: Long): Map<String, Any> {
-        val now = Instant.now()
-        val last24Hours = now.minus(24, ChronoUnit.HOURS)
-        val last7Days = now.minus(7, ChronoUnit.DAYS)
-
-        return mapOf(
-            "codesGenerated24h" to pairingCodeRepository.countByCompanyIdAndCreatedAtAfter(companyId, last24Hours),
-            "codesUsed24h" to pairingCodeRepository.countUsedCodesSince(companyId, last24Hours),
-            "codesUsed7d" to pairingCodeRepository.countUsedCodesSince(companyId, last7Days),
-            "activeTablets" to tabletDeviceRepository.countByCompanyIdAndStatus(companyId, DeviceStatus.ACTIVE)
-        )
+        pairingCodeRepository.deleteByExpiresAtBefore(Instant.now())
     }
 }

@@ -90,7 +90,7 @@ data class UserPrincipal(
  */
 data class TabletPrincipal(
     val deviceId: java.util.UUID,
-    val companyId: Long,
+    val tenantId: java.util.UUID,
     val deviceType: String,
     private val grantedAuthorities: Collection<GrantedAuthority>
 ) : UserDetails {
@@ -117,7 +117,7 @@ data class TabletPrincipal(
 
             return TabletPrincipal(
                 deviceId = claims.deviceId,
-                companyId = claims.companyId,
+                tenantId = claims.tenantId,
                 deviceType = claims.deviceType,
                 grantedAuthorities = authorities
             )

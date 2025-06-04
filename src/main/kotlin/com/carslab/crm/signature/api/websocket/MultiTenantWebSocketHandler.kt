@@ -15,14 +15,14 @@ import java.util.concurrent.ConcurrentHashMap
 data class TabletConnection(
     val session: WebSocketSession,
     val tablet: TabletDevice,
-    val companyId: Long,
-    val locationId: Long
+    val tenantId: UUID,
+    val locationId: UUID
 )
 
 data class WorkstationConnection(
     val session: WebSocketSession,
-    val workstationId: Long,
-    val companyId: Long
+    val workstationId: UUID,
+    val tenantId: UUID
 )
 
 @Component
@@ -57,23 +57,23 @@ class MultiTenantWebSocketHandler(
     private fun handleTabletConnection(session: WebSocketSession) {
         val deviceId = extractDeviceId(session.uri.toString())
         val token = session.handshakeHeaders.getFirst("X-Device-Token")
-        val companyId = session.handshakeHeaders.getFirst("X-Company-Id")?.toLong()
+        val tenantId = session.handshakeHeaders.getFirst("X-Tenant-Id")?.let { UUID.fromString(it) }
 
-        if (deviceId == null || token == null || companyId == null) {
+        if (deviceId == null || token == null || tenantId == null) {
             throw UnauthorizedTabletException("Missing required headers")
         }
 
         val tablet = tabletDeviceRepository.findByIdAndDeviceToken(deviceId, token)
             ?: throw UnauthorizedTabletException("Invalid device credentials")
 
-        if (tablet.companyId != companyId) {
+        if (tablet.tenantId != tenantId) {
             throw UnauthorizedTabletException("Tenant mismatch")
         }
 
         val connection = TabletConnection(
             session = session,
             tablet = tablet,
-            companyId = tablet.companyId,
+            tenantId = tablet.tenantId,
             locationId = tablet.locationId
         )
 
@@ -88,9 +88,9 @@ class MultiTenantWebSocketHandler(
 
     private fun handleWorkstationConnection(session: WebSocketSession) {
         val workstationId = extractWorkstationId(session.uri.toString())
-        val companyId = session.handshakeHeaders.getFirst("X-Company-Id")?.toLong()
+        val tenantId = session.handshakeHeaders.getFirst("X-Tenant-Id")?.let { UUID.fromString(it) }
 
-        if (workstationId == null || companyId == null) {
+        if (workstationId == null || tenantId == null) {
             session.close(CloseStatus.BAD_DATA)
             return
         }
@@ -98,7 +98,7 @@ class MultiTenantWebSocketHandler(
         val connection = WorkstationConnection(
             session = session,
             workstationId = workstationId,
-            companyId = companyId
+            tenantId = tenantId
         )
 
         workstationConnections[workstationId] = connection
@@ -132,11 +132,12 @@ class MultiTenantWebSocketHandler(
     private fun handleHeartbeat(session: WebSocketSession) {
         // Find tablet by session and update last seen
         tabletConnections.values.find { it.session == session }?.let { connection ->
-            tabletManagementService.updateTabletLastSeen(connection.tablet.id!!)
+            tabletManagementService.updateTabletLastSeen(connection.tablet.id)
         }
     }
 
     private fun handleSignatureCompleted(session: WebSocketSession, messageData: Map<String, Any>) {
+        // Handle signature completion acknowledgment from tablet
         val sessionId = messageData["sessionId"] as? String
         logger.info("Signature completed acknowledgment received for session: $sessionId")
     }
@@ -176,7 +177,7 @@ class MultiTenantWebSocketHandler(
         if (connection != null && connection.session.isOpen) {
             val testMessage = SignatureRequestMessage(
                 sessionId = "test-${UUID.randomUUID()}",
-                companyId = connection.companyId,
+                tenantId = connection.tenantId,
                 workstationId = UUID.randomUUID(),
                 customerName = "Test Customer",
                 vehicleInfo = VehicleInfoWS(

@@ -7,7 +7,7 @@ sealed class WebSocketMessage(val type: String)
 
 data class SignatureRequestMessage(
     val sessionId: String,
-    val companyId: Long,
+    val tenantId: UUID,
     val workstationId: UUID,
     val customerName: String,
     val vehicleInfo: VehicleInfoWS,
