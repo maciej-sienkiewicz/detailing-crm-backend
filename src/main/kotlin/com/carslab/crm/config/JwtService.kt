@@ -53,10 +53,7 @@ class JwtService(
             .compact()
     }
 
-    /**
-     * Generuj token dla tabletu (używa UUID i tenantId)
-     */
-    fun generateTabletToken(deviceId: UUID, tenantId: UUID): String {
+    fun generateTabletToken(deviceId: Long, companyId: Long): String {
         val now = Instant.now()
         val expirationDate = Date.from(now.plus(deviceExpirationInSeconds, ChronoUnit.SECONDS))
 
@@ -65,7 +62,7 @@ class JwtService(
             .issuedAt(Date.from(now))
             .expiration(expirationDate)
             .issuer("crm-system")
-            .claim("tenant_id", tenantId.toString())
+            .claim("company_id", companyId.toString())
             .claim("device_type", "tablet")
             .claim("roles", listOf("TABLET"))
             .claim("permissions", listOf("signature:submit", "websocket:connect"))
@@ -133,7 +130,7 @@ class JwtService(
 
         return TabletTokenClaims(
             deviceId = UUID.fromString(claims.subject),
-            tenantId = UUID.fromString(claims["tenant_id"] as String),
+            companyId = claims["company_id"] as Long,
             deviceType = claims["device_type"] as? String ?: "tablet",
             roles = claims["roles"] as? List<String> ?: emptyList(),
             permissions = claims["permissions"] as? List<String> ?: emptyList()
@@ -194,7 +191,7 @@ data class UserTokenClaims(
 
 data class TabletTokenClaims(
     val deviceId: UUID,
-    val tenantId: UUID,
+    val companyId: Long,
     val deviceType: String,
     val roles: List<String>,
     val permissions: List<String>

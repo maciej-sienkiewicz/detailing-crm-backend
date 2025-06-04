@@ -5,71 +5,94 @@ import java.time.Instant
 import java.util.UUID
 
 @Entity
-@Table(name = "tablet_devices")
+@Table(
+    name = "tablet_devices",
+    indexes = [
+        Index(name = "idx_tablet_devices_company_id", columnList = "company_id"),
+        Index(name = "idx_tablet_devices_location_id", columnList = "location_id"),
+        Index(name = "idx_tablet_devices_device_token", columnList = "device_token", unique = true),
+        Index(name = "idx_tablet_devices_status", columnList = "status"),
+        Index(name = "idx_tablet_devices_last_seen", columnList = "last_seen")
+    ]
+)
 data class TabletDevice(
     @Id
-    val id: UUID = UUID.randomUUID(),
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
 
-    @Column(nullable = false)
-    val tenantId: UUID,
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
 
-    @Column(nullable = false)
-    val locationId: UUID,
+    @Column(name = "location_id", nullable = false)
+    val locationId: Long,
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "device_token", nullable = false, unique = true, length = 255)
     val deviceToken: String,
 
-    @Column(nullable = false)
+    @Column(name = "friendly_name", nullable = false, length = 100)
     val friendlyName: String,
 
-    val workstationId: UUID? = null,
+    @Column(name = "workstation_id")
+    val workstationId: Long? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     val status: DeviceStatus = DeviceStatus.ACTIVE,
 
-    @Column(nullable = false)
+    @Column(name = "last_seen", nullable = false)
     val lastSeen: Instant = Instant.now(),
 
-    @Column(nullable = false)
-    val createdAt: Instant = Instant.now(),
-
-    val updatedAt: Instant = Instant.now()
-)
+    @Column(name = "device_info", columnDefinition = "TEXT")
+    val deviceInfo: String? = null, // JSON with device details like OS, version, etc.
+) : AuditableEntity()
 
 @Entity
-@Table(name = "workstations")
+@Table(
+    name = "workstations",
+    indexes = [
+        Index(name = "idx_workstations_company_id", columnList = "company_id"),
+        Index(name = "idx_workstations_location_id", columnList = "location_id"),
+        Index(name = "idx_workstations_paired_tablet_id", columnList = "paired_tablet_id")
+    ]
+)
 data class Workstation(
     @Id
-    val id: UUID = UUID.randomUUID(),
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
 
-    @Column(nullable = false)
-    val tenantId: UUID,
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
 
-    @Column(nullable = false)
-    val locationId: UUID,
+    @Column(name = "location_id", nullable = false)
+    val locationId: Long,
 
-    @Column(nullable = false)
+    @Column(name = "workstation_name", nullable = false, length = 100)
     val workstationName: String,
 
-    val pairedTabletId: UUID? = null,
+    @Column(name = "workstation_code", length = 50)
+    val workstationCode: String? = null, // Human-readable identifier
 
-    @Column(nullable = false)
-    val createdAt: Instant = Instant.now(),
+    @Column(name = "paired_tablet_id")
+    val pairedTabletId: Long? = null,
 
-    val updatedAt: Instant = Instant.now()
-)
+    @Column(name = "is_active", nullable = false)
+    val isActive: Boolean = true,
+) : AuditableEntity()
+
+
 
 @Entity
 @Table(
     name = "signature_sessions",
     indexes = [
         Index(name = "idx_signature_sessions_session_id", columnList = "session_id", unique = true),
-        Index(name = "idx_signature_sessions_tenant_id", columnList = "tenant_id"),
+        Index(name = "idx_signature_sessions_company_id", columnList = "company_id"),
         Index(name = "idx_signature_sessions_workstation_id", columnList = "workstation_id"),
+        Index(name = "idx_signature_sessions_assigned_tablet_id", columnList = "assigned_tablet_id"),
         Index(name = "idx_signature_sessions_status", columnList = "status"),
         Index(name = "idx_signature_sessions_created_at", columnList = "created_at"),
-        Index(name = "idx_signature_sessions_expires_at", columnList = "expires_at")
+        Index(name = "idx_signature_sessions_expires_at", columnList = "expires_at"),
+        Index(name = "idx_signature_sessions_customer_name", columnList = "customer_name")
     ]
 )
 data class SignatureSession(
@@ -77,26 +100,51 @@ data class SignatureSession(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
-    @Column(name = "session_id", nullable = false, unique = true, length = 36)
+    @Column(name = "session_id", nullable = false, unique = true, length = 50)
     val sessionId: String,
 
-    @Column(name = "tenant_id", nullable = false)
-    val tenantId: UUID,
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
 
     @Column(name = "workstation_id", nullable = false)
-    val workstationId: UUID,
+    val workstationId: Long,
+
+    @Column(name = "assigned_tablet_id")
+    val assignedTabletId: Long? = null,
 
     @Column(name = "customer_name", nullable = false, length = 255)
     val customerName: String,
 
-    @Column(name = "vehicle_info", length = 500)
-    val vehicleInfo: String?,
+    @Column(name = "customer_email", length = 255)
+    val customerEmail: String? = null,
+
+    @Column(name = "customer_phone", length = 50)
+    val customerPhone: String? = null,
+
+    // Vehicle information as separate columns for better querying
+    @Column(name = "vehicle_make", length = 100)
+    val vehicleMake: String? = null,
+
+    @Column(name = "vehicle_model", length = 100)
+    val vehicleModel: String? = null,
+
+    @Column(name = "vehicle_license_plate", length = 20)
+    val vehicleLicensePlate: String? = null,
+
+    @Column(name = "vehicle_vin", length = 17)
+    val vehicleVin: String? = null,
+
+    @Column(name = "vehicle_year")
+    val vehicleYear: Int? = null,
+
+    @Column(name = "vehicle_color", length = 50)
+    val vehicleColor: String? = null,
 
     @Column(name = "service_type", length = 100)
-    val serviceType: String?,
+    val serviceType: String? = null,
 
     @Column(name = "document_type", length = 100)
-    val documentType: String?,
+    val documentType: String? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -106,50 +154,91 @@ data class SignatureSession(
     val expiresAt: Instant,
 
     @Lob
-    @Column(name = "signature_image", columnDefinition = "TEXT")
-    var signatureImage: String?,
+    @Column(name = "signature_image", columnDefinition = "LONGTEXT")
+    var signatureImage: String? = null,
 
     @Column(name = "signed_at")
-    var signedAt: Instant?
+    var signedAt: Instant? = null,
+
+    @Column(name = "additional_notes", columnDefinition = "TEXT")
+    val additionalNotes: String? = null,
+
+    // Metadata for audit and analytics
+    @Column(name = "client_ip", length = 45)
+    val clientIp: String? = null,
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    val userAgent: String? = null,
+
+    @Column(name = "signature_duration_seconds")
+    var signatureDurationSeconds: Int? = null
+
 ) : AuditableEntity()
 
 enum class SignatureStatus {
-    PENDING,    // Oczekuje na podpis
-    COMPLETED,  // Podpisane pomyślnie
-    EXPIRED,    // Sesja wygasła
-    CANCELLED,  // Anulowane przez użytkownika
-    FAILED      // Błąd podczas przetwarzania
+    PENDING,        // Created, waiting for tablet assignment
+    SENT_TO_TABLET, // Sent to tablet, waiting for signature
+    COMPLETED,      // Signature completed successfully
+    EXPIRED,        // Session expired without signature
+    CANCELLED,      // Cancelled by user
+    FAILED          // Technical failure during processing
 }
 
 enum class DataRetentionPolicy(val retentionDays: Long) {
-    BUSINESS_REQUIREMENT(2555), // 7 years
-    GDPR_MINIMAL(30),
-    CUSTOM(365) // 1 year default
+    BUSINESS_REQUIREMENT(2555), // 7 years for legal compliance
+    GDPR_MINIMAL(30),          // 30 days minimal retention
+    AUDIT_EXTENDED(1095),      // 3 years for audit purposes
+    CUSTOM(365)                // 1 year default
 }
 
 @Entity
-@Table(name = "pairing_codes")
+@Table(
+    name = "pairing_codes",
+    indexes = [
+        Index(name = "idx_pairing_codes_company_id", columnList = "company_id"),
+        Index(name = "idx_pairing_codes_expires_at", columnList = "expires_at")
+    ]
+)
+
 data class PairingCode(
     @Id
+    @Column(name = "code", length = 10)
     val code: String,
 
-    @Column(nullable = false)
-    val tenantId: UUID,
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
 
-    @Column(nullable = false)
-    val locationId: UUID,
+    @Column(name = "location_id", nullable = false)
+    val locationId: Long,
 
-    val workstationId: UUID? = null,
+    @Column(name = "workstation_id")
+    val workstationId: Long? = null,
 
-    @Column(nullable = false)
+    @Column(name = "expires_at", nullable = false)
     val expiresAt: Instant,
 
-    @Column(nullable = false)
+    @Column(name = "device_name", length = 100)
+    val deviceName: String? = null, // Expected device name
+
+    @Column(name = "created_by_user_id")
+    val createdByUserId: Long? = null,
+
+    @Column(name = "used_at")
+    var usedAt: Instant? = null,
+
+    @Column(name = "used_by_tablet_id")
+    var usedByTabletId: Long? = null,
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now()
 )
 
+
 enum class DeviceStatus {
-    ACTIVE, INACTIVE, MAINTENANCE, ERROR
+    ACTIVE,      // Device is active and can receive requests
+    INACTIVE,    // Device is inactive (manually disabled)
+    MAINTENANCE, // Device is in maintenance mode
+    ERROR        // Device has errors and needs attention
 }
 
 enum class SignatureSessionStatus {

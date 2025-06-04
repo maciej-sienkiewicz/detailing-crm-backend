@@ -16,6 +16,6 @@ data class SignatureSessionResponse(
     val sessionId: String?,
     val message: String,
     val tabletId: UUID? = null,
-    val workstationId: UUID? = null,
+    val workstationId: Long? = null,
     val estimatedCompletionTime: java.time.Instant? = null
 )

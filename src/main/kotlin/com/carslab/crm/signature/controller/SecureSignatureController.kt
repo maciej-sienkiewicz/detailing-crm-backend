@@ -60,10 +60,7 @@ class SecureSignatureController(
 
         logger.info("Signature request from company: ${userPrincipal.companyId}, user: ${userPrincipal.id}")
 
-        // Konwertuj companyId (Long) na tenantId (UUID) dla kompatybilności
-        val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
-
-        return resilientSignatureService.createSignatureSessionWithResilience(tenantId, request)
+        return resilientSignatureService.createSignatureSessionWithResilience(userPrincipal.companyId, request)
             .thenApply { response ->
                 if (response.success) {
                     ResponseEntity.status(201).body(response)
@@ -168,10 +165,7 @@ class SecureSignatureController(
             val session = resilientSignatureService.getSignatureSession(sessionId)
 
             if (session != null) {
-                // Konwertuj companyId na tenantId dla porównania
-                val userTenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
-
-                if (session.tenantId != userTenantId) {
+                if (session.companyId != userPrincipal.companyId) {
                     logger.warn("Unauthorized access attempt to session $sessionId by company ${userPrincipal.companyId}")
                     return ResponseEntity.status(403).body(createErrorResponse("Access denied"))
                 }
@@ -184,7 +178,7 @@ class SecureSignatureController(
                     "hasSignature" to (session.signatureImage != null),
                     "expiresAt" to session.expiresAt,
                     "createdAt" to session.createdAt,
-                    "vehicleInfo" to session.vehicleInfo,
+                    "vehicleInfo" to session.vehicleVin,
                     "serviceType" to session.serviceType,
                     "documentType" to session.documentType
                 ))
@@ -212,7 +206,7 @@ class SecureSignatureController(
             when {
                 session == null -> ResponseEntity.notFound().build<Map<String, Any>>()
 
-                session.tenantId != convertCompanyIdToTenantId(userPrincipal.companyId) -> {
+                session.companyId != userPrincipal.companyId -> {
                     logger.warn("Unauthorized access to signature image for session $sessionId by company ${userPrincipal.companyId}")
                     ResponseEntity.status(403).body(createErrorResponse("Access denied"))
                 }
@@ -260,7 +254,7 @@ class SecureSignatureController(
                         "status" to session.status,
                         "createdAt" to session.createdAt,
                         "signedAt" to session.signedAt,
-                        "vehicleInfo" to session.vehicleInfo,
+                        "vehicleInfo" to session.vehicleVin,
                         "serviceType" to session.serviceType
                     )
                 },
@@ -291,8 +285,7 @@ class SecureSignatureController(
                 return ResponseEntity.notFound().build<Map<String, Any>>()
             }
 
-            val userTenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
-            if (session.tenantId != userTenantId) {
+            if (session.companyId != userPrincipal.companyId) {
                 return ResponseEntity.status(403).body(createErrorResponse("Access denied"))
             }
 

@@ -38,7 +38,7 @@ class ResilientSignatureService(
     @Retry(name = "signature-session-creation")
     @TimeLimiter(name = "signature-session-creation")
     fun createSignatureSessionWithResilience(
-        tenantId: UUID,
+        tenantId: Long,
         request: CreateSignatureSessionRequest
     ): CompletableFuture<SignatureSessionResponse> {
 
@@ -52,7 +52,7 @@ class ResilientSignatureService(
                 val session = createSignatureSession(tenantId, request)
 
                 // Try to find and assign tablet
-                val tablet = tabletManagementService.selectTablet(request.workstationId)
+                val tablet = tabletManagementService.selectTabletForWorkstation(request.workstationId)
 
                 if (tablet != null) {
                     logger.info("Selected tablet ${tablet.id} for session ${session.sessionId}")
@@ -169,7 +169,6 @@ class ResilientSignatureService(
                     session.status = SignatureStatus.EXPIRED
                     signatureSessionRepository.save(session)
 
-                    auditService.logSignatureRequest(session.tenantId, session.sessionId, "EXPIRED_ON_SUBMISSION")
                     metricsService.incrementSignaturesExpired()
 
                     return@supplyAsync SignatureResponse(
@@ -330,28 +329,15 @@ class ResilientSignatureService(
         }
     }
 
-    private fun createSignatureSession(tenantId: UUID, request: CreateSignatureSessionRequest): SignatureSession {
+    private fun createSignatureSession(tenantId: Long, request: CreateSignatureSessionRequest): SignatureSession {
         val sessionId = UUID.randomUUID().toString()
         val now = Instant.now()
 
         val session = SignatureSession(
             sessionId = sessionId,
-            tenantId = tenantId,
+            companyId = tenantId,
             workstationId = request.workstationId,
             customerName = request.customerName,
-            vehicleInfo = request.vehicleInfo?.let {
-                buildString {
-                    append(it.make ?: "Unknown")
-                    append(" ")
-                    append(it.model ?: "Unknown")
-                    if (!it.licensePlate.isNullOrBlank()) {
-                        append(" (${it.licensePlate})")
-                    }
-                    if (it.year != null) {
-                        append(" ${it.year}")
-                    }
-                }
-            },
             serviceType = request.serviceType,
             documentType = request.documentType,
             status = SignatureStatus.PENDING,

@@ -12,7 +12,7 @@ class TabletConnectionService(
 ) {
 
     @Transactional
-    fun updateTabletLastSeen(tabletId: UUID) {
+    fun updateTabletLastSeen(tabletId: Long) {
         try {
             tabletDeviceRepository.updateLastSeen(tabletId, Instant.now())
         } catch (e: Exception) {
@@ -20,6 +20,4 @@ class TabletConnectionService(
             println("Failed to update tablet last seen for $tabletId: ${e.message}")
         }
     }
-
-    fun getTabletInfo(tabletId: UUID) = tabletDeviceRepository.findById(tabletId).orElse(null)
 }
