@@ -571,6 +571,209 @@ class SignatureWebSocketHandler(
             }
         }
     }
+
+    // Dodaj te metody do istniejącego SignatureWebSocketHandler.kt
+
+// W klasie SignatureWebSocketHandler dodaj na końcu:
+
+    /**
+     * Disconnect specific tablet
+     */
+    fun disconnectTablet(tabletId: UUID): Boolean {
+        val connection = tabletConnections[tabletId]
+        return if (connection != null && connection.session.isOpen) {
+            try {
+                // Send disconnect message
+                sendToSession(connection.session, mapOf(
+                    "type" to "disconnect",
+                    "payload" to mapOf(
+                        "reason" to "Administrative disconnect",
+                        "timestamp" to Instant.now()
+                    )
+                ))
+
+                // Close connection
+                connection.session.close(CloseStatus.NORMAL.withReason("Administrative disconnect"))
+
+                // Remove from connections map
+                tabletConnections.remove(tabletId)
+
+                logger.info("Tablet $tabletId disconnected administratively")
+                true
+            } catch (e: Exception) {
+                logger.error("Error disconnecting tablet $tabletId", e)
+                false
+            }
+        } else {
+            logger.warn("Tablet $tabletId not connected, cannot disconnect")
+            false
+        }
+    }
+
+    /**
+     * Get list of all connected tablets
+     */
+    fun getConnectedTablets(): List<UUID> {
+        return tabletConnections.keys.toList()
+    }
+
+    /**
+     * Get connection info for specific tablet
+     */
+    fun getTabletConnectionInfo(tabletId: UUID): Map<String, Any>? {
+        val connection = tabletConnections[tabletId]
+        return if (connection != null) {
+            mapOf(
+                "deviceId" to tabletId,
+                "tenantId" to (connection.tenantId ?: "unknown"),
+                "locationId" to (connection.locationId ?: "unknown"),
+                "isAuthenticated" to connection.authenticated,
+                "connectedAt" to connection.connectedAt,
+                "lastHeartbeat" to connection.lastHeartbeat,
+                "tabletName" to (connection.tablet?.friendlyName ?: "unknown"),
+                "sessionOpen" to connection.session.isOpen
+            )
+        } else null
+    }
+
+    /**
+     * Get all tablets connection status
+     */
+    fun getAllTabletsStatus(): Map<UUID, Map<String, Any>> {
+        return tabletConnections.mapValues { (tabletId, connection) ->
+            mapOf(
+                "isOnline" to connection.session.isOpen,
+                "isAuthenticated" to connection.authenticated,
+                "connectedAt" to connection.connectedAt,
+                "lastHeartbeat" to connection.lastHeartbeat,
+                "tabletName" to (connection.tablet?.friendlyName ?: "unknown"),
+                "tenantId" to (connection.tenantId ?: "unknown")
+            )
+        }
+    }
+
+    /**
+     * Send administrative message to tablet
+     */
+    fun sendAdminMessage(tabletId: UUID, messageType: String, data: Map<String, Any>): Boolean {
+        val connection = tabletConnections[tabletId]
+        return if (connection != null && connection.session.isOpen && connection.authenticated) {
+            val message = mapOf(
+                "type" to "admin_message",
+                "payload" to mapOf(
+                    "messageType" to messageType,
+                    "data" to data,
+                    "timestamp" to Instant.now()
+                )
+            )
+
+            val success = sendToSession(connection.session, message)
+            if (success) {
+                logger.info("Admin message '$messageType' sent to tablet $tabletId")
+            } else {
+                logger.warn("Failed to send admin message to tablet $tabletId")
+            }
+            success
+        } else {
+            logger.warn("Cannot send admin message to tablet $tabletId - not connected or not authenticated")
+            false
+        }
+    }
+
+    /**
+     * Ping specific tablet
+     */
+    fun pingTablet(tabletId: UUID): Boolean {
+        return sendAdminMessage(tabletId, "ping", mapOf(
+            "requestId" to UUID.randomUUID().toString(),
+            "timestamp" to Instant.now()
+        ))
+    }
+
+    /**
+     * Request tablet status update
+     */
+    fun requestTabletStatus(tabletId: UUID): Boolean {
+        return sendAdminMessage(tabletId, "status_request", mapOf(
+            "requestId" to UUID.randomUUID().toString(),
+            "requestedFields" to listOf("battery", "orientation", "performance"),
+            "timestamp" to Instant.now()
+        ))
+    }
+
+    /**
+     * Broadcast message to all connected tablets
+     */
+    fun broadcastToTablets(messageType: String, data: Map<String, Any>): Int {
+        var sentCount = 0
+
+        tabletConnections.values.forEach { connection ->
+            if (connection.session.isOpen && connection.authenticated) {
+                val message = mapOf(
+                    "type" to "broadcast",
+                    "payload" to mapOf(
+                        "messageType" to messageType,
+                        "data" to data,
+                        "timestamp" to Instant.now()
+                    )
+                )
+
+                if (sendToSession(connection.session, message)) {
+                    sentCount++
+                }
+            }
+        }
+
+        logger.info("Broadcast message '$messageType' sent to $sentCount tablets")
+        return sentCount
+    }
+
+    /**
+     * Get tablets by tenant
+     */
+    fun getTabletsByTenant(tenantId: UUID): List<UUID> {
+        return tabletConnections.values
+            .filter { it.tenantId == tenantId && it.authenticated }
+            .map { it.tablet?.id }
+            .filterNotNull()
+    }
+
+    /**
+     * Check if tenant has any connected tablets
+     */
+    fun hasTenantConnectedTablets(tenantId: UUID): Boolean {
+        return tabletConnections.values.any {
+            it.tenantId == tenantId && it.authenticated && it.session.isOpen
+        }
+    }
+
+    /**
+     * Get connection statistics
+     */
+    fun getConnectionStatistics(): Map<String, Any> {
+        val now = Instant.now()
+        val staleThreshold = Duration.ofMinutes(2)
+
+        val totalConnections = tabletConnections.size
+        val authenticatedConnections = tabletConnections.values.count { it.authenticated }
+        val activeConnections = tabletConnections.values.count {
+            it.session.isOpen && Duration.between(it.lastHeartbeat, now) < staleThreshold
+        }
+
+        val tenantStats = tabletConnections.values
+            .filter { it.authenticated }
+            .groupBy { it.tenantId }
+            .mapValues { (_, connections) -> connections.size }
+
+        return mapOf(
+            "totalConnections" to totalConnections,
+            "authenticatedConnections" to authenticatedConnections,
+            "activeConnections" to activeConnections,
+            "staleConnections" to (totalConnections - activeConnections),
+            "tenantStats" to tenantStats,
+            "timestamp" to now
+        )
+    }
 }
 
 // Updated data classes
