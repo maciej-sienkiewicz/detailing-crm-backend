@@ -180,11 +180,12 @@ class JwtService(
 
         roles.forEach { role ->
             when (role.uppercase()) {
-                "USER" -> permissions.addAll(listOf("signature:request", "signature:read"))
+                "USER" -> permissions.addAll(listOf("signature:request", "signature:read", "workstation:connect"))
                 "ADMIN" -> permissions.addAll(listOf("signature:*", "tablet:*", "workstation:*", "user:*"))
-                "MANAGER" -> permissions.addAll(listOf("signature:*", "tablet:manage", "user:read"))
+                "MANAGER" -> permissions.addAll(listOf("signature:*", "tablet:manage", "user:read", "workstation:connect"))
                 "TABLET" -> permissions.addAll(listOf("signature:submit", "websocket:connect"))
-                "EMPLOYEE" -> permissions.addAll(listOf("signature:request", "signature:read"))
+                "EMPLOYEE" -> permissions.addAll(listOf("signature:request", "signature:read", "workstation:connect"))
+                "WORKSTATION" -> permissions.addAll(listOf("workstation:connect", "signature:request", "websocket:connect"))
             }
         }
 
