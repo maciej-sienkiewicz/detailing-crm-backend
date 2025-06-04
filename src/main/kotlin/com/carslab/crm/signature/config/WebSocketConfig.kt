@@ -52,7 +52,7 @@ class WebSocketHandshakeInterceptor : HandshakeInterceptor {
 
         // Dodaj CORS headers
         response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Authorization, X-Device-Token, X-Tenant-Id, Content-Type")
+        response.headers.add("Access-Control-Allow-Headers", "Authorization, X-Device-Token, Content-Type")
         response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         response.headers.add("Access-Control-Allow-Credentials", "true")
 
