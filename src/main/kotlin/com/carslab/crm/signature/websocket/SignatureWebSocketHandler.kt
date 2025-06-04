@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/signature/websocket/SignatureWebSocketHandler.kt
 package com.carslab.crm.signature.websocket
 
 import com.carslab.crm.audit.service.AuditService
@@ -42,35 +43,48 @@ class SignatureWebSocketHandler(
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
         try {
-            val uri = session.uri!!
-            logger.info("WebSocket connection attempt from: ${session.remoteAddress} to: $uri")
+            val uri = session.uri
+            if (uri == null) {
+                logger.warn("WebSocket session URI is null, closing connection")
+                session.close(CloseStatus.BAD_DATA.withReason("Missing URI"))
+                return
+            }
+
+            val uriString = uri.toString()
+            logger.info("WebSocket connection attempt from: ${session.remoteAddress} to: $uriString")
 
             when {
-                uri.toString().contains("/ws/tablet/") -> handleTabletConnectionEstablished(session, uri)
-                uri.toString().contains("/ws/workstation/") -> handleWorkstationConnection(session, uri)
+                uriString.contains("/ws/tablet/") -> handleTabletConnectionEstablished(session, uri)
+                uriString.contains("/ws/workstation/") -> handleWorkstationConnection(session, uri)
                 else -> {
-                    logger.warn("Unknown WebSocket connection type: $uri")
+                    logger.warn("Unknown WebSocket connection type: $uriString")
                     session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unknown connection type"))
                 }
             }
         } catch (e: Exception) {
             logger.error("Error establishing WebSocket connection from ${session.remoteAddress}", e)
-            session.close(CloseStatus.SERVER_ERROR.withReason("Server error"))
+            try {
+                session.close(CloseStatus.SERVER_ERROR.withReason("Server error"))
+            } catch (closeEx: Exception) {
+                logger.warn("Error closing session after connection error", closeEx)
+            }
         }
     }
 
     private fun handleTabletConnectionEstablished(session: WebSocketSession, uri: URI) {
         val deviceId = extractDeviceIdFromPath(uri.path)
-            ?: throw SecurityException("Missing device ID in path")
+        if (deviceId == null) {
+            logger.warn("Missing device ID in tablet connection path: ${uri.path}")
+            session.close(CloseStatus.BAD_DATA.withReason("Missing device ID"))
+            return
+        }
 
-        logger.info("WebSocket handshake successful: $uri")
         logger.info("Tablet connection attempt for device: $deviceId")
 
-        // POPRAWKA: Nie sprawdzamy headers na początku - czekamy na authentication message
-        // Tworzymy tymczasowe połączenie
+        // Tworzymy tymczasowe połączenie bez autentykacji
         val tempConnection = TabletConnection(
             session = session,
-            tablet = null, // Will be set after authentication
+            tablet = null,
             companyId = null,
             locationId = null,
             connectedAt = Instant.now(),
@@ -78,7 +92,7 @@ class SignatureWebSocketHandler(
             authenticated = false
         )
 
-        // Store with deviceId as key for now
+        // Store connection with deviceId as key
         tabletConnections[deviceId] = tempConnection
 
         logger.info("Tablet pre-connected: $deviceId, awaiting authentication")
@@ -98,7 +112,11 @@ class SignatureWebSocketHandler(
 
     private fun handleWorkstationConnection(session: WebSocketSession, uri: URI) {
         val workstationId = extractWorkstationIdFromPath(uri.path)
-            ?: throw SecurityException("Missing workstation ID in path")
+        if (workstationId == null) {
+            logger.warn("Missing workstation ID in workstation connection path: ${uri.path}")
+            session.close(CloseStatus.BAD_DATA.withReason("Missing workstation ID"))
+            return
+        }
 
         logger.info("Workstation connection attempt for: $workstationId")
 
@@ -122,7 +140,7 @@ class SignatureWebSocketHandler(
 
         workstationConnections[internalWorkstationId] = connection
 
-        logger.info("Workstation pre-connected: $workstationId (internal: $internalWorkstationId, awaiting authentication)")
+        logger.info("Workstation pre-connected: $workstationId (internal: $internalWorkstationId), awaiting authentication")
 
         sendToSession(session, mapOf(
             "type" to "connection",
@@ -329,8 +347,10 @@ class SignatureWebSocketHandler(
     private fun handleHeartbeat(session: WebSocketSession) {
         // Update tablet heartbeat
         tabletConnections.values.find { it.session == session }?.let { connection ->
-            tabletConnections[connection.tablet!!.id] = connection.copy(lastHeartbeat = Instant.now())
-            tabletConnectionService.updateTabletLastSeen(connection.tablet!!.id)
+            if (connection.tablet != null) {
+                tabletConnections[connection.tablet!!.id] = connection.copy(lastHeartbeat = Instant.now())
+                tabletConnectionService.updateTabletLastSeen(connection.tablet!!.id)
+            }
         }
 
         // Update workstation heartbeat
@@ -352,7 +372,7 @@ class SignatureWebSocketHandler(
 
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
-        if (tabletConnection != null && sessionId != null && tabletConnection.authenticated) {
+        if (tabletConnection != null && sessionId != null && tabletConnection.authenticated && tabletConnection.tablet != null) {
             logger.info("Signature completion acknowledgment received from tablet ${tabletConnection.tablet!!.id} for session: $sessionId")
             auditService.logSignatureAcknowledgment(tabletConnection.tablet!!.id, sessionId, success)
         }
@@ -362,7 +382,7 @@ class SignatureWebSocketHandler(
         val payload = messageData["payload"] as? Map<String, Any>
         val tabletConnection = tabletConnections.values.find { it.session == session }
 
-        if (tabletConnection != null && payload != null && tabletConnection.authenticated) {
+        if (tabletConnection != null && payload != null && tabletConnection.authenticated && tabletConnection.tablet != null) {
             val batteryLevel = payload["batteryLevel"] as? Int
             val orientation = payload["orientation"] as? String
 
@@ -379,7 +399,8 @@ class SignatureWebSocketHandler(
         }
     }
 
-    // Rest of the methods remain the same...
+    // Rest of the methods remain mostly the same, but with null safety improvements...
+
     fun sendSignatureRequest(tabletId: UUID, request: SignatureRequestDto): Boolean {
         val connection = tabletConnections[tabletId]
         return if (connection != null && connection.session.isOpen && connection.authenticated) {
@@ -469,37 +490,59 @@ class SignatureWebSocketHandler(
         val now = Instant.now()
         val staleThreshold = Duration.ofMinutes(2)
 
-        // Cleanup stale tablets
+        // Cleanup stale tablets - improved null safety
         val staleTablets = tabletConnections.values.filter { connection ->
-            Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
-        }
-
-        staleTablets.forEach { connection ->
-            logger.info("Removing stale tablet connection: ${connection.tablet?.id}")
-            tabletConnections.remove(connection.tablet?.id)
             try {
-                if (connection.session.isOpen) {
-                    connection.session.close(CloseStatus.SESSION_NOT_RELIABLE)
-                }
+                Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
             } catch (e: Exception) {
-                logger.warn("Error closing stale tablet session", e)
+                logger.warn("Error checking tablet connection staleness", e)
+                true // Consider it stale if we can't check
             }
         }
 
-        // Cleanup stale workstations
-        val staleWorkstations = workstationConnections.values.filter { connection ->
-            Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
-        }
-
-        staleWorkstations.forEach { connection ->
-            logger.info("Removing stale workstation connection: ${connection.workstationId}")
-            workstationConnections.remove(connection.workstationId)
+        staleTablets.forEach { connection ->
             try {
+                val tabletId = connection.tablet?.id
+                if (tabletId != null) {
+                    logger.info("Removing stale tablet connection: $tabletId")
+                    tabletConnections.remove(tabletId)
+                } else {
+                    // If tablet is null, we need to find and remove by session
+                    val entryToRemove = tabletConnections.entries.find { it.value.session == connection.session }
+                    entryToRemove?.let {
+                        logger.info("Removing stale tablet connection with null tablet: ${entryToRemove.key}")
+                        tabletConnections.remove(entryToRemove.key)
+                    }
+                }
+
                 if (connection.session.isOpen) {
                     connection.session.close(CloseStatus.SESSION_NOT_RELIABLE)
                 }
             } catch (e: Exception) {
-                logger.warn("Error closing stale workstation session", e)
+                logger.warn("Error removing stale tablet session", e)
+            }
+        }
+
+        // Cleanup stale workstations - improved null safety
+        val staleWorkstations = workstationConnections.values.filter { connection ->
+            try {
+                Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
+            } catch (e: Exception) {
+                logger.warn("Error checking workstation connection staleness", e)
+                true // Consider it stale if we can't check
+            }
+        }
+
+        staleWorkstations.forEach { connection ->
+            try {
+                logger.info("Removing stale workstation connection: ${connection.workstationId}")
+                workstationConnections.remove(connection.workstationId)
+
+                if (connection.session.isOpen) {
+                    connection.session.close(CloseStatus.SESSION_NOT_RELIABLE)
+                }
+            } catch (e: Exception) {
+                logger.warn("Error removing stale workstation session", e)
             }
         }
     }
@@ -510,15 +553,25 @@ class SignatureWebSocketHandler(
             "payload" to mapOf("timestamp" to Instant.now())
         )
 
+        // Send heartbeats to tablets
         tabletConnections.values.forEach { connection ->
-            if (connection.session.isOpen) {
-                sendToSession(connection.session, heartbeat)
+            try {
+                if (connection.session.isOpen) {
+                    sendToSession(connection.session, heartbeat)
+                }
+            } catch (e: Exception) {
+                logger.warn("Error sending heartbeat to tablet", e)
             }
         }
 
+        // Send heartbeats to workstations
         workstationConnections.values.forEach { connection ->
-            if (connection.session.isOpen) {
-                sendToSession(connection.session, heartbeat)
+            try {
+                if (connection.session.isOpen) {
+                    sendToSession(connection.session, heartbeat)
+                }
+            } catch (e: Exception) {
+                logger.warn("Error sending heartbeat to workstation", e)
             }
         }
     }
@@ -529,7 +582,10 @@ class SignatureWebSocketHandler(
             val deviceIdIndex = parts.indexOf("tablet") + 1
             if (deviceIdIndex < parts.size && deviceIdIndex > 0) {
                 UUID.fromString(parts[deviceIdIndex])
-            } else null
+            } else {
+                logger.warn("Device ID not found in path: $path")
+                null
+            }
         } catch (e: Exception) {
             logger.error("Error extracting device ID from path: $path", e)
             null
@@ -542,38 +598,75 @@ class SignatureWebSocketHandler(
             val workstationIdIndex = parts.indexOf("workstation") + 1
             if (workstationIdIndex < parts.size && workstationIdIndex > 0) {
                 parts[workstationIdIndex]
-            } else null
+            } else {
+                logger.warn("Workstation ID not found in path: $path")
+                null
+            }
         } catch (e: Exception) {
             logger.error("Error extracting workstation ID from path: $path", e)
             null
         }
     }
 
+    // FIXED: Improved afterConnectionClosed with null safety
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        // Remove tablet connection
-        tabletConnections.values.find { it.session == session }?.let { connection ->
-            tabletConnections.remove(connection.tablet?.id)
-            logger.info("Tablet disconnected: ${connection.tablet?.id} (${status.code}: ${status.reason})")
-        }
+        try {
+            // Remove tablet connection with improved null safety
+            val tabletEntryToRemove = tabletConnections.entries.find { it.value.session == session }
+            if (tabletEntryToRemove != null) {
+                val tabletId = tabletEntryToRemove.key
+                val connection = tabletEntryToRemove.value
 
-        // Remove workstation connection
-        workstationConnections.values.find { it.session == session }?.let { connection ->
-            workstationConnections.remove(connection.workstationId)
-            logger.info("Workstation disconnected: ${connection.workstationId} (${status.code}: ${status.reason})")
-            if (connection.authenticated && connection.companyId != null && connection.userId != null) {
-                auditService.logWorkstationConnection(connection.workstationId, connection.companyId!!, connection.userId!!, "DISCONNECTED")
+                // Safe removal with null check
+                if (tabletId != null) {
+                    tabletConnections.remove(tabletId)
+                    logger.info("Tablet disconnected: $tabletId (${status.code}: ${status.reason})")
+                } else {
+                    logger.warn("Tablet connection found but tabletId is null")
+                }
             }
+
+            // Remove workstation connection with improved null safety
+            val workstationEntryToRemove = workstationConnections.entries.find { it.value.session == session }
+            if (workstationEntryToRemove != null) {
+                val workstationId = workstationEntryToRemove.key
+                val connection = workstationEntryToRemove.value
+
+                // Safe removal with null check
+                if (workstationId != null) {
+                    workstationConnections.remove(workstationId)
+                    logger.info("Workstation disconnected: $workstationId (${status.code}: ${status.reason})")
+
+                    // Log disconnection if authenticated
+                    if (connection.authenticated && connection.companyId != null && connection.userId != null) {
+                        auditService.logWorkstationConnection(workstationId, connection.companyId!!, connection.userId!!, "DISCONNECTED")
+                    }
+                } else {
+                    logger.warn("Workstation connection found but workstationId is null")
+                }
+            }
+
+            // If no connection was found, log it for debugging
+            if (tabletEntryToRemove == null && workstationEntryToRemove == null) {
+                logger.debug("Connection closed for unknown session from ${session.remoteAddress}")
+            }
+
+        } catch (e: Exception) {
+            logger.error("Error in afterConnectionClosed", e)
         }
     }
 
-    // Dodaj te metody do istniejącego SignatureWebSocketHandler.kt
-
-// W klasie SignatureWebSocketHandler dodaj na końcu:
+    // Additional utility methods with null safety...
 
     /**
      * Disconnect specific tablet
      */
     fun disconnectTablet(tabletId: UUID): Boolean {
+        if (tabletId == null) {
+            logger.warn("Cannot disconnect tablet: tabletId is null")
+            return false
+        }
+
         val connection = tabletConnections[tabletId]
         return if (connection != null && connection.session.isOpen) {
             try {
@@ -608,13 +701,17 @@ class SignatureWebSocketHandler(
      * Get list of all connected tablets
      */
     fun getConnectedTablets(): List<UUID> {
-        return tabletConnections.keys.toList()
+        return tabletConnections.keys.filterNotNull().toList()
     }
 
     /**
      * Get connection info for specific tablet
      */
     fun getTabletConnectionInfo(tabletId: UUID): Map<String, Any>? {
+        if (tabletId == null) {
+            return null
+        }
+
         val connection = tabletConnections[tabletId]
         return if (connection != null) {
             mapOf(
@@ -634,7 +731,7 @@ class SignatureWebSocketHandler(
      * Get all tablets connection status
      */
     fun getAllTabletsStatus(): Map<UUID, Map<String, Any>> {
-        return tabletConnections.mapValues { (tabletId, connection) ->
+        return tabletConnections.filterKeys { it != null }.mapValues { (tabletId, connection) ->
             mapOf(
                 "isOnline" to connection.session.isOpen,
                 "isAuthenticated" to connection.authenticated,
@@ -650,6 +747,11 @@ class SignatureWebSocketHandler(
      * Send administrative message to tablet
      */
     fun sendAdminMessage(tabletId: UUID, messageType: String, data: Map<String, Any>): Boolean {
+        if (tabletId == null) {
+            logger.warn("Cannot send admin message: tabletId is null")
+            return false
+        }
+
         val connection = tabletConnections[tabletId]
         return if (connection != null && connection.session.isOpen && connection.authenticated) {
             val message = mapOf(

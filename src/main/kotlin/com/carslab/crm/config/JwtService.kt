@@ -130,7 +130,7 @@ class JwtService(
 
         return TabletTokenClaims(
             deviceId = UUID.fromString(claims.subject),
-            companyId = claims["company_id"] as Long,
+            companyId = (claims["company_id"] as Integer).toLong(),
             deviceType = claims["device_type"] as? String ?: "tablet",
             roles = claims["roles"] as? List<String> ?: emptyList(),
             permissions = claims["permissions"] as? List<String> ?: emptyList()
