@@ -1,71 +1,67 @@
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.security.UserPrincipal
-import com.carslab.crm.signature.api.dto.TabletStatus
+import com.carslab.crm.signature.api.dto.TabletDeviceDto
+import com.carslab.crm.signature.api.dto.TabletListResponse
 import com.carslab.crm.signature.service.TabletManagementService
+import com.carslab.crm.signature.service.TabletPairingService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.server.adapter.WebHttpHandlerBuilder.applicationContext
 import java.time.Instant
 import java.util.*
 
 @RestController
 @RequestMapping("/api/tablets")
 class TabletManagementController(
-    private val tabletManagementService: TabletManagementService
+    private val tabletManagementService: TabletManagementService,
+    private val pairingService: TabletPairingService,
 ) : BaseController() {
 
     /**
-     * Pobierz listę wszystkich tabletów dla firmy użytkownika
+     * Pobierz listę wszystkich tabletów dla firmy użytkownika z informacją o statusie online
      */
     @GetMapping
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MANAGER')")
-    fun listCompanyTablets(authentication: Authentication): ResponseEntity<List<TabletStatus>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+    fun listCompanyTablets(authentication: Authentication): ResponseEntity<TabletListResponse> {
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
         logger.info("Listing tablets for company: ${userPrincipal.companyId}, tenant: $tenantId")
 
-        val tablets = tabletManagementService.listTenantTablets(tenantId)
+        val tablets = tabletManagementService.listTenantTabletsWithStatus(tenantId)
 
-        return ok(tablets)
+        return ok(TabletListResponse(
+            success = true,
+            tablets = tablets,
+            totalCount = tablets.size,
+            onlineCount = tablets.count { it.isOnline },
+            timestamp = Instant.now()
+        ))
     }
 
     /**
      * Pobierz szczegóły konkretnego tabletu
      */
     @GetMapping("/{tabletId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MANAGER')")
     fun getTabletDetails(
         @PathVariable tabletId: UUID,
         authentication: Authentication
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
         logger.info("Getting tablet details: $tabletId for company: ${userPrincipal.companyId}")
 
-        val tablet = tabletManagementService.getTabletDetails(tabletId, tenantId)
+        val tabletDetails = tabletManagementService.getTabletDetailsWithStatus(tabletId, tenantId)
 
-        return if (tablet != null) {
-            ok(mapOf(
-                "tablet" to mapOf(
-                    "id" to tablet.id.toString(),
-                    "name" to tablet.friendlyName,
-                    "location" to "Location ${tablet.locationId}",
-                    "isOnline" to tabletManagementService.isTabletOnline(tabletId),
-                    "lastSeen" to tablet.lastSeen.toString(),
-                    "assignedWorkstation" to (tablet.workstationId?.toString() ?: null),
-                    "status" to tablet.status.name
-                ),
-                "isOnline" to tabletManagementService.isTabletOnline(tabletId),
-                "lastActivity" to tablet.lastSeen.toString(),
-                "connectionStats" to tabletManagementService.getTabletConnectionStats(tabletId)
-            ))
+        return if (tabletDetails != null) {
+            ok(createSuccessResponse("Tablet details retrieved", tabletDetails))
         } else {
-            notFound()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -73,57 +69,53 @@ class TabletManagementController(
      * Pobierz status połączenia tabletu
      */
     @GetMapping("/{tabletId}/status")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MANAGER')")
     fun getTabletConnectionStatus(
         @PathVariable tabletId: UUID,
         authentication: Authentication
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
         // Sprawdź czy tablet należy do firmy użytkownika
         val hasAccess = tabletManagementService.checkTabletAccess(tabletId, tenantId)
         if (!hasAccess) {
-            return forbidden(createErrorResponse("Access denied to tablet"))
+            return ResponseEntity.status(403).body(createErrorResponse("Access denied to tablet"))
         }
 
-        val isOnline = tabletManagementService.isTabletOnline(tabletId)
-        val connectionStats = tabletManagementService.getTabletConnectionStats(tabletId)
+        val connectionStatus = tabletManagementService.getTabletConnectionStatus(tabletId)
 
-        return ok(mapOf(
-            "tabletId" to tabletId,
-            "isOnline" to isOnline,
-            "timestamp" to Instant.now(),
-            "connectionStats" to connectionStats
-        ))
+        return ok(connectionStatus)
     }
 
     /**
      * Wyślij test request do tabletu
      */
     @PostMapping("/{tabletId}/test")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     fun testTablet(
         @PathVariable tabletId: UUID,
         authentication: Authentication
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
-        logger.info("Testing tablet: $tabletId by user: ${userPrincipal.userUsername}")
+        logger.info("Testing tablet: $tabletId by user: ${userPrincipal.id}")
 
         // Sprawdź dostęp
         val hasAccess = tabletManagementService.checkTabletAccess(tabletId, tenantId)
         if (!hasAccess) {
-            return forbidden(createErrorResponse("Access denied to tablet"))
+            return ResponseEntity.status(403).body(createErrorResponse("Access denied to tablet"))
         }
 
         return try {
-            tabletManagementService.testTablet(tabletId)
-            ok(createSuccessResponse("Test request sent to tablet"))
+            val testResult = tabletManagementService.testTablet(tabletId)
+            if (testResult) {
+                ok(createSuccessResponse("Test request sent to tablet"))
+            } else {
+                badRequest("Failed to send test request - tablet may be offline")
+            }
         } catch (e: Exception) {
             logger.error("Error testing tablet $tabletId", e)
-            badRequest(createErrorResponse("Failed to test tablet: ${e.message}"))
+            ResponseEntity.status(500).body(createErrorResponse("Failed to test tablet: ${e.message}"))
         }
     }
 
@@ -131,19 +123,18 @@ class TabletManagementController(
      * Odłącz tablet (soft disconnect)
      */
     @PostMapping("/{tabletId}/disconnect")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     fun disconnectTablet(
         @PathVariable tabletId: UUID,
         authentication: Authentication
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
-        logger.info("Disconnecting tablet: $tabletId by user: ${userPrincipal.userUsername}")
+        logger.info("Disconnecting tablet: $tabletId by user: ${userPrincipal.id}")
 
         val hasAccess = tabletManagementService.checkTabletAccess(tabletId, tenantId)
         if (!hasAccess) {
-            return forbidden(createErrorResponse("Access denied to tablet"))
+            return ResponseEntity.status(403).body(createErrorResponse("Access denied to tablet"))
         }
 
         return try {
@@ -151,7 +142,7 @@ class TabletManagementController(
             ok(createSuccessResponse("Tablet disconnected successfully"))
         } catch (e: Exception) {
             logger.error("Error disconnecting tablet $tabletId", e)
-            badRequest(createErrorResponse("Failed to disconnect tablet: ${e.message}"))
+            ResponseEntity.status(500).body(createErrorResponse("Failed to disconnect tablet: ${e.message}"))
         }
     }
 
@@ -159,19 +150,18 @@ class TabletManagementController(
      * Usuń tablet z systemu (unpair)
      */
     @DeleteMapping("/{tabletId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     fun unpairTablet(
         @PathVariable tabletId: UUID,
         authentication: Authentication
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
-        logger.info("Unpairing tablet: $tabletId by user: ${userPrincipal.userUsername}")
+        logger.info("Unpairing tablet: $tabletId by user: ${userPrincipal.id}")
 
         val hasAccess = tabletManagementService.checkTabletAccess(tabletId, tenantId)
         if (!hasAccess) {
-            return forbidden(createErrorResponse("Access denied to tablet"))
+            return ResponseEntity.status(403).body(createErrorResponse("Access denied to tablet"))
         }
 
         return try {
@@ -179,7 +169,7 @@ class TabletManagementController(
             ok(createSuccessResponse("Tablet unpaired successfully"))
         } catch (e: Exception) {
             logger.error("Error unpairing tablet $tabletId", e)
-            badRequest(createErrorResponse("Failed to unpair tablet: ${e.message}"))
+            ResponseEntity.status(500).body(createErrorResponse("Failed to unpair tablet: ${e.message}"))
         }
     }
 
@@ -187,9 +177,8 @@ class TabletManagementController(
      * Pobierz statystyki tabletów dla firmy
      */
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MANAGER')")
     fun getTabletsStats(authentication: Authentication): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
         val stats = tabletManagementService.getTabletStats(tenantId)
@@ -201,12 +190,11 @@ class TabletManagementController(
      * Wygeneruj kod parowania dla nowego tabletu
      */
     @PostMapping("/generate-pairing-code")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     fun generatePairingCode(
         authentication: Authentication,
         @RequestBody request: Map<String, Any>
     ): ResponseEntity<Map<String, Any>> {
-        val userPrincipal = authentication.principal as UserPrincipal
+        val userPrincipal = authentication.principal as UserEntity
         val tenantId = convertCompanyIdToTenantId(userPrincipal.companyId)
 
         logger.info("Generating pairing code for company: ${userPrincipal.companyId}")
@@ -221,31 +209,23 @@ class TabletManagementController(
                 workstationId = workstationId
             )
 
-            val pairingService = applicationContext.getBean(com.carslab.crm.signature.service.TabletPairingService::class.java)
             val response = pairingService.initiateRegistration(registrationRequest)
 
             ok(mapOf(
+                "success" to true,
                 "code" to response.code,
                 "expiresIn" to response.expiresIn,
                 "timestamp" to Instant.now()
             ))
         } catch (e: Exception) {
             logger.error("Error generating pairing code", e)
-            badRequest(createErrorResponse("Failed to generate pairing code: ${e.message}"))
+            ResponseEntity.status(500).body(createErrorResponse("Failed to generate pairing code: ${e.message}"))
         }
     }
 
     private fun convertCompanyIdToTenantId(companyId: Long): UUID {
         // Temporary conversion - można zastąpić właściwym mapowaniem
         return UUID.fromString("${String.format("%08d", companyId)}-0000-0000-0000-000000000000")
-    }
-
-    private fun createSuccessResponse(message: String): Map<String, Any> {
-        return mapOf(
-            "success" to true,
-            "message" to message,
-            "timestamp" to Instant.now()
-        )
     }
 
     private fun createErrorResponse(message: String): Map<String, Any> {

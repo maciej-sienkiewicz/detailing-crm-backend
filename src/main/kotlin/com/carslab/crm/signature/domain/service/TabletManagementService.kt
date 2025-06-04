@@ -1,11 +1,14 @@
 package com.carslab.crm.signature.service
 
+import com.carslab.crm.signature.api.dto.TabletConnectionInfo
+import com.carslab.crm.signature.api.dto.TabletDeviceDto
 import com.carslab.crm.signature.api.dto.TabletStatus
 import com.carslab.crm.signature.exception.*
 import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.infrastructure.persistance.repository.WorkstationRepository
+import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
@@ -13,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
-
 
 @Service
 @Transactional(readOnly = true)
@@ -26,10 +28,79 @@ class TabletManagementService(
     // Lazy initialization to break circular dependency
     private val webSocketHandler by lazy {
         try {
-            applicationContext.getBean("signatureWebSocketHandler",
-                com.carslab.crm.signature.websocket.SignatureWebSocketHandler::class.java)
+            applicationContext.getBean(SignatureWebSocketHandler::class.java)
         } catch (e: Exception) {
             null // WebSocket handler might not be available in all contexts
+        }
+    }
+
+    /**
+     * Get list of tablets for tenant with online status information
+     */
+    fun listTenantTabletsWithStatus(tenantId: UUID): List<TabletDeviceDto> {
+        return tabletDeviceRepository.findByTenantId(tenantId).map { tablet ->
+            val connectionInfo = getTabletConnectionInfo(tablet.id)
+
+            TabletDeviceDto(
+                id = tablet.id.toString(),
+                tenantId = tablet.tenantId.toString(),
+                locationId = tablet.locationId.toString(),
+                friendlyName = tablet.friendlyName,
+                workstationId = tablet.workstationId?.toString(),
+                status = tablet.status.name,
+                isOnline = isTabletOnline(tablet.id),
+                lastSeen = tablet.lastSeen.toString(),
+                createdAt = tablet.createdAt.toString(),
+                connectionInfo = connectionInfo
+            )
+        }
+    }
+
+    /**
+     * Get detailed tablet information with connection status
+     */
+    fun getTabletDetailsWithStatus(tabletId: UUID, tenantId: UUID): TabletDeviceDto? {
+        val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
+
+        return if (tablet?.tenantId == tenantId) {
+            val connectionInfo = getTabletConnectionInfo(tabletId)
+            val workstationName = tablet.workstationId?.let {
+                workstationRepository.findById(it).orElse(null)?.workstationName
+            }
+
+            TabletDeviceDto(
+                id = tablet.id.toString(),
+                tenantId = tablet.tenantId.toString(),
+                locationId = tablet.locationId.toString(),
+                friendlyName = tablet.friendlyName,
+                workstationId = workstationName,
+                status = tablet.status.name,
+                isOnline = isTabletOnline(tabletId),
+                lastSeen = tablet.lastSeen.toString(),
+                createdAt = tablet.createdAt.toString(),
+                connectionInfo = connectionInfo
+            )
+        } else null
+    }
+
+    /**
+     * Get tablet connection information from WebSocket handler
+     */
+    private fun getTabletConnectionInfo(tabletId: UUID): TabletConnectionInfo? {
+        return try {
+            val connectionData = webSocketHandler?.getTabletConnectionInfo(tabletId)
+
+            if (connectionData != null) {
+                TabletConnectionInfo(
+                    connectedAt = connectionData["connectedAt"]?.toString(),
+                    lastHeartbeat = connectionData["lastHeartbeat"]?.toString(),
+                    isAuthenticated = connectionData["isAuthenticated"] as? Boolean ?: false,
+                    sessionOpen = connectionData["sessionOpen"] as? Boolean ?: false,
+                    uptimeMinutes = connectionData["uptime"] as? Long
+                )
+            } else null
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -62,22 +133,39 @@ class TabletManagementService(
         return try {
             val isOnline = isTabletOnline(tabletId)
             val tablet = tabletDeviceRepository.findById(tabletId).orElse(null)
+            val connectionInfo = webSocketHandler?.getTabletConnectionInfo(tabletId)
 
-            mapOf(
+            mapOf<String, Any>(
                 "isConnected" to isOnline,
                 "lastSeen" to (tablet?.lastSeen ?: Instant.now()),
                 "status" to (tablet?.status?.name ?: "UNKNOWN"),
-                "connectedSince" to if (isOnline) tablet?.lastSeen else null,
-                "uptime" to if (isOnline && tablet != null) {
-                    ChronoUnit.MINUTES.between(tablet.lastSeen, Instant.now())
-                } else 0
+                "connectedSince" to (connectionInfo?.get("connectedAt") ?: "Never"),
+                "lastHeartbeat" to (connectionInfo?.get("lastHeartbeat") ?: "Never"),
+                "isAuthenticated" to (connectionInfo?.get("isAuthenticated") ?: false),
+                "sessionOpen" to (connectionInfo?.get("sessionOpen") ?: false),
+                "uptime" to (connectionInfo?.get("uptime") ?: 0)
             )
         } catch (e: Exception) {
-            mapOf(
+            mapOf<String, Any>(
                 "isConnected" to false,
-                "error" to e.message
+                "error" to (e.message ?: "Unknown error")
             )
         }
+    }
+
+    /**
+     * Get tablet connection status for API response
+     */
+    fun getTabletConnectionStatus(tabletId: UUID): Map<String, Any> {
+        val isOnline = isTabletOnline(tabletId)
+        val connectionStats = getTabletConnectionStats(tabletId)
+
+        return mapOf(
+            "tabletId" to tabletId.toString(),
+            "isOnline" to isOnline,
+            "timestamp" to Instant.now().toString(),
+            "connectionStats" to connectionStats
+        )
     }
 
     @Transactional
@@ -133,6 +221,8 @@ class TabletManagementService(
             "active" to activeTablets.size,
             "inactive" to allTablets.count { it.status == DeviceStatus.INACTIVE },
             "maintenance" to allTablets.count { it.status == DeviceStatus.MAINTENANCE },
+            "error" to allTablets.count { it.status == DeviceStatus.ERROR },
+            "connectedTablets" to onlineTablets.size,
             "lastUpdated" to Instant.now()
         )
     }
@@ -178,24 +268,9 @@ class TabletManagementService(
         tabletDeviceRepository.updateLastSeen(tabletId, Instant.now())
     }
 
-    fun testTablet(tabletId: UUID) {
-        try {
-            webSocketHandler?.sendSignatureRequest(
-                tabletId,
-                com.carslab.crm.signature.websocket.SignatureRequestDto(
-                    sessionId = "test-${UUID.randomUUID()}",
-                    tenantId = UUID.randomUUID(),
-                    workstationId = UUID.randomUUID(),
-                    customerName = "Test Customer",
-                    vehicleInfo = com.carslab.crm.signature.websocket.VehicleInfoDto(
-                        make = "Test",
-                        model = "Test",
-                        licensePlate = "TEST-123"
-                    ),
-                    serviceType = "Test Service",
-                    documentType = "Test Document"
-                )
-            ) ?: throw RuntimeException("WebSocket handler not available")
+    fun testTablet(tabletId: UUID): Boolean {
+        return try {
+            webSocketHandler?.pingTablet(tabletId) ?: false
         } catch (e: Exception) {
             throw RuntimeException("Failed to send test request to tablet $tabletId", e)
         }
@@ -205,4 +280,4 @@ class TabletManagementService(
         // TODO: Implement location service or add location table
         return "Location ${locationId.toString().take(8)}"
     }
-}}
+}
