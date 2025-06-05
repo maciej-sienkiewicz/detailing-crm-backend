@@ -90,7 +90,7 @@ class SecurityConfig(
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                     // Signature endpoints
-                    .requestMatchers("/api/signatures/**").hasAnyRole("USER", "ADMIN", "TABLET")
+                    .requestMatchers("/api/signatures/**").permitAll()
 
                     // Tablet management - wymagane role
                     .requestMatchers("/api/tablets/**").permitAll()

@@ -1,7 +1,7 @@
 package com.carslab.crm.signature.websocket
 
 import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
-import com.carslab.crm.signature.api.dto.SimpleSignatureRequestDto
+import com.carslab.crm.signature.api.dto.SignatureRequestDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -69,45 +69,6 @@ fun SignatureWebSocketHandler.sendDocumentSignatureRequest(
 /**
  * Extension methods for SignatureWebSocketHandler - Simple Signatures
  */
-fun SignatureWebSocketHandler.sendSimpleSignatureRequest(
-    tabletId: UUID,
-    request: SimpleSignatureRequestDto
-): Boolean {
-    val connection = getTabletConnection(tabletId)
-
-    return if (connection != null && connection.session.isOpen && connection.authenticated) {
-        val message = mapOf(
-            "type" to "simple_signature_request",
-            "payload" to mapOf(
-                "sessionId" to request.sessionId,
-                "companyId" to request.companyId,
-                "signerName" to request.signerName,
-                "signatureTitle" to request.signatureTitle,
-                "instructions" to request.instructions,
-                "businessContext" to request.businessContext,
-                "timeoutMinutes" to request.timeoutMinutes,
-                "expiresAt" to request.expiresAt,
-                "externalReference" to request.externalReference,
-                "signatureType" to request.signatureType,
-                "timestamp" to Instant.now()
-            )
-        )
-
-        val success = sendToTabletSession(connection.session, message)
-        if (success) {
-            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-                .info("Simple signature request sent to tablet $tabletId for session ${request.sessionId}")
-        } else {
-            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-                .warn("Failed to send simple signature request to tablet $tabletId")
-        }
-        success
-    } else {
-        LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-            .warn("Tablet $tabletId not connected, not authenticated, or session closed")
-        false
-    }
-}
 
 /**
  * Notify about signature completion

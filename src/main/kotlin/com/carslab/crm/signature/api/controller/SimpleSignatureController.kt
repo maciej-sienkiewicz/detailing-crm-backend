@@ -1,9 +1,10 @@
+// src/main/kotlin/com/carslab/crm/signature/api/controller/SignatureController.kt
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.signature.api.dto.*
-import com.carslab.crm.signature.service.SimpleSignatureService
+import com.carslab.crm.signature.service.SignatureService
 import com.carslab.crm.signature.service.TabletManagementService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -12,44 +13,57 @@ import java.time.Instant
 import java.util.*
 
 @RestController
-@RequestMapping("/api/signature/simple")
-class SimpleSignatureController(
-    private val simpleSignatureService: SimpleSignatureService,
+@RequestMapping("/api/signatures")
+class SignatureController(
+    private val signatureService: SignatureService,
     private val tabletManagementService: TabletManagementService,
     private val securityContext: SecurityContext
 ) : BaseController() {
 
     /**
-     * Request simple signature from tablet - NO DOCUMENT INVOLVED
+     * Create new signature session and send to tablet
      */
     @PostMapping("/request")
-    fun requestSimpleSignature(
-        @Valid @RequestBody request: SimpleSignatureRequest
-    ): ResponseEntity<SimpleSignatureResponse> {
+    fun createSignatureSession(
+        @Valid @RequestBody request: CreateSignatureSessionRequest
+    ): ResponseEntity<SignatureResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         val userId = securityContext.getCurrentUserId()
 
-        logger.info("Requesting simple signature for tablet: ${request.tabletId}, signer: ${request.signerName}")
-
-        // Validate tablet access and availability
-        validateTabletAccess(request.tabletId, companyId)
+        logger.info("Creating signature session for workstation: ${request.workstationId}")
 
         return try {
-            val sessionId = simpleSignatureService.initiateSimpleSignature(
+
+            // Find available tablet for this workstation
+            val tabletId = tabletManagementService
+                .listingAllTablets(companyId)
+                .filter { it.workstationId == request.workstationId.toString() }
+                .firstOrNull()!!.id
+                .let { UUID.fromString(it) }
+
+            // Check if tablet is online
+            if (!tabletManagementService.isTabletOnline(tabletId)) {
+                return badRequest("Tablet is offline")
+            }
+
+            // Create signature session
+            val sessionId = signatureService.createSignatureSession(
                 companyId = companyId,
-                userId = "ABC",
+                userId = userId.toString(),
+                tabletId = tabletId,
                 request = request
             )
 
-            ok(SimpleSignatureResponse(
+            ok(SignatureResponse(
                 success = true,
                 sessionId = sessionId,
                 message = "Signature request sent to tablet successfully",
-                expiresAt = Instant.now().plusSeconds(request.timeoutMinutes * 60L)
+                expiresAt = Instant.now().plusSeconds(900) // 15 minutes
             ))
+
         } catch (e: Exception) {
-            logger.error("Error requesting simple signature", e)
-            throw SimpleSignatureException("Failed to request signature: ${e.message}", e)
+            logger.error("Error creating signature session", e)
+            throw SignatureException("Failed to create signature session: ${e.message}", e)
         }
     }
 
@@ -57,24 +71,24 @@ class SimpleSignatureController(
      * Submit signature from tablet
      */
     @PostMapping("/submit")
-    fun submitSimpleSignature(
-        @Valid @RequestBody submission: SimpleSignatureSubmission
-    ): ResponseEntity<SimpleSignatureCompletionResponse> {
+    fun submitSignature(
+        @Valid @RequestBody submission: SignatureSubmission
+    ): ResponseEntity<SignatureCompletionResponse> {
         val companyId = securityContext.getCurrentCompanyId()
 
-        logger.info("Processing simple signature submission for session: ${submission.sessionId}")
+        logger.info("Processing signature submission for session: ${submission.sessionId}")
 
         return try {
-            val result = simpleSignatureService.processSimpleSignature(
+            val result = signatureService.processSignatureSubmission(
                 companyId = companyId,
                 submission = submission
             )
 
             ok(result)
         } catch (e: Exception) {
-            logger.error("Error processing simple signature for session ${submission.sessionId}", e)
+            logger.error("Error processing signature for session ${submission.sessionId}", e)
 
-            ok(SimpleSignatureCompletionResponse(
+            ok(SignatureCompletionResponse(
                 success = false,
                 sessionId = submission.sessionId,
                 message = "Failed to process signature: ${e.message}"
@@ -83,30 +97,30 @@ class SimpleSignatureController(
     }
 
     /**
-     * Get simple signature session details
+     * Get signature session details
      */
     @GetMapping("/sessions/{sessionId}")
-    fun getSimpleSignatureSession(
+    fun getSignatureSession(
         @PathVariable sessionId: UUID
-    ): ResponseEntity<SimpleSignatureSessionDto> {
+    ): ResponseEntity<SignatureSessionDto> {
         val companyId = securityContext.getCurrentCompanyId()
 
         return try {
-            val session = simpleSignatureService.getSimpleSignatureSession(sessionId, companyId)
+            val session = signatureService.getSignatureSession(sessionId, companyId)
                 ?: return ResponseEntity.notFound().build()
 
             ok(session)
         } catch (e: Exception) {
-            logger.error("Error retrieving simple signature session $sessionId", e)
-            throw SimpleSignatureException("Failed to retrieve session", e)
+            logger.error("Error retrieving signature session $sessionId", e)
+            throw SignatureException("Failed to retrieve session", e)
         }
     }
 
     /**
-     * Cancel simple signature session
+     * Cancel signature session
      */
     @PostMapping("/sessions/{sessionId}/cancel")
-    fun cancelSimpleSignatureSession(
+    fun cancelSignatureSession(
         @PathVariable sessionId: UUID,
         @RequestBody(required = false) reason: CancelSessionRequest? = null
     ): ResponseEntity<Map<String, Any>> {
@@ -114,18 +128,18 @@ class SimpleSignatureController(
         val userId = securityContext.getCurrentUserId()
 
         return try {
-            simpleSignatureService.cancelSimpleSignatureSession(
-                sessionId, companyId, "ABC", reason?.reason
+            signatureService.cancelSignatureSession(
+                sessionId, companyId, userId.toString(), reason?.reason
             )
 
             ok(mapOf(
                 "success" to true,
-                "message" to "Simple signature session cancelled successfully",
+                "message" to "Signature session cancelled successfully",
                 "timestamp" to Instant.now()
             ))
         } catch (e: Exception) {
-            logger.error("Error cancelling simple signature session $sessionId", e)
-            throw SimpleSignatureException("Failed to cancel session", e)
+            logger.error("Error cancelling signature session $sessionId", e)
+            throw SignatureException("Failed to cancel session", e)
         }
     }
 
@@ -139,7 +153,7 @@ class SimpleSignatureController(
         val companyId = securityContext.getCurrentCompanyId()
 
         return try {
-            val status = simpleSignatureService.getSessionStatus(sessionId, companyId)
+            val status = signatureService.getSessionStatus(sessionId, companyId)
             ok(mapOf(
                 "success" to true,
                 "sessionId" to sessionId,
@@ -148,7 +162,7 @@ class SimpleSignatureController(
             ))
         } catch (e: Exception) {
             logger.error("Error getting session status $sessionId", e)
-            throw SimpleSignatureException("Failed to get session status", e)
+            throw SignatureException("Failed to get session status", e)
         }
     }
 
@@ -162,7 +176,7 @@ class SimpleSignatureController(
         val companyId = securityContext.getCurrentCompanyId()
 
         return try {
-            val signatureData = simpleSignatureService.getSignatureImage(sessionId, companyId)
+            val signatureData = signatureService.getSignatureImage(sessionId, companyId)
                 ?: return ResponseEntity.notFound().build()
 
             ResponseEntity.ok()
@@ -172,25 +186,56 @@ class SimpleSignatureController(
                 .body(signatureData)
         } catch (e: Exception) {
             logger.error("Error downloading signature for session $sessionId", e)
-            throw SimpleSignatureException("Failed to download signature", e)
+            throw SignatureException("Failed to download signature", e)
         }
     }
 
     /**
-     * Get all simple signature sessions for company (with pagination)
+     * Test tablet connection
+     */
+    @PostMapping("/test/{tabletId}")
+    fun testTabletConnection(
+        @PathVariable tabletId: UUID
+    ): ResponseEntity<Map<String, Any>> {
+        val companyId = securityContext.getCurrentCompanyId()
+
+        // Check access
+        if (!tabletManagementService.checkTabletAccess(tabletId, companyId)) {
+            return ResponseEntity.status(403).body(mapOf(
+                "success" to false,
+                "message" to "Access denied to tablet"
+            ))
+        }
+
+        return try {
+            val testResult = signatureService.testTabletSignature(tabletId)
+            ok(mapOf(
+                "success" to testResult,
+                "message" to if (testResult) "Test signature sent to tablet" else "Failed to send test signature",
+                "timestamp" to Instant.now()
+            ))
+        } catch (e: Exception) {
+            logger.error("Error testing tablet $tabletId", e)
+            ResponseEntity.status(500).body(mapOf(
+                "success" to false,
+                "message" to "Failed to test tablet: ${e.message}"
+            ))
+        }
+    }
+
+    /**
+     * Get all signature sessions for company
      */
     @GetMapping("/sessions")
-    fun getSimpleSignatureSessions(
+    fun getSignatureSessions(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
-        @RequestParam(required = false) status: SimpleSignatureStatus?
+        @RequestParam(required = false) status: SignatureStatus?
     ): ResponseEntity<Map<String, Any>> {
         val companyId = securityContext.getCurrentCompanyId()
 
         return try {
-            val sessions = simpleSignatureService.getSimpleSignatureSessions(
-                companyId, page, size, status
-            )
+            val sessions = signatureService.getSignatureSessions(companyId, page, size, status)
 
             ok(mapOf(
                 "success" to true,
@@ -200,20 +245,10 @@ class SimpleSignatureController(
                 "timestamp" to Instant.now()
             ))
         } catch (e: Exception) {
-            logger.error("Error retrieving simple signature sessions", e)
-            throw SimpleSignatureException("Failed to retrieve sessions", e)
-        }
-    }
-
-    private fun validateTabletAccess(tabletId: UUID, companyId: Long) {
-        if (!tabletManagementService.checkTabletAccess(tabletId, companyId)) {
-            throw SimpleSignatureException("Access denied to tablet $tabletId")
-        }
-
-        if (!tabletManagementService.isTabletOnline(tabletId)) {
-            throw SimpleSignatureException("Tablet $tabletId is offline")
+            logger.error("Error retrieving signature sessions", e)
+            throw SignatureException("Failed to retrieve sessions", e)
         }
     }
 }
 
-class SimpleSignatureException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class SignatureException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

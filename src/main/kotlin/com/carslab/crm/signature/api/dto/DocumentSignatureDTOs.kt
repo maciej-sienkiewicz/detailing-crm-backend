@@ -96,12 +96,6 @@ data class SignaturePlacement(
     val height: Float
 )
 
-/**
- * Cancel session request
- */
-data class CancelSessionRequest(
-    val reason: String? = null
-)
 
 // ===== RESPONSE DTOs =====
 
