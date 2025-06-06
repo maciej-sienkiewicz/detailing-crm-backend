@@ -69,8 +69,8 @@ class ClientDomainService(
         return clientRepository.save(updatedClient)
     }
 
-    fun updateClientStatistics(id: ClientId, gmv: BigDecimal): Unit {
-        clientStatisticsRepository.updateVisitCount(id, 1)
+    fun updateClientStatistics(id: ClientId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L): Unit {
+        clientStatisticsRepository.updateVisitCount(id, counter)
         clientStatisticsRepository.updateRevenue(id, gmv)
     }
 

@@ -20,17 +20,12 @@ class SignatureController(
     private val securityContext: SecurityContext
 ) : BaseController() {
 
-    /**
-     * Create new signature session and send to tablet
-     */
     @PostMapping("/request")
     fun createSignatureSession(
         @Valid @RequestBody request: CreateSignatureSessionRequest
     ): ResponseEntity<SignatureResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         val userId = securityContext.getCurrentUserId()
-
-        logger.info("Creating signature session for workstation: ${request.workstationId}")
 
         return try {
 

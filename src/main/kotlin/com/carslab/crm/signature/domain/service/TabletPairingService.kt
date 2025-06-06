@@ -52,14 +52,13 @@ class TabletPairingService(
             Instant.now()
         ) ?: throw InvalidPairingCodeException()
 
-        // Generate secure device token first
         val deviceToken = generateSecureToken()
 
         // Create tablet device
         val tablet = TabletDevice(
             companyId = pairingData.companyId,
             locationId = pairingData.locationId,
-            deviceToken = deviceToken, // Use the generated token, not JWT
+            deviceToken = deviceToken,
             friendlyName = request.deviceName,
             workstationId = pairingData.workstationId,
             status = DeviceStatus.ACTIVE

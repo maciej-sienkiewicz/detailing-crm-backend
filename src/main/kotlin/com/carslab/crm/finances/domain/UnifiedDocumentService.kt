@@ -25,6 +25,7 @@ import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.finances.infrastructure.repository.BankAccountBalanceRepository
 import com.carslab.crm.finances.infrastructure.repository.CashBalancesRepository
+import com.carslab.crm.infrastructure.security.SecurityContext
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -42,7 +43,8 @@ class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UnifiedDocumentStorageService,
     private val cashBalancesRepository: CashBalancesRepository,
-    private val bankAccountBalanceRepository: BankAccountBalanceRepository
+    private val bankAccountBalanceRepository: BankAccountBalanceRepository,
+    private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -238,9 +240,35 @@ class UnifiedDocumentService(
     fun updateDocumentStatus(id: String, status: String): Boolean {
         logger.info("Updating status of document with ID: {} to: {}", id, status)
 
-        // Sprawdzenie czy dokument istnieje
-        if (documentRepository.findById(UnifiedDocumentId(id)) == null) {
+        val doc = documentRepository.findById(UnifiedDocumentId(id))
+        if (doc == null) {
             throw ResourceNotFoundException("Document", id)
+        }
+
+        val companyId = securityContext.getCurrentCompanyId()
+        if(doc.type == DocumentType.INVOICE) {
+            when (doc.paymentMethod) {
+                PaymentMethod.CASH -> {
+                    if (doc.direction == TransactionDirection.INCOME) {
+                        cashBalancesRepository.addAmountToBalance(companyId, doc.totalTax, Instant.now().toString())
+                    } else {
+                        cashBalancesRepository.subtractAmountFromBalance(companyId, doc.totalTax, Instant.now().toString())
+                    }
+                }
+
+                PaymentMethod.CARD, PaymentMethod.BANK_TRANSFER -> {
+                    if (doc.direction == TransactionDirection.INCOME) {
+                        bankAccountBalanceRepository.addAmountToBalance(companyId, doc.totalTax, Instant.now().toString())
+                    } else {
+                        bankAccountBalanceRepository.subtractAmountFromBalance(companyId, doc.totalTax, Instant.now().toString())
+                    }
+                }
+
+                else -> {
+                    // PaymentMethod.MOBILE_PAYMENT, OTHER - można dodać obsługę w przyszłości
+                    logger.debug("Balance update not implemented for payment method: ${doc.paymentMethod}")
+                }
+            }
         }
 
         return documentRepository.updateStatus(UnifiedDocumentId(id), status)

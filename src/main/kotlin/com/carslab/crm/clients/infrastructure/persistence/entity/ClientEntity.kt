@@ -124,5 +124,23 @@ class ClientEntity(
             updatedBy = client.audit.updatedBy,
             version = client.audit.version
         )
+
+        fun fromDomain(client: Client, companyId: Long): ClientEntity = ClientEntity(
+            id = null,
+            companyId = companyId,
+            firstName = client.firstName,
+            lastName = client.lastName,
+            email = client.email,
+            phone = client.phone,
+            address = client.address,
+            company = client.company,
+            taxId = client.taxId,
+            notes = client.notes,
+            createdAt = client.audit.createdAt,
+            updatedAt = client.audit.updatedAt,
+            createdBy = client.audit.createdBy,
+            updatedBy = client.audit.updatedBy,
+            version = client.audit.version
+        )
     }
 }

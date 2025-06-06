@@ -136,6 +136,13 @@ class CarReceptionService(
             audit = protocol.audit.copy(
                 updatedAt = LocalDateTime.now(),
                 statusUpdatedAt = if (protocol.status != existingProtocol.status) {
+                    if(existingProtocol.status == ProtocolStatus.SCHEDULED && protocol.status == ProtocolStatus.IN_PROGRESS) {
+                        clientApplicationService.updateClientStatistics(
+                            clientId = ClientId(protocol.client.id!!),
+                            totalGmv = BigDecimal.ZERO,
+                            counter = 1L
+                        )
+                    }
                     protocolCommentsRepository.save(
                         ProtocolComment(
                             protocolId = protocol.id,
@@ -426,10 +433,11 @@ class CarReceptionService(
         return vehicleApplicationService.createVehicle(newVehicleRequest)
     }
 
-    private fun updateVisitsStatistics(protocol: CarReceptionProtocol) {
+    private fun updateVisitsStatistics(protocol: CarReceptionProtocol, counter: Long = 0) {
         clientApplicationService.updateClientStatistics(
             clientId = ClientId(protocol.client.id!!),
-            totalGmv = protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal()
+            totalGmv = protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal(),
+            counter = counter
         )
     }
 

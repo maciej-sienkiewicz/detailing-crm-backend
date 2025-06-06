@@ -100,10 +100,10 @@ class ClientApplicationService(
         }
     }
 
-    fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal): Unit {
+    fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal, counter: Long = 0): Unit {
         logger.info("Updating statistics for client with ID: $clientId")
         try {
-            clientDomainService.updateClientStatistics(clientId, totalGmv)
+            clientDomainService.updateClientStatistics(clientId, totalGmv, counter)
             logger.info("Successfully updated statistics for client with ID: $clientId")
         } catch (e: DomainException) {
             logger.error("Failed to update statistics for client $clientId: ${e.message}")
