@@ -125,3 +125,57 @@ data class ServiceHistoryResponse(
     val price: BigDecimal,
     val date: String
 )
+
+data class VehicleTableResponse(
+    val id: Long,
+    val make: String,
+    val model: String,
+    val year: Int?,
+    val licensePlate: String,
+    val color: String?,
+    val vin: String?,
+    val mileage: Long?,
+    val owners: List<VehicleOwnerSummary>,
+    val visitCount: Long,
+    val lastVisitDate: LocalDateTime?,
+    val totalRevenue: BigDecimal,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
+)
+
+/**
+ * Summary information about vehicle owner
+ */
+data class VehicleOwnerSummary(
+    val id: Long,
+    val firstName: String,
+    val lastName: String,
+    val fullName: String,
+    val email: String?,
+    val phone: String?
+)
+
+/**
+ * Response DTO for company-wide vehicle statistics
+ */
+data class VehicleCompanyStatisticsResponse(
+    val totalVehicles: Long,
+    val premiumVehicles: Long,
+    val visitRevenueMedian: BigDecimal,
+    val totalRevenue: BigDecimal,
+    val averageRevenuePerVehicle: BigDecimal,
+    val mostActiveVehicle: MostActiveVehicleInfo?,
+    val calculatedAt: LocalDateTime
+)
+
+/**
+ * Information about the most active vehicle
+ */
+data class MostActiveVehicleInfo(
+    val id: Long,
+    val make: String,
+    val model: String,
+    val licensePlate: String,
+    val visitCount: Long,
+    val totalRevenue: BigDecimal
+)

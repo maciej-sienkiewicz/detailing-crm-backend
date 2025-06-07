@@ -7,10 +7,15 @@ import com.carslab.crm.clients.api.responses.ServiceHistoryResponse
 import com.carslab.crm.clients.api.responses.VehicleOwnerResponse
 import com.carslab.crm.clients.api.responses.VehicleResponse
 import com.carslab.crm.clients.api.responses.VehicleStatisticsResponse
+import com.carslab.crm.clients.api.responses.VehicleTableResponse
+import com.carslab.crm.clients.api.responses.VehicleCompanyStatisticsResponse
 import com.carslab.crm.clients.domain.ClientApplicationService
 import com.carslab.crm.clients.domain.CreateVehicleRequest
 import com.carslab.crm.clients.domain.UpdateVehicleRequest
 import com.carslab.crm.clients.domain.VehicleApplicationService
+import com.carslab.crm.clients.domain.VehicleTableService
+import com.carslab.crm.clients.domain.VehicleCompanyStatisticsService
+import com.carslab.crm.clients.domain.VehicleCompanyStatisticsServiceCached
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.util.ValidationUtils
@@ -18,7 +23,11 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
@@ -28,7 +37,9 @@ import java.util.UUID
 @Tag(name = "Vehicles", description = "Vehicle management endpoints")
 class VehicleController(
     private val vehicleApplicationService: VehicleApplicationService,
-    private val clientApplicationService: ClientApplicationService
+    private val clientApplicationService: ClientApplicationService,
+    private val vehicleTableService: VehicleTableService,
+    private val vehicleCompanyStatisticsService: VehicleCompanyStatisticsServiceCached
 ) : BaseController() {
 
     @PostMapping
@@ -82,6 +93,71 @@ class VehicleController(
         )
         val response = vehicles.content.map { VehicleMapper.toResponse(it) }
         return ok(response)
+    }
+
+    @GetMapping("/table")
+    @Operation(
+        summary = "Get vehicles for table view",
+        description = "Retrieves vehicles with statistics for table display including owners, visit count, last visit, and total revenue"
+    )
+    fun getVehiclesForTable(
+        @PageableDefault(size = 20, sort = ["lastVisitDate"], direction = Sort.Direction.DESC)
+        pageable: Pageable,
+
+        @Parameter(description = "Filter by vehicle make")
+        @RequestParam(required = false) make: String?,
+
+        @Parameter(description = "Filter by vehicle model")
+        @RequestParam(required = false) model: String?,
+
+        @Parameter(description = "Filter by license plate")
+        @RequestParam(required = false) licensePlate: String?,
+
+        @Parameter(description = "Filter by owner name")
+        @RequestParam(required = false) ownerName: String?,
+
+        @Parameter(description = "Minimum number of visits")
+        @RequestParam(required = false) minVisits: Int?,
+
+        @Parameter(description = "Maximum number of visits")
+        @RequestParam(required = false) maxVisits: Int?
+    ): ResponseEntity<Page<VehicleTableResponse>> {
+        logger.info("Getting vehicles for table view with filters: make=$make, model=$model, licensePlate=$licensePlate, ownerName=$ownerName")
+
+        try {
+            val vehicleTablePage = vehicleTableService.getVehiclesForTable(
+                pageable = pageable,
+                make = make,
+                model = model,
+                licensePlate = licensePlate,
+                ownerName = ownerName,
+                minVisits = minVisits,
+                maxVisits = maxVisits
+            )
+
+            logger.info("Successfully retrieved ${vehicleTablePage.numberOfElements} vehicles for table view")
+            return ok(vehicleTablePage)
+        } catch (e: Exception) {
+            return logAndRethrow("Error retrieving vehicles for table view", e)
+        }
+    }
+
+    @GetMapping("/company-statistics")
+    @Operation(
+        summary = "Get company vehicle statistics",
+        description = "Retrieves overall vehicle statistics for the company including total vehicles, premium vehicles, and visit revenue median"
+    )
+    fun getCompanyVehicleStatistics(): ResponseEntity<VehicleCompanyStatisticsResponse> {
+        logger.info("Getting company vehicle statistics")
+
+        try {
+            val statistics = vehicleCompanyStatisticsService.getCompanyStatistics()
+
+            logger.info("Successfully retrieved company vehicle statistics: ${statistics.totalVehicles} total vehicles, ${statistics.premiumVehicles} premium vehicles")
+            return ok(statistics)
+        } catch (e: Exception) {
+            return logAndRethrow("Error retrieving company vehicle statistics", e)
+        }
     }
 
     @GetMapping("/{id}/owners")

@@ -151,4 +151,64 @@ interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity
     @Modifying
     @Query("DELETE FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
     fun deleteByVehicleId(@Param("vehicleId") vehicleId: Long): Int
+
+    @Query(nativeQuery = true, value = """
+        SELECT COUNT(DISTINCT v.id)
+        FROM vehicles v
+        WHERE v.company_id = :companyId AND v.active = true
+    """)
+    fun countTotalVehiclesForCompany(@Param("companyId") companyId: Long): Long
+
+    @Query(nativeQuery = true, value = """
+        SELECT COUNT(DISTINCT v.id)
+        FROM vehicles v
+        INNER JOIN vehicle_statistics vs ON v.id = vs.vehicle_id
+        WHERE v.company_id = :companyId 
+        AND v.active = true
+        AND vs.total_revenue >= :threshold
+    """)
+    fun countPremiumVehiclesForCompany(
+        @Param("companyId") companyId: Long,
+        @Param("threshold") threshold: BigDecimal
+    ): Long
+
+    @Query(nativeQuery = true, value = """
+        SELECT COALESCE(SUM(vs.total_revenue), 0)
+        FROM vehicle_statistics vs
+        INNER JOIN vehicles v ON vs.vehicle_id = v.id
+        WHERE v.company_id = :companyId AND v.active = true
+    """)
+    fun getTotalRevenueForCompany(@Param("companyId") companyId: Long): BigDecimal?
+
+    @Query(nativeQuery = true, value = """
+        SELECT 
+            v.id,
+            v.make,
+            v.model,
+            v.license_plate,
+            vs.visit_count,
+            vs.total_revenue
+        FROM vehicles v
+        INNER JOIN vehicle_statistics vs ON v.id = vs.vehicle_id
+        WHERE v.company_id = :companyId 
+        AND v.active = true
+        AND vs.visit_count > 0
+        ORDER BY vs.visit_count DESC, vs.total_revenue DESC
+        LIMIT 1
+    """)
+    fun findMostActiveVehicleForCompany(@Param("companyId") companyId: Long): Array<Any>?
+
+    @Query(nativeQuery = true, value = """
+        SELECT ps.final_price
+        FROM protocol_services ps
+        INNER JOIN protocols p ON ps.protocol_id = p.id
+        INNER JOIN vehicles v ON p.vehicle_id = v.id
+        WHERE v.company_id = :companyId 
+        AND v.active = true
+        AND p.status = 'COMPLETED'
+        AND ps.approval_status = 'APPROVED'
+        AND ps.final_price > 0
+        ORDER BY ps.final_price
+    """)
+    fun getAllCompletedVisitRevenuesForCompany(@Param("companyId") companyId: Long): List<BigDecimal>
 }

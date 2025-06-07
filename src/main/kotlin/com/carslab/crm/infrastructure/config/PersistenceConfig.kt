@@ -6,9 +6,13 @@ import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
 import com.carslab.crm.clients.domain.port.ClientVehicleRepository
 import com.carslab.crm.clients.domain.port.VehicleRepository
 import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.clients.domain.port.VehicleTableRepository
+import com.carslab.crm.clients.domain.port.VehicleCompanyStatisticsRepository
 import com.carslab.crm.clients.infrastructure.persistence.adapter.ClientVehicleAssociationRepositoryAdapter
 import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleRepositoryAdapter
 import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleStatisticsRepositoryAdapter
+import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleTableRepositoryAdapter
+import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleCompanyStatisticsRepositoryAdapter
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
@@ -19,7 +23,13 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 
 @Configuration
-@EnableJpaRepositories(basePackages = ["com.carslab.crm.infrastructure.persistence.repository", "com.carslab.crm.audit.repository", "com.carslab.crm.signature.infrastructure.persistance.repository", "com.carslab.crm.clients.infrastructure.persistence.repository", "com.carslab.crm.finances.infrastructure.repository"])
+@EnableJpaRepositories(basePackages = [
+    "com.carslab.crm.infrastructure.persistence.repository",
+    "com.carslab.crm.audit.repository",
+    "com.carslab.crm.signature.infrastructure.persistance.repository",
+    "com.carslab.crm.clients.infrastructure.persistence.repository",
+    "com.carslab.crm.finances.infrastructure.repository"
+])
 class PersistenceConfig {
 
     @Bean
@@ -73,4 +83,13 @@ class PersistenceConfig {
     @Bean
     @Primary
     fun calendarColorRepository(adapter: JpaCalendarColorRepositoryAdapter): CalendarColorRepository = adapter
+
+    // NEW REPOSITORIES FOR VEHICLE TABLE AND STATISTICS
+    @Bean
+    @Primary
+    fun vehicleTableRepository(adapter: VehicleTableRepositoryAdapter): VehicleTableRepository = adapter
+
+    @Bean
+    @Primary
+    fun vehicleCompanyStatisticsRepository(adapter: VehicleCompanyStatisticsRepositoryAdapter): VehicleCompanyStatisticsRepository = adapter
 }
