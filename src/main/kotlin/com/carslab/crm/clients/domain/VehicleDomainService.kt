@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 
 @Service
 @Transactional
@@ -81,6 +82,11 @@ class VehicleDomainService(
     @Transactional(readOnly = true)
     fun searchVehicles(criteria: VehicleSearchCriteria, pageable: Pageable): Page<Vehicle> {
         return vehicleRepository.searchVehicles(criteria, pageable)
+    }
+
+    fun updateStatistics(id: VehicleId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
+        vehicleStatisticsRepository.updateVisitCount(id, counter)
+        vehicleStatisticsRepository.updateRevenue(id, gmv)
     }
 
     fun deleteVehicle(id: VehicleId): Boolean {

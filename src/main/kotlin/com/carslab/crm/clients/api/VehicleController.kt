@@ -39,7 +39,7 @@ class VehicleController(
     private val vehicleApplicationService: VehicleApplicationService,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleTableService: VehicleTableService,
-    private val vehicleCompanyStatisticsService: VehicleCompanyStatisticsServiceCached
+    private val vehicleCompanyStatisticsService: VehicleCompanyStatisticsService
 ) : BaseController() {
 
     @PostMapping

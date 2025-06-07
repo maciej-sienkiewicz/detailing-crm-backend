@@ -58,6 +58,7 @@ import com.carslab.crm.clients.domain.model.VehicleRelationshipType
 import com.carslab.crm.clients.domain.ClientVehicleAssociationService
 import com.carslab.crm.clients.domain.VehicleDetailResponse
 import com.carslab.crm.domain.model.ClientDetails
+import com.carslab.crm.infrastructure.security.SecurityContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -77,7 +78,8 @@ class CarReceptionService(
     private val protocolCommentsRepository: ProtocolCommentsRepository,
     private val cashRepository: CashRepository,
     private val invoiceRepository: InvoiceRepository,
-    private val unifiedDocumentRepository: UnifiedDocumentRepository
+    private val unifiedDocumentRepository: UnifiedDocumentRepository,
+    private val securityContext: SecurityContext,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -137,16 +139,20 @@ class CarReceptionService(
                 updatedAt = LocalDateTime.now(),
                 statusUpdatedAt = if (protocol.status != existingProtocol.status) {
                     if(existingProtocol.status == ProtocolStatus.SCHEDULED && protocol.status == ProtocolStatus.IN_PROGRESS) {
+                        vehicleApplicationService.updateVehicleStatistics(
+                            existingProtocol.vehicle.id!!.value,
+                            counter = 1L
+                        )
+
                         clientApplicationService.updateClientStatistics(
                             clientId = ClientId(protocol.client.id!!),
-                            totalGmv = BigDecimal.ZERO,
                             counter = 1L
                         )
                     }
                     protocolCommentsRepository.save(
                         ProtocolComment(
                             protocolId = protocol.id,
-                            author = "Administrator",
+                            author = securityContext.getCurrentUserName() ?: "System",
                             content = "Zmieniono status protokołu z \"${existingProtocol.status.uiVale}\" na: \"${protocol.status.uiVale}\"",
                             timestamp = Instant.now().toString(),
                             type = "system"
@@ -254,6 +260,7 @@ class CarReceptionService(
             id = id,
             title = title,
             vehicle = VehicleDetails(
+                id = vehicleId,
                 make = vehicleDetail?.make ?: "",
                 model = vehicleDetail?.model ?: "",
                 licensePlate = vehicleDetail?.licensePlate ?: "",
@@ -437,6 +444,11 @@ class CarReceptionService(
         clientApplicationService.updateClientStatistics(
             clientId = ClientId(protocol.client.id!!),
             totalGmv = protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal(),
+            counter = counter
+        )
+        vehicleApplicationService.updateVehicleStatistics(
+            protocol.vehicle.id!!.value,
+            gmv = protocol.protocolServices.sumOf { it.finalPrice.amount }.toBigDecimal(),
             counter = counter
         )
     }

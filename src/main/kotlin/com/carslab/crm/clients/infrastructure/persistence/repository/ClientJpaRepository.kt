@@ -211,4 +211,17 @@ interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity
         ORDER BY ps.final_price
     """)
     fun getAllCompletedVisitRevenuesForCompany(@Param("companyId") companyId: Long): List<BigDecimal>
+
+    @Query(nativeQuery = true, value = """
+    SELECT COALESCE(SUM(ps.final_price), 0)
+    FROM protocol_services ps
+    INNER JOIN protocols p ON ps.protocol_id = p.id
+    INNER JOIN vehicles v ON p.vehicle_id = v.id
+    WHERE v.company_id = :companyId 
+    AND v.active = true
+    AND p.status = 'COMPLETED'
+    AND ps.approval_status = 'APPROVED'
+    AND ps.final_price > 0
+""")
+    fun getTotalRevenueFromProtocolServicesForCompany(@Param("companyId") companyId: Long): BigDecimal?
 }

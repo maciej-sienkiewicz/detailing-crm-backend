@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 
 @Service
 @Transactional
@@ -102,6 +103,21 @@ class VehicleApplicationService(
         } catch (e: Exception) {
             logger.error("Unexpected error updating vehicle $id", e)
             throw RuntimeException("Failed to update vehicle", e)
+        }
+    }
+
+    fun updateVehicleStatistics(id: Long, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
+        logger.debug("Updating statistics for vehicle ID: $id")
+
+        try {
+            vehicleDomainService.updateStatistics(VehicleId.of(id), gmv, counter)
+            logger.info("Successfully updated statistics for vehicle ID: $id")
+        } catch (e: DomainException) {
+            logger.error("Failed to update statistics for vehicle $id: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            logger.error("Unexpected error updating statistics for vehicle $id", e)
+            throw RuntimeException("Failed to update vehicle statistics", e)
         }
     }
 

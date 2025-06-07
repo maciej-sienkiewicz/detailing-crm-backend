@@ -23,4 +23,12 @@ class SecurityContext {
             else -> null
         }
     }
+
+    fun getCurrentUserName(): String? {
+        val authentication = SecurityContextHolder.getContext().authentication
+        return when (val principal = authentication?.principal) {
+            is UserEntity -> principal.username
+            else -> null
+        }
+    }
 }
