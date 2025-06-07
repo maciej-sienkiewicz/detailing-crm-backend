@@ -13,6 +13,8 @@ import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleReposit
 import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleStatisticsRepositoryAdapter
 import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleTableRepositoryAdapter
 import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleCompanyStatisticsRepositoryAdapter
+import com.carslab.crm.company_settings.domain.port.CompanySettingsRepository
+import com.carslab.crm.company_settings.infrastructure.persistence.adapter.CompanySettingsRepositoryAdapter
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
@@ -28,7 +30,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.audit.repository",
     "com.carslab.crm.signature.infrastructure.persistance.repository",
     "com.carslab.crm.clients.infrastructure.persistence.repository",
-    "com.carslab.crm.finances.infrastructure.repository"
+    "com.carslab.crm.finances.infrastructure.repository",
+    "com.carslab.crm.company_settings.infrastructure.persistence.repository",
 ])
 class PersistenceConfig {
 
@@ -92,4 +95,8 @@ class PersistenceConfig {
     @Bean
     @Primary
     fun vehicleCompanyStatisticsRepository(adapter: VehicleCompanyStatisticsRepositoryAdapter): VehicleCompanyStatisticsRepository = adapter
+
+    @Bean
+    @Primary
+    fun companySettingsRepository(adapter: CompanySettingsRepositoryAdapter): CompanySettingsRepository = adapter
 }
