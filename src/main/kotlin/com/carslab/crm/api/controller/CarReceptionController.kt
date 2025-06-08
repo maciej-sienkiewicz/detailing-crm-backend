@@ -188,7 +188,7 @@ class CarReceptionController(
         @PathVariable protocolId: String,
         @RequestBody command: ServicesUpdateCommand): ResponseEntity<ProtocolIdResponse> {
         try {
-            val savedProtocolId = command.services
+            command.services
                 .map { CarReceptionDtoMapper.mapCreateServiceCommandToService(it) }
                 .let { carReceptionFacade.updateServices(ProtocolId(protocolId), it) }
 

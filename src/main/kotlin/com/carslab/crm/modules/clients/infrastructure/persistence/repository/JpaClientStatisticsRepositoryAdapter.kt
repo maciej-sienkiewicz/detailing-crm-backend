@@ -22,7 +22,7 @@ class ClientStatisticsRepositoryAdapter(
         val companyId = securityContext.getCurrentCompanyId()
 
         // Verify client exists and belongs to company
-        val clientEntity = clientJpaRepository.findByIdAndCompanyId(statistics.clientId, companyId)
+        clientJpaRepository.findByIdAndCompanyId(statistics.clientId, companyId)
             .orElse(null) ?: throw IllegalStateException("Client not found or access denied")
 
         val entity = if (clientStatisticsJpaRepository.existsById(statistics.clientId)) {
@@ -43,7 +43,7 @@ class ClientStatisticsRepositoryAdapter(
         val companyId = securityContext.getCurrentCompanyId()
 
         // Verify client exists and belongs to company
-        val clientEntity = clientJpaRepository.findByIdAndCompanyId(clientId.value, companyId)
+        clientJpaRepository.findByIdAndCompanyId(clientId.value, companyId)
             .orElse(null) ?: return null
 
         return clientStatisticsJpaRepository.findByClientId(clientId.value)

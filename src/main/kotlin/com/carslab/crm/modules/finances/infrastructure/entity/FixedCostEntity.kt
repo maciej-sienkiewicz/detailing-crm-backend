@@ -286,7 +286,7 @@ class BreakevenConfigurationEntity(
             workingDaysPerMonth = workingDaysPerMonth,
             targetServicesPerDay = targetServicesPerDay,
             isActive = isActive,
-            audit = com.carslab.crm.domain.model.Audit(createdAt = createdAt, updatedAt = updatedAt)
+            audit = Audit(createdAt = createdAt, updatedAt = updatedAt)
         )
     }
 

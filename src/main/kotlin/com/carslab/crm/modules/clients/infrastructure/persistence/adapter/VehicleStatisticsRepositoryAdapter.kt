@@ -22,7 +22,7 @@ class VehicleStatisticsRepositoryAdapter(
         val companyId = securityContext.getCurrentCompanyId()
 
         // Verify vehicle exists and belongs to company
-        val vehicleEntity = vehicleJpaRepository.findByIdAndCompanyId(statistics.vehicleId, companyId)
+        vehicleJpaRepository.findByIdAndCompanyId(statistics.vehicleId, companyId)
             .orElse(null) ?: throw IllegalStateException("Vehicle not found or access denied")
 
         val entity = if (vehicleStatisticsJpaRepository.existsById(statistics.vehicleId)) {
@@ -44,7 +44,7 @@ class VehicleStatisticsRepositoryAdapter(
         val companyId = securityContext.getCurrentCompanyId()
 
         // Verify vehicle exists and belongs to company
-        val vehicleEntity = vehicleJpaRepository.findByIdAndCompanyId(vehicleId.value, companyId)
+        vehicleJpaRepository.findByIdAndCompanyId(vehicleId.value, companyId)
             .orElse(null) ?: return null
 
         return vehicleStatisticsJpaRepository.findByVehicleId(vehicleId.value)

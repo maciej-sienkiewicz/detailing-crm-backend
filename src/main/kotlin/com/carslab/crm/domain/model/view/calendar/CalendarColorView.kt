@@ -20,7 +20,7 @@ data class CalendarColorView(
 ) {
     companion object {
         fun create(id: CalendarColorId, name: String, color: String, audit: Audit): CalendarColorView {
-            val now = LocalDateTime.now()
+            LocalDateTime.now()
             return CalendarColorView(
                 id = id,
                 name = name,

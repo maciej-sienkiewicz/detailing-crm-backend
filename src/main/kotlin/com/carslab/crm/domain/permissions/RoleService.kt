@@ -158,7 +158,7 @@ class RoleService(
 
     @Transactional
     fun getRolePermissions(roleId: Long): List<PermissionConfigDto> {
-        val roleEntity = roleRepository.findById(roleId)
+        roleRepository.findById(roleId)
             .orElseThrow { ResourceNotFoundException("Role not found with id: $roleId") }
 
         // Pobierz konfiguracje uprawnień dla tej roli
@@ -195,7 +195,7 @@ class RoleService(
         }
 
         // Validate that the permission exists
-        val permissionEntity = permissionRepository.findById(configCommand.permissionId)
+        permissionRepository.findById(configCommand.permissionId)
             .orElseThrow { ResourceNotFoundException("Permission not found with id: ${configCommand.permissionId}") }
 
         // Find existing config or create new one

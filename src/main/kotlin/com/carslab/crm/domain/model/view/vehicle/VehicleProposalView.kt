@@ -9,5 +9,4 @@ class VehicleProposalView(
     val licensePlate: String? = null,
     val mileage: Long?,
     val ownerIds: Set<ClientId>
-) {
-}
+)

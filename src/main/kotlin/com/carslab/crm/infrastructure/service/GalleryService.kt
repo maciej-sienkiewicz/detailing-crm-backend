@@ -25,8 +25,8 @@ class GalleryService(private val galleryRepository: GalleryJpaRepository,
         tagMatchMode: String,
         pageable: Pageable
     ): Page<VehicleImageEntity> {
-        val offset = pageable.offset.toInt()
-        val size = pageable.pageSize
+        pageable.offset.toInt()
+        pageable.pageSize
 
 
         return if (tags.isEmpty()) {

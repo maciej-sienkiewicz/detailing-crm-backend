@@ -21,7 +21,7 @@ class JpaProtocolCommentsRepositoryAdapter(
 
         // Sprawdź, czy protokół istnieje i należy do tej samej firmy
         val protocolId = comment.protocolId.value.toLong()
-        val protocol = protocolJpaRepository.findByCompanyIdAndId(companyId, comment.protocolId.value.toLong())
+        protocolJpaRepository.findByCompanyIdAndId(companyId, comment.protocolId.value.toLong())
             .orElse(null) ?: throw IllegalStateException("Protocol with ID ${comment.protocolId.value} not found or access denied")
 
         val commentEntity = ProtocolCommentEntity(
@@ -40,7 +40,7 @@ class JpaProtocolCommentsRepositoryAdapter(
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Najpierw sprawdź, czy protokół należy do firmy
-        val protocol = protocolJpaRepository.findByCompanyIdAndId(companyId, id.value.toLong())
+        protocolJpaRepository.findByCompanyIdAndId(companyId, id.value.toLong())
             .orElse(null) ?: return emptyList()
 
         // Pobierz komentarze dla protokołu

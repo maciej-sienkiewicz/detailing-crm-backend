@@ -90,7 +90,7 @@ class VehicleDomainService(
     }
 
     fun deleteVehicle(id: VehicleId): Boolean {
-        val vehicle = vehicleRepository.findById(id) ?: return false
+        vehicleRepository.findById(id) ?: return false
 
         // Remove all client associations
         associationRepository.deleteByVehicleId(id)

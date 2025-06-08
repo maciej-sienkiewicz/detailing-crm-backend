@@ -301,7 +301,7 @@ class VehicleController(
 
         try {
             // Verify vehicle exists
-            val vehicle = vehicleApplicationService.getVehicleById(id.toLong())
+            vehicleApplicationService.getVehicleById(id.toLong())
                 ?: throw ResourceNotFoundException("Vehicle", id)
 
             // Validate service history entry

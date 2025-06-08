@@ -21,7 +21,7 @@ class JpaProtocolServicesRepositoryAdapter(
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Sprawdź, czy protokół istnieje i należy do tej samej firmy
-        val protocol = protocolJpaRepository.findByCompanyIdAndId(companyId, protocolId.value.toLong())
+        protocolJpaRepository.findByCompanyIdAndId(companyId, protocolId.value.toLong())
             .orElse(null) ?: throw IllegalStateException("Protocol with ID ${protocolId.value} not found or access denied")
 
         val protocolIdLong = protocolId.value.toLong()

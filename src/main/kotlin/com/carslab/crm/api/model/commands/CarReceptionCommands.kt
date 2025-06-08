@@ -208,7 +208,7 @@ class ServicesUpdateCommand {
 
     var services: List<CreateServiceCommand> = emptyList()
 
-    constructor() {}
+    constructor()
 }
 
 /**

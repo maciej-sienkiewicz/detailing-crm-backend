@@ -37,7 +37,7 @@ class InMemoryImageStorageService {
             val fileId = UUID.randomUUID().toString()
 
             // Normalizacja nazwy pliku
-            val safeName = file.originalFilename?.replace("[^a-zA-Z0-9.-]".toRegex(), "_")
+            file.originalFilename?.replace("[^a-zA-Z0-9.-]".toRegex(), "_")
                 ?: "${fileId}.bin"
 
             // Przechowywanie metadanych pliku
@@ -70,7 +70,7 @@ class InMemoryImageStorageService {
      * Pobiera dane pliku o podanym identyfikatorze.
      */
     fun getFileData(fileId: String): ByteArray? {
-        return imagesStorage.filter { (k, v) -> k.fileId == fileId }
+        return imagesStorage.filter { (k, _) -> k.fileId == fileId }
             .map { it.value }
             .first()
     }
@@ -79,7 +79,7 @@ class InMemoryImageStorageService {
      * Pobiera metadane pliku o podanym identyfikatorze.
      */
     fun getFileMetadata(fileId: String): ImageMetadata? {
-        return metadataStorage.filter { (k, v) -> k.fileId == fileId }
+        return metadataStorage.filter { (k, _) -> k.fileId == fileId }
             .map { it.value }
             .first()
     }
@@ -88,7 +88,7 @@ class InMemoryImageStorageService {
      * Sprawdza, czy plik o podanym identyfikatorze istnieje.
      */
     fun fileExists(fileId: String): Boolean {
-        return !imagesStorage.filter { (k, v) -> k.fileId == fileId }.isEmpty()
+        return !imagesStorage.filter { (k, _) -> k.fileId == fileId }.isEmpty()
     }
 
     /**

@@ -100,7 +100,7 @@ class ClientApplicationService(
         }
     }
 
-    fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0): Unit {
+    fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0) {
         logger.info("Updating statistics for client with ID: $clientId")
         try {
             clientDomainService.updateClientStatistics(clientId, totalGmv, counter)

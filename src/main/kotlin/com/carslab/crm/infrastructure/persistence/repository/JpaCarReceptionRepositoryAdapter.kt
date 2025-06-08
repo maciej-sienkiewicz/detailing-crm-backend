@@ -38,10 +38,10 @@ class JpaCarReceptionRepositoryAdapter(
             ?: throw IllegalStateException("Client ID is required")
 
         // Sprawdzamy, czy encje istnieją i należą do tej samej firmy
-        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
+        vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
             .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
 
-        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id  = clientId)
+        clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id  = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         val protocolEntity = ProtocolEntity(
@@ -81,7 +81,7 @@ class JpaCarReceptionRepositoryAdapter(
         val clientId = protocol.client.id
             ?: throw IllegalStateException("Client ID is required")
 
-        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = clientId)
+        clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         // Sprawdź, czy protokół istnieje
@@ -150,20 +150,20 @@ class JpaCarReceptionRepositoryAdapter(
     }
 
     override fun findByStatus(status: ProtocolStatus): List<CarReceptionProtocol> {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Dla uproszczenia, zwracamy pustą listę - implementacja wymagałaby konwersji
         return emptyList()
     }
 
     override fun findByClientName(clientName: String): List<CarReceptionProtocol> {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Użycie nowej metody z repozytorium z poprawnym zapytaniem JPQL
         // Dla uproszczenia, zwracamy pustą listę
         return emptyList()
     }
 
     override fun findByLicensePlate(licensePlate: String): List<CarReceptionProtocol> {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
         // Dla uproszczenia, zwracamy pustą listę
         return emptyList()
     }

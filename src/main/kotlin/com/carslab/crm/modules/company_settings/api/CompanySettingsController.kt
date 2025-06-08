@@ -152,7 +152,7 @@ class CompanySettingsController(
                 val contentType = java.nio.file.Files.probeContentType(logoPath) ?: "application/octet-stream"
 
                 ResponseEntity.ok()
-                    .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                    .contentType(MediaType.parseMediaType(contentType))
                     .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "max-age=3600")
                     .body(resource)
             } else {

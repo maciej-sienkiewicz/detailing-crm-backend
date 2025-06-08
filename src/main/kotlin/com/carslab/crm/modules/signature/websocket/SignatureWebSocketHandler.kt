@@ -615,7 +615,7 @@ class SignatureWebSocketHandler(
             val tabletEntryToRemove = tabletConnections.entries.find { it.value.session == session }
             if (tabletEntryToRemove != null) {
                 val tabletId = tabletEntryToRemove.key
-                val connection = tabletEntryToRemove.value
+                tabletEntryToRemove.value
 
                 // Safe removal with null check
                 if (tabletId != null) {
@@ -731,7 +731,7 @@ class SignatureWebSocketHandler(
      * Get all tablets connection status
      */
     fun getAllTabletsStatus(): Map<UUID, Map<String, Any>> {
-        return tabletConnections.filterKeys { it != null }.mapValues { (tabletId, connection) ->
+        return tabletConnections.filterKeys { it != null }.mapValues { (_, connection) ->
             mapOf(
                 "isOnline" to connection.session.isOpen,
                 "isAuthenticated" to connection.authenticated,

@@ -147,7 +147,7 @@ class FixedCostService(
     fun recordPayment(fixedCostId: String, request: RecordPaymentRequest): FixedCostPayment {
         logger.info("Recording payment for fixed cost ID: {}", fixedCostId)
 
-        val fixedCost = fixedCostRepository.findById(FixedCostId(fixedCostId))
+        fixedCostRepository.findById(FixedCostId(fixedCostId))
             ?: throw ResourceNotFoundException("FixedCost", fixedCostId)
 
         validatePaymentRequest(request)

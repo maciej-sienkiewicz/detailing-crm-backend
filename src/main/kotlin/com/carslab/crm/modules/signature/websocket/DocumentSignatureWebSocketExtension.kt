@@ -74,7 +74,7 @@ fun SignatureWebSocketHandler.sendDocumentSignatureRequest(
  * Notify about signature completion
  */
 fun SignatureWebSocketHandler.notifySignatureCompletion(sessionId: UUID, success: Boolean) {
-    val message = mapOf(
+    mapOf(
         "type" to "signature_completion_notification",
         "payload" to mapOf(
             "sessionId" to sessionId.toString(),
@@ -93,7 +93,7 @@ fun SignatureWebSocketHandler.notifySignatureCompletion(sessionId: UUID, success
  * Notify about simple signature completion
  */
 fun SignatureWebSocketHandler.notifySimpleSignatureCompletion(sessionId: UUID, success: Boolean) {
-    val message = mapOf(
+    mapOf(
         "type" to "simple_signature_completion_notification",
         "payload" to mapOf(
             "sessionId" to sessionId.toString(),
@@ -199,7 +199,7 @@ private fun SignatureWebSocketHandler.sendToTabletSession(
 ): Boolean {
     return try {
         if (session.isOpen) {
-            val json = com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(message)
+            val json = ObjectMapper().writeValueAsString(message)
             session.sendMessage(org.springframework.web.socket.TextMessage(json))
             true
         } else {

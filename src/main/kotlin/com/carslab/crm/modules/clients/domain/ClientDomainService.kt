@@ -69,7 +69,7 @@ class ClientDomainService(
         return clientRepository.save(updatedClient)
     }
 
-    fun updateClientStatistics(id: ClientId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L): Unit {
+    fun updateClientStatistics(id: ClientId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
         clientStatisticsRepository.updateVisitCount(id, counter)
         clientStatisticsRepository.updateRevenue(id, gmv)
     }
@@ -92,7 +92,7 @@ class ClientDomainService(
     }
 
     fun deleteClient(id: ClientId): Boolean {
-        val client = clientRepository.findById(id) ?: return false
+        clientRepository.findById(id) ?: return false
 
         // Remove all vehicle associations
         associationRepository.deleteByClientId(id)
