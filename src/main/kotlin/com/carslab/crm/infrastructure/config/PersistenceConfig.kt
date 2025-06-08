@@ -8,6 +8,9 @@ import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
+import com.carslab.crm.modules.visits.domain.ports.CarReceptionRepository
+import com.carslab.crm.modules.visits.domain.ports.ProtocolCommentsRepository
+import com.carslab.crm.modules.visits.domain.ports.ProtocolServicesRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary

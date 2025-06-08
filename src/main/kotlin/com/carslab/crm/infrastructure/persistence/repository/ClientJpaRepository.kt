@@ -4,6 +4,9 @@ import com.carslab.crm.domain.model.ContactAttemptResult
 import com.carslab.crm.domain.model.ContactAttemptType
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.infrastructure.persistence.entity.*
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolCommentEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
