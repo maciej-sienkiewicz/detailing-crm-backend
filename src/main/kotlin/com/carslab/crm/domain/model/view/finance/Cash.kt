@@ -4,8 +4,7 @@ import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.UserId
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 /**
  * Unikalny identyfikator transakcji gotówkowej.

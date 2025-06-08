@@ -4,7 +4,6 @@ import com.carslab.crm.domain.model.ApprovalStatus
 import com.carslab.crm.domain.model.Discount
 import com.carslab.crm.domain.model.Money
 import com.carslab.crm.infrastructure.repository.ServiceId
-import org.springframework.beans.factory.annotation.Qualifier
 
 data class ProtocolServiceView(
     val id: ServiceId,

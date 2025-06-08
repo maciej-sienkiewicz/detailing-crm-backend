@@ -2,7 +2,6 @@ package com.carslab.crm.domain.model.create
 
 import com.carslab.crm.domain.model.Audit
 import java.time.LocalDateTime
-import java.util.UUID
 
 /**
  * Domain model for calendar color

@@ -1,12 +1,10 @@
 package com.carslab.crm.domain.port
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
-import com.carslab.crm.domain.model.ContactAttempt
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**

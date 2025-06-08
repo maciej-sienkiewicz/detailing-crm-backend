@@ -1,8 +1,6 @@
 package com.carslab.crm.api.model.response
 
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.time.Instant
 import java.time.LocalDateTime
 
 data class VehicleResponse(

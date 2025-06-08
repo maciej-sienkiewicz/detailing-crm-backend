@@ -1,6 +1,5 @@
 package com.carslab.crm.domain.model.create.protocol
 
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 enum class PaymentMethod {

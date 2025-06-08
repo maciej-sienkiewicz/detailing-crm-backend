@@ -1,7 +1,6 @@
 package com.carslab.crm.domain.visits
 
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.domain.visits.CarReceptionService
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus

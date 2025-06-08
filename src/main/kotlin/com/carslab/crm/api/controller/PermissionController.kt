@@ -1,7 +1,6 @@
 package com.carslab.crm.api.controller
 
 import com.carslab.crm.infrastructure.persistence.entity.DataField
-import com.carslab.crm.infrastructure.persistence.entity.Permission
 import com.carslab.crm.infrastructure.persistence.entity.PermissionAction
 import com.carslab.crm.infrastructure.persistence.entity.PermissionEntity
 import com.carslab.crm.infrastructure.persistence.entity.ResourceType
@@ -9,7 +8,6 @@ import com.carslab.crm.infrastructure.persistence.repository.PermissionRepositor
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 @RestController

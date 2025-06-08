@@ -2,20 +2,12 @@ package com.carslab.crm.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.clients.api.mapper.VehicleMapper
-import com.carslab.crm.clients.api.requests.*
-import com.carslab.crm.clients.api.responses.ServiceHistoryResponse
-import com.carslab.crm.clients.api.responses.VehicleOwnerResponse
+import com.carslab.crm.clients.api.requests.ServiceHistoryRequest
+import com.carslab.crm.clients.api.requests.VehicleRequest
+import com.carslab.crm.clients.api.responses.*
 import com.carslab.crm.clients.api.responses.VehicleResponse
 import com.carslab.crm.clients.api.responses.VehicleStatisticsResponse
-import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.api.responses.VehicleCompanyStatisticsResponse
-import com.carslab.crm.clients.domain.ClientApplicationService
-import com.carslab.crm.clients.domain.CreateVehicleRequest
-import com.carslab.crm.clients.domain.UpdateVehicleRequest
-import com.carslab.crm.clients.domain.VehicleApplicationService
-import com.carslab.crm.clients.domain.VehicleTableService
-import com.carslab.crm.clients.domain.VehicleCompanyStatisticsService
-import com.carslab.crm.clients.domain.VehicleCompanyStatisticsServiceCached
+import com.carslab.crm.clients.domain.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.util.ValidationUtils
@@ -30,7 +22,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.util.UUID
+import java.util.*
 
 @RestController
 @RequestMapping("/api/vehicles")

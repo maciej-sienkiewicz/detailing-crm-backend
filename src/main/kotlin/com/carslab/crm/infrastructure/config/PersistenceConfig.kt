@@ -1,18 +1,7 @@
 package com.carslab.crm.infrastructure.config
 
-import com.carslab.crm.clients.domain.port.ClientRepository
-import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.clients.domain.port.ClientVehicleRepository
-import com.carslab.crm.clients.domain.port.VehicleRepository
-import com.carslab.crm.clients.domain.port.VehicleStatisticsRepository
-import com.carslab.crm.clients.domain.port.VehicleTableRepository
-import com.carslab.crm.clients.domain.port.VehicleCompanyStatisticsRepository
-import com.carslab.crm.clients.infrastructure.persistence.adapter.ClientVehicleAssociationRepositoryAdapter
-import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleRepositoryAdapter
-import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleStatisticsRepositoryAdapter
-import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleTableRepositoryAdapter
-import com.carslab.crm.clients.infrastructure.persistence.adapter.VehicleCompanyStatisticsRepositoryAdapter
+import com.carslab.crm.clients.domain.port.*
+import com.carslab.crm.clients.infrastructure.persistence.adapter.*
 import com.carslab.crm.company_settings.domain.port.CompanySettingsRepository
 import com.carslab.crm.company_settings.infrastructure.persistence.adapter.CompanySettingsRepositoryAdapter
 import com.carslab.crm.domain.port.*

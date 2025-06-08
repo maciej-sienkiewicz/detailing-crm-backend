@@ -1,7 +1,6 @@
 package com.carslab.crm.api.model.commands
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.math.BigDecimal
 
 data class ReleaseVehicleCommand(
 

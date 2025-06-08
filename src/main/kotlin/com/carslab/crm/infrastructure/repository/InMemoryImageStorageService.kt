@@ -1,12 +1,11 @@
 package com.carslab.crm.infrastructure.repository
 
-import com.carslab.crm.domain.model.MediaType
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.view.protocol.MediaTypeView
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 data class ImageId(

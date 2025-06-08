@@ -3,8 +3,10 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.request.GalleryFilterRequest
-import com.carslab.crm.api.model.request.TagMatchMode
-import com.carslab.crm.api.model.response.*
+import com.carslab.crm.api.model.response.GalleryImageResponse
+import com.carslab.crm.api.model.response.GalleryStatsResponse
+import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.api.model.response.TagStatResponse
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.GalleryJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ImageTagJpaRepository
@@ -13,6 +15,7 @@ import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.core.io.Resource
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpHeaders
@@ -22,7 +25,6 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/api/gallery")

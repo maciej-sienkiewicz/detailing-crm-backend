@@ -1,16 +1,11 @@
 package com.carslab.crm.api.controller
 
-import com.carslab.crm.domain.model.ConfigureRolePermissionCommand
-import com.carslab.crm.domain.model.CreateRoleCommand
-import com.carslab.crm.domain.model.RoleDetailResponse
-import com.carslab.crm.domain.model.RoleResponse
-import com.carslab.crm.domain.model.UpdateRoleCommand
+import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.permissions.RoleService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController

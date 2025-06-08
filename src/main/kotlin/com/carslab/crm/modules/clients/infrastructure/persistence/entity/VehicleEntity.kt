@@ -7,7 +7,6 @@ import com.carslab.crm.clients.domain.model.VehicleServiceInfo
 import com.carslab.crm.clients.domain.model.shared.AuditInfo
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
-import org.hibernate.annotations.CacheConcurrencyStrategy
 import java.math.BigDecimal
 import java.time.LocalDateTime
 

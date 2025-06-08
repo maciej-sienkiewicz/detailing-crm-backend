@@ -1,9 +1,7 @@
 package com.carslab.crm.api.model.response
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.time.LocalDate
 
 /**
  * Models for parallel processing of invoice data

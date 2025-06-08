@@ -1,7 +1,6 @@
 package com.carslab.crm.signature.websocket
 
 import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
-import com.carslab.crm.signature.api.dto.SignatureRequestDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component

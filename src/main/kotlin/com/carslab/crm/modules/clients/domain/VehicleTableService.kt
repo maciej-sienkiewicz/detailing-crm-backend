@@ -1,7 +1,6 @@
 package com.carslab.crm.clients.domain
 
 import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.api.responses.VehicleOwnerSummary
 import com.carslab.crm.clients.domain.port.VehicleTableRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page

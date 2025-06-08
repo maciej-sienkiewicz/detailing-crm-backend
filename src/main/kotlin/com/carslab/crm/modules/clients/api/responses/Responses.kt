@@ -1,10 +1,7 @@
 package com.carslab.crm.clients.api.responses
 
 import com.carslab.crm.clients.domain.ClientDetailResponse
-import com.carslab.crm.clients.domain.ClientStatisticsResponse
-import com.carslab.crm.clients.domain.VehicleSummaryResponse
 import com.carslab.crm.clients.domain.VehicleServiceInfoResponse
-import com.carslab.crm.clients.domain.model.Client
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime

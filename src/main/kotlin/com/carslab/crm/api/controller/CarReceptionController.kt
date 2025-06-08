@@ -2,15 +2,12 @@ package com.carslab.crm.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper
-import com.carslab.crm.api.mapper.CarReceptionDtoMapper.DATETIME_FORMATTER
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper.fromCreateImageCommand
-import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.commands.*
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.api.model.response.ProtocolCountersResponse
 import com.carslab.crm.api.model.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
-import com.carslab.crm.domain.visits.CarReceptionFacade
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
@@ -18,7 +15,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.DocumentType
 import com.carslab.crm.domain.model.create.protocol.PaymentMethod
 import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
-import com.carslab.crm.domain.model.view.protocol.MediaTypeView
+import com.carslab.crm.domain.visits.CarReceptionFacade
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService

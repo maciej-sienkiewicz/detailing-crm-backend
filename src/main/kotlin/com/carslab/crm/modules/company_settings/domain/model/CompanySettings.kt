@@ -2,7 +2,6 @@ package com.carslab.crm.company_settings.domain.model
 
 import com.carslab.crm.company_settings.domain.model.shared.AuditInfo
 import com.carslab.crm.domain.model.events.CompanySettingsEvent
-import java.time.LocalDateTime
 
 data class CompanySettingsId(val value: Long) {
     companion object {

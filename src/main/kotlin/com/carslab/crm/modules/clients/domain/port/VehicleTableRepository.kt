@@ -1,7 +1,6 @@
 package com.carslab.crm.clients.domain.port
 
 import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.api.responses.MostActiveVehicleInfo
 import com.carslab.crm.clients.domain.VehicleTableSearchCriteria
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

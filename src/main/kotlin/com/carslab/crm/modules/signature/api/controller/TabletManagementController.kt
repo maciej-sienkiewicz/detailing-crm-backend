@@ -1,7 +1,6 @@
 package com.carslab.crm.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.signature.api.dto.TabletListResponse
 import com.carslab.crm.signature.service.TabletManagementService

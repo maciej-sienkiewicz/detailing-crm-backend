@@ -1,9 +1,5 @@
 package com.carslab.crm.domain.utils
 
-import com.carslab.crm.domain.model.ProtocolId
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
 /**
  * Interfejs dla obiektów, które potrafią dostarczyć przyjazne nazwy pól
  */

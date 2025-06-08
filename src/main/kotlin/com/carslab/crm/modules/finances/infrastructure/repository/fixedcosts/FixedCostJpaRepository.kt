@@ -3,9 +3,7 @@ package com.carslab.crm.finances.infrastructure.repository.fixedcosts
 import com.carslab.crm.finances.domain.model.fixedcosts.CostFrequency
 import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostCategory
 import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostStatus
-import com.carslab.crm.finances.infrastructure.entity.BreakevenConfigurationEntity
 import com.carslab.crm.finances.infrastructure.entity.FixedCostEntity
-import com.carslab.crm.finances.infrastructure.entity.FixedCostPaymentEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph

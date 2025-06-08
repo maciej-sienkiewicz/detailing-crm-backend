@@ -2,10 +2,8 @@ package com.carslab.crm.company_settings.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.company_settings.api.requests.CreateCompanySettingsRequest
-import com.carslab.crm.company_settings.api.requests.TestEmailConnectionRequest
 import com.carslab.crm.company_settings.api.requests.UpdateCompanySettingsRequest
 import com.carslab.crm.company_settings.api.responses.CompanySettingsResponse
-import com.carslab.crm.company_settings.api.responses.EmailTestResponse
 import com.carslab.crm.company_settings.domain.CompanySettingsApplicationService
 import com.carslab.crm.company_settings.infrastructure.storage.FileLogoStorageService
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException

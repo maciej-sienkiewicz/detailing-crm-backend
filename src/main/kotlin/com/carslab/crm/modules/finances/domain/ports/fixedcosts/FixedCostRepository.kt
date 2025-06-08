@@ -3,13 +3,7 @@ package com.carslab.crm.finances.domain.ports.fixedcosts
 
 import com.carslab.crm.api.model.FixedCostFilterDTO
 import com.carslab.crm.finances.domain.PaginatedResult
-import com.carslab.crm.finances.domain.model.fixedcosts.BreakevenConfiguration
-import com.carslab.crm.finances.domain.model.fixedcosts.BreakevenConfigurationId
-import com.carslab.crm.finances.domain.model.fixedcosts.FixedCost
-import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostCategory
-import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostId
-import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostPayment
-import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostStatus
+import com.carslab.crm.finances.domain.model.fixedcosts.*
 import java.math.BigDecimal
 import java.time.LocalDate
 
