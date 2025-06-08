@@ -99,9 +99,17 @@ class CompanySettingsApplicationService(
         logger.debug("Getting company settings for company: $companyId")
 
         val companySettings = companySettingsDomainService.getCompanySettings(companyId)
-            ?: throw ResourceNotFoundException("Company settings", companyId)
 
-        return CompanySettingsResponse.from(companySettings)
+        return companySettings?.let { CompanySettingsResponse.from(it) } ?: CompanySettingsResponse(
+            id = null,
+            companyId = null,
+            basicInfo = null,
+            bankSettings = null,
+            emailSettings = null,
+            logoSettings = null,
+            createdAt = null,
+            updatedAt = null
+        )
     }
 
     fun uploadLogo(companyId: Long, logoFile: MultipartFile): CompanySettingsResponse {

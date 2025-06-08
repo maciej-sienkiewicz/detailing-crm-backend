@@ -38,14 +38,13 @@ class CarReceptionCommentsController(
         val user = (SecurityContextHolder.getContext().authentication.principal as UserEntity)
         val savedComment = comment.copy(
             id = UUID.randomUUID().toString(),
-            timestamp = LocalDateTime.now().toString(),
-            author = "${user.firstName} ${user.lastName}").also {
+            timestamp = LocalDateTime.now().toString()).also {
             commentsRepository.save(ProtocolComment(
                 protocolId = ProtocolId(comment.protocolId),
-                author = comment.author,
-                content = comment.content,
-                timestamp = comment.timestamp ?: LocalDateTime.now().toString(),
-                type = comment.type
+                author = "${user.firstName} ${user.lastName}",
+                content = it.content,
+                timestamp = it.timestamp ?: LocalDateTime.now().toString(),
+                type = it.type
             ))
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(savedComment)

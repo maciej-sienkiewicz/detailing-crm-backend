@@ -6,28 +6,28 @@ import java.time.LocalDateTime
 
 data class CompanySettingsResponse(
     @JsonProperty("id")
-    val id: Long,
+    val id: Long?,
 
     @JsonProperty("company_id")
-    val companyId: Long,
+    val companyId: Long?,
 
     @JsonProperty("basic_info")
-    val basicInfo: CompanyBasicInfoResponse,
+    val basicInfo: CompanyBasicInfoResponse?,
 
     @JsonProperty("bank_settings")
-    val bankSettings: BankSettingsResponse,
+    val bankSettings: BankSettingsResponse?,
 
     @JsonProperty("email_settings")
-    val emailSettings: EmailSettingsResponse,
+    val emailSettings: EmailSettingsResponse?,
 
     @JsonProperty("logo_settings")
-    val logoSettings: LogoSettingsResponse,
+    val logoSettings: LogoSettingsResponse?,
 
     @JsonProperty("created_at")
-    val createdAt: LocalDateTime,
+    val createdAt: LocalDateTime?,
 
     @JsonProperty("updated_at")
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime?
 ) {
     companion object {
         fun from(settings: CompanySettings): CompanySettingsResponse = CompanySettingsResponse(
