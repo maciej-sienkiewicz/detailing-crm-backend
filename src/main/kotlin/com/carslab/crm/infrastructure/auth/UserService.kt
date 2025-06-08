@@ -10,6 +10,7 @@ import com.carslab.crm.infrastructure.persistence.entity.User
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.RoleRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatisticsRepository
 import com.carslab.crm.security.JwtService
 import jakarta.transaction.Transactional
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -24,7 +25,8 @@ class UserService(
     private val roleRepository: RoleRepository,
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService,
-    private val cashBalancesRepository: CashBalancesRepository
+    private val cashBalancesRepository: CashBalancesRepository,
+    private val vehicleCompanyStatisticsRepository: VehicleCompanyStatisticsRepository,
 ) {
 
     fun authenticate(username: String, password: String): LoginResponse {

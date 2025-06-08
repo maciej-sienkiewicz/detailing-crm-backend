@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.io.InputStream
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -64,18 +65,10 @@ class ProtocolSignatureService(
             logger.info("Generating PDF for protocol: ${request.protocolId}")
             val pdfData = pdfService.generatePdf(request.protocolId)
 
-            // 2. Zapisz dokument w systemie
-            val document = createProtocolDocument(
-                protocolId = request.protocolId,
-                companyId = companyId,
-                pdfData = pdfData,
-                uploadedBy = userId
-            )
-
             // 3. Utwórz sesję podpisu dokumentu
             val signatureSession = DocumentSignatureSession(
                 sessionId = sessionId,
-                documentId = document.id,
+                documentId = UUID.randomUUID(),
                 tabletId = request.tabletId,
                 companyId = companyId,
                 signerName = request.customerName,
@@ -93,20 +86,17 @@ class ProtocolSignatureService(
 
             val savedSession = documentSignatureSessionRepository.save(signatureSession)
 
-            // 4. Wygeneruj podglądy dokumentu (opcjonalnie)
-            val previewUrls = generateDocumentPreviews(document.id, document.filePath)
-
             // 5. Wyślij żądanie podpisu do tableta
             val documentSignatureRequest = DocumentSignatureRequestDto(
                 sessionId = sessionId.toString(),
-                documentId = document.id.toString(),
+                documentId = "test",
                 companyId = companyId,
                 signerName = request.customerName,
                 signatureTitle = "Protokół przyjęcia pojazdu",
                 documentTitle = "Protokół przyjęcia pojazdu #${request.protocolId}",
                 documentType = "PROTOCOL",
                 pageCount = 1, // Protokoły to zwykle jedna strona
-                previewUrls = previewUrls,
+                previewUrls = emptyList(),
                 instructions = request.instructions,
                 businessContext = mapOf(
                     "protocolId" to request.protocolId,
@@ -132,7 +122,7 @@ class ProtocolSignatureService(
                     message = "Protocol signature request sent to tablet successfully",
                     expiresAt = expiresAt,
                     protocolId = request.protocolId,
-                    documentPreviewUrl = previewUrls.firstOrNull()
+                    documentPreviewUrl = null,
                 )
             } else {
                 documentSignatureSessionRepository.save(
@@ -160,10 +150,10 @@ class ProtocolSignatureService(
                 override fun getName() = "file"
                 override fun getOriginalFilename() = fileName
                 override fun getContentType() = "application/pdf"
-                override fun isEmpty() = pdfData.isEmpty()
-                override fun getSize() = pdfData.size.toLong()
+                override fun isEmpty() = false
+                override fun getSize() = 0.toLong()
                 override fun getBytes() = pdfData
-                override fun getInputStream() = pdfData.inputStream()
+                override fun getInputStream() = InputStream.nullInputStream()
                 override fun transferTo(dest: java.io.File) {
                     dest.writeBytes(pdfData)
                 }
