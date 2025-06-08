@@ -15,8 +15,15 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+
+data class UnifiedDocumentEntityId(
+    val id: String = "",
+    val companyId: Long = 0L
+)
+
 @Entity
 @Table(name = "unified_financial_documents")
+
 @NamedEntityGraphs(
     NamedEntityGraph(
         name = "UnifiedDocument.withItems",
@@ -30,11 +37,13 @@ import java.time.LocalDateTime
         ]
     )
 )
+@IdClass(UnifiedDocumentEntityId::class)
 class UnifiedDocumentEntity(
     @Id
     @Column(nullable = false)
     val id: String,
 
+    @Id
     @Column(nullable = false)
     var companyId: Long,
 
@@ -252,8 +261,17 @@ class DocumentItemEntity(
     @Column(nullable = false)
     val id: String,
 
+    @Column(name = "document_id", nullable = false)
+    val documentId: String,
+
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "document_id", nullable = false)
+    @JoinColumns(
+        JoinColumn(name = "document_id", referencedColumnName = "id", insertable = false, updatable = false),
+        JoinColumn(name = "company_id", referencedColumnName = "companyId", insertable = false, updatable = false)
+    )
     var document: UnifiedDocumentEntity? = null,
 
     @Column(nullable = false)
@@ -294,6 +312,8 @@ class DocumentItemEntity(
         fun fromDomain(domain: DocumentItem, document: UnifiedDocumentEntity): DocumentItemEntity {
             return DocumentItemEntity(
                 id = domain.id,
+                documentId = document.id,
+                companyId = document.companyId,
                 document = document,
                 name = domain.name,
                 description = domain.description,
@@ -314,8 +334,17 @@ class DocumentAttachmentEntity(
     @Column(nullable = false)
     val id: String,
 
+    @Column(name = "document_id", nullable = false)
+    val documentId: String,
+
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
+
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "document_id", nullable = false)
+    @JoinColumns(
+        JoinColumn(name = "document_id", referencedColumnName = "id", insertable = false, updatable = false),
+        JoinColumn(name = "company_id", referencedColumnName = "companyId", insertable = false, updatable = false)
+    )
     var document: UnifiedDocumentEntity? = null,
 
     @Column(nullable = false)
@@ -348,6 +377,8 @@ class DocumentAttachmentEntity(
         fun fromDomain(domain: DocumentAttachment, document: UnifiedDocumentEntity): DocumentAttachmentEntity {
             return DocumentAttachmentEntity(
                 id = domain.id,
+                documentId = document.id,
+                companyId = document.companyId,
                 document = document,
                 name = domain.name,
                 size = domain.size,

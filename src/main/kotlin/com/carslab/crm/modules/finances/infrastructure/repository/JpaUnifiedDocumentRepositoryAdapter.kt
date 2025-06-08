@@ -17,6 +17,7 @@ import com.carslab.crm.finances.infrastructure.entitiy.DocumentAttachmentEntity
 import com.carslab.crm.finances.infrastructure.entitiy.DocumentItemEntity
 import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.modules.finances.infrastructure.entitiy.CashHistoryBalanceEntity
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.security.core.context.SecurityContextHolder
@@ -33,6 +34,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
     private val documentJpaRepository: UnifiedDocumentJpaRepository,
     private val cashBalancesRepository: CashBalancesRepository,
     private val bankAccountBalanceRepository: BankAccountBalanceRepository,
+    private val cashHistoryFlowRepository: JpaCashHistoryFlowRepository
 ) : UnifiedDocumentRepository {
 
     @Transactional
@@ -467,5 +469,59 @@ class JpaUnifiedDocumentRepositoryAdapter(
                 type = type
             )
         }
+    }
+
+    override fun addAmountToCashBalance(
+        companyId: Long,
+        amount: BigDecimal,
+        lastUpdate: String
+    ): Int {
+        // Pobierz aktualny stan kasy
+        val currentBalance = cashBalancesRepository.findByCompanyId(companyId)
+            .map { it.amount }
+            .orElse(BigDecimal.ZERO)
+
+        // Oblicz nowy stan po operacji
+        val newBalance = currentBalance + amount
+
+        // Najpierw zapisz historię operacji
+        val historyEntity = CashHistoryBalanceEntity(
+            id = 0L, // ID będzie wygenerowane automatycznie przez bazę danych
+            companyId = companyId,
+            previousAmount = currentBalance,
+            afterOperation = newBalance,
+            lastUpdate = lastUpdate
+        )
+        cashHistoryFlowRepository.save(historyEntity)
+
+        // Następnie zaktualizuj aktualny stan kasy
+        return cashBalancesRepository.addAmountToBalance(companyId, amount, lastUpdate)
+    }
+
+    override fun subtractAmountFromCashBalance(
+        companyId: Long,
+        amount: BigDecimal,
+        lastUpdate: String
+    ): Int {
+        // Pobierz aktualny stan kasy
+        val currentBalance = cashBalancesRepository.findByCompanyId(companyId)
+            .map { it.amount }
+            .orElse(BigDecimal.ZERO)
+
+        // Oblicz nowy stan po operacji
+        val newBalance = currentBalance - amount
+
+        // Najpierw zapisz historię operacji
+        val historyEntity = CashHistoryBalanceEntity(
+            id = 0L, // ID będzie wygenerowane automatycznie przez bazę danych
+            companyId = companyId,
+            previousAmount = currentBalance,
+            afterOperation = newBalance,
+            lastUpdate = lastUpdate
+        )
+        cashHistoryFlowRepository.save(historyEntity)
+
+        // Następnie zaktualizuj aktualny stan kasy
+        return cashBalancesRepository.subtractAmountFromBalance(companyId, amount, lastUpdate)
     }
 }

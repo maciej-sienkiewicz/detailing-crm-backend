@@ -2,6 +2,8 @@ package com.carslab.crm.infrastructure.auth
 
 import com.carslab.crm.api.model.response.LoginResponse
 import com.carslab.crm.domain.model.*
+import com.carslab.crm.finances.infrastructure.entitiy.CashBalanceEntity
+import com.carslab.crm.finances.infrastructure.repository.CashBalancesRepository
 import com.carslab.crm.infrastructure.exception.BusinessException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.persistence.entity.User
@@ -12,6 +14,8 @@ import com.carslab.crm.security.JwtService
 import jakarta.transaction.Transactional
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDateTime
 
 @Service
@@ -19,7 +23,8 @@ class UserService(
     private val userRepository: UserRepository,
     private val roleRepository: RoleRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val cashBalancesRepository: CashBalancesRepository
 ) {
 
     fun authenticate(username: String, password: String): LoginResponse {
@@ -76,6 +81,14 @@ class UserService(
         // Konwertuj do encji i zapisz
         val userEntity = UserEntity.fromDomain(user)
         val savedUserEntity = userRepository.save(userEntity)
+
+        savedUserEntity.companyId.let {
+            cashBalancesRepository.save(CashBalanceEntity(
+                companyId = it,
+                amount = BigDecimal.ZERO,
+                lastUpdate = Instant.now().toString()
+            ))
+        }
 
         return UserResponse.fromEntity(savedUserEntity)
     }

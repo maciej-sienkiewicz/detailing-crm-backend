@@ -76,7 +76,6 @@ class CarReceptionService(
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
     private val protocolCommentsRepository: ProtocolCommentsRepository,
-    private val cashRepository: CashRepository,
     private val invoiceRepository: InvoiceRepository,
     private val unifiedDocumentRepository: UnifiedDocumentRepository,
     private val securityContext: SecurityContext,
@@ -497,10 +496,6 @@ class CarReceptionService(
     fun releaseVehicle(existingProtocol: CarReceptionProtocol, releaseDetails: VehicleReleaseDetailsModel): CarReceptionProtocol {
         val updatedProtocol = changeStatus(existingProtocol.id, ProtocolStatus.COMPLETED)
 
-        if (releaseDetails.paymentMethod == PaymentMethod.CASH) {
-            registerCashPayment(existingProtocol)
-        }
-
         if (releaseDetails.documentType == DocumentType.INVOICE) {
             createInvoiceDocument(existingProtocol, releaseDetails)
         }
@@ -557,25 +552,6 @@ class CarReceptionService(
                 visitId = null,
                 items = items,
                 attachment = null,
-                audit = Audit(
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
-            )
-        )
-    }
-
-    private fun registerCashPayment(existingProtocol: CarReceptionProtocol) {
-        cashRepository.save(
-            CashTransaction(
-                id = TransactionId.Companion.generate(),
-                type = TransactionType.INCOME,
-                description = "Opłata za wizytę",
-                date = LocalDate.now(),
-                amount = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
-                    .sumOf { it.finalPrice.amount }.toBigDecimal(),
-                visitId = existingProtocol.id.value,
-                createdBy = UserId("0"),
                 audit = Audit(
                     createdAt = LocalDateTime.now(),
                     updatedAt = LocalDateTime.now()

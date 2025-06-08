@@ -5,6 +5,10 @@ import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.finances.domain.PaginatedResult
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -107,6 +111,10 @@ interface UnifiedDocumentRepository {
      * Znajduje najczęstszych kontrahentów.
      */
     fun getTopCounterparties(limit: Int = 10, type: String = "BUYER"): List<CounterpartyUsage>
+
+    fun addAmountToCashBalance(companyId: Long, amount: BigDecimal, lastUpdate: String): Int
+
+    fun subtractAmountFromCashBalance(companyId: Long, amount: BigDecimal, lastUpdate: String): Int
 }
 
 /**

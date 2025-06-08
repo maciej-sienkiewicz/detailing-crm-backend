@@ -250,9 +250,9 @@ class UnifiedDocumentService(
             when (doc.paymentMethod) {
                 PaymentMethod.CASH -> {
                     if (doc.direction == TransactionDirection.INCOME) {
-                        cashBalancesRepository.addAmountToBalance(companyId, doc.totalTax, Instant.now().toString())
+                        cashBalancesRepository.addAmountToBalance(companyId, doc.totalGross, Instant.now().toString())
                     } else {
-                        cashBalancesRepository.subtractAmountFromBalance(companyId, doc.totalTax, Instant.now().toString())
+                        cashBalancesRepository.subtractAmountFromBalance(companyId, doc.totalGross, Instant.now().toString())
                     }
                 }
 

@@ -10,13 +10,20 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+data class InvoiceEntityId(
+    val id: String = "",
+    val companyId: Long = 0L
+)
+
 @Entity
 @Table(name = "invoices")
+@IdClass(InvoiceEntityId::class)
 class InvoiceEntity(
     @Id
     @Column(nullable = false)
     val id: String,
 
+    @Id
     @Column(nullable = false)
     var companyId: Long,
 
@@ -168,8 +175,17 @@ class InvoiceItemEntity(
     @Column(nullable = false)
     val id: String,
 
+    @Column(name = "invoice_id", nullable = false)
+    val invoiceId: String,
+
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invoice_id", nullable = false)
+    @JoinColumns(
+        JoinColumn(name = "invoice_id", referencedColumnName = "id", insertable = false, updatable = false),
+        JoinColumn(name = "company_id", referencedColumnName = "companyId", insertable = false, updatable = false)
+    )
     var invoice: InvoiceEntity? = null,
 
     @Column(nullable = false)
@@ -210,6 +226,8 @@ class InvoiceItemEntity(
         fun fromDomain(domain: InvoiceItem, invoice: InvoiceEntity): InvoiceItemEntity {
             return InvoiceItemEntity(
                 id = domain.id,
+                invoiceId = invoice.id,
+                companyId = invoice.companyId,
                 invoice = invoice,
                 name = domain.name,
                 description = domain.description,
@@ -230,8 +248,17 @@ class InvoiceAttachmentEntity(
     @Column(nullable = false)
     val id: String,
 
+    @Column(name = "invoice_id", nullable = false)
+    val invoiceId: String,
+
+    @Column(name = "company_id", nullable = false)
+    val companyId: Long,
+
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invoice_id", nullable = false)
+    @JoinColumns(
+        JoinColumn(name = "invoice_id", referencedColumnName = "id", insertable = false, updatable = false),
+        JoinColumn(name = "company_id", referencedColumnName = "companyId", insertable = false, updatable = false)
+    )
     var invoice: InvoiceEntity? = null,
 
     @Column(nullable = false)
@@ -264,6 +291,8 @@ class InvoiceAttachmentEntity(
         fun fromDomain(domain: InvoiceAttachment, invoice: InvoiceEntity): InvoiceAttachmentEntity {
             return InvoiceAttachmentEntity(
                 id = domain.id,
+                invoiceId = invoice.id,
+                companyId = invoice.companyId,
                 invoice = invoice,
                 name = domain.name,
                 size = domain.size,
