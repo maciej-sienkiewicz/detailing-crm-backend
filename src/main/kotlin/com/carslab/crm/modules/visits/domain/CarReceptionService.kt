@@ -1,4 +1,4 @@
-package com.carslab.crm.modules.company_settings.domain
+package com.carslab.crm.modules.visits.domain
 
 import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.TransactionDirection
@@ -41,11 +41,27 @@ class CarReceptionService(
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
     private val protocolCommentsRepository: ProtocolCommentsRepository,
-    private val invoiceRepository: InvoiceRepository,
     private val unifiedDocumentRepository: UnifiedDocumentRepository,
     private val securityContext: SecurityContext,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
+
+    /**
+         * logger.info("This is the new way of creating protocols")
+         *
+         * val clientId = clientApplicationService.getClientById(createProtocolCommand.client.id.toLong())
+         *  .getOrElse { clientApplicationService.createClient(createProtocolCommand.client.toCreateClientRequest()) }
+         *
+         *  val vehicleId = vehicleApplicationService.getVehicleById(createProtocolCommand.vehicle.id.toLong())
+         *  .getOrElse { vehicleApplicationService.createVehicle(createProtocolCommand.vehicle.toCreateVehicleRequest()) }
+         *
+         *  val savedProtocol = carReceptionRepository.save(createProtocolCommand.toCarReceptionProtocol(clientId, vehicleId))
+         *
+         *  eventEmitter.emit(NEW_VISIT_CREATED, savedProtocol)
+         *  logger.info("Created protocol with ID: ${savedProtocolId.value}")
+         *  return savedProtocolId
+         */
+
 
     fun createProtocol(createProtocolCommand: CreateProtocolRootModel): ProtocolId {
         logger.info("Creating new protocol for vehicle: ${createProtocolCommand.vehicle.brand} ${createProtocolCommand.vehicle.model} (${createProtocolCommand.vehicle.licensePlate})")
@@ -329,7 +345,6 @@ class CarReceptionService(
     }
 
     private fun findOrCreateClient(clientData: CreateProtocolClientModel): ClientDetailResponse {
-        // Jeśli klient ma ID, próbujemy go znaleźć
         if (clientData.id != null) {
             clientApplicationService.getClientById(clientData.id.toLong())?.let {
                 logger.debug("Found existing client with ID: ${clientData.id}")
@@ -337,14 +352,12 @@ class CarReceptionService(
             }
         }
 
-        // Próbujemy znaleźć klienta po danych kontaktowych
         val existingClient = findClientByContactInfo(clientData.email, clientData.phone)
         if (existingClient != null) {
             logger.debug("Found existing client by contact information")
             return existingClient
         }
 
-        // Jeśli nie znaleźliśmy klienta, tworzymy nowego
         logger.info("Creating new client: ${clientData.name}")
         return createNewClient(clientData)
     }

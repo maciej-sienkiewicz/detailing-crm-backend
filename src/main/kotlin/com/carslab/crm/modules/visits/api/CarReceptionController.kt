@@ -14,7 +14,7 @@ import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
 import com.carslab.crm.domain.model.create.protocol.DocumentType
 import com.carslab.crm.domain.model.create.protocol.PaymentMethod
 import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
-import com.carslab.crm.modules.company_settings.domain.CarReceptionFacade
+import com.carslab.crm.modules.visits.domain.CarReceptionFacade
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.storage.FileImageStorageService

@@ -2,7 +2,7 @@ package com.carslab.crm.domain.visits.protocols
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
-import com.carslab.crm.modules.company_settings.domain.CarReceptionFacade
+import com.carslab.crm.modules.visits.domain.CarReceptionFacade
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField

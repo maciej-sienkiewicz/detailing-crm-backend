@@ -1,4 +1,4 @@
-package com.carslab.crm.modules.company_settings.domain
+package com.carslab.crm.modules.visits.domain
 
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.domain.model.CarReceptionProtocol
