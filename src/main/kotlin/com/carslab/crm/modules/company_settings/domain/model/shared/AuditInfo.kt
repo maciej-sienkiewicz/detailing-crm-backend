@@ -1,4 +1,4 @@
-package com.carslab.crm.company_settings.domain.model.shared
+package com.carslab.crm.modules.company_settings.domain.model.shared
 
 import java.time.LocalDateTime
 

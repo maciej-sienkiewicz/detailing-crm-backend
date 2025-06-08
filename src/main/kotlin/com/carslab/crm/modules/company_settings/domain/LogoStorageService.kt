@@ -1,4 +1,4 @@
-package com.carslab.crm.company_settings.domain
+package com.carslab.crm.modules.company_settings.domain
 
 import org.springframework.web.multipart.MultipartFile
 

@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.api.mapper
+package com.carslab.crm.modules.clients.api.mapper
 
-import com.carslab.crm.clients.api.responses.*
-import com.carslab.crm.clients.domain.ClientDetailResponse
+import com.carslab.crm.modules.clients.api.responses.*
+import com.carslab.crm.modules.clients.domain.ClientDetailResponse
 
 object ClientMapper {
 

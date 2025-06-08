@@ -1,6 +1,6 @@
-package com.carslab.crm.clients.domain.model
+package com.carslab.crm.modules.clients.domain.model
 
-import com.carslab.crm.clients.domain.model.shared.AuditInfo
+import com.carslab.crm.modules.clients.domain.model.shared.AuditInfo
 import com.carslab.crm.domain.model.events.ClientEvent
 import java.math.BigDecimal
 import java.time.LocalDateTime

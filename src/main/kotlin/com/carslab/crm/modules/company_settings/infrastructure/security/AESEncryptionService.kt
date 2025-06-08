@@ -1,6 +1,6 @@
-package com.carslab.crm.company_settings.infrastructure.security
+package com.carslab.crm.modules.company_settings.infrastructure.security
 
-import com.carslab.crm.company_settings.domain.port.EncryptionService
+import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.Base64

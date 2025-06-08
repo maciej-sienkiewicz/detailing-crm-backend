@@ -1,9 +1,9 @@
-package com.carslab.crm.clients.infrastructure.persistence.entity
+package com.carslab.crm.modules.clients.infrastructure.persistence.entity
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientVehicleAssociation
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

@@ -1,8 +1,8 @@
-package com.carslab.crm.clients.domain.port
+package com.carslab.crm.modules.clients.domain.port
 
-import com.carslab.crm.clients.domain.model.Client
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.CreateClient
+import com.carslab.crm.modules.clients.domain.model.Client
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.CreateClient
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 

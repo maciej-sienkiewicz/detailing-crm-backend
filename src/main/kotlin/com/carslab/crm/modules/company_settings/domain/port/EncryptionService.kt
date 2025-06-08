@@ -1,4 +1,4 @@
-package com.carslab.crm.company_settings.domain.port
+package com.carslab.crm.modules.company_settings.domain.port
 
 interface EncryptionService {
     fun encrypt(plainText: String): String

@@ -1,12 +1,12 @@
-package com.carslab.crm.clients.domain
+package com.carslab.crm.modules.clients.domain
 
-import com.carslab.crm.clients.api.CreateVehicleCommand
-import com.carslab.crm.clients.api.UpdateVehicleCommand
+import com.carslab.crm.modules.clients.api.CreateVehicleCommand
+import com.carslab.crm.modules.clients.api.UpdateVehicleCommand
 import com.carslab.crm.domain.exception.DomainException
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.model.VehicleRelationshipType
-import com.carslab.crm.clients.domain.port.VehicleSearchCriteria
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.modules.clients.domain.port.VehicleSearchCriteria
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.slf4j.LoggerFactory

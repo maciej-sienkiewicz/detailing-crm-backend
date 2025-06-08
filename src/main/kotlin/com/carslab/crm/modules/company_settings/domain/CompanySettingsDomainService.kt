@@ -1,12 +1,12 @@
-package com.carslab.crm.company_settings.domain
+package com.carslab.crm.modules.company_settings.domain
 
-import com.carslab.crm.company_settings.api.requests.UpdateCompanySettingsRequest
-import com.carslab.crm.company_settings.domain.model.CompanySettings
-import com.carslab.crm.company_settings.domain.model.CompanySettingsId
-import com.carslab.crm.company_settings.domain.model.CreateCompanySettings
-import com.carslab.crm.company_settings.domain.model.EmailSettings
-import com.carslab.crm.company_settings.domain.port.CompanySettingsRepository
-import com.carslab.crm.company_settings.domain.port.EncryptionService
+import com.carslab.crm.modules.company_settings.api.requests.UpdateCompanySettingsRequest
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
+import com.carslab.crm.modules.company_settings.domain.model.CreateCompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
+import com.carslab.crm.modules.company_settings.domain.port.CompanySettingsRepository
+import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
 import com.carslab.crm.domain.exception.DomainException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

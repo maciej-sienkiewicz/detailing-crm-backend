@@ -1,13 +1,13 @@
-package com.carslab.crm.company_settings.domain
+package com.carslab.crm.modules.company_settings.domain
 
-import com.carslab.crm.company_settings.api.requests.CreateCompanySettingsRequest
-import com.carslab.crm.company_settings.api.requests.UpdateCompanySettingsRequest
-import com.carslab.crm.company_settings.api.responses.CompanySettingsResponse
-import com.carslab.crm.company_settings.domain.model.BankSettings
-import com.carslab.crm.company_settings.domain.model.CompanyBasicInfo
-import com.carslab.crm.company_settings.domain.model.CreateCompanySettings
-import com.carslab.crm.company_settings.domain.model.EmailSettings
-import com.carslab.crm.company_settings.domain.model.LogoSettings
+import com.carslab.crm.modules.company_settings.api.requests.CreateCompanySettingsRequest
+import com.carslab.crm.modules.company_settings.api.requests.UpdateCompanySettingsRequest
+import com.carslab.crm.modules.company_settings.api.responses.CompanySettingsResponse
+import com.carslab.crm.modules.company_settings.domain.model.BankSettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
+import com.carslab.crm.modules.company_settings.domain.model.CreateCompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
+import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.security.SecurityContext

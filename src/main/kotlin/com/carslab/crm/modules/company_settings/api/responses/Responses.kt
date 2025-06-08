@@ -1,6 +1,6 @@
-package com.carslab.crm.company_settings.api.responses
+package com.carslab.crm.modules.company_settings.api.responses
 
-import com.carslab.crm.company_settings.domain.model.CompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 
@@ -60,7 +60,7 @@ data class CompanyBasicInfoResponse(
     val website: String?
 ) {
     companion object {
-        fun from(basicInfo: com.carslab.crm.company_settings.domain.model.CompanyBasicInfo): CompanyBasicInfoResponse =
+        fun from(basicInfo: com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo): CompanyBasicInfoResponse =
             CompanyBasicInfoResponse(
                 companyName = basicInfo.companyName,
                 taxId = basicInfo.taxId,
@@ -85,7 +85,7 @@ data class BankSettingsResponse(
     val accountHolderName: String?
 ) {
     companion object {
-        fun from(bankSettings: com.carslab.crm.company_settings.domain.model.BankSettings): BankSettingsResponse =
+        fun from(bankSettings: com.carslab.crm.modules.company_settings.domain.model.BankSettings): BankSettingsResponse =
             BankSettingsResponse(
                 bankAccountNumber = bankSettings.bankAccountNumber,
                 bankName = bankSettings.bankName,
@@ -139,7 +139,7 @@ data class EmailSettingsResponse(
     val imapConfigured: Boolean
 ) {
     companion object {
-        fun from(emailSettings: com.carslab.crm.company_settings.domain.model.EmailSettings): EmailSettingsResponse =
+        fun from(emailSettings: com.carslab.crm.modules.company_settings.domain.model.EmailSettings): EmailSettingsResponse =
             EmailSettingsResponse(
                 smtpHost = emailSettings.smtpHost,
                 smtpPort = emailSettings.smtpPort,
@@ -176,7 +176,7 @@ data class LogoSettingsResponse(
     val logoUrl: String?
 ) {
     companion object {
-        fun from(logoSettings: com.carslab.crm.company_settings.domain.model.LogoSettings): LogoSettingsResponse =
+        fun from(logoSettings: com.carslab.crm.modules.company_settings.domain.model.LogoSettings): LogoSettingsResponse =
             LogoSettingsResponse(
                 hasLogo = logoSettings.hasLogo(),
                 logoFileName = logoSettings.logoFileName,

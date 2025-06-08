@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.domain
+package com.carslab.crm.modules.clients.domain
 
-import com.carslab.crm.clients.api.responses.VehicleCompanyStatisticsResponse
-import com.carslab.crm.clients.domain.port.VehicleCompanyStatisticsRepository
+import com.carslab.crm.modules.clients.api.responses.VehicleCompanyStatisticsResponse
+import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatisticsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -47,7 +47,7 @@ class VehicleCompanyStatisticsServiceCached(
                     java.math.BigDecimal.ZERO
                 },
                 mostActiveVehicle = rawStatistics.mostActiveVehicle?.let {
-                    com.carslab.crm.clients.api.responses.MostActiveVehicleInfo(
+                    com.carslab.crm.modules.clients.api.responses.MostActiveVehicleInfo(
                         id = it.id,
                         make = it.make,
                         model = it.model,
@@ -112,7 +112,7 @@ class VehiclePerformanceMonitor {
 
     private val logger = LoggerFactory.getLogger(VehiclePerformanceMonitor::class.java)
 
-    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.clients.infrastructure.persistence.repository.VehicleTableJpaRepository.*(..))")
+    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepository.*(..))")
     fun monitorTableQueries(joinPoint: org.aspectj.lang.ProceedingJoinPoint): Any? {
         val startTime = System.currentTimeMillis()
         val methodName = joinPoint.signature.name
@@ -135,7 +135,7 @@ class VehiclePerformanceMonitor {
         }
     }
 
-    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository.*(..))")
+    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository.*(..))")
     fun monitorStatisticsQueries(joinPoint: org.aspectj.lang.ProceedingJoinPoint): Any? {
         val startTime = System.currentTimeMillis()
         val methodName = joinPoint.signature.name

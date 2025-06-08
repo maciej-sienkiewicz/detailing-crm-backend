@@ -1,11 +1,11 @@
-package com.carslab.crm.company_settings.infrastructure.persistence.adapter
+package com.carslab.crm.modules.company_settings.infrastructure.persistence.adapter
 
-import com.carslab.crm.company_settings.domain.model.CompanySettings
-import com.carslab.crm.company_settings.domain.model.CompanySettingsId
-import com.carslab.crm.company_settings.domain.model.CreateCompanySettings
-import com.carslab.crm.company_settings.domain.port.CompanySettingsRepository
-import com.carslab.crm.company_settings.infrastructure.persistence.entity.CompanySettingsEntity
-import com.carslab.crm.company_settings.infrastructure.persistence.repository.CompanySettingsJpaRepository
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
+import com.carslab.crm.modules.company_settings.domain.model.CreateCompanySettings
+import com.carslab.crm.modules.company_settings.domain.port.CompanySettingsRepository
+import com.carslab.crm.modules.company_settings.infrastructure.persistence.entity.CompanySettingsEntity
+import com.carslab.crm.modules.company_settings.infrastructure.persistence.repository.CompanySettingsJpaRepository
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime

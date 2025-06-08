@@ -1,9 +1,9 @@
-package com.carslab.crm.company_settings.api.requests
+package com.carslab.crm.modules.company_settings.api.requests
 
-import com.carslab.crm.company_settings.domain.model.BankSettings
-import com.carslab.crm.company_settings.domain.model.CompanyBasicInfo
-import com.carslab.crm.company_settings.domain.model.EmailSettings
-import com.carslab.crm.company_settings.domain.model.LogoSettings
+import com.carslab.crm.modules.company_settings.domain.model.BankSettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
+import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
+import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank

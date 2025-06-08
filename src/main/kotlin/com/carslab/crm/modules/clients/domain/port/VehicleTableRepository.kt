@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.domain.port
+package com.carslab.crm.modules.clients.domain.port
 
-import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.domain.VehicleTableSearchCriteria
+import com.carslab.crm.modules.clients.api.responses.VehicleTableResponse
+import com.carslab.crm.modules.clients.domain.VehicleTableSearchCriteria
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.math.BigDecimal

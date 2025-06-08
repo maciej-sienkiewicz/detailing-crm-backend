@@ -1,7 +1,7 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.infrastructure.persistence.entity.ClientEntity
-import com.carslab.crm.clients.infrastructure.persistence.entity.VehicleEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
@@ -10,9 +10,9 @@ import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.domain.port.CarReceptionRepository
 import com.carslab.crm.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification

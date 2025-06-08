@@ -3,10 +3,10 @@ package com.carslab.crm.domain.visits
 import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.clients.domain.*
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.modules.clients.domain.*
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
 import com.carslab.crm.domain.model.*
 import com.carslab.crm.domain.model.create.protocol.*
 import com.carslab.crm.domain.model.view.finance.DocumentItem

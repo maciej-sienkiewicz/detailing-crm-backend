@@ -2,7 +2,7 @@ package com.carslab.crm.infrastructure.repository
 
 import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
-import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.domain.port.ServiceHistoryRepository
 import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap

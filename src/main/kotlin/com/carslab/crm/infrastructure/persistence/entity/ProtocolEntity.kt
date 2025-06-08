@@ -1,7 +1,7 @@
 package com.carslab.crm.infrastructure.persistence.entity
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.ReferralSource

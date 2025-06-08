@@ -1,8 +1,8 @@
-package com.carslab.crm.clients.domain.port
+package com.carslab.crm.modules.clients.domain.port
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientVehicleAssociation
-import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
+import com.carslab.crm.modules.clients.domain.model.VehicleId
 
 interface ClientVehicleAssociationRepository {
     fun save(association: ClientVehicleAssociation): ClientVehicleAssociation

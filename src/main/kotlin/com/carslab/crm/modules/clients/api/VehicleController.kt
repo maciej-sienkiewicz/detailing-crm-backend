@@ -1,13 +1,13 @@
-package com.carslab.crm.clients.api
+package com.carslab.crm.modules.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.clients.api.mapper.VehicleMapper
-import com.carslab.crm.clients.api.requests.ServiceHistoryRequest
-import com.carslab.crm.clients.api.requests.VehicleRequest
-import com.carslab.crm.clients.api.responses.*
-import com.carslab.crm.clients.api.responses.VehicleResponse
-import com.carslab.crm.clients.api.responses.VehicleStatisticsResponse
-import com.carslab.crm.clients.domain.*
+import com.carslab.crm.modules.clients.api.mapper.VehicleMapper
+import com.carslab.crm.modules.clients.api.requests.ServiceHistoryRequest
+import com.carslab.crm.modules.clients.api.requests.VehicleRequest
+import com.carslab.crm.modules.clients.api.responses.*
+import com.carslab.crm.modules.clients.api.responses.VehicleResponse
+import com.carslab.crm.modules.clients.api.responses.VehicleStatisticsResponse
+import com.carslab.crm.modules.clients.domain.*
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.util.ValidationUtils

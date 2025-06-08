@@ -1,9 +1,9 @@
-package com.carslab.crm.clients.infrastructure.persistence.adapter
+package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.domain.port.VehicleCompanyStatisticsRepository
-import com.carslab.crm.clients.domain.port.VehicleCompanyStatistics
-import com.carslab.crm.clients.domain.port.MostActiveVehicleData
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatisticsRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatistics
+import com.carslab.crm.modules.clients.domain.port.MostActiveVehicleData
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional

@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.domain
+package com.carslab.crm.modules.clients.domain
 
-import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.domain.port.VehicleTableRepository
+import com.carslab.crm.modules.clients.api.responses.VehicleTableResponse
+import com.carslab.crm.modules.clients.domain.port.VehicleTableRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

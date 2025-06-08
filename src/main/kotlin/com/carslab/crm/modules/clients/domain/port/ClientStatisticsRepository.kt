@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.domain.port
+package com.carslab.crm.modules.clients.domain.port
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientStatistics
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientStatistics
 import java.math.BigDecimal
 
 interface ClientStatisticsRepository {

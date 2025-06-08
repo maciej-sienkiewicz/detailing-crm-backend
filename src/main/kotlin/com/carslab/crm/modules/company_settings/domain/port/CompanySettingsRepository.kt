@@ -1,8 +1,8 @@
-package com.carslab.crm.company_settings.domain.port
+package com.carslab.crm.modules.company_settings.domain.port
 
-import com.carslab.crm.company_settings.domain.model.CompanySettings
-import com.carslab.crm.company_settings.domain.model.CompanySettingsId
-import com.carslab.crm.company_settings.domain.model.CreateCompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
+import com.carslab.crm.modules.company_settings.domain.model.CreateCompanySettings
 
 interface CompanySettingsRepository {
     fun save(settings: CompanySettings): CompanySettings

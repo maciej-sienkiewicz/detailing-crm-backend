@@ -1,16 +1,16 @@
-package com.carslab.crm.clients.domain
+package com.carslab.crm.modules.clients.domain
 
 import com.carslab.crm.domain.exception.DomainException
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientSummary
-import com.carslab.crm.clients.domain.model.ClientVehicleAssociation
-import com.carslab.crm.clients.domain.model.Vehicle
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.model.VehicleRelationshipType
-import com.carslab.crm.clients.domain.port.ClientRepository
-import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.clients.domain.port.VehicleRepository
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientSummary
+import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
+import com.carslab.crm.modules.clients.domain.model.Vehicle
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
+import com.carslab.crm.modules.clients.domain.port.ClientRepository
+import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

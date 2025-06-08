@@ -1,7 +1,7 @@
-package com.carslab.crm.clients.infrastructure.persistence.entity
+package com.carslab.crm.modules.clients.infrastructure.persistence.entity
 
-import com.carslab.crm.clients.domain.model.ClientStatistics
-import com.carslab.crm.clients.domain.model.VehicleStatistics
+import com.carslab.crm.modules.clients.domain.model.ClientStatistics
+import com.carslab.crm.modules.clients.domain.model.VehicleStatistics
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDateTime

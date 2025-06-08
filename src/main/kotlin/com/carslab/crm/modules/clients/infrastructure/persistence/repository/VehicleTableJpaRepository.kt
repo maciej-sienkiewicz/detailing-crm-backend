@@ -1,4 +1,4 @@
-package com.carslab.crm.clients.infrastructure.persistence.repository
+package com.carslab.crm.modules.clients.infrastructure.persistence.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -6,7 +6,7 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface VehicleTableJpaRepository : JpaRepository<com.carslab.crm.clients.infrastructure.persistence.entity.VehicleEntity, Long> {
+interface VehicleTableJpaRepository : JpaRepository<com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity, Long> {
 
     /**
      * POPRAWIONA implementacja - usunięto DISTINCT i dodano GROUP BY

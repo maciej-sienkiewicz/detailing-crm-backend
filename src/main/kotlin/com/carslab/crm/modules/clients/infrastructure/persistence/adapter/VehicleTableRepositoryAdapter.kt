@@ -1,10 +1,10 @@
-package com.carslab.crm.clients.infrastructure.persistence.adapter
+package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.api.responses.VehicleTableResponse
-import com.carslab.crm.clients.api.responses.VehicleOwnerSummary
-import com.carslab.crm.clients.domain.VehicleTableSearchCriteria
-import com.carslab.crm.clients.domain.port.VehicleTableRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleTableJpaRepository
+import com.carslab.crm.modules.clients.api.responses.VehicleTableResponse
+import com.carslab.crm.modules.clients.api.responses.VehicleOwnerSummary
+import com.carslab.crm.modules.clients.domain.VehicleTableSearchCriteria
+import com.carslab.crm.modules.clients.domain.port.VehicleTableRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl

@@ -1,8 +1,8 @@
-package com.carslab.crm.clients.api.mapper
+package com.carslab.crm.modules.clients.api.mapper
 
-import com.carslab.crm.clients.api.responses.VehicleResponse
-import com.carslab.crm.clients.domain.VehicleDetailResponse
-import com.carslab.crm.clients.domain.VehicleSummaryResponse
+import com.carslab.crm.modules.clients.api.responses.VehicleResponse
+import com.carslab.crm.modules.clients.domain.VehicleDetailResponse
+import com.carslab.crm.modules.clients.domain.VehicleSummaryResponse
 
 object VehicleMapper {
 

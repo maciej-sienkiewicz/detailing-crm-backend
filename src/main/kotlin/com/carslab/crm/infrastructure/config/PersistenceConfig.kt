@@ -1,9 +1,9 @@
 package com.carslab.crm.infrastructure.config
 
-import com.carslab.crm.clients.domain.port.*
-import com.carslab.crm.clients.infrastructure.persistence.adapter.*
-import com.carslab.crm.company_settings.domain.port.CompanySettingsRepository
-import com.carslab.crm.company_settings.infrastructure.persistence.adapter.CompanySettingsRepositoryAdapter
+import com.carslab.crm.modules.clients.domain.port.*
+import com.carslab.crm.modules.clients.infrastructure.persistence.adapter.*
+import com.carslab.crm.modules.company_settings.domain.port.CompanySettingsRepository
+import com.carslab.crm.modules.company_settings.infrastructure.persistence.adapter.CompanySettingsRepositoryAdapter
 import com.carslab.crm.domain.port.*
 import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
@@ -18,9 +18,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.infrastructure.persistence.repository",
     "com.carslab.crm.audit.repository",
     "com.carslab.crm.signature.infrastructure.persistance.repository",
-    "com.carslab.crm.clients.infrastructure.persistence.repository",
+    "com.carslab.crm.modules.clients.infrastructure.persistence.repository",
     "com.carslab.crm.finances.infrastructure.repository",
-    "com.carslab.crm.company_settings.infrastructure.persistence.repository",
+    "com.carslab.crm.modules.company_settings.infrastructure.persistence.repository",
 ])
 class PersistenceConfig {
 

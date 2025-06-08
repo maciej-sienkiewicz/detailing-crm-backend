@@ -1,12 +1,12 @@
-package com.carslab.crm.clients.infrastructure.persistence.adapter
+package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.domain.model.CreateVehicle
-import com.carslab.crm.clients.domain.model.Vehicle
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.port.VehicleRepository
-import com.carslab.crm.clients.domain.port.VehicleSearchCriteria
-import com.carslab.crm.clients.infrastructure.persistence.entity.VehicleEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.domain.model.CreateVehicle
+import com.carslab.crm.modules.clients.domain.model.Vehicle
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.port.VehicleRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleSearchCriteria
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl

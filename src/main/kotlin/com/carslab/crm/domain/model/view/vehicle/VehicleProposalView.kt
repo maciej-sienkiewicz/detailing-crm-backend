@@ -1,6 +1,6 @@
 package com.carslab.crm.domain.model.view.vehicle
 
-import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientId
 
 class VehicleProposalView(
     val make: String? = null,

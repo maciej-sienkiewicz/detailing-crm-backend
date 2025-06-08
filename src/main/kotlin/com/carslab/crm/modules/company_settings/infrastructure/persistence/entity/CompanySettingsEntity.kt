@@ -1,7 +1,7 @@
-package com.carslab.crm.company_settings.infrastructure.persistence.entity
+package com.carslab.crm.modules.company_settings.infrastructure.persistence.entity
 
-import com.carslab.crm.company_settings.domain.model.*
-import com.carslab.crm.company_settings.domain.model.shared.AuditInfo
+import com.carslab.crm.modules.company_settings.domain.model.*
+import com.carslab.crm.modules.company_settings.domain.model.shared.AuditInfo
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

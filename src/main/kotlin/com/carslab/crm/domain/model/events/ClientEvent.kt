@@ -1,6 +1,6 @@
 package com.carslab.crm.domain.model.events
 
-import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientId
 import java.time.LocalDateTime
 
 sealed class ClientEvent {

@@ -1,8 +1,8 @@
-package com.carslab.crm.clients.infrastructure.persistence.repository
+package com.carslab.crm.modules.clients.infrastructure.persistence.repository
 
-import com.carslab.crm.clients.infrastructure.persistence.entity.ClientEntity
-import com.carslab.crm.clients.infrastructure.persistence.entity.ClientStatisticsEntity
-import com.carslab.crm.clients.infrastructure.persistence.entity.VehicleStatisticsEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientStatisticsEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleStatisticsEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

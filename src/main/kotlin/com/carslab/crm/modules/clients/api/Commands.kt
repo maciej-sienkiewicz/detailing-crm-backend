@@ -1,4 +1,4 @@
-package com.carslab.crm.clients.api
+package com.carslab.crm.modules.clients.api
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.Email

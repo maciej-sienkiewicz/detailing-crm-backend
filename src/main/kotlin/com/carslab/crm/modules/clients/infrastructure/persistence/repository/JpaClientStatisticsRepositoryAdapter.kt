@@ -1,11 +1,11 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientStatistics
-import com.carslab.crm.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.clients.infrastructure.persistence.entity.ClientStatisticsEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.ClientStatisticsJpaRepository
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientStatistics
+import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientStatisticsEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientStatisticsJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal

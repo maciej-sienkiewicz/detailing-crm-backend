@@ -1,8 +1,8 @@
-package com.carslab.crm.clients.domain
+package com.carslab.crm.modules.clients.domain
 
-import com.carslab.crm.clients.api.responses.VehicleCompanyStatisticsResponse
-import com.carslab.crm.clients.api.responses.MostActiveVehicleInfo
-import com.carslab.crm.clients.domain.port.VehicleCompanyStatisticsRepository
+import com.carslab.crm.modules.clients.api.responses.VehicleCompanyStatisticsResponse
+import com.carslab.crm.modules.clients.api.responses.MostActiveVehicleInfo
+import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatisticsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

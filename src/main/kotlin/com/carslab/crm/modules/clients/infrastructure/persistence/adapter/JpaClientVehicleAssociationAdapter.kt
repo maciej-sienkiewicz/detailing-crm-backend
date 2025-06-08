@@ -1,13 +1,13 @@
-package com.carslab.crm.clients.infrastructure.persistence.adapter
+package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 
-import com.carslab.crm.clients.domain.model.ClientId
-import com.carslab.crm.clients.domain.model.ClientVehicleAssociation
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.clients.infrastructure.persistence.entity.ClientVehicleAssociationEntity
-import com.carslab.crm.clients.infrastructure.persistence.repository.ClientVehicleAssociationJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientVehicleAssociationEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientVehicleAssociationJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime

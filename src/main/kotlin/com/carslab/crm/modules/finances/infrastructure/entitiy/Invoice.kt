@@ -1,6 +1,6 @@
 package com.carslab.crm.finances.infrastructure.entitiy
 
-import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity

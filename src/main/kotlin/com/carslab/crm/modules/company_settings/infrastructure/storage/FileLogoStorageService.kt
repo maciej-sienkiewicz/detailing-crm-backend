@@ -1,7 +1,7 @@
-package com.carslab.crm.company_settings.infrastructure.storage
+package com.carslab.crm.modules.company_settings.infrastructure.storage
 
-import com.carslab.crm.company_settings.domain.LogoMetadata
-import com.carslab.crm.company_settings.domain.LogoStorageService
+import com.carslab.crm.modules.company_settings.domain.LogoMetadata
+import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile

@@ -1,7 +1,7 @@
 package com.carslab.crm.domain.model.view.finance
 
 import com.carslab.crm.domain.model.Audit
-import com.carslab.crm.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientId
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime

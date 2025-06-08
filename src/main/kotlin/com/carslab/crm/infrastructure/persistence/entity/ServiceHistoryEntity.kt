@@ -3,7 +3,7 @@ package com.carslab.crm.infrastructure.persistence.entity
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
-import com.carslab.crm.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleId
 import jakarta.persistence.*
 import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDate

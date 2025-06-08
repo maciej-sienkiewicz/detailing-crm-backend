@@ -1,10 +1,10 @@
-package com.carslab.crm.clients.infrastructure.persistence.entity
+package com.carslab.crm.modules.clients.infrastructure.persistence.entity
 
-import com.carslab.crm.clients.domain.model.CreateVehicle
-import com.carslab.crm.clients.domain.model.Vehicle
-import com.carslab.crm.clients.domain.model.VehicleId
-import com.carslab.crm.clients.domain.model.VehicleServiceInfo
-import com.carslab.crm.clients.domain.model.shared.AuditInfo
+import com.carslab.crm.modules.clients.domain.model.CreateVehicle
+import com.carslab.crm.modules.clients.domain.model.Vehicle
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleServiceInfo
+import com.carslab.crm.modules.clients.domain.model.shared.AuditInfo
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
 import java.math.BigDecimal

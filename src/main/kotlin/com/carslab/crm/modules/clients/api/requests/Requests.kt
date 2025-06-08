@@ -1,4 +1,4 @@
-package com.carslab.crm.clients.api.requests
+package com.carslab.crm.modules.clients.api.requests
 
 import java.math.BigDecimal
 import java.time.LocalDate
