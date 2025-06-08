@@ -32,8 +32,8 @@ class SignatureWebSocketHandler(
 ) : TextWebSocketHandler() {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
-    private val tabletConnections = ConcurrentHashMap<UUID, TabletConnection>()
-    private val workstationConnections = ConcurrentHashMap<UUID, WorkstationConnection>()
+    val tabletConnections = ConcurrentHashMap<UUID, TabletConnection>()
+    val workstationConnections = ConcurrentHashMap<UUID, WorkstationConnection>()
     private val heartbeatExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
 
     init {
@@ -460,7 +460,7 @@ class SignatureWebSocketHandler(
         }
     }
 
-    private fun sendToSession(session: WebSocketSession, message: Map<String, Any>): Boolean {
+    fun sendToSession(session: WebSocketSession, message: Map<String, Any>): Boolean {
         return try {
             if (session.isOpen) {
                 val json = objectMapper.writeValueAsString(message)
