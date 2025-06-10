@@ -1,5 +1,6 @@
 package com.carslab.crm.modules.clients.infrastructure.persistence.entity
 
+import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.CreateVehicle
 import com.carslab.crm.modules.clients.domain.model.Vehicle
 import com.carslab.crm.modules.clients.domain.model.VehicleId
@@ -115,7 +116,8 @@ class VehicleEntity(
             createdBy = createdBy,
             updatedBy = updatedBy,
             version = version
-        )
+        ),
+        owners = associations.map { it.client.id }.filter { active }.map { ClientId(it!!) }
     )
 
     companion object {

@@ -232,7 +232,8 @@ data class UpdateVehicleRequest(
     val licensePlate: String,
     val color: String? = null,
     val vin: String? = null,
-    val mileage: Long? = null
+    val mileage: Long? = null,
+    val ownerIds: List<Long> = emptyList()
 )
 
 // Response DTOs

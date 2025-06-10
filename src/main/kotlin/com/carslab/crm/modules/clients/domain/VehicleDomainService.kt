@@ -4,8 +4,11 @@ import com.carslab.crm.modules.clients.api.CreateVehicleCommand
 import com.carslab.crm.modules.clients.api.UpdateVehicleCommand
 import com.carslab.crm.modules.clients.domain.model.CreateVehicle
 import com.carslab.crm.domain.exception.DomainException
+import com.carslab.crm.modules.clients.domain.model.ClientId
+import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
 import com.carslab.crm.modules.clients.domain.model.Vehicle
 import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
 import com.carslab.crm.modules.clients.domain.model.VehicleStatistics
 import com.carslab.crm.modules.clients.domain.model.VehicleWithStatistics
 import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
@@ -63,6 +66,21 @@ class VehicleDomainService(
             mileage = command.mileage,
             audit = existingVehicle.audit.updated()
         )
+
+        val deletedOwners = existingVehicle.owners.map { it.value } - command.ownersIds
+        val addedOwners = command.ownersIds - existingVehicle.owners.map { it.value }
+
+        deletedOwners.forEach { associationRepository.deleteByClientIdAndVehicleId(
+            clientId = ClientId(it),
+            vehicleId = id
+        ) }
+        addedOwners.forEach { associationRepository.save(
+            ClientVehicleAssociation(
+                clientId = ClientId(it),
+                vehicleId = id,
+                relationshipType = VehicleRelationshipType.OWNER
+            )
+        ) }
 
         return vehicleRepository.save(updatedVehicle)
     }

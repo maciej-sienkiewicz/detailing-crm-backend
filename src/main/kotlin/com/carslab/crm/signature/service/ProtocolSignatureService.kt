@@ -103,7 +103,7 @@ class ProtocolSignatureService(
                     "documentType" to "PROTOCOL"
                 ),
                 timeoutMinutes = request.timeoutMinutes,
-                expiresAt = expiresAt
+                expiresAt = expiresAt.toString()
             )
 
             val sent = webSocketHandler.sendDocumentSignatureRequest(request.tabletId, documentSignatureRequest)

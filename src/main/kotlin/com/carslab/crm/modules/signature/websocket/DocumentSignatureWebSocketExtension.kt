@@ -25,7 +25,7 @@ fun SignatureWebSocketHandler.sendDocumentSignatureRequest(
     tabletId: UUID,
     request: DocumentSignatureRequestDto
 ): Boolean {
-    val connection = getTabletConnection(tabletId)
+    val connection = tabletConnections[tabletId]
 
     return if (connection != null && connection.session.isOpen && connection.authenticated) {
         val message = mapOf(
@@ -49,7 +49,8 @@ fun SignatureWebSocketHandler.sendDocumentSignatureRequest(
             )
         )
 
-        val success = sendToTabletSession(connection.session, message)
+        val success = this.sendToSession(connection.session, message)
+
         if (success) {
             LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
                 .info("Document signature request sent to tablet $tabletId for session ${request.sessionId}")

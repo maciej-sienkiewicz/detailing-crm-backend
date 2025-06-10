@@ -1,5 +1,6 @@
 package com.carslab.crm.modules.clients.api
 
+import com.carslab.crm.modules.clients.domain.model.ClientSummary
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -23,7 +24,8 @@ data class UpdateVehicleCommand(
     val licensePlate: String,
     val color: String? = null,
     val vin: String? = null,
-    val mileage: Long? = null
+    val mileage: Long? = null,
+    val ownersIds: List<Long> = emptyList()
 )
 
 /**

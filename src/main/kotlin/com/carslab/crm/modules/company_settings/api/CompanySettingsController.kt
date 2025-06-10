@@ -60,7 +60,6 @@ class CompanySettingsController(
 
     @PutMapping
     @Operation(summary = "Update company settings", description = "Updates company settings for the current company")
-    @PreAuthorize("hasRole('ADMIN')")
     fun updateCompanySettings(@Valid @RequestBody request: UpdateCompanySettingsRequest): ResponseEntity<CompanySettingsResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Updating company settings for company: $companyId")
@@ -212,11 +211,11 @@ class CompanySettingsController(
         ValidationUtils.validateNotBlank(request.basicInfo.companyName, "Company name")
         ValidationUtils.validateNotBlank(request.basicInfo.taxId, "Tax ID")
 
-        request.emailSettings.senderEmail?.let { email ->
+        request.emailSettings?.senderEmail?.let { email ->
             ValidationUtils.validateEmail(email)
         }
 
-        request.basicInfo.phone?.let { phone ->
+        request.basicInfo?.phone?.let { phone ->
             ValidationUtils.validatePhone(phone)
         }
     }

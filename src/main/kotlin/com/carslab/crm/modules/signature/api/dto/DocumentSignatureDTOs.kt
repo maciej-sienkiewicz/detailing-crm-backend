@@ -290,7 +290,7 @@ data class DocumentSignatureRequestDto(
     val timeoutMinutes: Int,
 
     @JsonProperty("expires_at")
-    val expiresAt: Instant,
+    val expiresAt: String,
 
     @JsonProperty("signature_fields")
     val signatureFields: List<SignatureFieldDefinition>? = null

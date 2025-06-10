@@ -34,7 +34,8 @@ data class Vehicle(
     val vin: String? = null,
     val mileage: Long? = null,
     val serviceInfo: VehicleServiceInfo = VehicleServiceInfo(),
-    val audit: AuditInfo = AuditInfo()
+    val audit: AuditInfo = AuditInfo(),
+    val owners: List<ClientId> = emptyList()
 ) {
     val displayName: String get() = "$make $model ($licensePlate)"
 

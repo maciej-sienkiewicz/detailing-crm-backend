@@ -228,10 +228,6 @@ class VehicleController(
             ValidationUtils.validateNotBlank(request.model, "Model")
             ValidationUtils.validateNotBlank(request.licensePlate, "License plate")
 
-            if (request.ownerIds.isEmpty()) {
-                throw ValidationException("Vehicle must have at least one owner")
-            }
-
             val appRequest = UpdateVehicleRequest(
                 make = request.make,
                 model = request.model,
@@ -239,7 +235,8 @@ class VehicleController(
                 licensePlate = request.licensePlate,
                 color = request.color,
                 vin = request.vin,
-                mileage = request.mileage
+                mileage = request.mileage,
+                ownerIds = request.ownerIds
             )
 
             val updatedVehicle = vehicleApplicationService.updateVehicle(id.toLong(), appRequest)

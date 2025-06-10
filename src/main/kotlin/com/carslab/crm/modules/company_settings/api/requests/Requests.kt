@@ -5,6 +5,7 @@ import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
 import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
 import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.annotation.Nullable
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -104,13 +105,16 @@ data class UpdateCompanySettingsRequest(
     val basicInfo: CompanyBasicInfo,
 
     @JsonProperty("bank_settings")
-    val bankSettings: BankSettings,
+    @Nullable
+    val bankSettings: BankSettings? = BankSettings(),
 
     @JsonProperty("email_settings")
-    val emailSettings: EmailSettings,
+    @Nullable
+    val emailSettings: EmailSettings? = EmailSettings(),
 
     @JsonProperty("logo_settings")
-    val logoSettings: LogoSettings = LogoSettings()
+    @Nullable
+    val logoSettings: LogoSettings? = LogoSettings()
 )
 
 data class TestEmailConnectionRequest(

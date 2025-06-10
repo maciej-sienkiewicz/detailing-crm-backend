@@ -85,7 +85,8 @@ class VehicleApplicationService(
                 licensePlate = request.licensePlate,
                 color = request.color,
                 vin = request.vin,
-                mileage = request.mileage
+                mileage = request.mileage,
+                ownersIds = request.ownerIds.map { it.toLong() }
             )
 
             val vehicle = vehicleDomainService.updateVehicle(VehicleId.of(id), command)

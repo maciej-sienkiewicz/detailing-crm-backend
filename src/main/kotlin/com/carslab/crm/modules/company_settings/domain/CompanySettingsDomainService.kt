@@ -8,6 +8,7 @@ import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
 import com.carslab.crm.modules.company_settings.domain.port.CompanySettingsRepository
 import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
 import com.carslab.crm.domain.exception.DomainException
+import com.carslab.crm.modules.company_settings.domain.model.BankSettings
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -35,15 +36,18 @@ class CompanySettingsDomainService(
 
     fun updateCompanySettings(companyId: Long, updateRequest: UpdateCompanySettingsRequest): CompanySettings {
         val existingSettings = companySettingsRepository.findByCompanyId(companyId)
-            ?: throw DomainException("Company settings not found for company: $companyId")
+            ?: createCompanySettings(updateRequest.let { CreateCompanySettings(
+                companyId = companyId,
+                basicInfo = it.basicInfo,
+            ) })
 
         validateBasicInfo(updateRequest.basicInfo.companyName, updateRequest.basicInfo.taxId)
 
         val updatedSettings = existingSettings.copy(
             basicInfo = updateRequest.basicInfo,
-            bankSettings = updateRequest.bankSettings,
-            emailSettings = encryptEmailPasswords(updateRequest.emailSettings),
-            logoSettings = updateRequest.logoSettings,
+            bankSettings = updateRequest?.bankSettings ?: existingSettings.bankSettings,
+            emailSettings = encryptEmailPasswords(updateRequest?.emailSettings ?: existingSettings.emailSettings),
+            logoSettings = updateRequest?.logoSettings ?: existingSettings.logoSettings,
             audit = existingSettings.audit.updated()
         )
 
