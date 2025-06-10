@@ -20,38 +20,36 @@ import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.finances.domain.balance.DocumentBalanceService  // 🔥 NOWY IMPORT
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.finances.infrastructure.repository.BankAccountBalanceRepository
-import com.carslab.crm.finances.infrastructure.repository.CashBalancesRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
-@Transactional(readOnly = true) // DODANE: Domyślnie read-only dla optymalizacji
+@Transactional(readOnly = true)
 class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UnifiedDocumentStorageService,
-    private val cashBalancesRepository: CashBalancesRepository,
-    private val bankAccountBalanceRepository: BankAccountBalanceRepository,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val documentBalanceService: BalanceService  // 🔥 NOWY SERWIS zamiast bezpośredniego dostępu do repo
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
     /**
      * Tworzy nowy dokument finansowy.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
@@ -85,9 +83,13 @@ class UnifiedDocumentService(
         val savedDocument = documentRepository.save(completeDocument)
         logger.info("Created document with ID: {}", savedDocument.id.value)
 
-        // NAPRAWIONE: Asynchroniczna aktualizacja salda w osobnej transakcji
+        // 🔥 NOWE: Używamy DocumentBalanceService zamiast bezpośrednich operacji na repo
         try {
-            updateBalanceForDocument(savedDocument, companyId)
+            documentBalanceService.handleDocumentChange(
+                document = savedDocument,
+                oldStatus = null, // Nowy dokument
+                companyId = companyId
+            )
         } catch (e: Exception) {
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
             // Nie przerywamy głównej operacji - saldo można zaktualizować później
@@ -96,49 +98,19 @@ class UnifiedDocumentService(
         return savedDocument
     }
 
-    private fun updateBalanceForDocument(
-        document: UnifiedFinancialDocument,
-        companyId: Long
-    ) {
-        // Aktualizuj saldo tylko dla opłaconych dokumentów
-        if (document.status != DocumentStatus.PAID) return
-
-        val amount = document.totalGross
-        val timestamp = Instant.now().toString()
-        val isIncome = document.direction == TransactionDirection.INCOME
-
-        when (document.paymentMethod) {
-            PaymentMethod.CASH -> {
-                if (isIncome) {
-                    cashBalancesRepository.addAmountToBalance(companyId, amount, timestamp)
-                } else {
-                    cashBalancesRepository.subtractAmountFromBalance(companyId, amount, timestamp)
-                }
-            }
-            PaymentMethod.CARD, PaymentMethod.BANK_TRANSFER -> {
-                if (isIncome) {
-                    bankAccountBalanceRepository.addAmountToBalance(companyId, amount, timestamp)
-                } else {
-                    bankAccountBalanceRepository.subtractAmountFromBalance(companyId, amount, timestamp)
-                }
-            }
-            else -> {
-                // PaymentMethod.MOBILE_PAYMENT, OTHER - można dodać obsługę w przyszłości
-                logger.debug("Balance update not implemented for payment method: ${document.paymentMethod}")
-            }
-        }
-    }
-
     /**
      * Aktualizuje istniejący dokument.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun updateDocument(id: String, request: UpdateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Updating document with ID: {}", id)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Sprawdzenie czy dokument istnieje
         val existingDocument = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
+
+        val oldStatus = existingDocument.status  // 🔥 WAŻNE: Zapamiętanie starego statusu
 
         // Walidacja
         validateDocumentRequest(request)
@@ -175,11 +147,13 @@ class UnifiedDocumentService(
         // Zapisanie zaktualizowanego dokumentu
         val savedDocument = documentRepository.save(completeDocument)
 
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-
-        // NAPRAWIONE: Asynchroniczna aktualizacja salda
+        // 🔥 NOWE: Używamy nowego systemu zarządzania saldami
         try {
-            updateBalanceForDocument(savedDocument, companyId)
+            documentBalanceService.handleDocumentChange(
+                document = savedDocument,
+                oldStatus = oldStatus,  // Przekazujemy stary status
+                companyId = companyId
+            )
         } catch (e: Exception) {
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
         }
@@ -200,7 +174,6 @@ class UnifiedDocumentService(
 
     /**
      * Pobiera wszystkie dokumenty z opcjonalnym filtrowaniem i paginacją.
-     * NAPRAWIONE: Dodana adnotacja @Transactional(readOnly = true)
      */
     @Transactional(readOnly = true)
     fun getAllDocuments(filter: UnifiedDocumentFilterDTO? = null, page: Int = 0, size: Int = 10): PaginatedResult<UnifiedFinancialDocument> {
@@ -211,13 +184,21 @@ class UnifiedDocumentService(
     /**
      * Usuwa dokument po ID.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun deleteDocument(id: String): Boolean {
         logger.info("Deleting document with ID: {}", id)
+        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Sprawdzenie czy dokument istnieje
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
+
+        // 🔥 NOWE: Obsługa sald przed usunięciem dokumentu przez nowy system
+        try {
+            documentBalanceService.handleDocumentDeletion(document, companyId)
+        } catch (e: Exception) {
+            logger.warn("Failed to reverse balance for deleted document $id: ${e.message}")
+        }
 
         // Usunięcie załącznika, jeśli istnieje
         document.attachment?.let {
@@ -236,54 +217,50 @@ class UnifiedDocumentService(
     /**
      * Aktualizuje status dokumentu.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun updateDocumentStatus(id: String, status: String): Boolean {
         logger.info("Updating status of document with ID: {} to: {}", id, status)
-
-        val doc = documentRepository.findById(UnifiedDocumentId(id))
-        if (doc == null) {
-            throw ResourceNotFoundException("Document", id)
-        }
-
         val companyId = securityContext.getCurrentCompanyId()
-        if(doc.type == DocumentType.INVOICE) {
-            when (doc.paymentMethod) {
-                PaymentMethod.CASH -> {
-                    if (doc.direction == TransactionDirection.INCOME) {
-                        cashBalancesRepository.addAmountToBalance(companyId, doc.totalGross, Instant.now().toString())
-                    } else {
-                        cashBalancesRepository.subtractAmountFromBalance(companyId, doc.totalGross, Instant.now().toString())
-                    }
-                }
 
-                PaymentMethod.CARD, PaymentMethod.BANK_TRANSFER -> {
-                    if (doc.direction == TransactionDirection.INCOME) {
-                        bankAccountBalanceRepository.addAmountToBalance(companyId, doc.totalTax, Instant.now().toString())
-                    } else {
-                        bankAccountBalanceRepository.subtractAmountFromBalance(companyId, doc.totalTax, Instant.now().toString())
-                    }
-                }
+        // 🔥 NOWE: Pobierz dokument przed aktualizacją statusu
+        val document = documentRepository.findById(UnifiedDocumentId(id))
+            ?: throw ResourceNotFoundException("Document", id)
 
-                else -> {
-                    // PaymentMethod.MOBILE_PAYMENT, OTHER - można dodać obsługę w przyszłości
-                    logger.debug("Balance update not implemented for payment method: ${doc.paymentMethod}")
-                }
+        val oldStatus = document.status
+
+        // Aktualizuj status w repozytorium
+        val updated = documentRepository.updateStatus(UnifiedDocumentId(id), status)
+
+        if (updated) {
+            // 🔥 NOWE: Używamy nowego systemu do obsługi zmian statusu
+            try {
+                val updatedDocument = document.copy(status = DocumentStatus.valueOf(status))
+                documentBalanceService.handleDocumentChange(
+                    document = updatedDocument,
+                    oldStatus = oldStatus,
+                    companyId = companyId
+                )
+            } catch (e: Exception) {
+                logger.warn("Failed to update balance for status change of document $id: ${e.message}")
             }
         }
 
-        return documentRepository.updateStatus(UnifiedDocumentId(id), status)
+        return updated
     }
 
     /**
      * Aktualizuje kwotę zapłaconą.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun updatePaidAmount(id: String, paidAmount: BigDecimal): Boolean {
         logger.info("Updating paid amount of document with ID: {} to: {}", id, paidAmount)
+        val companyId = securityContext.getCurrentCompanyId()
 
         // Sprawdzenie czy dokument istnieje
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
+
+        val oldStatus = document.status
 
         // Automatyczna aktualizacja statusu na podstawie kwoty zapłaconej
         val newStatus = when {
@@ -292,7 +269,26 @@ class UnifiedDocumentService(
             else -> document.status.name
         }
 
-        return documentRepository.updatePaidAmount(UnifiedDocumentId(id), paidAmount, newStatus)
+        val updated = documentRepository.updatePaidAmount(UnifiedDocumentId(id), paidAmount, newStatus)
+
+        if (updated) {
+            // 🔥 NOWE: Używamy nowego systemu do obsługi zmian kwoty zapłaconej
+            try {
+                val updatedDocument = document.copy(
+                    paidAmount = paidAmount,
+                    status = DocumentStatus.valueOf(newStatus)
+                )
+                documentBalanceService.handleDocumentChange(
+                    document = updatedDocument,
+                    oldStatus = oldStatus,
+                    companyId = companyId
+                )
+            } catch (e: Exception) {
+                logger.warn("Failed to update balance for paid amount change of document $id: ${e.message}")
+            }
+        }
+
+        return updated
     }
 
     /**
@@ -362,7 +358,7 @@ class UnifiedDocumentService(
     /**
      * Pobiera podsumowanie finansowe.
      */
-    @Transactional(readOnly = true) // NAPRAWIONE: Read-only transaction
+    @Transactional(readOnly = true)
     fun getFinancialSummary(dateFrom: LocalDate?, dateTo: LocalDate?): FinancialSummaryResponse {
         logger.info("Getting financial summary for period: {} to {}", dateFrom, dateTo)
         return documentRepository.getFinancialSummary(dateFrom, dateTo)
@@ -371,7 +367,7 @@ class UnifiedDocumentService(
     /**
      * Pobiera dane do wykresów.
      */
-    @Transactional(readOnly = true) // NAPRAWIONE: Read-only transaction
+    @Transactional(readOnly = true)
     fun getChartData(period: String): Map<String, Any> {
         logger.info("Getting chart data for period: {}", period)
         return documentRepository.getChartData(period)
@@ -380,9 +376,10 @@ class UnifiedDocumentService(
     /**
      * Oznaczenie przeterminowanych dokumentów.
      */
-    @Transactional // NAPRAWIONE: Explicit write transaction
+    @Transactional
     fun markOverdueDocuments() {
         logger.info("Marking overdue documents")
+        val companyId = securityContext.getCurrentCompanyId()
 
         val today = LocalDate.now()
         val overdueDocuments = documentRepository.findOverdueBefore(today)
@@ -391,8 +388,23 @@ class UnifiedDocumentService(
         for (document in overdueDocuments) {
             if (document.status == DocumentStatus.NOT_PAID || document.status == DocumentStatus.PARTIALLY_PAID) {
                 try {
-                    documentRepository.updateStatus(document.id, DocumentStatus.OVERDUE.name)
-                    marked++
+                    val oldStatus = document.status
+                    val updated = documentRepository.updateStatus(document.id, DocumentStatus.OVERDUE.name)
+
+                    if (updated) {
+                        // 🔥 NOWE: Obsługa sald po oznaczeniu jako przeterminowany
+                        try {
+                            val overdueDocument = document.copy(status = DocumentStatus.OVERDUE)
+                            documentBalanceService.handleDocumentChange(
+                                document = overdueDocument,
+                                oldStatus = oldStatus,
+                                companyId = companyId
+                            )
+                        } catch (e: Exception) {
+                            logger.warn("Failed to update balance for overdue document ${document.id.value}: ${e.message}")
+                        }
+                        marked++
+                    }
                 } catch (e: Exception) {
                     logger.warn("Failed to mark document ${document.id.value} as overdue: ${e.message}")
                 }
@@ -401,6 +413,8 @@ class UnifiedDocumentService(
 
         logger.info("Marked {} documents as overdue", marked)
     }
+
+    // ============ PRIVATE METHODS ============
 
     /**
      * Konwertuje obiekt DTO na model domenowy dokumentu.
