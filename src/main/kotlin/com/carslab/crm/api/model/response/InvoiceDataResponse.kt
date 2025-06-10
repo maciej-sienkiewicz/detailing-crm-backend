@@ -14,6 +14,14 @@ data class InvoiceDataResponse(
     val extractedDocumentData: ExtractedInvoiceData
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class InvoiceDataResponseWithDirection(
+    @JsonProperty("extractedInvoiceData")
+    val extractedDocumentData: ExtractedInvoiceData,
+    @JsonProperty("direction")
+    val direction: String
+)
+
 /**
  * Main container for extracted invoice data
  */

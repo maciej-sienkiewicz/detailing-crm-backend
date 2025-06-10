@@ -5,12 +5,14 @@ import com.carslab.crm.api.model.*
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
 import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
 import com.carslab.crm.api.model.response.InvoiceDataResponse
+import com.carslab.crm.api.model.response.InvoiceDataResponseWithDirection
 import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -37,7 +39,8 @@ class UnifiedDocumentController(
     private val objectMapper: ObjectMapper,
     private val invoiceExtractionService: ParallelInvoiceExtractionService,
     private val securityContext: SecurityContext,
-    private val balanceService: BalanceService
+    private val balanceService: BalanceService,
+    private val companySettingsApplicationService: CompanySettingsApplicationService
 ) : BaseController() {
 
     @GetMapping
@@ -217,8 +220,9 @@ class UnifiedDocumentController(
     @Operation(summary = "Extract document data", description = "Extracts data from a document file")
     fun extractDocumentData(
         @Parameter(description = "Document file", required = true) @RequestPart("file") file: MultipartFile
-    ): ResponseEntity<InvoiceDataResponse> {
+    ): ResponseEntity<InvoiceDataResponseWithDirection> {
         logger.info("Received request to extract data from invoice: ${file.originalFilename}, size: ${file.size} bytes, content type: ${file.contentType}")
+        val companyId = securityContext.getCurrentCompanyId()
 
         try {
             // Preprocess image if requested
@@ -241,7 +245,13 @@ class UnifiedDocumentController(
             val totalTime = System.currentTimeMillis() - startTime
             logger.info("Successfully extracted data from invoice in $totalTime ms")
 
-            return ok(extractedData)
+            val companySettings = companySettingsApplicationService.getCompanySettings(companyId)
+            val direct = when ( extractedData.extractedDocumentData.seller.taxId ) {
+                companySettings.basicInfo?.taxId -> TransactionDirection.INCOME.name
+                else ->  TransactionDirection.EXPENSE.name
+            }
+
+            return ok(InvoiceDataResponseWithDirection(extractedData.extractedDocumentData, direct))
         } catch (e: Exception) {
             return logAndRethrow("Error processing invoice file: ${e.message}", e)
         }
