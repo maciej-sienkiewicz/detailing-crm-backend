@@ -115,15 +115,4 @@ class BalanceOverrideController(
 
         return if (result.success) ok(result) else badRequest(result.message)
     }
-
-    @GetMapping("/history")
-    @Operation(summary = "Get override history", description = "Get balance override audit trail")
-    fun getOverrideHistory(
-        @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "20") size: Int,
-        @RequestParam(required = false) balanceType: BalanceType?
-    ): ResponseEntity<Page<BalanceOperationHistoryDTO>> {
-        // Implementation for getting override history
-        return ok(Page.empty())
-    }
 }

@@ -20,12 +20,11 @@ import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
-import com.carslab.crm.finances.domain.balance.DocumentBalanceService  // 🔥 NOWY IMPORT
+import com.carslab.crm.modules.finances.domain.balance.DocumentBalanceService
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -42,25 +41,19 @@ class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UnifiedDocumentStorageService,
     private val securityContext: SecurityContext,
-    private val documentBalanceService: BalanceService  // 🔥 NOWY SERWIS zamiast bezpośredniego dostępu do repo
+    private val documentBalanceService: DocumentBalanceService
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
-    /**
-     * Tworzy nowy dokument finansowy.
-     */
     @Transactional
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
-        // Walidacja
         validateDocumentRequest(request)
 
-        // Tworzenie dokumentu z obiektu DTO
         val document = convertToDocumentModel(request)
 
-        // Obsługa załącznika, jeśli istnieje
         val attachment = attachmentFile?.let {
             val attachmentId = documentStorageService.storeDocumentFile(it, document.id)
             DocumentAttachment(
@@ -72,62 +65,48 @@ class UnifiedDocumentService(
             )
         }
 
-        // Uzupełnienie dokumentu o załącznik
         val completeDocument = if (attachment != null) {
             document.copy(attachment = attachment)
         } else {
             document
         }
 
-        // Zapisanie dokumentu w repozytorium
         val savedDocument = documentRepository.save(completeDocument)
         logger.info("Created document with ID: {}", savedDocument.id.value)
 
-        // 🔥 NOWE: Używamy DocumentBalanceService zamiast bezpośrednich operacji na repo
         try {
             documentBalanceService.handleDocumentChange(
                 document = savedDocument,
-                oldStatus = null, // Nowy dokument
+                oldStatus = null,
                 companyId = companyId
             )
         } catch (e: Exception) {
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
-            // Nie przerywamy głównej operacji - saldo można zaktualizować później
         }
 
         return savedDocument
     }
 
-    /**
-     * Aktualizuje istniejący dokument.
-     */
     @Transactional
     fun updateDocument(id: String, request: UpdateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Updating document with ID: {}", id)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
-        // Sprawdzenie czy dokument istnieje
         val existingDocument = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
 
-        val oldStatus = existingDocument.status  // 🔥 WAŻNE: Zapamiętanie starego statusu
+        val oldStatus = existingDocument.status
 
-        // Walidacja
         validateDocumentRequest(request)
 
-        // Konwersja DTO na model domenowy
         val updatedDocument = convertToDocumentModel(request, existingDocument)
 
-        // Obsługa załącznika
         val attachment = when {
-            // Nowy załącznik
             attachmentFile != null -> {
-                // Jeśli istniał poprzedni załącznik, usuń go
                 existingDocument.attachment?.let {
                     documentStorageService.deleteDocumentFile(it.storageId)
                 }
 
-                // Zapisz nowy załącznik
                 val attachmentId = documentStorageService.storeDocumentFile(attachmentFile, existingDocument.id)
                 DocumentAttachment(
                     name = attachmentFile.originalFilename ?: "document.pdf",
@@ -137,21 +116,17 @@ class UnifiedDocumentService(
                     uploadedAt = LocalDateTime.now()
                 )
             }
-            // Zachowanie istniejącego załącznika
             else -> existingDocument.attachment
         }
 
-        // Uzupełnienie dokumentu o załącznik
         val completeDocument = updatedDocument.copy(attachment = attachment)
 
-        // Zapisanie zaktualizowanego dokumentu
         val savedDocument = documentRepository.save(completeDocument)
 
-        // 🔥 NOWE: Używamy nowego systemu zarządzania saldami
         try {
             documentBalanceService.handleDocumentChange(
                 document = savedDocument,
-                oldStatus = oldStatus,  // Przekazujemy stary status
+                oldStatus = oldStatus,
                 companyId = companyId
             )
         } catch (e: Exception) {
@@ -163,76 +138,56 @@ class UnifiedDocumentService(
         return savedDocument
     }
 
-    /**
-     * Pobiera dokument po ID.
-     */
     fun getDocumentById(id: String): UnifiedFinancialDocument {
         logger.debug("Getting document by ID: {}", id)
         return documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
     }
 
-    /**
-     * Pobiera wszystkie dokumenty z opcjonalnym filtrowaniem i paginacją.
-     */
     @Transactional(readOnly = true)
     fun getAllDocuments(filter: UnifiedDocumentFilterDTO? = null, page: Int = 0, size: Int = 10): PaginatedResult<UnifiedFinancialDocument> {
         logger.debug("Getting all documents with filter: {}, page: {}, size: {}", filter, page, size)
         return documentRepository.findAll(filter, page, size)
     }
 
-    /**
-     * Usuwa dokument po ID.
-     */
     @Transactional
     fun deleteDocument(id: String): Boolean {
         logger.info("Deleting document with ID: {}", id)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
-        // Sprawdzenie czy dokument istnieje
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
 
-        // 🔥 NOWE: Obsługa sald przed usunięciem dokumentu przez nowy system
         try {
             documentBalanceService.handleDocumentDeletion(document, companyId)
         } catch (e: Exception) {
             logger.warn("Failed to reverse balance for deleted document $id: ${e.message}")
         }
 
-        // Usunięcie załącznika, jeśli istnieje
         document.attachment?.let {
             try {
                 documentStorageService.deleteDocumentFile(it.storageId)
             } catch (e: Exception) {
                 logger.warn("Failed to delete attachment for document $id: ${e.message}")
-                // Kontynuuj usuwanie dokumentu mimo błędu z załącznikiem
             }
         }
 
-        // Usunięcie dokumentu z repozytorium
         return documentRepository.deleteById(UnifiedDocumentId(id))
     }
 
-    /**
-     * Aktualizuje status dokumentu.
-     */
     @Transactional
     fun updateDocumentStatus(id: String, status: String): Boolean {
         logger.info("Updating status of document with ID: {} to: {}", id, status)
         val companyId = securityContext.getCurrentCompanyId()
 
-        // 🔥 NOWE: Pobierz dokument przed aktualizacją statusu
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
 
         val oldStatus = document.status
 
-        // Aktualizuj status w repozytorium
         val updated = documentRepository.updateStatus(UnifiedDocumentId(id), status)
 
         if (updated) {
-            // 🔥 NOWE: Używamy nowego systemu do obsługi zmian statusu
             try {
                 val updatedDocument = document.copy(status = DocumentStatus.valueOf(status))
                 documentBalanceService.handleDocumentChange(
@@ -248,21 +203,16 @@ class UnifiedDocumentService(
         return updated
     }
 
-    /**
-     * Aktualizuje kwotę zapłaconą.
-     */
     @Transactional
     fun updatePaidAmount(id: String, paidAmount: BigDecimal): Boolean {
         logger.info("Updating paid amount of document with ID: {} to: {}", id, paidAmount)
         val companyId = securityContext.getCurrentCompanyId()
 
-        // Sprawdzenie czy dokument istnieje
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
 
         val oldStatus = document.status
 
-        // Automatyczna aktualizacja statusu na podstawie kwoty zapłaconej
         val newStatus = when {
             paidAmount >= document.totalGross -> DocumentStatus.PAID.name
             paidAmount > BigDecimal.ZERO -> DocumentStatus.PARTIALLY_PAID.name
@@ -272,7 +222,6 @@ class UnifiedDocumentService(
         val updated = documentRepository.updatePaidAmount(UnifiedDocumentId(id), paidAmount, newStatus)
 
         if (updated) {
-            // 🔥 NOWE: Używamy nowego systemu do obsługi zmian kwoty zapłaconej
             try {
                 val updatedDocument = document.copy(
                     paidAmount = paidAmount,
@@ -291,17 +240,12 @@ class UnifiedDocumentService(
         return updated
     }
 
-    /**
-     * Pobiera załącznik dokumentu.
-     */
     fun getDocumentAttachment(id: String): Pair<ByteArray, String>? {
         logger.debug("Getting attachment for document with ID: {}", id)
 
-        // Sprawdzenie czy dokument istnieje
         val document = documentRepository.findById(UnifiedDocumentId(id))
             ?: throw ResourceNotFoundException("Document", id)
 
-        // Jeśli dokument ma załącznik, pobierz go
         return document.attachment?.let {
             try {
                 val fileBytes = documentStorageService.getDocumentFile(it.storageId)
@@ -313,9 +257,6 @@ class UnifiedDocumentService(
         }
     }
 
-    /**
-     * Ekstrakcja danych z pliku dokumentu.
-     */
     fun extractDocumentData(file: MultipartFile): ExtractedDocumentDataDTO {
         logger.info("Extracting data from document file: {}", file.originalFilename)
 
@@ -355,27 +296,18 @@ class UnifiedDocumentService(
         )
     }
 
-    /**
-     * Pobiera podsumowanie finansowe.
-     */
     @Transactional(readOnly = true)
     fun getFinancialSummary(dateFrom: LocalDate?, dateTo: LocalDate?): FinancialSummaryResponse {
         logger.info("Getting financial summary for period: {} to {}", dateFrom, dateTo)
         return documentRepository.getFinancialSummary(dateFrom, dateTo)
     }
 
-    /**
-     * Pobiera dane do wykresów.
-     */
     @Transactional(readOnly = true)
     fun getChartData(period: String): Map<String, Any> {
         logger.info("Getting chart data for period: {}", period)
         return documentRepository.getChartData(period)
     }
 
-    /**
-     * Oznaczenie przeterminowanych dokumentów.
-     */
     @Transactional
     fun markOverdueDocuments() {
         logger.info("Marking overdue documents")
@@ -392,7 +324,6 @@ class UnifiedDocumentService(
                     val updated = documentRepository.updateStatus(document.id, DocumentStatus.OVERDUE.name)
 
                     if (updated) {
-                        // 🔥 NOWE: Obsługa sald po oznaczeniu jako przeterminowany
                         try {
                             val overdueDocument = document.copy(status = DocumentStatus.OVERDUE)
                             documentBalanceService.handleDocumentChange(
@@ -414,16 +345,11 @@ class UnifiedDocumentService(
         logger.info("Marked {} documents as overdue", marked)
     }
 
-    // ============ PRIVATE METHODS ============
-
-    /**
-     * Konwertuje obiekt DTO na model domenowy dokumentu.
-     */
     private fun convertToDocumentModel(request: CreateUnifiedDocumentRequest): UnifiedFinancialDocument {
         val now = LocalDateTime.now()
         return UnifiedFinancialDocument(
             id = UnifiedDocumentId.generate(),
-            number = "", // Będzie wygenerowany przez repozytorium
+            number = "",
             type = DocumentType.valueOf(request.type),
             title = request.title,
             description = request.description,
@@ -460,7 +386,7 @@ class UnifiedDocumentService(
                     totalGross = item.totalGross
                 )
             },
-            attachment = null, // Załącznik jest obsługiwany osobno
+            attachment = null,
             audit = Audit(
                 createdAt = now,
                 updatedAt = now
@@ -468,9 +394,6 @@ class UnifiedDocumentService(
         )
     }
 
-    /**
-     * Konwertuje obiekt DTO na model domenowy dokumentu (aktualizacja).
-     */
     private fun convertToDocumentModel(request: UpdateUnifiedDocumentRequest, existingDocument: UnifiedFinancialDocument): UnifiedFinancialDocument {
         return UnifiedFinancialDocument(
             id = existingDocument.id,
@@ -510,7 +433,7 @@ class UnifiedDocumentService(
                     totalGross = item.totalGross
                 )
             },
-            attachment = existingDocument.attachment, // Załącznik jest obsługiwany osobno
+            attachment = existingDocument.attachment,
             audit = Audit(
                 createdAt = existingDocument.audit.createdAt,
                 updatedAt = LocalDateTime.now()
@@ -518,9 +441,6 @@ class UnifiedDocumentService(
         )
     }
 
-    /**
-     * Walidacja danych dokumentu.
-     */
     private fun validateDocumentRequest(request: Any) {
         when (request) {
             is CreateUnifiedDocumentRequest -> {
@@ -530,7 +450,6 @@ class UnifiedDocumentService(
                     }
                 }
 
-                // Sprawdzenie zgodności sum
                 if (request.items.isNotEmpty()) {
                     val calculatedTotalNet = request.items.sumOf { it.totalNet }
                     val calculatedTotalGross = request.items.sumOf { it.totalGross }
@@ -551,7 +470,6 @@ class UnifiedDocumentService(
                     }
                 }
 
-                // Sprawdzenie zgodności sum
                 if (request.items.isNotEmpty()) {
                     val calculatedTotalNet = request.items.sumOf { it.totalNet }
                     val calculatedTotalGross = request.items.sumOf { it.totalGross }
@@ -569,9 +487,6 @@ class UnifiedDocumentService(
     }
 }
 
-/**
- * Klasa pomocnicza dla paginacji wyników.
- */
 data class PaginatedResult<T>(
     val data: List<T>,
     val page: Int,

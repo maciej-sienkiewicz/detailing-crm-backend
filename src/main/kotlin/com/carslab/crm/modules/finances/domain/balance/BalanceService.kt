@@ -23,9 +23,6 @@ class BalanceService(
 
     private val logger = LoggerFactory.getLogger(BalanceService::class.java)
 
-    /**
-     * Updates balance with optimistic locking and audit trail
-     */
     fun updateBalance(
         companyId: Long,
         balanceType: BalanceType,
@@ -45,19 +42,17 @@ class BalanceService(
                 BalanceOperationType.ADD -> previousBalance + amount
                 BalanceOperationType.SUBTRACT -> previousBalance - amount
                 BalanceOperationType.CORRECTION -> amount
+                else -> previousBalance + amount
             }
 
-            // Update balance
             when (balanceType) {
                 BalanceType.CASH -> balance.cashBalance = newBalance
                 BalanceType.BANK -> balance.bankBalance = newBalance
             }
             balance.lastUpdated = LocalDateTime.now()
 
-            // Save with optimistic locking
             val savedBalance = companyBalanceRepository.save(balance)
 
-            // Record operation for audit
             recordBalanceOperation(
                 companyId, documentId, operation, balanceType,
                 amount, previousBalance, newBalance
@@ -76,17 +71,11 @@ class BalanceService(
         }
     }
 
-    /**
-     * Get current balances - O(1) operation
-     */
     @Transactional(readOnly = true)
     fun getCurrentBalances(companyId: Long): CompanyBalanceEntity {
         return getOrCreateBalance(companyId)
     }
 
-    /**
-     * Reconciliation: verify balance against transaction history
-     */
     @Transactional(readOnly = true)
     fun reconcileBalance(companyId: Long): BalanceReconciliationResult {
         val storedBalance = getCurrentBalances(companyId)
@@ -132,13 +121,14 @@ class BalanceService(
             balanceType = balanceType,
             amount = amount,
             previousBalance = previousBalance,
-            newBalance = newBalance
+            newBalance = newBalance,
+            userId = "SYSTEM",
+            userName = "System Operation"
         )
         balanceOperationRepository.save(balanceOperation)
     }
 
     private fun calculateBalanceFromTransactions(companyId: Long): CalculatedBalances {
-        // This is expensive but used only for reconciliation
         val result = companyBalanceRepository.calculateBalancesFromTransactions(companyId)
         return CalculatedBalances(
             cash = result["cash"] ?: BigDecimal.ZERO,

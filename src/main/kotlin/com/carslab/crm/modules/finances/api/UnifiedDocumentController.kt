@@ -10,6 +10,9 @@ import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.finances.domain.balance.BalanceService
+import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -32,7 +35,9 @@ import java.time.LocalDate
 class UnifiedDocumentController(
     private val documentService: UnifiedDocumentService,
     private val objectMapper: ObjectMapper,
-    private val invoiceExtractionService: ParallelInvoiceExtractionService
+    private val invoiceExtractionService: ParallelInvoiceExtractionService,
+    private val securityContext: SecurityContext,
+    private val balanceService: BalanceService
 ) : BaseController() {
 
     @GetMapping
@@ -268,6 +273,17 @@ class UnifiedDocumentController(
         val chartData = documentService.getChartData(period)
 
         return ok(chartData)
+    }
+
+    @GetMapping("/current")
+    @Operation(summary = "Get current balances", description = "Get current cash and bank balances")
+    fun getCurrentBalances(): ResponseEntity<CompanyBalanceEntity> {
+        logger.info("Getting current balances")
+
+        val companyId = securityContext.getCurrentCompanyId()
+        val balances = balanceService.getCurrentBalances(companyId)
+
+        return ok(balances)
     }
 
     // Funkcja pomocnicza do konwersji modelu domenowego na DTO odpowiedzi
