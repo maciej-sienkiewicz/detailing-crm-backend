@@ -274,3 +274,12 @@ data class StorageStatistics(
     val totalSize: Long,
     val averageFileSize: Long
 )
+
+data class FileMetadata(
+    val storageId: String,
+    val originalName: String,
+    val fileSize: Long,
+    val contentType: String,
+    val createdAt: java.time.LocalDateTime,
+    val description: String?
+)

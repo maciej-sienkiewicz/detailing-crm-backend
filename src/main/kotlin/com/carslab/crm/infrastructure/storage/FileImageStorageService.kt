@@ -33,18 +33,8 @@ class FileImageStorageService(
     private val protocolJpaRepository: ProtocolJpaRepository,
     private val vehicleImageJpaRepository: VehicleImageJpaRepository,
     private val imageTagJpaRepository: ImageTagJpaRepository,
-    @Value("\${file.upload-dir:uploads}") private val uploadDir: String
+    private val universalStorageService: UniversalStorageService
 ) : InMemoryImageStorageService() {
-
-    private val rootLocation: Path = Paths.get(uploadDir)
-
-    init {
-        try {
-            Files.createDirectories(rootLocation)
-        } catch (e: IOException) {
-            throw RuntimeException("Could not initialize storage location", e)
-        }
-    }
 
     override fun storeFile(
         file: MultipartFile,
@@ -56,55 +46,57 @@ class FileImageStorageService(
                 throw RuntimeException("Failed to store empty file")
             }
 
-            // Sprawdzamy czy protokół istnieje
-            if (!protocolJpaRepository.existsById(protocolId.value.toLong())) {
+            val protocolIdLong = protocolId.value.toLong()
+            if (!protocolJpaRepository.existsById(protocolIdLong)) {
                 throw RuntimeException("Protocol not found: ${protocolId.value}")
             }
 
-            val protocolIdLong = protocolId.value.toLong()
+            val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
-            // Generujemy unikalne ID dla pliku
-            val fileId = UUID.randomUUID().toString()
+            val storageId = universalStorageService.storeFile(
+                UniversalStoreRequest(
+                    file = file,
+                    originalFileName = file.originalFilename ?: "image.jpg",
+                    contentType = file.contentType ?: "image/jpeg",
+                    companyId = companyId,
+                    entityId = protocolId.value,
+                    entityType = "protocol",
+                    category = "protocols",
+                    subCategory = "images",
+                    description = createMediaTypeModel.description,
+                    tags = mapOf(
+                        "location" to (createMediaTypeModel.location ?: ""),
+                        "protocol" to protocolId.value
+                    ) + createMediaTypeModel.tags.mapIndexed { index, tag -> "tag_$index" to tag }
+                )
+            )
 
-            // Tworzymy katalog dla protokołu, jeśli nie istnieje
-            val protocolDir = rootLocation.resolve(protocolId.value)
-            Files.createDirectories(protocolDir)
-
-            // Przechowujemy plik z wygenerowanym ID jako nazwą pliku (zachowując oryginalne rozszerzenie)
-            val originalFilename = file.originalFilename ?: "unknown"
-            val extension = originalFilename.substringAfterLast('.', "")
-            val targetFilename = "$fileId.$extension"
-            val targetPath = protocolDir.resolve(targetFilename)
-
-            Files.copy(file.inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING)
-
-            // Tworzymy i zapisujemy encję obrazu z metadanymi
+            // Zachowujemy kompatybilność z istniejącą strukturą
             val imageEntity = VehicleImageEntity(
-                id = fileId,
-                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                id = storageId,
+                companyId = companyId,
                 protocolId = protocolIdLong,
                 name = createMediaTypeModel.name,
                 contentType = file.contentType ?: "application/octet-stream",
                 size = file.size,
                 description = createMediaTypeModel.description,
                 location = createMediaTypeModel.location,
-                storagePath = targetPath.toString()
+                storagePath = storageId // Teraz to jest storage ID
             )
 
-            // Zapisujemy encję obrazu
             vehicleImageJpaRepository.save(imageEntity)
 
-            // Dodajemy tagi jako osobne encje
             createMediaTypeModel.tags.forEach { tag ->
                 val tagEntity = ImageTagEntity(
-                    imageId = fileId,
-                    companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                    imageId = storageId,
+                    companyId = companyId,
                     tag = tag
                 )
                 imageTagJpaRepository.save(tagEntity)
             }
 
-            return fileId
+            return storageId
+
         } catch (e: Exception) {
             throw RuntimeException("Failed to store file", e)
         }
@@ -114,15 +106,10 @@ class FileImageStorageService(
     override fun deleteFile(fileId: String, protocolId: ProtocolId) {
         try {
             vehicleImageJpaRepository.findById(fileId).ifPresent { imageEntity ->
-                // Usuwamy fizyczny plik
-                val filePath = Paths.get(imageEntity.storagePath)
-                Files.deleteIfExists(filePath)
+                universalStorageService.deleteFile(fileId)
 
-                // Usuwamy tagi
                 val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
                 imageTagJpaRepository.deleteAllByImageIdAndCompanyId(fileId, companyId)
-
-                // Usuwamy rekord z bazy danych
                 vehicleImageJpaRepository.delete(imageEntity)
             }
         } catch (e: Exception) {
@@ -137,13 +124,7 @@ class FileImageStorageService(
     }
 
     override fun getFileData(fileId: String): ByteArray? {
-        try {
-            val imageEntity = vehicleImageJpaRepository.findById(fileId).orElse(null) ?: return null
-            val filePath = Paths.get(imageEntity.storagePath)
-            return Files.readAllBytes(filePath)
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to read file", e)
-        }
+        return universalStorageService.retrieveFile(fileId)
     }
 
     override fun getFileMetadata(fileId: String): ImageMetadata? {
@@ -246,28 +227,6 @@ class FileImageStorageService(
             }
         } catch (e: MalformedURLException) {
             throw RuntimeException("Could not read file: $fileId", e)
-        }
-    }
-
-    fun init() {
-        try {
-            Files.createDirectories(rootLocation)
-        } catch (e: IOException) {
-            throw RuntimeException("Could not initialize storage", e)
-        }
-    }
-
-    fun deleteAll() {
-        FileSystemUtils.deleteRecursively(rootLocation.toFile())
-    }
-
-    fun loadAll(): Stream<Path> {
-        try {
-            return Files.walk(rootLocation, 1)
-                .filter { path -> !path.equals(rootLocation) }
-                .map { rootLocation.relativize(it) }
-        } catch (e: IOException) {
-            throw RuntimeException("Failed to read stored files", e)
         }
     }
 }

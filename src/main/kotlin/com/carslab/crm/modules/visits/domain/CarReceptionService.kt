@@ -474,9 +474,7 @@ class CarReceptionService(
     fun releaseVehicle(existingProtocol: CarReceptionProtocol, releaseDetails: VehicleReleaseDetailsModel): CarReceptionProtocol {
         val updatedProtocol = changeStatus(existingProtocol.id, ProtocolStatus.COMPLETED)
 
-        if (releaseDetails.documentType == DocumentType.INVOICE) {
-            createInvoiceDocument(existingProtocol, releaseDetails)
-        }
+        createInvoiceDocument(existingProtocol, releaseDetails)
 
         return updatedProtocol
     }
@@ -502,7 +500,11 @@ class CarReceptionService(
             UnifiedFinancialDocument(
                 id = UnifiedDocumentId.generate(),
                 number = "",
-                type = com.carslab.crm.api.model.DocumentType.INVOICE,
+                type = when (releaseDetails.documentType) {
+                    DocumentType.INVOICE -> com.carslab.crm.api.model.DocumentType.INVOICE
+                    DocumentType.RECEIPT -> com.carslab.crm.api.model.DocumentType.RECEIPT
+                    DocumentType.OTHER -> com.carslab.crm.api.model.DocumentType.OTHER
+                },
                 title = "Faktura za wizytę",
                 description = "",
                 issuedDate = LocalDate.now(),

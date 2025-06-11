@@ -25,6 +25,8 @@ import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
+import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -39,7 +41,7 @@ import java.util.UUID
 @Transactional(readOnly = true)
 class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
-    private val documentStorageService: UnifiedDocumentStorageService,
+    private val documentStorageService: UniversalStorageService,
     private val securityContext: SecurityContext,
     private val documentBalanceService: DocumentBalanceService
 ) {
@@ -51,16 +53,38 @@ class UnifiedDocumentService(
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         validateDocumentRequest(request)
-
         val document = convertToDocumentModel(request)
 
         val attachment = attachmentFile?.let {
-            val attachmentId = documentStorageService.storeDocumentFile(it, document.id)
+            val storageId = documentStorageService.storeFile(
+                UniversalStoreRequest(
+                    file = it,
+                    originalFileName = it.originalFilename ?: "document.pdf",
+                    contentType = it.contentType ?: "application/pdf",
+                    companyId = companyId,
+                    entityId = document.id.value,
+                    entityType = "document",
+                    category = "finances",
+                    subCategory = when (document.type) {
+                        DocumentType.INVOICE -> "invoices/${document.direction.name.lowercase()}"
+                        DocumentType.RECEIPT -> "receipts"
+                        else -> "documents"
+                    },
+                    description = "Financial document attachment",
+                    date = document.issuedDate,
+                    tags = mapOf(
+                        "documentType" to document.type.name,
+                        "direction" to document.direction.name
+                    )
+                )
+            )
+
             DocumentAttachment(
+                id = UUID.randomUUID().toString(),
                 name = it.originalFilename ?: "document.pdf",
                 size = it.size,
                 type = it.contentType ?: "application/octet-stream",
-                storageId = attachmentId,
+                storageId = storageId,
                 uploadedAt = LocalDateTime.now()
             )
         }
@@ -104,15 +128,38 @@ class UnifiedDocumentService(
         val attachment = when {
             attachmentFile != null -> {
                 existingDocument.attachment?.let {
-                    documentStorageService.deleteDocumentFile(it.storageId)
+                    documentStorageService.deleteFile(it.storageId)
                 }
 
-                val attachmentId = documentStorageService.storeDocumentFile(attachmentFile, existingDocument.id)
+                val storageId = documentStorageService.storeFile(
+                    UniversalStoreRequest(
+                        file = attachmentFile,
+                        originalFileName = attachmentFile.originalFilename ?: "document.pdf",
+                        contentType = attachmentFile.contentType ?: "application/pdf",
+                        companyId = companyId,
+                        entityId = existingDocument.id.value,
+                        entityType = "document",
+                        category = "finances",
+                        subCategory = when (updatedDocument.type) {
+                            DocumentType.INVOICE -> "invoices/${updatedDocument.direction.name.lowercase()}"
+                            DocumentType.RECEIPT -> "receipts"
+                            else -> "documents"
+                        },
+                        description = "Financial document attachment",
+                        date = updatedDocument.issuedDate,
+                        tags = mapOf(
+                            "documentType" to updatedDocument.type.name,
+                            "direction" to updatedDocument.direction.name
+                        )
+                    )
+                )
+
                 DocumentAttachment(
+                    id = UUID.randomUUID().toString(),
                     name = attachmentFile.originalFilename ?: "document.pdf",
                     size = attachmentFile.size,
                     type = attachmentFile.contentType ?: "application/octet-stream",
-                    storageId = attachmentId,
+                    storageId = storageId,
                     uploadedAt = LocalDateTime.now()
                 )
             }
@@ -166,7 +213,7 @@ class UnifiedDocumentService(
 
         document.attachment?.let {
             try {
-                documentStorageService.deleteDocumentFile(it.storageId)
+                documentStorageService.deleteFile(it.storageId)
             } catch (e: Exception) {
                 logger.warn("Failed to delete attachment for document $id: ${e.message}")
             }
@@ -248,8 +295,8 @@ class UnifiedDocumentService(
 
         return document.attachment?.let {
             try {
-                val fileBytes = documentStorageService.getDocumentFile(it.storageId)
-                fileBytes to it.type
+                val fileBytes = documentStorageService.retrieveFile(it.storageId)
+                fileBytes?.let { bytes -> bytes to it.type }
             } catch (e: Exception) {
                 logger.error("Failed to retrieve attachment for document $id: ${e.message}")
                 null
