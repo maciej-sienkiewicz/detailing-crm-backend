@@ -5,10 +5,13 @@ import com.google.api.client.http.ByteArrayContent
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
-class GoogleDriveFileUploader {
+class GoogleDriveFileUploader(
+    @Value("\${google.drive.root.folder.id:root}") private val rootFolderId: String
+) {
     private val logger = LoggerFactory.getLogger(GoogleDriveFileUploader::class.java)
 
     fun uploadFile(
@@ -23,7 +26,7 @@ class GoogleDriveFileUploader {
         return try {
             logger.debug("Uploading file {} to Google Drive folder: {}", fileName, folderPath)
 
-            // Utwórz lub znajdź folder
+            // Użyj niestandardowego root folderu zamiast "root"
             val folderId = createOrFindFolder(driveService, folderPath)
 
             // Przygotuj metadane pliku
@@ -66,7 +69,9 @@ class GoogleDriveFileUploader {
 
     private fun createOrFindFolder(driveService: Drive, folderPath: String): String {
         val pathParts = folderPath.split("/").filter { it.isNotBlank() }
-        var currentParentId = "root"
+        var currentParentId = rootFolderId // Użyj niestandardowego root folderu
+
+        logger.debug("Using root folder ID: {}", rootFolderId)
 
         pathParts.forEach { folderName ->
             currentParentId = findOrCreateFolder(driveService, folderName, currentParentId)

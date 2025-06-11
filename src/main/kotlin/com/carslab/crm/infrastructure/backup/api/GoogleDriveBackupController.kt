@@ -20,7 +20,6 @@ class GoogleDriveBackupController(
     private val logger = LoggerFactory.getLogger(GoogleDriveBackupController::class.java)
 
     @PostMapping("/backup-current-month")
-    @PreAuthorize("hasRole('ADMIN')")
     fun backupCurrentMonthInvoices(): ResponseEntity<Map<String, String>> {
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
@@ -40,7 +39,6 @@ class GoogleDriveBackupController(
     }
 
     @PostMapping("/credentials")
-    @PreAuthorize("hasRole('ADMIN')")
     fun uploadCredentials(
         @RequestParam("file") file: MultipartFile,
         @RequestParam("serviceAccountEmail") serviceAccountEmail: String
@@ -65,7 +63,6 @@ class GoogleDriveBackupController(
     }
 
     @GetMapping("/integration-status")
-    @PreAuthorize("hasRole('USER')")
     fun getIntegrationStatus(): ResponseEntity<Map<String, Any>> {
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
