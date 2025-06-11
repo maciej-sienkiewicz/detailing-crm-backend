@@ -524,4 +524,12 @@ class JpaUnifiedDocumentRepositoryAdapter(
         // Następnie zaktualizuj aktualny stan kasy
         return cashBalancesRepository.subtractAmountFromBalance(companyId, amount, lastUpdate)
     }
+
+    override fun findInvoicesByCompanyAndDateRange(
+        companyId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<UnifiedFinancialDocument> =
+        documentJpaRepository.findInvoicesByCompanyAndDateRange(companyId, startDate, endDate)
+            .map { it.toDomain() }
 }

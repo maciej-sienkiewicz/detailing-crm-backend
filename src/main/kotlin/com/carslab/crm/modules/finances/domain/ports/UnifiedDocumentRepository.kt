@@ -111,6 +111,12 @@ interface UnifiedDocumentRepository {
     fun addAmountToCashBalance(companyId: Long, amount: BigDecimal, lastUpdate: String): Int
 
     fun subtractAmountFromCashBalance(companyId: Long, amount: BigDecimal, lastUpdate: String): Int
+
+    fun findInvoicesByCompanyAndDateRange(
+        companyId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<UnifiedFinancialDocument>
 }
 
 /**

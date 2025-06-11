@@ -4,6 +4,7 @@ import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -263,4 +264,19 @@ interface UnifiedDocumentJpaRepository : JpaRepository<UnifiedDocumentEntity, St
         @Param("dateTo") dateTo: LocalDate,
         @Param("companyId") companyId: Long
     ): List<Array<Any>>
+
+    @EntityGraph(value = "UnifiedDocument.withItemsAndAttachment", type = EntityGraph.EntityGraphType.FETCH)
+    @Query("""
+    SELECT e FROM UnifiedDocumentEntity e 
+    WHERE e.companyId = :companyId
+    AND e.type = 'INVOICE'
+    AND e.issuedDate >= :startDate
+    AND e.issuedDate <= :endDate
+    ORDER BY e.issuedDate DESC
+""")
+    fun findInvoicesByCompanyAndDateRange(
+        @Param("companyId") companyId: Long,
+        @Param("startDate") startDate: LocalDate,
+        @Param("endDate") endDate: LocalDate
+    ): List<UnifiedDocumentEntity>
 }
