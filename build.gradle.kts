@@ -29,6 +29,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis") // For caching
 
+	implementation("org.springframework.boot:spring-boot-starter-quartz")
+
 	implementation("org.apache.pdfbox:pdfbox:2.0.28")
 	implementation("com.sun.mail:jakarta.mail:2.0.1")
 	implementation("jakarta.activation:jakarta.activation-api:2.0.1")

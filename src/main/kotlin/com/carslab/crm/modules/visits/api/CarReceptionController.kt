@@ -30,6 +30,7 @@ import com.carslab.crm.modules.visits.api.commands.ServicesUpdateCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateStatusCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateVehicleImageCommand
+import com.carslab.crm.modules.visits.domain.SimpleAbandonedVisitsService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -55,6 +56,7 @@ class CarReceptionController(
     private val carReceptionFacade: CarReceptionFacade,
     private val imageStorageService: FileImageStorageService,
     private val objectMapper: ObjectMapper,
+    private val simpleAbandonedVisitsService: SimpleAbandonedVisitsService,
 ) : BaseController() {
 
     @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
