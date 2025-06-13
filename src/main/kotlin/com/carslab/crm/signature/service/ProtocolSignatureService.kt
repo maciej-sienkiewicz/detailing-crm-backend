@@ -13,6 +13,7 @@ import com.carslab.crm.signature.infrastructure.persistance.repository.*
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
 import com.carslab.crm.signature.websocket.notifySessionCancellation
 import com.carslab.crm.signature.websocket.sendDocumentSignatureRequest
+import com.carslab.crm.signature.websocket.sendDocumentSignatureRequestWithDocument
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
@@ -66,28 +67,26 @@ class ProtocolSignatureService(
             val pdfData = pdfService.generatePdf(request.protocolId)
 
             // 3. Utwórz sesję podpisu dokumentu
-            val signatureSession = DocumentSignatureSession(
+            val session = DocumentSignatureSession(
                 sessionId = sessionId,
                 documentId = UUID.randomUUID(),
                 tabletId = request.tabletId,
                 companyId = companyId,
                 signerName = request.customerName,
-                signatureTitle = "Protokół przyjęcia pojazdu",
+                signatureTitle = "Podpis protokołu",
                 instructions = request.instructions,
                 businessContext = objectMapper.writeValueAsString(mapOf(
                     "protocolId" to request.protocolId,
-                    "documentType" to "PROTOCOL",
-                    "source" to "CRM_VISITS"
+                    "documentType" to "PROTOCOL"
                 )),
                 createdBy = userId,
-                expiresAt = expiresAt,
-                status = SignatureSessionStatus.SENT_TO_TABLET
+                expiresAt = expiresAt
             )
 
-            val savedSession = documentSignatureSessionRepository.save(signatureSession)
+            val savedSession = documentSignatureSessionRepository.save(session)
 
             // 5. Wyślij żądanie podpisu do tableta
-            val documentSignatureRequest = DocumentSignatureRequestDto(
+            val documentRequest = DocumentSignatureRequestDto(
                 sessionId = sessionId.toString(),
                 documentId = "test",
                 companyId = companyId,
@@ -103,11 +102,15 @@ class ProtocolSignatureService(
                     "documentType" to "PROTOCOL"
                 ),
                 timeoutMinutes = request.timeoutMinutes,
-                expiresAt = expiresAt.toString()
+                expiresAt = expiresAt.toString(),
+                signatureFields = null
             )
 
-            val sent = webSocketHandler.sendDocumentSignatureRequest(request.tabletId, documentSignatureRequest)
-
+            val sent = webSocketHandler.sendDocumentSignatureRequestWithDocument(
+                request.tabletId,
+                documentRequest,
+                pdfData 
+            )
             if (sent) {
                 // Aktualizuj status sesji
                 documentSignatureSessionRepository.save(

@@ -4,6 +4,7 @@ package com.carslab.crm.signature.websocket
 import com.carslab.crm.audit.service.AuditService
 import com.carslab.crm.security.JwtService
 import com.carslab.crm.security.TokenType
+import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
 import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.net.URI
+import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -892,3 +894,69 @@ data class VehicleInfoDto(
     val licensePlate: String,
     val vin: String? = null
 )
+
+fun SignatureWebSocketHandler.sendDocumentSignatureRequestWithDocument(
+    tabletId: UUID,
+    request: DocumentSignatureRequestDto,
+    documentBytes: ByteArray  // RAW PDF BYTES
+): Boolean {
+    val connection = tabletConnections[tabletId]
+
+    return if (connection != null && connection.session.isOpen && connection.authenticated) {
+
+        // Konwertuj PDF bytes na base64
+        val documentBase64 = "data:application/pdf;base64," + Base64.getEncoder().encodeToString(documentBytes)
+
+        // Sprawdź rozmiar (max 10MB)
+        if (documentBytes.size > 10 * 1024 * 1024) {
+            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+                .error("Document too large for WebSocket transmission: ${documentBytes.size} bytes")
+            return false
+        }
+
+        // Wygeneruj hash dokumentu dla weryfikacji
+        val documentHash = MessageDigest.getInstance("SHA-256")
+            .digest(documentBytes)
+            .let { hash -> Base64.getEncoder().encodeToString(hash) }
+
+        val message = mapOf(
+            "type" to "document_signature_request",
+            "payload" to mapOf(
+                "sessionId" to request.sessionId,
+                "documentId" to request.documentId,
+                "companyId" to request.companyId,
+                "signerName" to request.signerName,
+                "signatureTitle" to request.signatureTitle,
+                "documentTitle" to request.documentTitle,
+                "documentType" to request.documentType,
+                "pageCount" to request.pageCount,
+                "instructions" to request.instructions,
+                "businessContext" to request.businessContext,
+                "timeoutMinutes" to request.timeoutMinutes,
+                "expiresAt" to request.expiresAt,
+                "signatureFields" to request.signatureFields,
+                "timestamp" to Instant.now(),
+
+                // DOKUMENT w base64
+                "documentData" to documentBase64,
+                "documentSize" to documentBytes.size,
+                "documentHash" to documentHash
+            )
+        )
+
+        val success = this.sendToSession(connection.session, message)
+
+        if (success) {
+            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+                .info("Document signature request with embedded document sent to tablet $tabletId for session ${request.sessionId} (${documentBytes.size} bytes)")
+        } else {
+            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+                .warn("Failed to send document signature request with document to tablet $tabletId")
+        }
+        success
+    } else {
+        LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+            .warn("Tablet $tabletId not connected, not authenticated, or session closed")
+        false
+    }
+}
