@@ -30,7 +30,6 @@ class CompanySettingsController(
 
     @PostMapping
     @Operation(summary = "Create company settings", description = "Creates company settings for the current company")
-    @PreAuthorize("hasRole('ADMIN')")
     fun createCompanySettings(@Valid @RequestBody request: CreateCompanySettingsRequest): ResponseEntity<CompanySettingsResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating company settings for company: $companyId")
@@ -78,7 +77,6 @@ class CompanySettingsController(
 
     @PostMapping("/logo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Upload company logo", description = "Uploads a logo for the current company")
-    @PreAuthorize("hasRole('ADMIN')")
     fun uploadLogo(
         @Parameter(description = "Logo file", required = true)
         @RequestParam("logo") logoFile: MultipartFile
@@ -98,7 +96,6 @@ class CompanySettingsController(
 
     @DeleteMapping("/logo")
     @Operation(summary = "Delete company logo", description = "Deletes the logo for the current company")
-    @PreAuthorize("hasRole('ADMIN')")
     fun deleteLogo(): ResponseEntity<CompanySettingsResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Deleting logo for company: $companyId")
@@ -115,7 +112,6 @@ class CompanySettingsController(
 
     @DeleteMapping
     @Operation(summary = "Delete company settings", description = "Deletes all company settings for the current company")
-    @PreAuthorize("hasRole('ADMIN')")
     fun deleteCompanySettings(): ResponseEntity<Map<String, Any>> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Deleting company settings for company: $companyId")
