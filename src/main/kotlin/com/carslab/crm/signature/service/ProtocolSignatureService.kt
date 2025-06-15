@@ -45,7 +45,6 @@ class ProtocolSignatureService(
     ): ProtocolSignatureResponse {
         logger.info("Requesting protocol signature for protocol: ${request.protocolId}")
 
-        // Sprawdź czy tablet istnieje i należy do firmy
         val tablet = tabletDeviceRepository.findById(request.tabletId).orElse(null)
             ?: throw SignatureException("Tablet not found: ${request.tabletId}")
 
@@ -53,7 +52,6 @@ class ProtocolSignatureService(
             throw SignatureException("Tablet does not belong to company")
         }
 
-        // Sprawdź czy tablet jest online
         if (!webSocketHandler.isTabletConnected(request.tabletId)) {
             throw SignatureException("Tablet is offline")
         }
@@ -139,72 +137,11 @@ class ProtocolSignatureService(
             throw SignatureException("Failed to request protocol signature: ${e.message}", e)
         }
     }
-
-    private fun createProtocolDocument(
-        protocolId: Long,
-        companyId: Long,
-        pdfData: ByteArray,
-        uploadedBy: String
-    ): SignatureDocument {
-        // Zapisz plik PDF
-        val fileName = "protocol_${protocolId}_${System.currentTimeMillis()}.pdf"
-        val filePath = fileStorageService.storeDocument(UUID.randomUUID(),
-            object : org.springframework.web.multipart.MultipartFile {
-                override fun getName() = "file"
-                override fun getOriginalFilename() = fileName
-                override fun getContentType() = "application/pdf"
-                override fun isEmpty() = false
-                override fun getSize() = 0.toLong()
-                override fun getBytes() = pdfData
-                override fun getInputStream() = InputStream.nullInputStream()
-                override fun transferTo(dest: java.io.File) {
-                    dest.writeBytes(pdfData)
-                }
-            })
-
-        // Oblicz hash pliku
-        val contentHash = java.security.MessageDigest.getInstance("SHA-256")
-            .digest(pdfData)
-            .joinToString("") { "%02x".format(it) }
-
-        return signatureDocumentRepository.save(
-            SignatureDocument(
-                companyId = companyId,
-                title = "Protokół przyjęcia pojazdu #$protocolId",
-                documentType = "PROTOCOL",
-                fileName = fileName,
-                filePath = filePath,
-                fileSize = pdfData.size.toLong(),
-                pageCount = 1,
-                contentHash = contentHash,
-                mimeType = "application/pdf",
-                status = DocumentStatus.READY,
-                uploadedBy = uploadedBy,
-                metadata = objectMapper.writeValueAsString(mapOf(
-                    "protocolId" to protocolId,
-                    "source" to "CRM_VISITS",
-                    "generatedAt" to Instant.now().toString()
-                ))
-            )
-        )
-    }
-
-    private fun generateDocumentPreviews(documentId: UUID, filePath: String): List<String> {
-        return try {
-            // Tu możesz zaimplementować generowanie podglądów PDF jako obrazy
-            // Na razie zwracamy pustą listę
-            emptyList()
-        } catch (e: Exception) {
-            logger.warn("Failed to generate document previews for $documentId", e)
-            emptyList()
-        }
-    }
-
+    
     fun getSignatureSessionStatus(sessionId: UUID, companyId: Long): ProtocolSignatureStatusResponse {
         val session = documentSignatureSessionRepository.findBySessionIdAndCompanyId(sessionId, companyId)
             ?: throw SignatureException("Signature session not found")
 
-        // Sprawdź czy sesja wygasła
         val currentStatus = if (session.isExpired() && session.status in listOf(
                 SignatureSessionStatus.PENDING,
                 SignatureSessionStatus.SENT_TO_TABLET,
@@ -277,18 +214,6 @@ class ProtocolSignatureService(
             SignatureSessionStatus.ERROR -> ProtocolSignatureStatus.ERROR
         }
     }
-
-    private fun mapFromProtocolStatus(status: ProtocolSignatureStatus): SignatureSessionStatus {
-        return when (status) {
-            ProtocolSignatureStatus.PENDING -> SignatureSessionStatus.PENDING
-            ProtocolSignatureStatus.GENERATING_PDF -> SignatureSessionStatus.PENDING
-            ProtocolSignatureStatus.SENT_TO_TABLET -> SignatureSessionStatus.SENT_TO_TABLET
-            ProtocolSignatureStatus.VIEWING_DOCUMENT -> SignatureSessionStatus.VIEWING_DOCUMENT
-            ProtocolSignatureStatus.SIGNING_IN_PROGRESS -> SignatureSessionStatus.SIGNING_IN_PROGRESS
-            ProtocolSignatureStatus.COMPLETED -> SignatureSessionStatus.COMPLETED
-            ProtocolSignatureStatus.EXPIRED -> SignatureSessionStatus.EXPIRED
-            ProtocolSignatureStatus.CANCELLED -> SignatureSessionStatus.CANCELLED
-            ProtocolSignatureStatus.ERROR -> SignatureSessionStatus.ERROR
-        }
-    }
 }
+
+class SignatureException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

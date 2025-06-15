@@ -14,7 +14,7 @@ import java.util.*
 @Repository
 interface SignatureSessionRepository : JpaRepository<SignatureSession, UUID> {
 
-    fun findBySessionIdAndCompanyId(sessionId: UUID, companyId: Long): SignatureSession?
+    fun findBySessionId(sessionId: UUID): SignatureSession?
 
     @Query("""
         SELECT s FROM SignatureSession s 
