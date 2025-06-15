@@ -113,6 +113,8 @@ class CarReceptionService(
         val existingProtocol = carReceptionRepository.findById(protocol.id)
             ?.enrichProtocol()
             ?: throw ResourceNotFoundException("Protocol", protocol.id.value)
+        
+        val companyId = securityContext.getCurrentCompanyId()
 
         val updatedProtocol = protocol.copy(
             audit = protocol.audit.copy(
@@ -128,6 +130,7 @@ class CarReceptionService(
                             clientId = ClientId(protocol.client.id!!),
                             counter = 1L
                         )
+                        updateVehicleLastVisit(existingProtocol.vehicle.id, companyId)
                     }
                     protocolCommentsRepository.save(
                         ProtocolComment(
@@ -190,6 +193,7 @@ class CarReceptionService(
 
     fun changeStatus(protocolId: ProtocolId, newStatus: ProtocolStatus): CarReceptionProtocol {
         logger.info("Changing status of protocol ${protocolId.value} to $newStatus")
+        val companyId = securityContext.getCurrentCompanyId()
 
         val existingProtocol = carReceptionRepository.findById(protocolId)
             ?.enrichProtocol()
@@ -209,6 +213,10 @@ class CarReceptionService(
             updateVisitsStatistics(updatedProtocol)
         }
 
+        if (updatedProtocol.status == ProtocolStatus.IN_PROGRESS) {
+            updateVehicleLastVisit(updatedProtocol.vehicle.id!!, companyId)
+        }
+
         val savedProtocol = carReceptionRepository.save(updatedProtocol)
         logger.info("Status of protocol ${savedProtocol.id.value} changed to ${savedProtocol.status}")
         return savedProtocol
@@ -217,6 +225,14 @@ class CarReceptionService(
     fun getProtocolById(protocolId: ProtocolId): CarReceptionProtocol? {
         logger.debug("Getting protocol by ID: ${protocolId.value}")
         return carReceptionRepository.findById(protocolId)?.enrichProtocol()
+    }
+    
+    private fun updateVehicleLastVisit(vehicleId: VehicleId, companyId: Long) {
+        vehicleApplicationService.updateVehicleLastVisit(
+            id = vehicleId.value,
+            companyId = companyId,
+            date = LocalDateTime.now()
+        )
     }
 
     private fun commentOnStatusChange(newStatus: ProtocolStatus, previousStatus: ProtocolStatus, protocolId: ProtocolId) =

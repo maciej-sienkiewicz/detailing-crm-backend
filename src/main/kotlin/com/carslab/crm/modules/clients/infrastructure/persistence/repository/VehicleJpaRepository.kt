@@ -99,4 +99,19 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long>, JpaSpecific
         AND cva.endDate IS NULL AND v.active = true
     """)
     fun findActiveVehiclesByClientId(@Param("clientId") clientId: Long, @Param("companyId") companyId: Long): List<VehicleEntity>
+
+    @Modifying
+    @Query("""
+    UPDATE VehicleEntity v 
+    SET v.lastServiceDate = :lastVisitDate, 
+        v.totalServices = v.totalServices + 1,
+        v.updatedAt = :now 
+    WHERE v.id = :vehicleId AND v.companyId = :companyId AND v.active = true
+""")
+    fun updateLastVisitAndIncrementCount(
+        @Param("vehicleId") vehicleId: Long,
+        @Param("companyId") companyId: Long,
+        @Param("lastVisitDate") lastVisitDate: LocalDateTime,
+        @Param("now") now: LocalDateTime = LocalDateTime.now()
+    ): Int
 }

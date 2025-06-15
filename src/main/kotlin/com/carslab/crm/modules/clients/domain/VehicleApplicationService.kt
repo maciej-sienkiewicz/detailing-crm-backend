@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Service
 @Transactional
@@ -105,6 +106,10 @@ class VehicleApplicationService(
             logger.error("Unexpected error updating vehicle $id", e)
             throw RuntimeException("Failed to update vehicle", e)
         }
+    }
+    
+    fun updateVehicleLastVisit(id: Long, companyId: Long, date: LocalDateTime) {
+        vehicleDomainService.updateVehicleLastVisit(id, companyId, date)
     }
 
     fun updateVehicleStatistics(id: Long, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {

@@ -8,6 +8,7 @@ import com.carslab.crm.modules.visits.api.response.ProtocolCountersResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.model.CarReceptionProtocol
+import com.carslab.crm.domain.model.ProtocolComment
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.create.protocol.CreateMediaTypeModel
@@ -17,6 +18,7 @@ import com.carslab.crm.domain.model.create.protocol.VehicleReleaseDetailsModel
 import com.carslab.crm.modules.visits.domain.CarReceptionFacade
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
 import com.carslab.crm.infrastructure.util.ValidationUtils
 import com.carslab.crm.modules.visits.api.commands.CarReceptionBasicDto
@@ -30,7 +32,10 @@ import com.carslab.crm.modules.visits.api.commands.ServicesUpdateCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateStatusCommand
 import com.carslab.crm.modules.visits.api.commands.UpdateVehicleImageCommand
+import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
 import com.carslab.crm.modules.visits.domain.SimpleAbandonedVisitsService
+import com.carslab.crm.modules.visits.domain.ports.ProtocolCommentsRepository
+import com.carslab.crm.modules.visits.infrastructure.storage.ProtocolDocumentStorageService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -42,6 +47,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.time.Instant
 import java.time.LocalDate
@@ -57,6 +63,9 @@ class CarReceptionController(
     private val imageStorageService: FileImageStorageService,
     private val objectMapper: ObjectMapper,
     private val simpleAbandonedVisitsService: SimpleAbandonedVisitsService,
+    private val protocolDocumentStorageService: ProtocolDocumentStorageService,
+    private val protocolCommentsRepository: ProtocolCommentsRepository,
+    private val securityContext: SecurityContext,
 ) : BaseController() {
 
     @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
@@ -490,6 +499,156 @@ class CarReceptionController(
 
         val response = protocols.map { CarReceptionDtoMapper.toClientHistoryDto(it) }
         return ok(response)
+    }
+
+    @PostMapping("/{protocolId}/document", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Upload protocol document", description = "Wgraj dokument do protokołu (zgody, umowy)")
+    fun uploadProtocolDocument(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable protocolId: String,
+        @RequestParam("file") file: MultipartFile,
+        @RequestParam("documentType") documentType: String,
+        @RequestParam(value = "description", required = false) description: String?
+    ): ResponseEntity<Map<String, Any>> {
+        try {
+            logger.info("Uploading document for protocol: $protocolId, type: $documentType")
+
+            if (file.isEmpty) {
+                return badRequest("File cannot be empty")
+            }
+
+            // Walidacja typu pliku - tylko PDF, DOC, DOCX
+            val allowedTypes = setOf("application/pdf", "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+            if (file.contentType !in allowedTypes) {
+                return badRequest("Only PDF, DOC, and DOCX files are allowed")
+            }
+
+            // Limit rozmiaru pliku - 10MB
+            if (file.size > 10 * 1024 * 1024) {
+                return badRequest("File size cannot exceed 10MB")
+            }
+
+            val storageId = protocolDocumentStorageService.storeDocument(
+                file = file,
+                protocolId = ProtocolId(protocolId),
+                documentType = documentType,
+                description = description
+            )
+
+            // Dodaj komentarz do protokołu
+            protocolCommentsRepository.save(
+                ProtocolComment(
+                    protocolId = ProtocolId(protocolId),
+                    author = securityContext.getCurrentUserName() ?: "System",
+                    content = "Dodano dokument: ${file.originalFilename} (typ: $documentType)",
+                    timestamp = Instant.now().toString(),
+                    type = "system"
+                )
+            )
+
+            return created(createSuccessResponse("Document uploaded successfully",
+                mapOf(
+                    "storageId" to storageId,
+                    "protocolId" to protocolId,
+                    "documentType" to documentType
+                )
+            ))
+
+        } catch (e: Exception) {
+            return logAndRethrow("Error uploading document for protocol $protocolId", e)
+        }
+    }
+
+    @GetMapping("/{protocolId}/documents")
+    @Operation(summary = "Get protocol documents", description = "Pobierz wszystkie dokumenty protokołu")
+    fun getProtocolDocuments(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable protocolId: String
+    ): ResponseEntity<List<ProtocolDocumentDto>> {
+        try {
+            logger.info("Getting documents for protocol: $protocolId")
+
+            val documents = protocolDocumentStorageService.getDocumentsByProtocol(ProtocolId(protocolId))
+            val response = documents.map { ProtocolDocumentDto.fromDomain(it) }
+
+            return ok(response)
+
+        } catch (e: Exception) {
+            return logAndRethrow("Error getting documents for protocol $protocolId", e)
+        }
+    }
+
+    @GetMapping("/document/{documentId}")
+    @Operation(summary = "Download protocol document", description = "Pobierz dokument protokołu")
+    fun downloadProtocolDocument(
+        @Parameter(description = "Document ID", required = true) @PathVariable documentId: String
+    ): ResponseEntity<Resource> {
+        try {
+            logger.info("Downloading document: $documentId")
+
+            // Pobierz metadane dokumentu
+            val metadata = protocolDocumentStorageService.getDocumentMetadata(documentId)
+                ?: return ResponseEntity.notFound().build()
+
+            // Pobierz dane pliku
+            val fileData = protocolDocumentStorageService.getDocumentData(documentId)
+                ?: return ResponseEntity.notFound().build()
+
+            // Utwórz zasób
+            val resource = ByteArrayResource(fileData)
+
+            logger.info("Serving document $documentId: ${metadata.originalName} (${fileData.size} bytes)")
+
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(metadata.contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${metadata.originalName}\"")
+                .body(resource)
+
+        } catch (e: Exception) {
+            return logAndRethrow("Error downloading document $documentId", e)
+        }
+    }
+
+    @DeleteMapping("/{protocolId}/document/{documentId}")
+    @Operation(summary = "Delete protocol document", description = "Usuń dokument protokołu")
+    fun deleteProtocolDocument(
+        @Parameter(description = "Protocol ID", required = true) @PathVariable protocolId: String,
+        @Parameter(description = "Document ID", required = true) @PathVariable documentId: String
+    ): ResponseEntity<Map<String, Any>> {
+        try {
+            logger.info("Deleting document: $documentId for protocol: $protocolId")
+
+            // Sprawdź czy dokument należy do tego protokołu
+            val metadata = protocolDocumentStorageService.getDocumentMetadata(documentId)
+            if (metadata == null || metadata.protocolId.value != protocolId) {
+                return ResponseEntity.notFound().build()
+            }
+
+            val deleted = protocolDocumentStorageService.deleteDocument(documentId)
+
+            if (deleted) {
+                // Dodaj komentarz do protokołu
+                protocolCommentsRepository.save(
+                    ProtocolComment(
+                        protocolId = ProtocolId(protocolId),
+                        author = securityContext.getCurrentUserName() ?: "System",
+                        content = "Usunięto dokument: ${metadata.originalName}",
+                        timestamp = Instant.now().toString(),
+                        type = "system"
+                    )
+                )
+
+                logger.info("Successfully deleted document: $documentId")
+                return ok(createSuccessResponse("Document deleted successfully",
+                    mapOf("documentId" to documentId)))
+            } else {
+                logger.warn("Failed to delete document: $documentId")
+                return ResponseEntity.internalServerError().build()
+            }
+
+        } catch (e: Exception) {
+            return logAndRethrow("Error deleting document $documentId", e)
+        }
     }
 
     @PostMapping("/{id}/release")

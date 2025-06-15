@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/modules/visits/infrastructure/persistence/entity/ProtocolEntity.kt
 package com.carslab.crm.modules.visits.infrastructure.persistence.entity
 
 import com.carslab.crm.modules.clients.domain.model.ClientId
@@ -83,7 +84,10 @@ class ProtocolEntity(
     var comments: MutableList<ProtocolCommentEntity> = mutableListOf(),
 
     @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var images: MutableList<VehicleImageEntity> = mutableListOf()
+    var images: MutableList<VehicleImageEntity> = mutableListOf(),
+
+    @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var documents: MutableList<ProtocolDocumentEntity> = mutableListOf()
 ) {
     fun toDomainView(): ProtocolView = ProtocolView(
         id = ProtocolId(id.toString()),

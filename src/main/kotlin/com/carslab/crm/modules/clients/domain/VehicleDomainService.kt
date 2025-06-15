@@ -15,18 +15,21 @@ import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepos
 import com.carslab.crm.modules.clients.domain.port.VehicleRepository
 import com.carslab.crm.modules.clients.domain.port.VehicleSearchCriteria
 import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Service
 @Transactional
 class VehicleDomainService(
     private val vehicleRepository: VehicleRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val associationRepository: ClientVehicleAssociationRepository
+    private val associationRepository: ClientVehicleAssociationRepository,
+    private val vehicleJpaRepository: VehicleJpaRepository
 ) {
 
     fun createVehicle(command: CreateVehicleCommand): Vehicle {
@@ -100,6 +103,10 @@ class VehicleDomainService(
     @Transactional(readOnly = true)
     fun searchVehicles(criteria: VehicleSearchCriteria, pageable: Pageable): Page<Vehicle> {
         return vehicleRepository.searchVehicles(criteria, pageable)
+    }
+    
+    fun updateVehicleLastVisit(id: Long, companyId: Long, date: LocalDateTime) {
+        vehicleJpaRepository.updateLastVisitAndIncrementCount(id, companyId, date)
     }
 
     fun updateStatistics(id: VehicleId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
