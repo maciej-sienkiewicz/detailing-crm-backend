@@ -94,7 +94,6 @@ class BalanceOverrideController(
 
     @PostMapping("/manual")
     @Operation(summary = "Manual balance override", description = "Manually set balance with reason")
-    @PreAuthorize("hasPermission('OVERRIDE_BALANCE')")
     fun manualOverride(
         @RequestBody request: ManualOverrideRequest
     ): ResponseEntity<BalanceOverrideResult> {

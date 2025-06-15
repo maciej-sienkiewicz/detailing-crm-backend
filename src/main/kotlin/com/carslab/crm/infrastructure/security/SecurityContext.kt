@@ -20,6 +20,7 @@ class SecurityContext {
         val authentication = SecurityContextHolder.getContext().authentication
         return when (val principal = authentication?.principal) {
             is UserPrincipal -> principal.id.toString()
+            is UserEntity -> principal.id.toString()
             else -> null
         }
     }

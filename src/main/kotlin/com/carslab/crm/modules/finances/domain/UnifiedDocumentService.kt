@@ -27,6 +27,7 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -43,7 +44,8 @@ class UnifiedDocumentService(
     private val documentRepository: UnifiedDocumentRepository,
     private val documentStorageService: UniversalStorageService,
     private val securityContext: SecurityContext,
-    private val documentBalanceService: DocumentBalanceService
+    private val documentBalanceService: DocumentBalanceService,
+    private val balanceService: BalanceService,
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -346,7 +348,10 @@ class UnifiedDocumentService(
     @Transactional(readOnly = true)
     fun getFinancialSummary(dateFrom: LocalDate?, dateTo: LocalDate?): FinancialSummaryResponse {
         logger.info("Getting financial summary for period: {} to {}", dateFrom, dateTo)
+        val companyId = securityContext.getCurrentCompanyId()
+        val balance = balanceService.getCurrentBalances(companyId)
         return documentRepository.getFinancialSummary(dateFrom, dateTo)
+            .copy(cashBalance = balance.cashBalance)
     }
 
     @Transactional(readOnly = true)
