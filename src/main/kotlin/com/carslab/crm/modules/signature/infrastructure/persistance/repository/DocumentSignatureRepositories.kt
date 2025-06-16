@@ -60,6 +60,8 @@ interface SignatureDocumentRepository : JpaRepository<SignatureDocument, UUID> {
 interface DocumentSignatureSessionRepository : JpaRepository<DocumentSignatureSession, UUID> {
 
     fun findBySessionIdAndCompanyId(sessionId: UUID, companyId: Long): DocumentSignatureSession?
+    
+    fun findBySessionId(sessionId: UUID): DocumentSignatureSession?
 
     @Query("""
         SELECT s FROM DocumentSignatureSession s 

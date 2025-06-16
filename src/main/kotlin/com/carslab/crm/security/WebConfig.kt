@@ -91,6 +91,7 @@ class SecurityConfig(
 
                     // Signature endpoints
                     .requestMatchers("/api/signatures/**").permitAll()
+                    .requestMatchers("/api/signatures/submit").permitAll()
 
                     // Tablet management - wymagane role
                     .requestMatchers("/api/tablets/**").permitAll()
