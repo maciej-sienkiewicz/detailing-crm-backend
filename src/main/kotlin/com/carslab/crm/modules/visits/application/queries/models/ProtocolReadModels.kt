@@ -1,8 +1,6 @@
 // src/main/kotlin/com/carslab/crm/modules/visits/application/queries/models/ProtocolReadModels.kt
 package com.carslab.crm.modules.visits.application.queries.models
 
-import java.time.LocalDateTime
-
 data class ProtocolDetailReadModel(
     val id: String,
     val title: String,
@@ -16,7 +14,7 @@ data class ProtocolDetailReadModel(
     val referralSource: String?,
     val otherSourceDetails: String?,
     val documents: DocumentsReadModel,
-    val mediaItems: List<MediaReadModel>,
+    val mediaItems: List<ProtocolMediaReadModel>,
     val audit: AuditReadModel,
     val appointmentId: String?
 )
@@ -98,7 +96,7 @@ data class DocumentsReadModel(
     val documentsProvided: Boolean
 )
 
-data class MediaReadModel(
+data class ProtocolMediaReadModel(
     val id: String,
     val type: String,
     val name: String,
@@ -112,21 +110,4 @@ data class AuditReadModel(
     val createdAt: String,
     val updatedAt: String,
     val statusUpdatedAt: String
-)
-
-data class DocumentReadModel(
-    val id: String,
-    val name: String,
-    val type: String,
-    val size: Long,
-    val uploadedAt: String,
-    val uploadedBy: String
-)
-
-data class CommentReadModel(
-    val id: String,
-    val author: String,
-    val content: String,
-    val timestamp: String,
-    val type: String
 )

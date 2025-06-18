@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/visits/application/queries/models/ProtocolQueries.kt
 package com.carslab.crm.modules.visits.application.queries.models
 
 import com.carslab.crm.infrastructure.cqrs.Query
@@ -30,15 +29,3 @@ data class GetClientProtocolHistoryQuery(
     val clientId: Long,
     val status: ProtocolStatus? = null
 ) : Query<List<ProtocolListReadModel>>
-
-data class GetProtocolImagesQuery(
-    val protocolId: String
-) : Query<List<MediaReadModel>>
-
-data class GetProtocolDocumentsQuery(
-    val protocolId: String
-) : Query<List<DocumentReadModel>>
-
-data class GetProtocolCommentsQuery(
-    val protocolId: String
-) : Query<List<CommentReadModel>>
