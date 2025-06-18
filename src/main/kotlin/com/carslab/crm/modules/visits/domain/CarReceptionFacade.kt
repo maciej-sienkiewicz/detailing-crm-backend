@@ -17,8 +17,6 @@ import java.time.LocalDateTime
 class CarReceptionFacade(
     private val carReceptionService: CarReceptionService,
 ) {
-    private val logger = LoggerFactory.getLogger(CarReceptionFacade::class.java)
-
     fun createProtocol(protocol: CreateProtocolRootModel): ProtocolId {
         return carReceptionService.createProtocol(protocol)
     }
@@ -41,10 +39,6 @@ class CarReceptionFacade(
 
     fun getProtocolById(protocolId: ProtocolId): CarReceptionProtocol? {
         return carReceptionService.getProtocolById(protocolId)
-    }
-
-    fun getAllProtocols(): List<CarReceptionProtocol> {
-        return carReceptionService.getAllProtocols()
     }
 
     fun searchProtocols(

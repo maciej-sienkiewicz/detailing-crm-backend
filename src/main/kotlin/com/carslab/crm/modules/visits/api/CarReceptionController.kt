@@ -184,23 +184,6 @@ class CarReceptionController(
         return matchResult.groupValues[1].toInt()
     }
 
-    @PostMapping
-    fun createCarReceptionProtocol(@Valid @RequestBody command: CreateCarReceptionCommand): ResponseEntity<ProtocolIdResponse> {
-        logger.info("Creating new car reception protocol for: ${command.ownerName}, vehicle: ${command.make} ${command.model}")
-
-        try {
-            validateCarReceptionRequest(command)
-
-            val savedProtocolId = CarReceptionDtoMapper.fromCreateCommand(command)
-                .let { carReceptionFacade.createProtocol(it) }
-
-            logger.info("Successfully created car reception protocol with ID: $savedProtocolId")
-            return created(ProtocolIdResponse(savedProtocolId.value))
-        } catch (e: Exception) {
-            return logAndRethrow("Error     creating car reception protocol", e)
-        }
-    }
-
     @PutMapping("/{protocolId}/services")
     fun updateServices(
         @PathVariable protocolId: String,
