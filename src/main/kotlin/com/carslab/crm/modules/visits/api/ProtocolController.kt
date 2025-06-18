@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.visits.api
 
 import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.modules.visits.api.dto.*
 import com.carslab.crm.modules.visits.api.mappers.ProtocolApiMappers
 import com.carslab.crm.modules.visits.application.commands.models.*
@@ -19,14 +20,14 @@ import jakarta.validation.Valid
 @Tag(name = "Protocol Management", description = "Car reception protocol management")
 class ProtocolController(
     private val commandBus: CommandBus,
-    private val queryBus: QueryBus
-) {
+    private val queryBus: QueryBus, 
+    ) {
 
     @PostMapping
     @Operation(summary = "Create new protocol")
     fun createProtocol(@Valid @RequestBody request: CreateProtocolRequest): ResponseEntity<ProtocolIdResponse> {
         val command = ProtocolApiMappers.toCreateCommand(request)
-        val protocolId = commandBus.execute(command)
+        val protocolId: String = commandBus.execute(command)
         return ResponseEntity.status(HttpStatus.CREATED).body(ProtocolIdResponse(protocolId))
     }
 

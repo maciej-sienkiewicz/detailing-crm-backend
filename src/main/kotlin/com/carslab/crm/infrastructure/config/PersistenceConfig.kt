@@ -27,7 +27,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.modules.company_settings.infrastructure.persistence.repository",
     "com.carslab.crm.infrastructure.storage.repository",
     "com.carslab.crm.infrastructure.backup.googledrive.repository",
-    "com.carslab.crm.modules.visits.infrastructure.persistence.repository"
+    "com.carslab.crm.modules.visits.infrastructure.persistence.repository",
+    "com.carslab.crm.modules.visits.infrastructure.persistence.read"
 ])
 class PersistenceConfig {
 

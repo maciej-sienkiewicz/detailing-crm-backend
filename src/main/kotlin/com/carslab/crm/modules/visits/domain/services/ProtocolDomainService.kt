@@ -21,7 +21,6 @@ import java.time.LocalDateTime
 class ProtocolDomainService {
 
     fun createProtocol(command: CreateProtocolCommand): CreateProtocolRootModel {
-        // Business logic for creating protocol
         val protocolId = ProtocolId.generate()
         val now = LocalDateTime.now()
 

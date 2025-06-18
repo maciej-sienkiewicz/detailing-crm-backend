@@ -9,9 +9,9 @@ data class ProtocolServiceView(
     val id: ServiceId,
     val name: String,
     val basePrice: Money,
-    val discount: Discount? = null,
+    val discount: Discount?,
     val finalPrice: Money,
     val approvalStatus: ApprovalStatus,
     val note: String?,
-    val quantity: Long,
+    val quantity: Long
 )

@@ -14,8 +14,8 @@ data class ProtocolDocumentView(
     val originalName: String,
     val fileSize: Long,
     val contentType: String,
-    val documentType: String, // "MARKETING_CONSENT", "SERVICE_CONSENT", "OTHER"
-    val description: String? = null,
+    val documentType: String,
+    val description: String?,
     val createdAt: LocalDateTime,
     val uploadedBy: String
 )

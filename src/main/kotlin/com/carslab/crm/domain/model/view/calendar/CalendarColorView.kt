@@ -6,7 +6,10 @@ import java.time.LocalDateTime
 /**
  * Value object for calendar color ID
  */
-data class CalendarColorId(val value: String)
+@JvmInline
+value class CalendarColorId(val value: String) {
+    override fun toString(): String = value
+}
 
 /**
  * Domain model for calendar color

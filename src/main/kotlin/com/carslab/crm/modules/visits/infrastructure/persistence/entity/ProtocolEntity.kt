@@ -31,7 +31,6 @@ class ProtocolEntity(
     @Column(nullable = false)
     var calendarColorId: String,
 
-    // Zmienione z obiektu na ID
     @Column(name = "vehicle_id", nullable = false)
     var vehicleId: Long,
 
