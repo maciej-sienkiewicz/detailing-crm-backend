@@ -14,6 +14,8 @@ interface ProtocolDocumentJpaRepository : JpaRepository<ProtocolDocumentEntity, 
      * Znajdź wszystkie dokumenty dla protokołu w ramach firmy
      */
     fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<ProtocolDocumentEntity>
+    
+    fun findByProtocolIdAndCompanyIdAndDocumentType(protocolId: Long, companyId: Long, documentType: String): List<ProtocolDocumentEntity>
 
     /**
      * Znajdź dokument po storageId w ramach firmy (bezpieczeństwo)

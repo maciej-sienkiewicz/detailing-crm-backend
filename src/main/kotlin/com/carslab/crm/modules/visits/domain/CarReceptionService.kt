@@ -158,16 +158,6 @@ class CarReceptionService(
 
         if (changeResult.hasChanges()) {
             val friendlyFormatted = changeResult.formatUserFriendlyEnhanced(CarReceptionProtocol::class.java)
-
-            protocolCommentsRepository.save(
-                ProtocolComment(
-                    protocolId = protocol.id,
-                    author = "Administrator",
-                    content = friendlyFormatted,
-                    timestamp = Instant.now().toString(),
-                    type = "system"
-                )
-            )
         }
 
         protocolServicesRepository.saveServices(

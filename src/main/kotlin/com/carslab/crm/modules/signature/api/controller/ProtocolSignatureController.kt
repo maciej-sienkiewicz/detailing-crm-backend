@@ -59,6 +59,9 @@ class ProtocolSignatureController(
 
         return try {
             val status = protocolSignatureService.getSignatureSessionStatus(sessionId, companyId)
+            if(status.status == ProtocolSignatureStatus.COMPLETED) {
+                protocolSignatureService.getSignedDocument(sessionId.toString(), companyId)
+            }
             ok(status)
         } catch (e: Exception) {
             logger.error("Error getting protocol signature status", e)
@@ -90,29 +93,6 @@ class ProtocolSignatureController(
         } catch (e: Exception) {
             logger.error("Error cancelling protocol signature session", e)
             throw SignatureException("Failed to cancel session", e)
-        }
-    }
-
-    /**
-     * Pobierz podpisany protokół PDF
-     */
-    @GetMapping("/sessions/{sessionId}/signed-document")
-    fun getSignedProtocolDocument(
-        @PathVariable sessionId: UUID
-    ): ResponseEntity<ByteArray> {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        return try {
-            val signedDocument = protocolSignatureService.getSignedProtocolDocument(sessionId, companyId)
-                ?: return ResponseEntity.notFound().build()
-
-            ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=\"signed-protocol-${sessionId}.pdf\"")
-                .body(signedDocument)
-        } catch (e: Exception) {
-            logger.error("Error downloading signed protocol document", e)
-            throw SignatureException("Failed to download signed document", e)
         }
     }
 }

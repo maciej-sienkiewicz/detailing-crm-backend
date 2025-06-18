@@ -7,8 +7,122 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Rozszerzenia SignatureWebSocketHandler dla komunikacji z CRM
+ * Powiadom aplikację frontendową o zakończeniu podpisu
  */
+fun SignatureWebSocketHandler.notifyFrontendSignatureComplete(
+    companyId: Long,
+    sessionId: String,
+    signatureData: SignatureCompletionData
+): Int {
+    val logger = LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+
+    val notification = mapOf(
+        "type" to "signature_ready",
+        "payload" to mapOf(
+            "sessionId" to sessionId,
+            "success" to signatureData.success,
+            "signatureImageUrl" to signatureData.signatureImageUrl,
+            "signedDocumentUrl" to signatureData.signedDocumentUrl,
+            "signedAt" to signatureData.signedAt,
+            "signerName" to signatureData.signerName,
+            "protocolId" to signatureData.protocolId,
+            "timestamp" to Instant.now()
+        )
+    )
+
+    val sentCount = broadcastToWorkstations(companyId, notification)
+    logger.info("Signature completion notification sent to $sentCount frontend clients")
+
+    return sentCount
+}
+
+/**
+ * Powiadom o rozpoczęciu procesu podpisu
+ */
+fun SignatureWebSocketHandler.notifyFrontendSignatureStarted(
+    companyId: Long,
+    sessionId: String,
+    protocolId: Long?
+): Int {
+    val notification = mapOf(
+        "type" to "signature_started",
+        "payload" to mapOf(
+            "sessionId" to sessionId,
+            "protocolId" to protocolId,
+            "status" to "SENT_TO_TABLET",
+            "timestamp" to Instant.now()
+        )
+    )
+
+    return broadcastToWorkstations(companyId, notification)
+}
+
+/**
+ * Powiadom o statusie podpisu (viewing, signing, etc.)
+ */
+fun SignatureWebSocketHandler.notifyFrontendSignatureStatus(
+    companyId: Long,
+    sessionId: String,
+    status: String,
+    protocolId: Long? = null
+): Int {
+    val notification = mapOf(
+        "type" to "signature_status_update",
+        "payload" to mapOf(
+            "sessionId" to sessionId,
+            "status" to status,
+            "protocolId" to protocolId,
+            "timestamp" to Instant.now()
+        )
+    )
+
+    return broadcastToWorkstations(companyId, notification)
+}
+
+/**
+ * Przetwórz wiadomość o podpisie otrzymaną z tableta
+ */
+fun SignatureWebSocketHandler.handleTabletSignatureMessage(
+    session: org.springframework.web.socket.WebSocketSession,
+    messageType: String,
+    payload: Map<String, Any>
+) {
+    val logger = LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
+
+    // Znajdź połączenie tableta
+    val tabletConnection = tabletConnections.values.find { it.session == session }
+    if (tabletConnection?.tablet == null) {
+        logger.warn("Message from unknown tablet")
+        return
+    }
+
+    val sessionId = payload["sessionId"] as? String ?: return
+    val companyId = tabletConnection.companyId ?: return
+
+    when (messageType) {
+        "document_viewing_started" -> {
+            notifyFrontendSignatureStatus(companyId, sessionId, "VIEWING_DOCUMENT")
+        }
+        "signing_started" -> {
+            notifyFrontendSignatureStatus(companyId, sessionId, "SIGNING_IN_PROGRESS")
+        }
+        "signature_completed" -> {
+            // Ten przypadek zostanie obsłużony przez SignatureSubmissionService
+            logger.info("Signature completion will be handled by service layer")
+        }
+    }
+}
+
+// Klasa pomocnicza
+data class SignatureCompletionData(
+    val sessionId: String,
+    val success: Boolean,
+    val signatureImageUrl: String?,
+    val signedDocumentUrl: String?,
+    val signedAt: Instant?,
+    val signerName: String,
+    val protocolId: Long? = null
+)
 
 /**
  * Wyślij powiadomienie do wszystkich stacji roboczych w firmie

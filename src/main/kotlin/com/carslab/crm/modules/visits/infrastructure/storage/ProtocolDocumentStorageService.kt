@@ -2,6 +2,7 @@
 package com.carslab.crm.modules.visits.infrastructure.storage
 
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentType
 import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentView
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
@@ -88,6 +89,14 @@ class ProtocolDocumentStorageService(
             logger.error("Failed to store document for protocol ${protocolId.value}", e)
             throw RuntimeException("Failed to store document", e)
         }
+    }
+    
+    fun findAcceptanceProtocol(protocolId: ProtocolId): ByteArray? {
+        val companyId = getCurrentCompanyId()
+        return protocolDocumentRepository.findByProtocolIdAndCompanyIdAndDocumentType(
+            protocolId.value.toLong(), companyId, ProtocolDocumentType.TERMS_ACCEPTANCE.toString()
+        ).maxByOrNull { it.createdAt }?.toDomain()
+            ?.let { universalStorageService.retrieveFile(it.storageId) }
     }
 
     /**

@@ -3,6 +3,7 @@ package com.carslab.crm.modules.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.signature.service.ProtocolSignatureService
 import com.carslab.crm.signature.service.SignatureSubmissionService
 import com.carslab.crm.signature.service.SignatureException
 import org.springframework.http.ResponseEntity
@@ -14,7 +15,8 @@ import java.util.*
 @RequestMapping("/api/signatures")
 class SignatureSubmissionController(
     private val signatureSubmissionService: SignatureSubmissionService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val signatureService: ProtocolSignatureService,
 ) : BaseController() {
 
     /**
@@ -26,60 +28,21 @@ class SignatureSubmissionController(
     ): ResponseEntity<SignatureResponse> {
 
         return try {
-            val response = signatureSubmissionService.submitSignature(
-                request = request,
+            val response = signatureService.processSignatureFromTablet(
+                request.sessionId,
+                request.signatureImage
             )
 
-            ok(response)
+            ok(SignatureResponse(
+                success = true,
+                sessionId = request.sessionId,
+                message = "Signature submitted successfully",
+                signedAt = request.signedAt,
+                signatureImageUrl = "response.signatureImageUrl"
+            ))
         } catch (e: Exception) {
             logger.error("Error submitting signature for session ${request.sessionId}", e)
             throw SignatureException("Failed to submit signature: ${e.message}", e)
-        }
-    }
-
-    /**
-     * Get signed document download
-     */
-    @GetMapping("/{sessionId}/signed-document")
-    fun getSignedDocument(
-        @PathVariable sessionId: UUID
-    ): ResponseEntity<ByteArray> {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        return try {
-            val signedDocument = signatureSubmissionService.getSignedDocument(sessionId, companyId)
-                ?: return ResponseEntity.notFound().build()
-
-            ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=\"signed-document-${sessionId}.pdf\"")
-                .body(signedDocument)
-        } catch (e: Exception) {
-            logger.error("Error downloading signed document for session $sessionId", e)
-            throw SignatureException("Failed to download signed document", e)
-        }
-    }
-
-    /**
-     * Get signature image
-     */
-    @GetMapping("/{sessionId}/signature-image")
-    fun getSignatureImage(
-        @PathVariable sessionId: UUID
-    ): ResponseEntity<ByteArray> {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        return try {
-            val signatureImage = signatureSubmissionService.getSignatureImage(sessionId, companyId)
-                ?: return ResponseEntity.notFound().build()
-
-            ResponseEntity.ok()
-                .header("Content-Type", "image/png")
-                .header("Content-Disposition", "inline; filename=\"signature-${sessionId}.png\"")
-                .body(signatureImage)
-        } catch (e: Exception) {
-            logger.error("Error downloading signature image for session $sessionId", e)
-            throw SignatureException("Failed to download signature image", e)
         }
     }
 }

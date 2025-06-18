@@ -351,7 +351,10 @@ class UnifiedDocumentService(
         val companyId = securityContext.getCurrentCompanyId()
         val balance = balanceService.getCurrentBalances(companyId)
         return documentRepository.getFinancialSummary(dateFrom, dateTo)
-            .copy(cashBalance = balance.cashBalance)
+            .copy(
+                cashBalance = balance.cashBalance,
+                bankAccountBalance = balance.bankBalance
+            )
     }
 
     @Transactional(readOnly = true)

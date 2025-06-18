@@ -22,7 +22,7 @@ import javax.imageio.ImageIO
 
 data class SignatureData(
     val signatureImageBytes: ByteArray,
-    val signatureFieldName: String = "mojepole" // nazwa pola podpisu w PDF
+    val signatureFieldName: String = "signature" // nazwa pola podpisu w PDF
 )
 
 @Service
@@ -75,7 +75,7 @@ class PdfService(
         }
     }
 
-    fun signe(document: ByteArray, signatureData: ByteArray): ByteArray {
+    fun sign(document: ByteArray, signatureData: ByteArray): ByteArray {
 
         ByteArrayOutputStream().use { outputStream ->
             PDDocument.load(document.inputStream()).use { document ->
@@ -141,7 +141,7 @@ class PdfService(
     ) {
         try {
             // Próbujemy znaleźć pole podpisu w formularzu
-            val signatureField = acroForm.getField("Signature_1") as? PDSignatureField
+            val signatureField = acroForm.getField("signature") as? PDSignatureField
 
             if (signatureField != null) {
                 // Jeśli mamy dedykowane pole podpisu, używamy jego współrzędnych
@@ -309,7 +309,7 @@ class PdfService(
         .replace('\u00A0', ' ')
 
     private fun addNote(note: String?): String =
-        if(!note.isNullOrBlank()) "[$note]" else ""
+        if (!note.isNullOrBlank()) "[$note]" else ""
 
     fun LocalDateTime.format(): String {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -318,25 +318,23 @@ class PdfService(
 
     private fun getFormDataForProtokol(protocol: CarReceptionProtocol): Map<String, String> {
         val notes = protocol.protocolServices.joinToString(",") {
-            """
-                ${it.name} (${it.quantity} szt.) ${addNote(it.note)}
-                """.trimIndent()
-        } ?: ""
+            "${it.name} ${addNote(it.note)}"
+        }
 
         return mapOf(
-            "Text1" to (protocol.vehicle.make),
-            "Text2" to (protocol.vehicle.model),
-            "Text3" to (protocol.vehicle.licensePlate),
-            "Text4" to (protocol.vehicle.mileage?.toString() ?: ""),
-            "Text11" to notes,
-            "Text5" to (protocol.client.name ?: ""),
-            "Text6" to (protocol.client.companyName ?: ""),
+            "brand" to (protocol.vehicle.make),
+            "model" to (protocol.vehicle.model),
+            "licenseplate" to (protocol.vehicle.licensePlate),
+            "mileage" to (protocol.vehicle.mileage?.toString() ?: ""),
+            "services" to notes,
+            "fullname" to (protocol.client.name ?: ""),
+            "companyname" to (protocol.client.companyName ?: ""),
             "Text7" to (""),
-            "Text8" to (protocol.client.phone ?: ""),
-            "Text9" to (protocol.client.email ?: ""),
-            "Text10" to (protocol.client.taxId ?: ""),
-            "Text12" to (protocol.notes?: ""),
-            "Text28" to (protocol.period.startDate.format() ?: ""),
+            "phonenumber" to (protocol.client.phone ?: ""),
+            "email" to (protocol.client.email ?: ""),
+            "tax" to (protocol.client.taxId ?: ""),
+            "remarks" to (protocol.notes?: ""),
+            "date" to (protocol.period.startDate.format() ?: ""),
         )
     }
 }

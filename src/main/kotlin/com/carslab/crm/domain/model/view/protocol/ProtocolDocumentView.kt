@@ -29,6 +29,7 @@ enum class ProtocolDocumentType(val displayName: String) {
     TERMS_ACCEPTANCE("Akceptacja regulaminu"),
     PRIVACY_POLICY("Polityka prywatności"),
     DAMAGE_WAIVER("Zwolnienie z odpowiedzialności"),
+    ACCEPTANCE_PROTOCOL("Protokół odbioru"),
     OTHER("Inny dokument");
 
     companion object {
