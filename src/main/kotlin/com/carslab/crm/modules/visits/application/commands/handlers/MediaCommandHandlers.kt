@@ -42,7 +42,7 @@ class UploadVisitMediaCommandHandler(
             name = command.mediaDetails.name,
             description = command.mediaDetails.description,
             location = command.mediaDetails.location,
-            tags = command.mediaDetails.tags
+            tags = command.mediaDetails.tags.toList()
         )
 
         // Add system comment (non-blocking)

@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.visits.application.commands.models
 
 import com.carslab.crm.infrastructure.cqrs.Command
+import com.carslab.crm.modules.visits.domain.valueobjects.MediaMetadata
 import org.springframework.web.multipart.MultipartFile
 
 data class UploadVisitMediaCommand(

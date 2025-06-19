@@ -88,17 +88,25 @@ data class BankSettings(
 )
 
 data class EmailSettings(
+    @JsonProperty("company_name")
     val smtpHost: String? = null,
+    @JsonProperty("smtp_port")
     val smtpPort: Int? = null,
+    @JsonProperty("smtp_username")
     val smtpUsername: String? = null,
+    @JsonProperty("smpt_password")
     val smtpPassword: String? = null, // Będzie zaszyfrowane
     val imapHost: String? = null,
     val imapPort: Int? = null,
     val imapUsername: String? = null,
     val imapPassword: String? = null, // Będzie zaszyfrowane
+    @JsonProperty("sender_email")
     val senderEmail: String? = null,
+    @JsonProperty("sender_name")
     val senderName: String? = null,
+    @JsonProperty("use_ssl")
     val useSSL: Boolean = true,
+    @JsonProperty("use_tls")
     val useTLS: Boolean = true
 ) {
     fun hasValidSmtpConfig(): Boolean {

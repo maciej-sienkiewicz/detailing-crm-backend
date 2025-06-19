@@ -5,6 +5,8 @@ import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
+import com.carslab.crm.modules.visits.infrastructure.processor.RequestProcessorFactory
+import com.carslab.crm.modules.visits.infrastructure.processor.exceptions.DomainException
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -26,42 +28,47 @@ import org.springframework.web.multipart.MultipartHttpServletRequest
 class ProtocolMediaController(
     private val commandBus: CommandBus,
     private val queryBus: QueryBus,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val requestProcessorFactory: RequestProcessorFactory,
 ) {
     private val logger = LoggerFactory.getLogger(ProtocolMediaController::class.java)
 
     @PostMapping("/{protocolId}/media", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    @Operation(summary = "Upload media to protocol", description = "Upload image files to a specific protocol")
     fun uploadMedia(
-        @Parameter(description = "Protocol ID", required = true)
         @PathVariable protocolId: String,
-        @RequestParam("file") file: MultipartFile,
-        @RequestParam("mediaDetails") mediaDetailsJson: String
+        request: MultipartHttpServletRequest
     ): ResponseEntity<MediaUploadResponse> {
+
         return try {
-            logger.info("Uploading media for protocol: $protocolId")
+            // Single Responsibility: get right processor
+            val processor = requestProcessorFactory.getProcessor(request)
 
-            // Parse media details from JSON
-            val mediaDetails = objectMapper.readValue(mediaDetailsJson, MediaDetailsCommand::class.java)
+            // Single Responsibility: extract data
+            val mediaData = processor.extractMediaData(request)
 
-            // Create and execute command
+            // Single Responsibility: execute business logic
             val command = UploadVisitMediaCommand(
                 visitId = protocolId,
-                file = file,
-                mediaDetails = mediaDetails
+                file = mediaData.fileData,
+                mediaDetails = MediaDetailsCommand(
+                    name = mediaData.metadata.name,
+                    description = mediaData.metadata.description,
+                    location = mediaData.metadata.location,
+                    tags = mediaData.metadata.tags.toList(),
+                    type = "PHOTO",
+                )
             )
 
             val mediaId = commandBus.execute(command)
 
-            logger.info("Successfully uploaded media $mediaId for visitId $protocolId")
             ResponseEntity.status(HttpStatus.CREATED)
-                .body(MediaUploadResponse(mediaId = mediaId, protocolId = protocolId))
+                .body(MediaUploadResponse(mediaId, protocolId))
 
-        } catch (e: IllegalArgumentException) {
-            logger.warn("Invalid request for uploading media to visit $protocolId: ${e.message}")
+        } catch (e: DomainException) {
+            logger.warn("Domain error uploading media to protocol $protocolId: ${e.message}")
             ResponseEntity.badRequest().build()
         } catch (e: Exception) {
-            logger.error("Error uploading media for visit $protocolId", e)
+            logger.error("Unexpected error uploading media to protocol $protocolId", e)
             ResponseEntity.internalServerError().build()
         }
     }
