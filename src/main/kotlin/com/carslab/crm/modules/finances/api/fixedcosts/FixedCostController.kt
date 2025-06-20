@@ -42,7 +42,6 @@ import java.time.LocalDate
 @Tag(name = "Fixed Costs", description = "API endpoints for fixed costs management")
 class FixedCostController(
     private val fixedCostService: FixedCostService,
-    private val emailSendignService: EmailSendingService,
 ) : BaseController() {
 
     @GetMapping
@@ -65,8 +64,6 @@ class FixedCostController(
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int
     ): ResponseEntity<PaginatedResponse<FixedCostResponse>> {
         logger.info("Getting all fixed costs with filters")
-
-        emailSendignService.sendProtocolEmail("1", "kontakt@sienkiewicz-maciej.pl", "Test email", emptyMap())
         
         val filter = FixedCostFilterDTO(
             name = name,
