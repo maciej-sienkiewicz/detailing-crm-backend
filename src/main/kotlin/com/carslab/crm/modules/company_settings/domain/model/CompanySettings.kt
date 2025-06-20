@@ -88,13 +88,13 @@ data class BankSettings(
 )
 
 data class EmailSettings(
-    @JsonProperty("company_name")
+    @JsonProperty("smtp_host")
     val smtpHost: String? = null,
     @JsonProperty("smtp_port")
     val smtpPort: Int? = null,
     @JsonProperty("smtp_username")
     val smtpUsername: String? = null,
-    @JsonProperty("smpt_password")
+    @JsonProperty("smtp_password")
     val smtpPassword: String? = null, // Będzie zaszyfrowane
     val imapHost: String? = null,
     val imapPort: Int? = null,

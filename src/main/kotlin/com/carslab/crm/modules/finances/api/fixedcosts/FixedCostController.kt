@@ -18,6 +18,7 @@ import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostCategory
 import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostPayment
 import com.carslab.crm.finances.domain.model.fixedcosts.FixedCostStatus
 import com.carslab.crm.finances.domain.model.fixedcosts.PaymentStatus
+import com.carslab.crm.modules.email.domain.services.EmailSendingService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -40,7 +41,8 @@ import java.time.LocalDate
 @RequestMapping("/api/fixed-costs")
 @Tag(name = "Fixed Costs", description = "API endpoints for fixed costs management")
 class FixedCostController(
-    private val fixedCostService: FixedCostService
+    private val fixedCostService: FixedCostService,
+    private val emailSendignService: EmailSendingService,
 ) : BaseController() {
 
     @GetMapping
@@ -64,6 +66,8 @@ class FixedCostController(
     ): ResponseEntity<PaginatedResponse<FixedCostResponse>> {
         logger.info("Getting all fixed costs with filters")
 
+        emailSendignService.sendProtocolEmail("1", "kontakt@sienkiewicz-maciej.pl", "Test email", emptyMap())
+        
         val filter = FixedCostFilterDTO(
             name = name,
             category = category?.let { runCatching { FixedCostCategory.valueOf(it) }.getOrNull() },

@@ -36,13 +36,13 @@ class JpaProtocolReadRepositoryImpl(
         val protocolEntity = protocolJpaRepository.findByCompanyIdAndId(companyId, protocolId.toLong())
             .orElse(null) ?: return null
 
-        val client = clientJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.clientId)
+        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId)
             .orElse(null) ?: return null
 
-        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.vehicleId)
+        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId)
             .orElse(null) ?: return null
 
-        val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolEntity.id!!, companyId)
+        val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
 
         return ProtocolDetailReadModel(
             id = protocolEntity.id.toString(),
@@ -150,9 +150,9 @@ class JpaProtocolReadRepositoryImpl(
         val protocolPage = protocolJpaRepository.findAll(specification, pageable)
 
         val protocols = protocolPage.content.map { protocolEntity ->
-            val client = clientJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.clientId).orElse(null)
-            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.vehicleId).orElse(null)
-            val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolEntity.id!!, companyId)
+            val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
+            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
+            val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
 
             ProtocolListReadModel(
                 id = protocolEntity.id.toString(),
