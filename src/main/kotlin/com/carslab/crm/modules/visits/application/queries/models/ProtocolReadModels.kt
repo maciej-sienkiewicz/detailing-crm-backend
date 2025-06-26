@@ -1,6 +1,9 @@
 // src/main/kotlin/com/carslab/crm/modules/visits/application/queries/models/ProtocolReadModels.kt
 package com.carslab.crm.modules.visits.application.queries.models
 
+import MessageBinding
+import MessageBindingRule
+
 data class ProtocolDetailReadModel(
     val id: String,
     val title: String,
@@ -79,6 +82,11 @@ data class PeriodReadModel(
     val endDate: String
 )
 
+@MessageBinding([
+    MessageBindingRule("finalPrice", "Zmieniono cenę dla usługi: {{name}} z: {{oldFinalPrice}} zł na: {{newFinalPrice}} zł"),
+    MessageBindingRule("quantity", "Zmieniono ilość dla usługi: {{name}} z: {{oldQuantity}} na: {{newQuantity}}"),
+    MessageBindingRule("basePrice", "Zmieniono cenę bazową dla usługi: {{name}} z: {{oldBasePrice}} zł na: {{newBasePrice}} zł")
+])
 data class ServiceReadModel(
     val id: String,
     val name: String,

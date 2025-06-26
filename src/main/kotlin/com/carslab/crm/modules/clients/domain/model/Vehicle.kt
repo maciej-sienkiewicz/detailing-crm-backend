@@ -1,5 +1,8 @@
 package com.carslab.crm.modules.clients.domain.model
 
+import CustomFormatter
+import DisplayName
+import IgnoreComparison
 import com.carslab.crm.modules.clients.domain.model.shared.AuditInfo
 import com.carslab.crm.domain.model.events.VehicleEvent
 import java.time.LocalDateTime
@@ -25,16 +28,37 @@ data class CreateVehicle(
 )
 
 data class Vehicle(
+    @IgnoreComparison
     val id: VehicleId,
+
+    @DisplayName("Marka")
     val make: String,
+
+    @DisplayName("Model")
     val model: String,
+
+    @DisplayName("Rok produkcji")
     val year: Int?,
+
+    @DisplayName("Numer rejestracyjny")
     val licensePlate: String,
+
+    @DisplayName("Kolor")
     val color: String? = null,
+
+    @DisplayName("Numer VIN")
     val vin: String? = null,
+
+    @DisplayName("Przebieg")
     val mileage: Long? = null,
+
+    @DisplayName("Informacje serwisowe")
     val serviceInfo: VehicleServiceInfo = VehicleServiceInfo(),
+
+    @DisplayName("Informacje audytowe")
     val audit: AuditInfo = AuditInfo(),
+
+    @DisplayName("Właściciele")
     val owners: List<ClientId> = emptyList()
 ) {
     val displayName: String get() = "$make $model ($licensePlate)"
@@ -62,8 +86,14 @@ data class Vehicle(
 }
 
 data class VehicleServiceInfo(
+    @DisplayName("Łączna liczba usług")
     val totalServices: Int = 0,
+
+    @DisplayName("Data ostatniego serwisu")
     val lastServiceDate: LocalDateTime? = null,
+
+    @DisplayName("Łączne wydatki")
+    @CustomFormatter(BigDecimalFormatter::class)
     val totalSpent: BigDecimal = BigDecimal.ZERO
 ) {
     fun addService(serviceDate: LocalDateTime, amount: BigDecimal): VehicleServiceInfo {
