@@ -14,12 +14,16 @@ import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
 import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
 import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.infrastructure.events.EventPublisher
+import com.carslab.crm.infrastructure.events.InvoiceCreatedEvent
+import com.carslab.crm.infrastructure.events.create
 import com.carslab.crm.modules.finances.domain.balance.DocumentBalanceService
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
@@ -28,6 +32,7 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
+import com.carslab.crm.modules.visits.domain.CarReceptionService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -46,6 +51,8 @@ class UnifiedDocumentService(
     private val securityContext: SecurityContext,
     private val documentBalanceService: DocumentBalanceService,
     private val balanceService: BalanceService,
+    private val eventsPublisher: EventPublisher,
+    private val visitService: CarReceptionService,
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -53,7 +60,7 @@ class UnifiedDocumentService(
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-
+        
         validateDocumentRequest(request)
         val document = convertToDocumentModel(request)
 
@@ -109,6 +116,20 @@ class UnifiedDocumentService(
         } catch (e: Exception) {
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
         }
+
+        val visitDetails = document.protocolId?.let { 
+            visitService.getProtocolById(ProtocolId(it))
+        }
+        
+        eventsPublisher.publish(
+            InvoiceCreatedEvent.create(
+                visit = visitDetails,
+                document = savedDocument,
+                userId = securityContext.getCurrentUserId(),
+                companyId = companyId,
+                userName = securityContext.getCurrentUserName(),
+            )
+        )
 
         return savedDocument
     }

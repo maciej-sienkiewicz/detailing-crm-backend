@@ -20,9 +20,12 @@ import com.carslab.crm.domain.utils.EnhancedChangeTracker
 import com.carslab.crm.domain.utils.formatUserFriendlyEnhanced
 import com.carslab.crm.finances.domain.ports.InvoiceRepository
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.infrastructure.events.EventPublisher
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.FileImageStorageService
+import com.carslab.crm.modules.visits.domain.events.VisitScheduledEvent
+import com.carslab.crm.modules.visits.domain.events.VisitStartedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -43,6 +46,7 @@ class CarReceptionService(
     private val protocolCommentsRepository: ProtocolCommentsRepository,
     private val unifiedDocumentRepository: UnifiedDocumentRepository,
     private val securityContext: SecurityContext,
+    private val eventsPublisher: EventPublisher,
 ) {
     private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
 
@@ -102,6 +106,42 @@ class CarReceptionService(
                 type = "system"
             )
         )
+        
+        if(protocolWithFilledIds.status == ProtocolStatus.SCHEDULED) {
+            eventsPublisher.publish(
+                VisitScheduledEvent(
+                    visitId = savedProtocolId.value,
+                    visitTitle = protocolWithFilledIds.title,
+                    clientId = protocolWithFilledIds.client.id,
+                    clientName = protocolWithFilledIds.client.name,
+                    vehicleId = protocolWithFilledIds.vehicle.id,
+                    vehicleMake = protocolWithFilledIds.vehicle.brand,
+                    vehicleModel = protocolWithFilledIds.vehicle.model,
+                    licensePlate = protocolWithFilledIds.vehicle.licensePlate,
+                    scheduledDate = protocolWithFilledIds.period.startDate.toString(),
+                    services = protocolWithFilledIds.services.map { it.name },
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    userName = securityContext.getCurrentUserName(),
+                )
+            )
+        } else {
+            eventsPublisher.publish(
+                VisitStartedEvent(
+                    visitId = savedProtocolId.value,
+                    visitTitle = protocolWithFilledIds.title,
+                    clientId = protocolWithFilledIds.client.id,
+                    clientName = protocolWithFilledIds.client.name,
+                    vehicleId = protocolWithFilledIds.vehicle.id,
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    vehicleDisplayName = "${protocolWithFilledIds.vehicle.brand}-${protocolWithFilledIds.vehicle.model}",
+                    startedAt = protocolWithFilledIds.period.startDate.toString(),
+                    userName = securityContext.getCurrentUserName(),
+                )
+            )
+        }
+        
 
         logger.info("Created protocol with ID: ${savedProtocolId.value}")
         return savedProtocolId

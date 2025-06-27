@@ -1,5 +1,6 @@
 package com.carslab.crm.modules.visits.application.commands.handlers
 
+import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.modules.visits.domain.services.ProtocolDomainService
@@ -10,12 +11,16 @@ import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
 import com.carslab.crm.infrastructure.cqrs.CommandHandler
+import com.carslab.crm.infrastructure.events.EventPublisher
+import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.clients.domain.ClientDetailResponse
 import com.carslab.crm.modules.clients.domain.CreateClientRequest
 import com.carslab.crm.modules.clients.domain.CreateVehicleRequest
 import com.carslab.crm.modules.clients.domain.VehicleDetailResponse
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateClientCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateVehicleCommand
+import com.carslab.crm.modules.visits.domain.events.VisitScheduledEvent
+import com.carslab.crm.modules.visits.domain.events.VisitStartedEvent
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -27,7 +32,9 @@ class CreateProtocolCommandHandler(
     private val protocolDomainService: ProtocolDomainService,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleApplicationService: VehicleApplicationService,
-    private val clientVehicleAssociationService: ClientVehicleAssociationService
+    private val clientVehicleAssociationService: ClientVehicleAssociationService,
+    private val eventPublisher: EventPublisher,
+    private val securityContext: SecurityContext,
 ) : CommandHandler<CreateProtocolCommand, String> {
 
     private val logger = LoggerFactory.getLogger(CreateProtocolCommandHandler::class.java)
@@ -49,6 +56,41 @@ class CreateProtocolCommandHandler(
         )
 
         val savedProtocolId = protocolRepository.save(protocolModel)
+
+        if(protocolModel.status == ProtocolStatus.SCHEDULED) {
+            eventPublisher.publish(
+                VisitScheduledEvent(
+                    visitId = savedProtocolId.value,
+                    visitTitle = protocolModel.title,
+                    clientId = protocolModel.client.id,
+                    clientName = protocolModel.client.name,
+                    vehicleId = protocolModel.vehicle.id,
+                    vehicleMake = protocolModel.vehicle.brand,
+                    vehicleModel = protocolModel.vehicle.model,
+                    licensePlate = protocolModel.vehicle.licensePlate,
+                    scheduledDate = protocolModel.period.startDate.toString(),
+                    services = protocolModel.services.map { it.name },
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    userName = securityContext.getCurrentUserName(),
+                )
+            )
+        } else {
+            eventPublisher.publish(
+                VisitStartedEvent(
+                    visitId = savedProtocolId.value,
+                    visitTitle = protocolModel.title,
+                    clientId = protocolModel.client.id,
+                    clientName = protocolModel.client.name,
+                    vehicleId = protocolModel.vehicle.id,
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    vehicleDisplayName = "${protocolModel.vehicle.brand}-${protocolModel.vehicle.model}",
+                    startedAt = protocolModel.period.startDate.toString(),
+                    userName = securityContext.getCurrentUserName(),
+                )
+            )
+        }
 
         logger.info("Successfully created protocol: ${savedProtocolId.value}")
         return savedProtocolId.value

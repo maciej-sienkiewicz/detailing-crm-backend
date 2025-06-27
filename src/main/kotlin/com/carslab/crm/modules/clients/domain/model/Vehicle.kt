@@ -93,7 +93,6 @@ data class VehicleServiceInfo(
     val lastServiceDate: LocalDateTime? = null,
 
     @DisplayName("Łączne wydatki")
-    @CustomFormatter(BigDecimalFormatter::class)
     val totalSpent: BigDecimal = BigDecimal.ZERO
 ) {
     fun addService(serviceDate: LocalDateTime, amount: BigDecimal): VehicleServiceInfo {
