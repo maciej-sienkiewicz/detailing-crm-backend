@@ -4,6 +4,7 @@ package com.carslab.crm.modules.activities.infrastructure.persistence.entity
 import com.carslab.crm.modules.activities.application.queries.models.*
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -73,9 +74,6 @@ class ActivityEntity(
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
 
-    @Transient
-    private val objectMapper = ObjectMapper()
-
     fun toReadModel(): ActivityReadModel {
         return ActivityReadModel(
             id = activityId,
@@ -98,8 +96,9 @@ class ActivityEntity(
     private fun parseEntities(): List<ActivityEntityReadModel>? {
         return entitiesJson?.let { json ->
             try {
-                val typeRef = object : TypeReference<List<Map<String, Any>>>() {}
-                val entitiesList = objectMapper.readValue(json, typeRef)
+                // Deserializuj jako listę map
+                val entitiesList = objectMapper.readValue(json, object : TypeReference<List<Map<String, Any?>>>() {})
+
                 entitiesList.map { entityMap ->
                     ActivityEntityReadModel(
                         id = entityMap["id"] as String,
@@ -110,6 +109,7 @@ class ActivityEntity(
                     )
                 }
             } catch (e: Exception) {
+                logger.error("Failed to parse entities JSON for activity: $activityId", e)
                 null
             }
         }
@@ -118,31 +118,34 @@ class ActivityEntity(
     private fun parseMetadata(): ActivityMetadataReadModel? {
         return metadataJson?.let { json ->
             try {
-                val metadataMap = objectMapper.readValue(json, Map::class.java) as Map<String, Any?>
+                val metadataMap = objectMapper.readValue(json, object : TypeReference<Map<String, Any?>>() {})
+
                 ActivityMetadataReadModel(
                     notes = metadataMap["notes"] as String?,
                     previousValue = metadataMap["previousValue"] as String?,
                     newValue = metadataMap["newValue"] as String?,
-                    appointmentDuration = metadataMap["appointmentDuration"] as Int?,
+                    appointmentDuration = (metadataMap["appointmentDuration"] as? Number)?.toInt(),
                     servicesList = metadataMap["servicesList"] as List<String>?,
                     vehicleCondition = metadataMap["vehicleCondition"] as String?,
-                    damageCount = metadataMap["damageCount"] as Int?,
+                    damageCount = (metadataMap["damageCount"] as? Number)?.toInt(),
                     commentType = metadataMap["commentType"] as String?,
                     isResolved = metadataMap["isResolved"] as Boolean?,
                     notificationType = metadataMap["notificationType"] as String?,
                     notificationContent = metadataMap["notificationContent"] as String?,
                     isRead = metadataMap["isRead"] as Boolean?,
                     systemAction = metadataMap["systemAction"] as String?,
-                    affectedRecords = metadataMap["affectedRecords"] as Int?
+                    affectedRecords = (metadataMap["affectedRecords"] as? Number)?.toInt()
                 )
             } catch (e: Exception) {
+                logger.error("Failed to parse metadata JSON for activity: $activityId", e)
                 null
             }
         }
     }
 
     companion object {
-        private val objectMapper = ObjectMapper()
+        private val objectMapper = jacksonObjectMapper()
+        private val logger = org.slf4j.LoggerFactory.getLogger(ActivityEntity::class.java)
 
         fun fromDomain(
             activityId: String,
@@ -163,41 +166,45 @@ class ActivityEntity(
 
             val entitiesJson = entities?.let { entitiesList ->
                 try {
+                    // Serializuj jako listę map z null-safe casting
                     val entitiesMap = entitiesList.map { entity ->
-                        mapOf(
-                            "id" to entity.id,
-                            "type" to entity.type.name,
-                            "displayName" to entity.displayName,
-                            "relatedId" to entity.relatedId,
-                            "metadata" to entity.metadata
-                        )
+                        mutableMapOf<String, Any?>().apply {
+                            put("id", entity.id)
+                            put("type", entity.type.name)
+                            put("displayName", entity.displayName)
+                            put("relatedId", entity.relatedId)
+                            put("metadata", entity.metadata)
+                        }.filterValues { it != null } // Usuń null values
                     }
                     objectMapper.writeValueAsString(entitiesMap)
                 } catch (e: Exception) {
+                    logger.error("Failed to serialize entities for activity: $activityId", e)
                     null
                 }
             }
 
             val metadataJson = metadata?.let { meta ->
                 try {
-                    val metadataMap = mapOf(
-                        "notes" to meta.notes,
-                        "previousValue" to meta.previousValue,
-                        "newValue" to meta.newValue,
-                        "appointmentDuration" to meta.appointmentDuration,
-                        "servicesList" to meta.servicesList,
-                        "vehicleCondition" to meta.vehicleCondition,
-                        "damageCount" to meta.damageCount,
-                        "commentType" to meta.commentType,
-                        "isResolved" to meta.isResolved,
-                        "notificationType" to meta.notificationType,
-                        "notificationContent" to meta.notificationContent,
-                        "isRead" to meta.isRead,
-                        "systemAction" to meta.systemAction,
-                        "affectedRecords" to meta.affectedRecords
-                    ).filterValues { it != null }
+                    val metadataMap = mutableMapOf<String, Any?>().apply {
+                        put("notes", meta.notes)
+                        put("previousValue", meta.previousValue)
+                        put("newValue", meta.newValue)
+                        put("appointmentDuration", meta.appointmentDuration)
+                        put("servicesList", meta.servicesList)
+                        put("vehicleCondition", meta.vehicleCondition)
+                        put("damageCount", meta.damageCount)
+                        put("commentType", meta.commentType)
+                        put("isResolved", meta.isResolved)
+                        put("notificationType", meta.notificationType)
+                        put("notificationContent", meta.notificationContent)
+                        put("isRead", meta.isRead)
+                        put("systemAction", meta.systemAction)
+                        put("affectedRecords", meta.affectedRecords)
+                    }.filterValues { it != null } // Usuń null values
+
                     objectMapper.writeValueAsString(metadataMap)
                 } catch (e: Exception) {
+                    logger.error("Failed to serialize metadata for activity: $activityId", e)
                     null
                 }
             }

@@ -62,7 +62,7 @@ class ActivityController(
 
         @Parameter(description = "Page size")
         @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<PaginatedResponse<ActivityListItemDto>> {
+    ): ResponseEntity<PaginatedResponse<ActivityDetailDto>> {
 
         val query = GetActivitiesQuery(
             category = category?.let { com.carslab.crm.modules.activities.application.queries.models.ActivityCategory.valueOf(it.uppercase()) },
@@ -81,7 +81,7 @@ class ActivityController(
 
         val result = queryBus.execute(query)
         val response = PaginatedResponse(
-            data = result.data.map { ActivityMapper.toListItemDto(it) },
+            data = result.data.map { ActivityMapper.toDetailDto(it) },
             page = result.page,
             size = result.size,
             totalItems = result.totalItems,
@@ -157,12 +157,12 @@ class ActivityController(
     fun getRecentActivities(
         @Parameter(description = "Maximum number of activities")
         @RequestParam(defaultValue = "50") limit: Int
-    ): ResponseEntity<List<ActivityListItemDto>> {
+    ): ResponseEntity<List<ActivityDetailDto>> {
 
         val query = GetRecentActivitiesQuery(limit)
         val result = queryBus.execute(query)
 
-        return ok(result.map { ActivityMapper.toListItemDto(it) })
+        return ok(result.map { ActivityMapper.toDetailDto(it) })
     }
 
     @GetMapping("/entity/{entityType}/{entityId}")
@@ -179,7 +179,7 @@ class ActivityController(
 
         @Parameter(description = "Page size")
         @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<PaginatedResponse<ActivityListItemDto>> {
+    ): ResponseEntity<PaginatedResponse<ActivityDetailDto>> {
 
         val query = GetActivitiesByEntityQuery(
             entityType = com.carslab.crm.modules.activities.application.queries.models.EntityType.valueOf(entityType.uppercase()),
@@ -190,7 +190,7 @@ class ActivityController(
 
         val result = queryBus.execute(query)
         val response = PaginatedResponse(
-            data = result.data.map { ActivityMapper.toListItemDto(it) },
+            data = result.data.map { ActivityMapper.toDetailDto(it) },
             page = result.page,
             size = result.size,
             totalItems = result.totalItems,

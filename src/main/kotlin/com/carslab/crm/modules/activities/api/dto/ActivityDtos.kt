@@ -107,44 +107,6 @@ data class ActivityMetadataDto(
 )
 
 /**
- * Activity list item DTO (for paginated lists)
- */
-data class ActivityListItemDto(
-    @JsonProperty("id")
-    val id: String,
-
-    @JsonProperty("timestamp")
-    val timestamp: String,
-
-    @JsonProperty("category")
-    val category: ActivityCategory,
-
-    @JsonProperty("message")
-    val message: String,
-
-    @JsonProperty("user_id")
-    val userId: String? = null,
-
-    @JsonProperty("user_name")
-    val userName: String? = null,
-
-    @JsonProperty("user_color")
-    val userColor: String? = null,
-
-    @JsonProperty("entity_type")
-    val entityType: EntityType? = null,
-
-    @JsonProperty("entity_id")
-    val entityId: String? = null,
-
-    @JsonProperty("status")
-    val status: ActivityStatus? = null,
-
-    @JsonProperty("status_text")
-    val statusText: String? = null
-)
-
-/**
  * Activity detail DTO (for single activity view)
  */
 data class ActivityDetailDto(

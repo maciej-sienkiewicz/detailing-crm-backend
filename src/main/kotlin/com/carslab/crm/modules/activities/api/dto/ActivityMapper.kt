@@ -8,23 +8,7 @@ object ActivityMapper {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
-    fun toListItemDto(readModel: ActivityReadModel): ActivityListItemDto {
-        return ActivityListItemDto(
-            id = readModel.id,
-            timestamp = readModel.timestamp.format(dateTimeFormatter),
-            category = ActivityCategory.valueOf(readModel.category.name),
-            message = readModel.message,
-            userId = readModel.userId,
-            userName = readModel.userName,
-            userColor = readModel.userColor,
-            entityType = readModel.entityType?.let { EntityType.valueOf(it.name) },
-            entityId = readModel.entityId,
-            status = readModel.status?.let { ActivityStatus.valueOf(it.name) },
-            statusText = readModel.statusText,
-        )
-    }
-
+    
     fun toDetailDto(readModel: ActivityReadModel): ActivityDetailDto {
         return ActivityDetailDto(
             id = readModel.id,
