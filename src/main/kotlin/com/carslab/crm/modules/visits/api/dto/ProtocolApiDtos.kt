@@ -5,86 +5,224 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Email
 
-// Request DTOs - FLAT structure to match your JSON
+// Base interface for common protocol fields
+interface ProtocolRequestBase {
+    val title: String
+    val calendarColorId: String
+    val startDate: String
+    val endDate: String?
+    val licensePlate: String?
+    val make: String
+    val model: String
+    val productionYear: Int?
+    val mileage: Long?
+    val vin: String?
+    val color: String?
+    val ownerName: String
+    val companyName: String?
+    val taxId: String?
+    val email: String?
+    val phone: String?
+    val services: List<CreateServiceRequest>
+    val notes: String?
+    val status: String?
+    val referralSource: String?
+    val keysProvided: Boolean?
+    val documentsProvided: Boolean?
+    val appointmentId: String?
+    val vehicleImages: List<CreateVehicleImageCommand>?
+}
+
+// Create request - FLAT structure to match your JSON
 data class CreateProtocolRequest(
     @JsonProperty("title")
     @field:NotBlank(message = "Title is required")
-    val title: String,
+    override val title: String,
 
     @JsonProperty("calendar_color_id")
-    val calendarColorId: String,
+    override val calendarColorId: String,
 
     @JsonProperty("start_date")
     @field:NotBlank(message = "Start date is required")
-    val startDate: String,
+    override val startDate: String,
 
     @JsonProperty("end_date")
-    val endDate: String? = null,
+    override val endDate: String? = null,
 
     // Vehicle fields (flat)
     @JsonProperty("license_plate")
-    val licensePlate: String? = null,
+    override val licensePlate: String? = null,
 
     @JsonProperty("make")
     @field:NotBlank(message = "Vehicle make is required")
-    val make: String,
+    override val make: String,
 
     @JsonProperty("model")
     @field:NotBlank(message = "Vehicle model is required")
-    val model: String,
+    override val model: String,
 
     @JsonProperty("production_year")
-    val productionYear: Int? = null,
+    override val productionYear: Int? = null,
 
     @JsonProperty("mileage")
-    val mileage: Long? = null,
+    override val mileage: Long? = null,
 
     @JsonProperty("vin")
-    val vin: String? = null,
+    override val vin: String? = null,
 
     @JsonProperty("color")
-    val color: String? = null,
+    override val color: String? = null,
 
     // Client fields (flat)
     @JsonProperty("owner_name")
     @field:NotBlank(message = "Owner name is required")
-    val ownerName: String,
+    override val ownerName: String,
 
     @JsonProperty("company_name")
-    val companyName: String? = null,
+    override val companyName: String? = null,
 
     @JsonProperty("tax_id")
-    val taxId: String? = null,
+    override val taxId: String? = null,
 
     @JsonProperty("email")
     @field:Email(message = "Invalid email format")
-    val email: String? = null,
+    override val email: String? = null,
 
     @JsonProperty("phone")
-    val phone: String? = null,
+    override val phone: String? = null,
 
-    // Services field - fix mapping
+    // Services field
     @JsonProperty("selected_services")
-    val services: List<CreateServiceRequest> = emptyList(),
+    override val services: List<CreateServiceRequest> = emptyList(),
 
     @JsonProperty("notes")
-    val notes: String? = null,
+    override val notes: String? = null,
 
     @JsonProperty("status")
-    val status: String? = "SCHEDULED",
+    override val status: String? = "SCHEDULED",
 
     @JsonProperty("referral_source")
-    val referralSource: String? = null,
+    override val referralSource: String? = null,
 
     @JsonProperty("keys_provided")
-    val keysProvided: Boolean? = false,
+    override val keysProvided: Boolean? = false,
 
     @JsonProperty("documents_provided")
-    val documentsProvided: Boolean? = false,
+    override val documentsProvided: Boolean? = false,
+
+    @JsonProperty("vehicle_images")
+    override val vehicleImages: List<CreateVehicleImageCommand>? = null,
 
     @JsonProperty("appointment_id")
-    val appointmentId: String? = null
-) {
+    override val appointmentId: String? = null
+) : ProtocolRequestBase {
+
+    // Helper properties to create nested objects for mappers
+    val vehicle: CreateVehicleRequest
+        get() = CreateVehicleRequest(
+            make = make,
+            model = model,
+            licensePlate = licensePlate,
+            productionYear = productionYear,
+            vin = vin,
+            color = color,
+            mileage = mileage
+        )
+
+    val client: CreateClientRequest
+        get() = CreateClientRequest(
+            name = ownerName,
+            email = email,
+            phone = phone,
+            companyName = companyName,
+            taxId = taxId
+        )
+}
+
+// Update request - separate data class without inheritance
+data class UpdateProtocolRequest(
+    @JsonProperty("id")
+    val id: String,
+
+    @JsonProperty("title")
+    @field:NotBlank(message = "Title is required")
+    override val title: String,
+
+    @JsonProperty("calendar_color_id")
+    override val calendarColorId: String,
+
+    @JsonProperty("start_date")
+    @field:NotBlank(message = "Start date is required")
+    override val startDate: String,
+
+    @JsonProperty("end_date")
+    override val endDate: String? = null,
+
+    @JsonProperty("license_plate")
+    override val licensePlate: String? = null,
+
+    @JsonProperty("make")
+    @field:NotBlank(message = "Vehicle make is required")
+    override val make: String,
+
+    @JsonProperty("model")
+    @field:NotBlank(message = "Vehicle model is required")
+    override val model: String,
+
+    @JsonProperty("production_year")
+    override val productionYear: Int? = null,
+
+    @JsonProperty("mileage")
+    override val mileage: Long? = null,
+
+    @JsonProperty("vin")
+    override val vin: String? = null,
+
+    @JsonProperty("color")
+    override val color: String? = null,
+
+    @JsonProperty("owner_name")
+    @field:NotBlank(message = "Owner name is required")
+    override val ownerName: String,
+
+    @JsonProperty("company_name")
+    override val companyName: String? = null,
+
+    @JsonProperty("tax_id")
+    override val taxId: String? = null,
+
+    @JsonProperty("email")
+    @field:Email(message = "Invalid email format")
+    override val email: String? = null,
+
+    @JsonProperty("phone")
+    override val phone: String? = null,
+
+    @JsonProperty("selected_services")
+    override val services: List<CreateServiceRequest> = emptyList(),
+
+    @JsonProperty("notes")
+    override val notes: String? = null,
+
+    @JsonProperty("status")
+    override val status: String? = "SCHEDULED",
+
+    @JsonProperty("referral_source")
+    override val referralSource: String? = null,
+
+    @JsonProperty("keys_provided")
+    override val keysProvided: Boolean? = false,
+
+    @JsonProperty("documents_provided")
+    override val documentsProvided: Boolean? = false,
+
+    @JsonProperty("vehicle_images")
+    override val vehicleImages: List<CreateVehicleImageCommand>? = null,
+
+    @JsonProperty("appointment_id")
+    override val appointmentId: String? = null
+) : ProtocolRequestBase {
+
     // Helper properties to create nested objects for mappers
     val vehicle: CreateVehicleRequest
         get() = CreateVehicleRequest(
@@ -156,7 +294,44 @@ data class CreateServiceRequest(
     val note: String? = null
 )
 
-// Response DTOs remain the same...
+data class CreateVehicleImageCommand(
+    @JsonProperty("name")
+    val name: String? = null,
+
+    @JsonProperty("size")
+    val size: Long? = null,
+
+    @JsonProperty("type")
+    val type: String? = null,
+
+    @JsonProperty("description")
+    val description: String? = null,
+
+    @JsonProperty("location")
+    val location: String? = null,
+
+    @JsonProperty("has_file")
+    val hasFile: Boolean = false,
+
+    @JsonProperty("tags")
+    val tags: List<String> = emptyList()
+)
+
+data class UpdateVehicleImageCommand(
+    @JsonProperty("name")
+    val name: String? = null,
+
+    @JsonProperty("description")
+    val description: String? = null,
+
+    @JsonProperty("location")
+    val location: String? = null,
+
+    @JsonProperty("tags")
+    val tags: List<String> = emptyList()
+)
+
+// Response DTOs
 data class ProtocolDetailResponse(
     @JsonProperty("id") val id: String,
     @JsonProperty("title") val title: String,
@@ -223,3 +398,63 @@ data class ServiceResponse(
 data class ProtocolIdResponse(
     @JsonProperty("id") val id: String
 )
+
+// Extension functions to convert between requests
+fun CreateProtocolRequest.toUpdateRequest(id: String): UpdateProtocolRequest {
+    return UpdateProtocolRequest(
+        id = id,
+        title = this.title,
+        calendarColorId = this.calendarColorId,
+        startDate = this.startDate,
+        endDate = this.endDate,
+        licensePlate = this.licensePlate,
+        make = this.make,
+        model = this.model,
+        productionYear = this.productionYear,
+        mileage = this.mileage,
+        vin = this.vin,
+        color = this.color,
+        ownerName = this.ownerName,
+        companyName = this.companyName,
+        taxId = this.taxId,
+        email = this.email,
+        phone = this.phone,
+        services = this.services,
+        notes = this.notes,
+        status = this.status,
+        referralSource = this.referralSource,
+        keysProvided = this.keysProvided,
+        documentsProvided = this.documentsProvided,
+        vehicleImages = this.vehicleImages,
+        appointmentId = this.appointmentId
+    )
+}
+
+fun UpdateProtocolRequest.toCreateRequest(): CreateProtocolRequest {
+    return CreateProtocolRequest(
+        title = this.title,
+        calendarColorId = this.calendarColorId,
+        startDate = this.startDate,
+        endDate = this.endDate,
+        licensePlate = this.licensePlate,
+        make = this.make,
+        model = this.model,
+        productionYear = this.productionYear,
+        mileage = this.mileage,
+        vin = this.vin,
+        color = this.color,
+        ownerName = this.ownerName,
+        companyName = this.companyName,
+        taxId = this.taxId,
+        email = this.email,
+        phone = this.phone,
+        services = this.services,
+        notes = this.notes,
+        status = this.status,
+        referralSource = this.referralSource,
+        keysProvided = this.keysProvided,
+        documentsProvided = this.documentsProvided,
+        vehicleImages = this.vehicleImages,
+        appointmentId = this.appointmentId
+    )
+}

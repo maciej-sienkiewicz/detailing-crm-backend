@@ -1,11 +1,11 @@
-// src/main/kotlin/com/carslab/crm/modules/visits/api/mappers/ProtocolApiMappers.kt
 package com.carslab.crm.modules.visits.api.mappers
 
 import com.carslab.crm.modules.visits.api.dto.*
 import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.*
 import com.carslab.crm.modules.visits.application.queries.models.*
-import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.*
+import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -20,14 +20,53 @@ object ProtocolApiMappers {
             vehicle = toCreateVehicleCommand(request.vehicle),
             client = toCreateClientCommand(request.client),
             period = CreatePeriodCommand(
-                startDate = LocalDateTime.parse(request.startDate),
-                endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: LocalDateTime.parse(request.startDate).plusHours(8)
+                startDate = parseDateTime(request.startDate),
+                endDate = request.endDate?.let { parseDateTime(it) } ?: parseDateTime(request.startDate).plusHours(8)
             ),
             status = request.status?.let { ProtocolStatus.valueOf(it) } ?: ProtocolStatus.SCHEDULED,
             services = request.services.map { toCreateServiceCommand(it) },
             notes = request.notes,
             referralSource = request.referralSource,
             documents = CreateDocumentsCommand(
+                keysProvided = request.keysProvided ?: false,
+                documentsProvided = request.documentsProvided ?: false
+            ),
+            appointmentId = request.appointmentId
+        )
+    }
+
+    fun toUpdateCommand(request: UpdateProtocolRequest, protocolId: String): UpdateProtocolCommand {
+        return UpdateProtocolCommand(
+            protocolId = protocolId,
+            title = request.title,
+            calendarColorId = request.calendarColorId,
+            vehicle = UpdateVehicleCommand(
+                id = protocolId, // Will be resolved in handler
+                brand = request.make,
+                model = request.model,
+                licensePlate = request.licensePlate ?: "",
+                productionYear = request.productionYear,
+                vin = request.vin,
+                color = request.color,
+                mileage = request.mileage
+            ),
+            client = UpdateClientCommand(
+                id = protocolId, // Will be resolved in handler
+                name = request.ownerName,
+                email = request.email,
+                phone = request.phone,
+                companyName = request.companyName,
+                taxId = request.taxId
+            ),
+            period = UpdatePeriodCommand(
+                startDate = parseDateTime(request.startDate),
+                endDate = request.endDate?.let { parseDateTime(it) } ?: parseDateTime(request.startDate).plusHours(8)
+            ),
+            status = ProtocolStatus.valueOf(request.status ?: "SCHEDULED"),
+            services = request.services.map { toUpdateServiceCommand(it) },
+            notes = request.notes,
+            referralSource = request.referralSource,
+            documents = UpdateDocumentsCommand(
                 keysProvided = request.keysProvided ?: false,
                 documentsProvided = request.documentsProvided ?: false
             ),
@@ -63,6 +102,19 @@ object ProtocolApiMappers {
         )
     }
 
+    fun toCreateServiceCommand(request: CreateServiceRequest): CreateServiceCommand {
+        return CreateServiceCommand(
+            name = request.name,
+            basePrice = request.price,
+            quantity = request.quantity,
+            discountType = request.discountType,
+            discountValue = request.discountValue,
+            finalPrice = request.finalPrice,
+            approvalStatus = request.approvalStatus ?: "PENDING",
+            note = request.note
+        )
+    }
+
     private fun toCreateVehicleCommand(request: CreateVehicleRequest): CreateVehicleCommand {
         return CreateVehicleCommand(
             brand = request.make,
@@ -85,21 +137,16 @@ object ProtocolApiMappers {
         )
     }
 
-    private fun toCreateServiceCommand(request: CreateServiceRequest): CreateServiceCommand {
-        return CreateServiceCommand(
+    private fun toUpdateServiceCommand(request: CreateServiceRequest): UpdateServiceCommand {
+        return UpdateServiceCommand(
+            id = request.id ?: "", // Will be generated if new
             name = request.name,
             basePrice = request.price,
             quantity = request.quantity,
             discountType = request.discountType,
             discountValue = request.discountValue,
-            finalPrice = request.discountValue?.let { discount ->
-                when (request.discountType) {
-                    "PERCENTAGE" -> request.price * (1 - discount / 100)
-                    "AMOUNT" -> request.price - discount
-                    "FIXED_PRICE" -> discount
-                    else -> request.price
-                }
-            } ?: request.price,
+            finalPrice = request.finalPrice,
+            approvalStatus = request.approvalStatus ?: "PENDING",
             note = request.note
         )
     }
@@ -153,5 +200,19 @@ object ProtocolApiMappers {
             finalPrice = service.finalPrice,
             status = service.approvalStatus
         )
+    }
+
+    private fun parseDateTime(dateTimeString: String): LocalDateTime {
+        return try {
+            LocalDateTime.parse(dateTimeString, DATE_FORMATTER)
+        } catch (e: Exception) {
+            try {
+                // Try parsing as date only and add default time
+                val date = java.time.LocalDate.parse(dateTimeString, java.time.format.DateTimeFormatter.ISO_DATE)
+                LocalDateTime.of(date, java.time.LocalTime.of(8, 0))
+            } catch (e2: Exception) {
+                throw IllegalArgumentException("Invalid date format: $dateTimeString")
+            }
+        }
     }
 }
