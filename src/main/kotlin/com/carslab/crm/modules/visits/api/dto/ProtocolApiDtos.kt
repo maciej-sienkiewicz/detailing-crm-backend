@@ -276,7 +276,7 @@ data class CreateServiceRequest(
     val price: Double,
 
     @JsonProperty("quantity")
-    val quantity: Long = 1,
+    val quantity: Long = 1, // DODANA DOMYŚLNA WARTOŚĆ!
 
     @JsonProperty("discount_type")
     val discountType: String? = null,

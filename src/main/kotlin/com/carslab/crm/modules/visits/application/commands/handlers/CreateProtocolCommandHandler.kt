@@ -21,6 +21,7 @@ import com.carslab.crm.modules.visits.application.commands.models.valueobjects.C
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateVehicleCommand
 import com.carslab.crm.modules.visits.domain.events.VisitScheduledEvent
 import com.carslab.crm.modules.visits.domain.events.VisitStartedEvent
+import com.carslab.crm.modules.visits.domain.ports.ProtocolServicesRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -35,6 +36,7 @@ class CreateProtocolCommandHandler(
     private val clientVehicleAssociationService: ClientVehicleAssociationService,
     private val eventPublisher: EventPublisher,
     private val securityContext: SecurityContext,
+    private val protocolServicesRepository: ProtocolServicesRepository,
 ) : CommandHandler<CreateProtocolCommand, String> {
 
     private val logger = LoggerFactory.getLogger(CreateProtocolCommandHandler::class.java)
@@ -56,6 +58,7 @@ class CreateProtocolCommandHandler(
         )
 
         val savedProtocolId = protocolRepository.save(protocolModel)
+        protocolServicesRepository.saveServices(protocolModel.services, savedProtocolId)
 
         if(protocolModel.status == ProtocolStatus.SCHEDULED) {
             eventPublisher.publish(

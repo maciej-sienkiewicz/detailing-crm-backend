@@ -56,7 +56,7 @@ data class UpdatePeriodCommand(
 data class CreateServiceCommand(
     val name: String,
     val basePrice: Double,
-    val quantity: Long,
+    val quantity: Long = 1,
     val discountType: String? = null,
     val discountValue: Double? = null,
     val finalPrice: Double? = null,

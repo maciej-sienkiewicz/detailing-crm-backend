@@ -780,14 +780,3 @@ class CarReceptionController(
         }
     }
 }
-
-data class ImageDTO(
-    val id: String,
-    val name: String,
-    val size: Long,
-    val type: String,
-    val createdAt: String,
-    val protocolId: String,
-    val description: String? = null,
-    val location: String? = null
-)

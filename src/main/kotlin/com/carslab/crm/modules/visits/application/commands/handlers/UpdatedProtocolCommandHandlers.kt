@@ -10,6 +10,7 @@ import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.modules.visits.domain.events.*
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.modules.visits.api.mappers.ServiceMappers
+import com.carslab.crm.modules.visits.domain.ports.CarReceptionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

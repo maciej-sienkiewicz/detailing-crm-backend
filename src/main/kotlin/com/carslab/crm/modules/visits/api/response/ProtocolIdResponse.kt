@@ -2,6 +2,7 @@ package com.carslab.crm.modules.visits.api.response
 
 import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentType
 import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentView
+import com.carslab.crm.modules.visits.application.queries.models.ProtocolDocumentResponse
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.format.DateTimeFormatter
 
@@ -60,6 +61,34 @@ data class ProtocolDocumentDto(
                 uploadedBy = domain.uploadedBy,
                 downloadUrl = "/api/receptions/document/${domain.storageId}"
             )
+        }
+
+        fun fromQueryResponse(queryResponse: ProtocolDocumentResponse): ProtocolDocumentDto {
+            return ProtocolDocumentDto(
+                storageId = queryResponse.storageId,
+                protocolId = queryResponse.protocolId,
+                originalName = queryResponse.originalName,
+                fileSize = queryResponse.fileSize,
+                contentType = queryResponse.contentType,
+                documentType = queryResponse.documentType,
+                documentTypeDisplay = getDocumentTypeDisplay(queryResponse.documentType),
+                description = queryResponse.description,
+                createdAt = queryResponse.createdAt,
+                uploadedBy = queryResponse.uploadedBy,
+                downloadUrl = queryResponse.downloadUrl
+            )
+        }
+
+        private fun getDocumentTypeDisplay(documentType: String): String {
+            return when (documentType) {
+                "MARKETING_CONSENT" -> "Zgoda marketingowa"
+                "SERVICE_CONSENT" -> "Zgoda serwisowa"
+                "TERMS_ACCEPTANCE" -> "Akceptacja regulaminu"
+                "INVOICE" -> "Faktura"
+                "RECEIPT" -> "Paragon"
+                "OTHER" -> "Inne"
+                else -> documentType
+            }
         }
     }
 }

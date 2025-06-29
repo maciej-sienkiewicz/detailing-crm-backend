@@ -9,6 +9,7 @@ import com.carslab.crm.modules.clients.infrastructure.persistence.repository.Cli
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 
@@ -52,7 +53,7 @@ class JpaProtocolRepositoryAdapter(
             createdAt = protocol.audit.createdAt,
             updatedAt = protocol.audit.updatedAt,
             statusUpdatedAt = protocol.audit.statusUpdatedAt,
-            calendarColorId = protocol.calendarColorId.value
+            calendarColorId = protocol.calendarColorId.value,
         )
 
         val savedEntity = protocolJpaRepository.save(protocolEntity)
