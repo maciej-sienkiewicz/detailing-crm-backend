@@ -1,7 +1,6 @@
 package com.carslab.crm.modules.visits.api
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.api.mapper.CarReceptionDtoMapper
 import com.carslab.crm.api.mapper.CarReceptionDtoMapperOld.fromCreateImageCommand
 import com.carslab.crm.api.mapper.CarReceptionDtoMapperOld
 import com.carslab.crm.api.model.response.PaginatedResponse

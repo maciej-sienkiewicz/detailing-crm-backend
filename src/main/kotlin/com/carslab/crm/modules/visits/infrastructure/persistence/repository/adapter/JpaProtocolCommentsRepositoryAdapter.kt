@@ -37,11 +37,6 @@ class JpaProtocolCommentsRepositoryAdapter(
     }
 
     override fun findById(id: ProtocolId): List<ProtocolComment> {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-
-        // Najpierw sprawdź, czy protokół należy do firmy
-        protocolJpaRepository.findByCompanyIdAndId(companyId, id.value.toLong())
-            .orElse(null) ?: return emptyList()
 
         // Pobierz komentarze dla protokołu
         return protocolCommentJpaRepository.findByProtocolId(id.value.toLong())
