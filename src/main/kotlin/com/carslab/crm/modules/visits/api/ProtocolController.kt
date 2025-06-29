@@ -155,7 +155,7 @@ class ProtocolController(
             .body(resource)
     }
 
-    @GetMapping("/protocols/{protocolId}/images")
+    @GetMapping("/{protocolId}/images")
     fun getProtocolImages(@PathVariable protocolId: String): ResponseEntity<List<ImageDTO>> {
         val query = GetVisitMediaQuery(protocolId)
         val images = queryBus.execute(query)

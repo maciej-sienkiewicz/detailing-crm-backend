@@ -14,9 +14,6 @@ enum class ServiceApprovalStatus {
     REJECTED
 }
 
-/**
- * Najprostsze rozwiązanie - używaj @JsonProperty dla każdej wartości enum
- */
 enum class ApiReferralSource {
     @JsonProperty("other")
     OTHER,

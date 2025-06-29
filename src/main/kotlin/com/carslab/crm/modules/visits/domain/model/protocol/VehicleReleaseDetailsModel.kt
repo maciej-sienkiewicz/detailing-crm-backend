@@ -1,7 +1,5 @@
 package com.carslab.crm.domain.model.create.protocol
 
-import java.time.LocalDateTime
-
 enum class PaymentMethod {
     CASH,
     CARD;
@@ -33,10 +31,3 @@ enum class DocumentType {
         }
     }
 }
-
-data class VehicleReleaseDetailsModel(
-    val paymentMethod: PaymentMethod,
-    val documentType: DocumentType,
-    val releaseDate: LocalDateTime = LocalDateTime.now(),
-    val additionalNotes: String? = null
-)

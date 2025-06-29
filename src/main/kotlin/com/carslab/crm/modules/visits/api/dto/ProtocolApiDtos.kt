@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Email
 
-// Base interface for common protocol fields
 interface ProtocolRequestBase {
     val title: String
     val calendarColorId: String
@@ -33,7 +32,6 @@ interface ProtocolRequestBase {
     val vehicleImages: List<CreateVehicleImageCommand>?
 }
 
-// Create request - FLAT structure to match your JSON
 data class CreateProtocolRequest(
     @JsonProperty("title")
     @field:NotBlank(message = "Title is required")
@@ -223,7 +221,6 @@ data class UpdateProtocolRequest(
     override val appointmentId: String? = null
 ) : ProtocolRequestBase {
 
-    // Helper properties to create nested objects for mappers
     val vehicle: CreateVehicleRequest
         get() = CreateVehicleRequest(
             make = make,
@@ -245,7 +242,6 @@ data class UpdateProtocolRequest(
         )
 }
 
-// Nested request DTOs (for mappers)
 data class CreateVehicleRequest(
     val make: String,
     val model: String,
@@ -316,145 +312,3 @@ data class CreateVehicleImageCommand(
     @JsonProperty("tags")
     val tags: List<String> = emptyList()
 )
-
-data class UpdateVehicleImageCommand(
-    @JsonProperty("name")
-    val name: String? = null,
-
-    @JsonProperty("description")
-    val description: String? = null,
-
-    @JsonProperty("location")
-    val location: String? = null,
-
-    @JsonProperty("tags")
-    val tags: List<String> = emptyList()
-)
-
-// Response DTOs
-data class ProtocolDetailResponse(
-    @JsonProperty("id") val id: String,
-    @JsonProperty("title") val title: String,
-    @JsonProperty("calendar_color_id") val calendarColorId: String,
-    @JsonProperty("vehicle") val vehicle: VehicleResponse,
-    @JsonProperty("client") val client: ClientResponse,
-    @JsonProperty("period") val period: PeriodResponse,
-    @JsonProperty("status") val status: String,
-    @JsonProperty("services") val services: List<ServiceResponse>,
-    @JsonProperty("notes") val notes: String?,
-    @JsonProperty("created_at") val createdAt: String,
-    @JsonProperty("updated_at") val updatedAt: String
-)
-
-data class ProtocolListResponse(
-    @JsonProperty("id") val id: String,
-    @JsonProperty("title") val title: String,
-    @JsonProperty("vehicle") val vehicle: VehicleBasicResponse,
-    @JsonProperty("client") val client: ClientBasicResponse,
-    @JsonProperty("status") val status: String,
-    @JsonProperty("total_amount") val totalAmount: Double,
-    @JsonProperty("last_update") val lastUpdate: String
-)
-
-data class VehicleResponse(
-    @JsonProperty("make") val make: String,
-    @JsonProperty("model") val model: String,
-    @JsonProperty("license_plate") val licensePlate: String,
-    @JsonProperty("production_year") val productionYear: Int,
-    @JsonProperty("color") val color: String?
-)
-
-data class VehicleBasicResponse(
-    @JsonProperty("make") val make: String,
-    @JsonProperty("model") val model: String,
-    @JsonProperty("license_plate") val licensePlate: String
-)
-
-data class ClientResponse(
-    @JsonProperty("name") val name: String,
-    @JsonProperty("email") val email: String?,
-    @JsonProperty("phone") val phone: String?,
-    @JsonProperty("company_name") val companyName: String?
-)
-
-data class ClientBasicResponse(
-    @JsonProperty("name") val name: String
-)
-
-data class PeriodResponse(
-    @JsonProperty("start_date") val startDate: String,
-    @JsonProperty("end_date") val endDate: String
-)
-
-data class ServiceResponse(
-    @JsonProperty("id") val id: String,
-    @JsonProperty("name") val name: String,
-    @JsonProperty("price") val price: Double,
-    @JsonProperty("quantity") val quantity: Long,
-    @JsonProperty("final_price") val finalPrice: Double,
-    @JsonProperty("status") val status: String
-)
-
-data class ProtocolIdResponse(
-    @JsonProperty("id") val id: String
-)
-
-// Extension functions to convert between requests
-fun CreateProtocolRequest.toUpdateRequest(id: String): UpdateProtocolRequest {
-    return UpdateProtocolRequest(
-        id = id,
-        title = this.title,
-        calendarColorId = this.calendarColorId,
-        startDate = this.startDate,
-        endDate = this.endDate,
-        licensePlate = this.licensePlate,
-        make = this.make,
-        model = this.model,
-        productionYear = this.productionYear,
-        mileage = this.mileage,
-        vin = this.vin,
-        color = this.color,
-        ownerName = this.ownerName,
-        companyName = this.companyName,
-        taxId = this.taxId,
-        email = this.email,
-        phone = this.phone,
-        services = this.services,
-        notes = this.notes,
-        status = this.status,
-        referralSource = this.referralSource,
-        keysProvided = this.keysProvided,
-        documentsProvided = this.documentsProvided,
-        vehicleImages = this.vehicleImages,
-        appointmentId = this.appointmentId
-    )
-}
-
-fun UpdateProtocolRequest.toCreateRequest(): CreateProtocolRequest {
-    return CreateProtocolRequest(
-        title = this.title,
-        calendarColorId = this.calendarColorId,
-        startDate = this.startDate,
-        endDate = this.endDate,
-        licensePlate = this.licensePlate,
-        make = this.make,
-        model = this.model,
-        productionYear = this.productionYear,
-        mileage = this.mileage,
-        vin = this.vin,
-        color = this.color,
-        ownerName = this.ownerName,
-        companyName = this.companyName,
-        taxId = this.taxId,
-        email = this.email,
-        phone = this.phone,
-        services = this.services,
-        notes = this.notes,
-        status = this.status,
-        referralSource = this.referralSource,
-        keysProvided = this.keysProvided,
-        documentsProvided = this.documentsProvided,
-        vehicleImages = this.vehicleImages,
-        appointmentId = this.appointmentId
-    )
-}

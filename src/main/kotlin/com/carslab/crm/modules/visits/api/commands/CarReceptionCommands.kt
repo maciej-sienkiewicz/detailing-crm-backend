@@ -88,10 +88,6 @@ data class CreateCarReceptionCommand(
     val vehicleImages: List<CreateVehicleImageCommand>? = null
 )
 
-/**
- * Komenda dla aktualizacji istniejącego protokołu przyjęcia samochodu.
- * Zawiera identyfikator protokołu, który jest wymagany do aktualizacji.
- */
 data class UpdateCarReceptionCommand(
     @JsonProperty("id")
     val id: String,
@@ -175,9 +171,6 @@ data class UpdateCarReceptionCommand(
     val vehicleImages: List<UpdateVehicleImageCommand>? = null
 )
 
-/**
- * Komenda do tworzenia nowej usługi.
- */
 data class CreateServiceCommand(
     @JsonProperty("name")
     val name: String,
@@ -205,15 +198,9 @@ data class CreateServiceCommand(
 )
 
 class ServicesUpdateCommand {
-
     var services: List<CreateServiceCommand> = emptyList()
-
-    constructor()
 }
 
-/**
- * Komenda do aktualizacji istniejącej usługi.
- */
 data class UpdateServiceCommand(
     @JsonProperty("id")
     val id: String,
@@ -243,9 +230,6 @@ data class UpdateServiceCommand(
     val note: String?
 )
 
-/**
- * Komenda do tworzenia nowego obrazu pojazdu.
- */
 data class CreateVehicleImageCommand(
     @JsonProperty("name")
     val name: String? = null,
@@ -269,9 +253,6 @@ data class CreateVehicleImageCommand(
     val tags: List<String> = emptyList()
 )
 
-/**
- * Komenda do aktualizacji istniejącego obrazu pojazdu.
- */
 data class UpdateVehicleImageCommand(
     @JsonProperty("name")
     val name: String? = null,
@@ -285,9 +266,7 @@ data class UpdateVehicleImageCommand(
     @JsonProperty("tags")
     val tags: List<String> = emptyList()
 )
-/**
- * DTO dla szybkiego widoku listy protokołów.
- */
+
 data class CarReceptionListDto(
     @JsonProperty("id")
     val id: String,
@@ -323,9 +302,6 @@ data class CarReceptionListDto(
     val lastUpdate: String
 )
 
-/**
- * DTO dla szczegółowego widoku protokołu.
- */
 data class CarReceptionDetailDto(
     @JsonProperty("id")
     val id: String,
@@ -418,9 +394,6 @@ data class CarReceptionDetailDto(
     val appointmentId: String? = null
 )
 
-/**
- * DTO dla podstawowych informacji o protokole.
- */
 data class CarReceptionBasicDto(
     @JsonProperty("id")
     val id: String,
@@ -437,9 +410,7 @@ data class CarReceptionBasicDto(
     @JsonProperty("status")
     val status: ApiProtocolStatus
 )
-/**
- * DTO dla historii protokołów klienta.
- */
+
 data class ClientProtocolHistoryDto(
     @JsonProperty("id")
     val id: String,
@@ -466,9 +437,6 @@ data class ClientProtocolHistoryDto(
     val totalAmount: Double
 )
 
-/**
- * DTO dla usługi w protokole.
- */
 data class ServiceDto(
     @JsonProperty("id")
     val id: String,
@@ -498,9 +466,6 @@ data class ServiceDto(
     val note: String? = ""
 )
 
-/**
- * DTO dla obrazu pojazdu.
- */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class VehicleImageDto(
     @JsonProperty("id")
@@ -531,9 +496,6 @@ data class VehicleImageDto(
     val tags: List<String> = emptyList()
 )
 
-/**
- * DTO dla podstawowych informacji o pojeździe.
- */
 data class VehicleBasicDto(
     @JsonProperty("make")
     val make: String,
@@ -551,9 +513,6 @@ data class VehicleBasicDto(
     val color: String? = null
 )
 
-/**
- * DTO dla podstawowych informacji o właścicielu.
- */
 data class OwnerBasicDto(
     @JsonProperty("name")
     val name: String,
@@ -562,9 +521,6 @@ data class OwnerBasicDto(
     val companyName: String? = null
 )
 
-/**
- * DTO dla informacji o okresie.
- */
 data class PeriodDto(
     @JsonProperty("start_date")
     val startDate: String,
@@ -573,9 +529,6 @@ data class PeriodDto(
     val endDate: String
 )
 
-/**
- * Komenda do aktualizacji statusu protokołu.
- */
 data class UpdateStatusCommand(
     @JsonProperty("status")
     val status: ApiProtocolStatus
