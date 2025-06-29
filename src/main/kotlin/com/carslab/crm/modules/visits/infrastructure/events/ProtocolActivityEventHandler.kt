@@ -72,7 +72,7 @@ class ProtocolActivityEventHandler(
                 metadata = ActivityMetadataReadModel(
                     previousValue = event.oldStatus,
                     newValue = event.newStatus,
-                    notes = event.reason ?: "Zmiana statusu protokołu"
+                    notes = event.reason,
                 ),
                 userId = event.userId,
                 userName = event.userName

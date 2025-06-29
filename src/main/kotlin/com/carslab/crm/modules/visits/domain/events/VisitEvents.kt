@@ -105,7 +105,7 @@ data class ProtocolEditedEvent(
  */
 data class VehicleReleasedEvent(
     val visitId: String,
-    val protocolId: String,
+    val visitTitle: String,
     val clientId: String,
     val clientName: String,
     val vehicleId: String,
@@ -125,7 +125,6 @@ data class VehicleReleasedEvent(
     userId = userId,
     userName = userName,
     metadata = mapOf(
-        "protocolId" to protocolId,
         "clientId" to clientId,
         "clientName" to clientName,
         "vehicleId" to vehicleId,

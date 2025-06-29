@@ -3,9 +3,8 @@ package com.carslab.crm.modules.visits.api.mappers
 import com.carslab.crm.modules.visits.api.dto.*
 import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.*
-import com.carslab.crm.modules.visits.application.queries.models.*
+import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.domain.model.*
-import com.carslab.crm.domain.model.create.protocol.CreateServiceModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -17,8 +16,22 @@ object ProtocolApiMappers {
         return CreateProtocolCommand(
             title = request.title,
             calendarColorId = request.calendarColorId,
-            vehicle = toCreateVehicleCommand(request.vehicle),
-            client = toCreateClientCommand(request.client),
+            vehicle = CreateVehicleCommand(
+                brand = request.vehicle.make,
+                model = request.vehicle.model,
+                licensePlate = request.vehicle.licensePlate,
+                productionYear = request.vehicle.productionYear,
+                vin = request.vehicle.vin,
+                color = request.vehicle.color,
+                mileage = request.vehicle.mileage
+            ),
+            client = CreateClientCommand(
+                name = request.client.name,
+                email = request.client.email,
+                phone = request.client.phone,
+                companyName = request.client.companyName,
+                taxId = request.client.taxId
+            ),
             period = CreatePeriodCommand(
                 startDate = parseDateTime(request.startDate),
                 endDate = request.endDate?.let { parseDateTime(it) } ?: parseDateTime(request.startDate).plusHours(8)
@@ -41,22 +54,22 @@ object ProtocolApiMappers {
             title = request.title,
             calendarColorId = request.calendarColorId,
             vehicle = UpdateVehicleCommand(
-                id = protocolId, // Will be resolved in handler
-                brand = request.make,
-                model = request.model,
-                licensePlate = request.licensePlate ?: "",
-                productionYear = request.productionYear,
-                vin = request.vin,
-                color = request.color,
-                mileage = request.mileage
+                id = protocolId,
+                brand = request.vehicle.make,
+                model = request.vehicle.model,
+                licensePlate = request.vehicle.licensePlate ?: "",
+                productionYear = request.vehicle.productionYear,
+                vin = request.vehicle.vin,
+                color = request.vehicle.color,
+                mileage = request.vehicle.mileage
             ),
             client = UpdateClientCommand(
-                id = protocolId, // Will be resolved in handler
-                name = request.ownerName,
-                email = request.email,
-                phone = request.phone,
-                companyName = request.companyName,
-                taxId = request.taxId
+                id = protocolId,
+                name = request.client.name,
+                email = request.client.email,
+                phone = request.client.phone,
+                companyName = request.client.companyName,
+                taxId = request.client.taxId
             ),
             period = UpdatePeriodCommand(
                 startDate = parseDateTime(request.startDate),
@@ -74,36 +87,8 @@ object ProtocolApiMappers {
         )
     }
 
-    fun toDetailResponse(readModel: ProtocolDetailReadModel): ProtocolDetailResponse {
-        return ProtocolDetailResponse(
-            id = readModel.id,
-            title = readModel.title,
-            calendarColorId = readModel.calendarColorId,
-            vehicle = toVehicleResponse(readModel.vehicle),
-            client = toClientResponse(readModel.client),
-            period = toPeriodResponse(readModel.period),
-            status = readModel.status,
-            services = readModel.services.map { toServiceResponse(it) },
-            notes = readModel.notes,
-            createdAt = readModel.audit.createdAt,
-            updatedAt = readModel.audit.updatedAt
-        )
-    }
-
-    fun toListResponse(readModel: ProtocolListReadModel): ProtocolListResponse {
-        return ProtocolListResponse(
-            id = readModel.id,
-            title = readModel.title,
-            vehicle = toVehicleBasicResponse(readModel.vehicle),
-            client = toClientBasicResponse(readModel.client),
-            status = readModel.status,
-            totalAmount = readModel.totalAmount,
-            lastUpdate = readModel.lastUpdate
-        )
-    }
-
-    fun toCreateServiceCommand(request: CreateServiceRequest): CreateServiceCommand {
-        return CreateServiceCommand(
+    fun toCreateServiceCommand(request: CreateServiceRequest): com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand {
+        return com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand(
             name = request.name,
             basePrice = request.price,
             quantity = request.quantity,
@@ -115,31 +100,22 @@ object ProtocolApiMappers {
         )
     }
 
-    private fun toCreateVehicleCommand(request: CreateVehicleRequest): CreateVehicleCommand {
-        return CreateVehicleCommand(
-            brand = request.make,
-            model = request.model,
-            licensePlate = request.licensePlate,
-            productionYear = request.productionYear,
-            vin = request.vin,
-            color = request.color,
-            mileage = request.mileage
-        )
-    }
-
-    private fun toCreateClientCommand(request: CreateClientRequest): CreateClientCommand {
-        return CreateClientCommand(
-            name = request.name,
-            email = request.email,
-            phone = request.phone,
-            companyName = request.companyName,
-            taxId = request.taxId
+    fun toCreateServiceCommand(apiCommand: CreateServiceCommand): com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand {
+        return com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand(
+            name = apiCommand.name,
+            basePrice = apiCommand.price,
+            quantity = apiCommand.quantity,
+            discountType = apiCommand.discountType?.name,
+            discountValue = apiCommand.discountValue,
+            finalPrice = apiCommand.finalPrice,
+            approvalStatus = apiCommand.approvalStatus?.name ?: "PENDING",
+            note = apiCommand.note
         )
     }
 
     private fun toUpdateServiceCommand(request: CreateServiceRequest): UpdateServiceCommand {
         return UpdateServiceCommand(
-            id = request.id ?: "", // Will be generated if new
+            id = request.id ?: "",
             name = request.name,
             basePrice = request.price,
             quantity = request.quantity,
@@ -148,57 +124,6 @@ object ProtocolApiMappers {
             finalPrice = request.finalPrice,
             approvalStatus = request.approvalStatus ?: "PENDING",
             note = request.note
-        )
-    }
-
-    private fun toVehicleResponse(vehicle: VehicleReadModel): VehicleResponse {
-        return VehicleResponse(
-            make = vehicle.make,
-            model = vehicle.model,
-            licensePlate = vehicle.licensePlate,
-            productionYear = vehicle.productionYear,
-            color = vehicle.color
-        )
-    }
-
-    private fun toVehicleBasicResponse(vehicle: VehicleBasicReadModel): VehicleBasicResponse {
-        return VehicleBasicResponse(
-            make = vehicle.make,
-            model = vehicle.model,
-            licensePlate = vehicle.licensePlate
-        )
-    }
-
-    private fun toClientResponse(client: ClientReadModel): ClientResponse {
-        return ClientResponse(
-            name = client.name,
-            email = client.email,
-            phone = client.phone,
-            companyName = client.companyName
-        )
-    }
-
-    private fun toClientBasicResponse(client: ClientBasicReadModel): ClientBasicResponse {
-        return ClientBasicResponse(
-            name = client.name
-        )
-    }
-
-    private fun toPeriodResponse(period: PeriodReadModel): PeriodResponse {
-        return PeriodResponse(
-            startDate = period.startDate,
-            endDate = period.endDate
-        )
-    }
-
-    private fun toServiceResponse(service: ServiceReadModel): ServiceResponse {
-        return ServiceResponse(
-            id = service.id,
-            name = service.name,
-            price = service.basePrice,
-            quantity = service.quantity,
-            finalPrice = service.finalPrice,
-            status = service.approvalStatus
         )
     }
 
@@ -207,7 +132,6 @@ object ProtocolApiMappers {
             LocalDateTime.parse(dateTimeString, DATE_FORMATTER)
         } catch (e: Exception) {
             try {
-                // Try parsing as date only and add default time
                 val date = java.time.LocalDate.parse(dateTimeString, java.time.format.DateTimeFormatter.ISO_DATE)
                 LocalDateTime.of(date, java.time.LocalTime.of(8, 0))
             } catch (e2: Exception) {

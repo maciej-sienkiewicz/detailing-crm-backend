@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/visits/api/ProtocolController.kt
 package com.carslab.crm.modules.visits.api
 
 import com.carslab.crm.api.controller.base.BaseController
@@ -17,6 +16,14 @@ import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
 import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateClientCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateDocumentsCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreatePeriodCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateVehicleCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateClientCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateDocumentsCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdatePeriodCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateVehicleCommand
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -45,83 +52,47 @@ class ProtocolController(
     private val objectMapper: ObjectMapper
 ) : BaseController() {
 
-    // ===== CREATION ENDPOINTS =====
-
     @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun createCarReceptionProtocolWithFiles(request: MultipartHttpServletRequest): ResponseEntity<ProtocolIdResponse> {
-        try {
-            val protocolJson = request.getParameter("protocol")
-                ?: return badRequest("Missing 'protocol' parameter")
+        val protocolJson = request.getParameter("protocol")
+            ?: return badRequest("Missing 'protocol' parameter")
 
-            val protocolRequest: CreateCarReceptionCommand = objectMapper.readValue(protocolJson, CreateCarReceptionCommand::class.java)
+        val protocolRequest: CreateCarReceptionCommand = objectMapper.readValue(protocolJson, CreateCarReceptionCommand::class.java)
 
-            logger.info("Creating new car reception protocol with files for: ${protocolRequest.ownerName}, vehicle: ${protocolRequest.make} ${protocolRequest.model}")
-            logger.info("Received ${protocolRequest.selectedServices?.size ?: 0} services: ${protocolRequest.selectedServices?.map { "${it.name}:${it.price}" }}")
+        validateCarReceptionRequest(protocolRequest)
 
-            // Debug services before validation
-            debugServiceMapping(protocolRequest.selectedServices)
+        val command = mapToCreateProtocolCommand(protocolRequest)
+        val createdProtocolId = commandBus.execute(command)
 
-            validateCarReceptionRequest(protocolRequest)
+        processUploadedImages(request, protocolRequest.vehicleImages, createdProtocolId)
 
-            // Convert to CQRS command
-            val command = mapToCreateProtocolCommand(protocolRequest)
-            logger.info("Mapped to ${command.services.size} services: ${command.services.map { "${it.name}:${it.basePrice}:qty=${it.quantity}" }}")
-
-            val createdProtocolId = commandBus.execute(command)
-
-            // Process uploaded images
-            processUploadedImages(request, protocolRequest.vehicleImages, createdProtocolId)
-
-            return created(ProtocolIdResponse(createdProtocolId))
-        } catch (e: Exception) {
-            logger.error("Error creating car reception protocol with files", e)
-            return logAndRethrow("Error creating car reception protocol with files", e)
-        }
-    }
-
-    private fun debugServiceMapping(services: List<CreateServiceCommand>?) {
-        logger.info("=== DEBUG SERVICES MAPPING ===")
-        logger.info("Input services count: ${services?.size ?: 0}")
-        services?.forEachIndexed { index, service ->
-            logger.info("Service $index: name='${service.name}', price=${service.price}, quantity=${service.quantity}")
-            logger.info("  - discountType=${service.discountType}, discountValue=${service.discountValue}")
-            logger.info("  - finalPrice=${service.finalPrice}, approvalStatus=${service.approvalStatus}")
-        }
-        logger.info("=== END DEBUG ===")
+        return created(ProtocolIdResponse(createdProtocolId))
     }
 
     @PostMapping("/{protocolId}/image", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun uploadPhoto(@PathVariable protocolId: String, request: MultipartHttpServletRequest): ResponseEntity<ProtocolIdResponse> {
-        try {
-            logger.info("Adding new photo for protocol: $protocolId")
+        val imageDetailsJson = request.getParameter("image")
+            ?: return badRequest("Missing 'image' parameter")
 
-            val imageDetailsJson = request.getParameter("image")
-                ?: return badRequest("Missing 'image' parameter")
+        val imageCommand: CreateVehicleImageCommand = objectMapper.readValue(imageDetailsJson, CreateVehicleImageCommand::class.java)
 
-            val imageCommand: CreateVehicleImageCommand = objectMapper.readValue(imageDetailsJson, CreateVehicleImageCommand::class.java)
+        val file = request.fileMap.values.firstOrNull()
+            ?: return badRequest("No file uploaded")
 
-            // Find the uploaded file
-            val file = request.fileMap.values.firstOrNull()
-                ?: return badRequest("No file uploaded")
-
-            val command = UploadVisitMediaCommand(
-                visitId = protocolId,
-                file = file,
-                mediaDetails = MediaDetailsCommand(
-                    name = imageCommand.name ?: file.originalFilename ?: "image_${System.currentTimeMillis()}",
-                    description = imageCommand.description,
-                    location = imageCommand.location,
-                    tags = imageCommand.tags,
-                    type = imageCommand.type ?: "PHOTO"
-                )
+        val command = UploadVisitMediaCommand(
+            visitId = protocolId,
+            file = file,
+            mediaDetails = MediaDetailsCommand(
+                name = imageCommand.name ?: file.originalFilename ?: "image_${System.currentTimeMillis()}",
+                description = imageCommand.description,
+                location = imageCommand.location,
+                tags = imageCommand.tags,
+                type = imageCommand.type ?: "PHOTO"
             )
+        )
 
-            commandBus.execute(command)
-
-            return created(ProtocolIdResponse(protocolId))
-        } catch (e: Exception) {
-            return logAndRethrow("Error uploading photo for car reception protocol", e)
-        }
+        commandBus.execute(command)
+        return created(ProtocolIdResponse(protocolId))
     }
 
     @PatchMapping("/{protocolId}/image/{imageId}")
@@ -130,107 +101,78 @@ class ProtocolController(
         @PathVariable imageId: String,
         @RequestBody updateCommand: UpdateVehicleImageCommand
     ): ResponseEntity<VehicleImageResponse> {
-        try {
-            logger.info("Updating image metadata for protocol: $protocolId, image: $imageId, data: $updateCommand")
+        val command = UpdateVisitMediaCommand(
+            visitId = protocolId,
+            mediaId = imageId,
+            name = updateCommand.name ?: "Unknown",
+            description = updateCommand.description,
+            location = updateCommand.location,
+            tags = updateCommand.tags
+        )
 
-            val command = UpdateVisitMediaCommand(
-                visitId = protocolId,
-                mediaId = imageId,
-                name = updateCommand.name ?: "Unknown",
-                description = updateCommand.description,
-                location = updateCommand.location,
-                tags = updateCommand.tags
-            )
+        commandBus.execute(command)
 
-            commandBus.execute(command)
+        val response = VehicleImageResponse(
+            id = imageId,
+            name = updateCommand.name ?: "Unknown",
+            size = 0L,
+            tags = updateCommand.tags,
+            type = "PHOTO",
+            createdAt = Instant.now(),
+            updatedAt = Instant.now(),
+            description = updateCommand.description,
+            location = updateCommand.location,
+        )
 
-            // Return compatible response
-            val response = VehicleImageResponse(
-                id = imageId,
-                name = updateCommand.name ?: "Unknown",
-                size = 0L, // Will be filled by actual metadata
-                tags = updateCommand.tags,
-                type = "PHOTO",
-                createdAt = Instant.now(),
-                updatedAt = Instant.now(),
-                description = updateCommand.description,
-                location = updateCommand.location,
-            )
-
-            return ResponseEntity.ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating image metadata", e)
-        }
+        return ResponseEntity.ok(response)
     }
-
-    // ===== SERVICES ENDPOINTS =====
 
     @PutMapping("/{protocolId}/services")
     fun updateServices(
         @PathVariable protocolId: String,
         @RequestBody command: ServicesUpdateCommand
     ): ResponseEntity<ProtocolIdResponse> {
-        try {
-            val updateCommand = UpdateProtocolServicesCommand(
-                protocolId = protocolId,
-                services = command.services.map { mapToCreateServiceCommand(it) }
-            )
+        val updateCommand = UpdateProtocolServicesCommand(
+            protocolId = protocolId,
+            services = command.services.map { ProtocolApiMappers.toCreateServiceCommand(it) }
+        )
 
-            commandBus.execute(updateCommand)
-
-            logger.info("Successfully updated services for protocol with ID: $protocolId")
-            return created(ProtocolIdResponse(protocolId))
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating services for car reception protocol", e)
-        }
+        commandBus.execute(updateCommand)
+        return created(ProtocolIdResponse(protocolId))
     }
-
-    // ===== MEDIA ENDPOINTS =====
 
     @GetMapping("/image/{fileId}")
     fun getImage(@PathVariable fileId: String): ResponseEntity<Resource> {
-        try {
-            val query = GetMediaFileQuery(fileId)
-            val fileData = queryBus.execute(query)
-                ?: return ResponseEntity.notFound().build()
+        val query = GetMediaFileQuery(fileId)
+        val fileData = queryBus.execute(query)
+            ?: return ResponseEntity.notFound().build()
 
-            val resource = ByteArrayResource(fileData.data)
+        val resource = ByteArrayResource(fileData.data)
 
-            logger.info("Serving image $fileId with type ${fileData.contentType} and size ${fileData.size} bytes")
-
-            return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(fileData.contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"${fileData.originalName}\"")
-                .body(resource)
-        } catch (e: Exception) {
-            logger.error("Error serving image $fileId", e)
-            return ResponseEntity.internalServerError().build()
-        }
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(fileData.contentType))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"${fileData.originalName}\"")
+            .body(resource)
     }
 
     @GetMapping("/protocols/{protocolId}/images")
     fun getProtocolImages(@PathVariable protocolId: String): ResponseEntity<List<ImageDTO>> {
-        try {
-            val query = GetVisitMediaQuery(protocolId)
-            val images = queryBus.execute(query)
-                .map { media ->
-                    ImageDTO(
-                        id = media.id,
-                        name = media.name,
-                        size = media.size,
-                        type = media.contentType,
-                        createdAt = media.createdAt,
-                        protocolId = protocolId,
-                        description = media.description,
-                        location = media.location
-                    )
-                }
+        val query = GetVisitMediaQuery(protocolId)
+        val images = queryBus.execute(query)
+            .map { media ->
+                ImageDTO(
+                    id = media.id,
+                    name = media.name,
+                    size = media.size,
+                    type = media.contentType,
+                    createdAt = media.createdAt,
+                    protocolId = protocolId,
+                    description = media.description,
+                    location = media.location
+                )
+            }
 
-            return ResponseEntity.ok(images)
-        } catch (e: Exception) {
-            logger.error("Error getting images for protocol $protocolId", e)
-            return ResponseEntity.internalServerError().build()
-        }
+        return ResponseEntity.ok(images)
     }
 
     @DeleteMapping("/{protocolId}/image/{imageId}")
@@ -238,23 +180,14 @@ class ProtocolController(
         @PathVariable protocolId: String,
         @PathVariable imageId: String,
     ): ResponseEntity<Map<String, Any>> {
-        try {
-            logger.info("Deleting image $imageId from protocol: $protocolId")
+        val command = DeleteVisitMediaCommand(
+            visitId = protocolId,
+            mediaId = imageId
+        )
 
-            val command = DeleteVisitMediaCommand(
-                visitId = protocolId,
-                mediaId = imageId
-            )
-
-            commandBus.execute(command)
-
-            return ok(createSuccessResponse("Image successfully deleted", mapOf("protocolId" to protocolId, "imageId" to imageId)))
-        } catch (e: Exception) {
-            return logAndRethrow("Error deleting image", e)
-        }
+        commandBus.execute(command)
+        return ok(createSuccessResponse("Image successfully deleted", mapOf("protocolId" to protocolId, "imageId" to imageId)))
     }
-
-    // ===== PROTOCOL CRUD ENDPOINTS =====
 
     @GetMapping("/list")
     @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering and pagination")
@@ -268,8 +201,6 @@ class ProtocolController(
         @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "Page size") @RequestParam(defaultValue = "10") size: Int
     ): ResponseEntity<PaginatedResponse<CarReceptionListDto>> {
-        logger.info("Getting all car reception protocols with filters, page: $page, size: $size")
-
         val domainStatus = status?.let { ProtocolStatus.valueOf(it) }
 
         val query = SearchProtocolsQuery(
@@ -299,26 +230,19 @@ class ProtocolController(
     @GetMapping("/counters")
     @Operation(summary = "Get protocol counters", description = "Retrieves count of protocols for each status")
     fun getProtocolCounters(): ResponseEntity<ProtocolCountersResponse> {
-        logger.info("Getting protocol counters for all statuses")
+        val query = GetProtocolCountersQuery()
+        val counters = queryBus.execute(query)
 
-        try {
-            val query = GetProtocolCountersQuery()
-            val counters = queryBus.execute(query)
+        val response = ProtocolCountersResponse(
+            SCHEDULED = counters.scheduled,
+            IN_PROGRESS = counters.inProgress,
+            READY_FOR_PICKUP = counters.readyForPickup,
+            COMPLETED = counters.completed,
+            CANCELLED = counters.cancelled,
+            ALL = counters.all
+        )
 
-            val response = ProtocolCountersResponse(
-                SCHEDULED = counters.scheduled,
-                IN_PROGRESS = counters.inProgress,
-                READY_FOR_PICKUP = counters.readyForPickup,
-                COMPLETED = counters.completed,
-                CANCELLED = counters.cancelled,
-                ALL = counters.all
-            )
-
-            logger.info("Protocol counters: $response")
-            return ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error retrieving protocol counters", e)
-        }
+        return ok(response)
     }
 
     @GetMapping("/not-paginated")
@@ -330,8 +254,6 @@ class ProtocolController(
         @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
         @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?
     ): ResponseEntity<List<CarReceptionListDto>> {
-        logger.info("Getting list of car reception protocols with filters")
-
         val domainStatus = status?.let { ProtocolStatus.valueOf(it) }
 
         val query = SearchProtocolsQuery(
@@ -341,7 +263,7 @@ class ProtocolController(
             startDate = parseDateTimeParam(startDate),
             endDate = parseDateTimeParam(endDate),
             page = 0,
-            size = 1000 // Large number to get all results
+            size = 1000
         )
 
         val protocols = queryBus.execute(query)
@@ -354,8 +276,6 @@ class ProtocolController(
     fun getCarReceptionProtocolById(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String
     ): ResponseEntity<CarReceptionDetailDto> {
-        logger.info("Getting car reception protocol by ID: $id")
-
         val query = GetProtocolByIdQuery(id)
         val protocol = queryBus.execute(query)
             ?: throw ResourceNotFoundException("Protocol", id)
@@ -369,33 +289,21 @@ class ProtocolController(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
         @Valid @RequestBody command: UpdateCarReceptionCommand
     ): ResponseEntity<CarReceptionDetailDto> {
-        logger.info("Updating car reception protocol with ID: $id")
+        validateCarReceptionRequest(command)
 
-        try {
-            // Validate command data
-            validateCarReceptionRequest(command)
-
-            // Ensure ID in command matches path ID
-            if (command.id != id) {
-                throw ValidationException("Protocol ID in path ($id) does not match ID in request body (${command.id})")
-            }
-
-            // Convert to CQRS command
-            val updateCommand = mapToUpdateProtocolCommand(command, id)
-            commandBus.execute(updateCommand)
-
-            // Get updated protocol
-            val query = GetProtocolByIdQuery(id)
-            val updatedProtocol = queryBus.execute(query)
-                ?: throw ResourceNotFoundException("Protocol", id)
-
-            val response = convertToCarReceptionDetailDto(updatedProtocol)
-
-            logger.info("Successfully updated car reception protocol with ID: $id")
-            return ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating car reception protocol with ID: $id", e)
+        if (command.id != id) {
+            throw ValidationException("Protocol ID in path ($id) does not match ID in request body (${command.id})")
         }
+
+        val updateCommand = mapToUpdateProtocolCommand(command, id)
+        commandBus.execute(updateCommand)
+
+        val query = GetProtocolByIdQuery(id)
+        val updatedProtocol = queryBus.execute(query)
+            ?: throw ResourceNotFoundException("Protocol", id)
+
+        val response = convertToCarReceptionDetailDto(updatedProtocol)
+        return ok(response)
     }
 
     @PatchMapping("/{id}/status")
@@ -404,36 +312,26 @@ class ProtocolController(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
         @RequestBody command: UpdateStatusCommand
     ): ResponseEntity<CarReceptionBasicDto> {
-        logger.info("Updating status of car reception protocol with ID: $id to ${command.status}")
+        val statusCommand = ChangeProtocolStatusCommand(
+            protocolId = id,
+            newStatus = mapApiStatusToDomain(command.status)
+        )
 
-        try {
-            val statusCommand = ChangeProtocolStatusCommand(
-                protocolId = id,
-                newStatus = mapApiStatusToDomain(command.status),
-                reason = "Status updated via API"
-            )
+        commandBus.execute(statusCommand)
 
-            commandBus.execute(statusCommand)
+        val query = GetProtocolByIdQuery(id)
+        val updatedProtocol = queryBus.execute(query)
+            ?: throw ResourceNotFoundException("Protocol", id)
 
-            // Get updated protocol
-            val query = GetProtocolByIdQuery(id)
-            val updatedProtocol = queryBus.execute(query)
-                ?: throw ResourceNotFoundException("Protocol", id)
+        val response = CarReceptionBasicDto(
+            id = updatedProtocol.id,
+            createdAt = updatedProtocol.audit.createdAt,
+            updatedAt = updatedProtocol.audit.updatedAt,
+            statusUpdatedAt = updatedProtocol.audit.statusUpdatedAt,
+            status = mapDomainStatusToApi(ProtocolStatus.valueOf(updatedProtocol.status))
+        )
 
-            val response = CarReceptionBasicDto(
-                id = updatedProtocol.id,
-                createdAt = updatedProtocol.audit.createdAt,
-                updatedAt = updatedProtocol.audit.updatedAt,
-                statusUpdatedAt = updatedProtocol.audit.statusUpdatedAt,
-                status = mapDomainStatusToApi(ProtocolStatus.valueOf(updatedProtocol.status))
-            )
-
-            return ok(response)
-        } catch (e: IllegalArgumentException) {
-            throw ValidationException("Invalid status value: ${command.status}")
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating status for protocol with ID: $id", e)
-        }
+        return ok(response)
     }
 
     @DeleteMapping("/{id}")
@@ -441,20 +339,9 @@ class ProtocolController(
     fun deleteCarReceptionProtocol(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String
     ): ResponseEntity<Map<String, Any>> {
-        logger.info("Deleting car reception protocol with ID: $id")
-
-        try {
-            val command = DeleteProtocolCommand(id)
-            commandBus.execute(command)
-
-            logger.info("Successfully deleted car reception protocol with ID: $id")
-            return ok(createSuccessResponse("Protocol successfully deleted", mapOf("protocolId" to id)))
-        } catch (e: ResourceNotFoundException) {
-            logger.warn("Car reception protocol with ID: $id not found for deletion")
-            throw e
-        } catch (e: Exception) {
-            return logAndRethrow("Error deleting protocol", e)
-        }
+        val command = DeleteProtocolCommand(id)
+        commandBus.execute(command)
+        return ok(createSuccessResponse("Protocol successfully deleted", mapOf("protocolId" to id)))
     }
 
     @GetMapping("/{clientId}/protocols")
@@ -466,8 +353,6 @@ class ProtocolController(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: Long,
         @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?
     ): ResponseEntity<List<ClientProtocolHistoryDto>> {
-        logger.info("Getting protocols for client with ID: $clientId")
-
         val domainStatus = status?.let { ProtocolStatus.valueOf(it) }
 
         val query = GetClientProtocolHistoryQuery(
@@ -476,18 +361,9 @@ class ProtocolController(
         )
 
         val protocols = queryBus.execute(query)
-
-        if (protocols.isEmpty()) {
-            logger.info("No protocols found for client with ID: $clientId")
-        } else {
-            logger.info("Found ${protocols.size} protocols for client with ID: $clientId")
-        }
-
         val response = protocols.map { convertToClientProtocolHistoryDto(it) }
         return ok(response)
     }
-
-    // ===== DOCUMENT ENDPOINTS =====
 
     @PostMapping("/{protocolId}/document", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Upload protocol document", description = "Upload document to protocol (agreements, contracts)")
@@ -497,46 +373,37 @@ class ProtocolController(
         @RequestParam("documentType") documentType: String,
         @RequestParam(value = "description", required = false) description: String?
     ): ResponseEntity<Map<String, Any>> {
-        try {
-            logger.info("Uploading document for protocol: $protocolId, type: $documentType")
-
-            if (file.isEmpty) {
-                return badRequest("File cannot be empty")
-            }
-
-            // Validate file type
-            val allowedTypes = setOf("application/pdf", "application/msword",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-
-            if (file.contentType !in allowedTypes) {
-                return badRequest("Only PDF, DOC, and DOCX files are allowed")
-            }
-
-            // File size limit - 10MB
-            if (file.size > 10 * 1024 * 1024) {
-                return badRequest("File size cannot exceed 10MB")
-            }
-
-            val command = UploadProtocolDocumentCommand(
-                protocolId = protocolId,
-                file = file,
-                documentType = documentType,
-                description = description
-            )
-
-            val storageId = commandBus.execute(command)
-
-            return created(createSuccessResponse("Document uploaded successfully",
-                mapOf(
-                    "storageId" to storageId,
-                    "protocolId" to protocolId,
-                    "documentType" to documentType
-                )
-            ))
-
-        } catch (e: Exception) {
-            return logAndRethrow("Error uploading document for protocol $protocolId", e)
+        if (file.isEmpty) {
+            return badRequest("File cannot be empty")
         }
+
+        val allowedTypes = setOf("application/pdf", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+        if (file.contentType !in allowedTypes) {
+            return badRequest("Only PDF, DOC, and DOCX files are allowed")
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            return badRequest("File size cannot exceed 10MB")
+        }
+
+        val command = UploadProtocolDocumentCommand(
+            protocolId = protocolId,
+            file = file,
+            documentType = documentType,
+            description = description
+        )
+
+        val storageId = commandBus.execute(command)
+
+        return created(createSuccessResponse("Document uploaded successfully",
+            mapOf(
+                "storageId" to storageId,
+                "protocolId" to protocolId,
+                "documentType" to documentType
+            )
+        ))
     }
 
     @GetMapping("/{protocolId}/documents")
@@ -544,18 +411,10 @@ class ProtocolController(
     fun getProtocolDocuments(
         @Parameter(description = "Protocol ID", required = true) @PathVariable protocolId: String
     ): ResponseEntity<List<ProtocolDocumentDto>> {
-        try {
-            logger.info("Getting documents for protocol: $protocolId")
-
-            val query = GetProtocolDocumentsQuery(protocolId)
-            val documents = queryBus.execute(query)
-            val response = documents.map { ProtocolDocumentDto.fromQueryResponse(it) }
-
-            return ok(response)
-
-        } catch (e: Exception) {
-            return logAndRethrow("Error getting documents for protocol $protocolId", e)
-        }
+        val query = GetProtocolDocumentsQuery(protocolId)
+        val documents = queryBus.execute(query)
+        val response = documents.map { ProtocolDocumentDto.fromQueryResponse(it) }
+        return ok(response)
     }
 
     @GetMapping("/document/{documentId}")
@@ -563,25 +422,16 @@ class ProtocolController(
     fun downloadProtocolDocument(
         @Parameter(description = "Document ID", required = true) @PathVariable documentId: String
     ): ResponseEntity<Resource> {
-        try {
-            logger.info("Downloading document: $documentId")
+        val query = GetProtocolDocumentQuery(documentId)
+        val documentData = queryBus.execute(query)
+            ?: return ResponseEntity.notFound().build()
 
-            val query = GetProtocolDocumentQuery(documentId)
-            val documentData = queryBus.execute(query)
-                ?: return ResponseEntity.notFound().build()
+        val resource = ByteArrayResource(documentData.data)
 
-            val resource = ByteArrayResource(documentData.data)
-
-            logger.info("Serving document $documentId: ${documentData.originalName} (${documentData.size} bytes)")
-
-            return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(documentData.contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${documentData.originalName}\"")
-                .body(resource)
-
-        } catch (e: Exception) {
-            return logAndRethrow("Error downloading document $documentId", e)
-        }
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(documentData.contentType))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${documentData.originalName}\"")
+            .body(resource)
     }
 
     @DeleteMapping("/{protocolId}/document/{documentId}")
@@ -590,56 +440,34 @@ class ProtocolController(
         @Parameter(description = "Protocol ID", required = true) @PathVariable protocolId: String,
         @Parameter(description = "Document ID", required = true) @PathVariable documentId: String
     ): ResponseEntity<Map<String, Any>> {
-        try {
-            logger.info("Deleting document: $documentId for protocol: $protocolId")
-
-            val command = DeleteProtocolDocumentCommand(protocolId, documentId)
-            commandBus.execute(command)
-
-            logger.info("Successfully deleted document: $documentId")
-            return ok(createSuccessResponse("Document deleted successfully",
-                mapOf("documentId" to documentId)))
-
-        } catch (e: Exception) {
-            return logAndRethrow("Error deleting document $documentId", e)
-        }
+        val command = DeleteProtocolDocumentCommand(protocolId, documentId)
+        commandBus.execute(command)
+        return ok(createSuccessResponse("Document deleted successfully",
+            mapOf("documentId" to documentId)))
     }
-
-    // ===== VEHICLE RELEASE ENDPOINT =====
 
     @PostMapping("/{id}/release")
     @Operation(summary = "Release vehicle to client", description = "Completes protocol by releasing vehicle to client with payment details")
     fun releaseVehicle(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
-        @Valid @RequestBody command:  com.carslab.crm.modules.visits.api.commands.ReleaseVehicleCommand
+        @Valid @RequestBody command: com.carslab.crm.modules.visits.api.commands.ReleaseVehicleCommand
     ): ResponseEntity<CarReceptionDetailDto> {
-        logger.info("Releasing vehicle for protocol with ID: $id with payment method: ${command.paymentMethod}")
+        val releaseCommand = com.carslab.crm.modules.visits.application.commands.models.ReleaseVehicleCommand(
+            protocolId = id,
+            paymentMethod = command.paymentMethod,
+            documentType = command.documentType,
+            additionalNotes = command.additionalNotes
+        )
 
-        try {
-            val releaseCommand =  com.carslab.crm.modules.visits.application.commands.models.ReleaseVehicleCommand(
-                protocolId = id,
-                paymentMethod = command.paymentMethod,
-                documentType = command.documentType,
-                additionalNotes = command.additionalNotes
-            )
+        commandBus.execute(releaseCommand)
 
-            commandBus.execute(releaseCommand)
+        val query = GetProtocolByIdQuery(id)
+        val updatedProtocol = queryBus.execute(query)
+            ?: throw ResourceNotFoundException("Protocol", id)
 
-            // Get updated protocol
-            val query = GetProtocolByIdQuery(id)
-            val updatedProtocol = queryBus.execute(query)
-                ?: throw ResourceNotFoundException("Protocol", id)
-
-            val response = convertToCarReceptionDetailDto(updatedProtocol)
-
-            logger.info("Successfully released vehicle for protocol with ID: $id")
-            return ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error releasing vehicle for protocol with ID: $id", e)
-        }
+        val response = convertToCarReceptionDetailDto(updatedProtocol)
+        return ok(response)
     }
-
-    // ===== HELPER METHODS =====
 
     private fun processUploadedImages(
         request: MultipartHttpServletRequest,
@@ -676,31 +504,6 @@ class ProtocolController(
         return matchResult.groupValues[1].toInt()
     }
 
-    // ===== CONVERSION METHODS =====
-
-    private fun mapToCreateProtocolCommand(request: CreateCarReceptionCommand): CreateProtocolCommand {
-        return ProtocolApiMappers.toCreateCommand(request.toCreateProtocolRequest())
-    }
-
-    private fun mapToUpdateProtocolCommand(request: UpdateCarReceptionCommand, protocolId: String): UpdateProtocolCommand {
-        return ProtocolApiMappers.toUpdateCommand(request.toUpdateProtocolRequest(), protocolId)
-    }
-
-    private fun mapToCreateServiceCommand(service: CreateServiceCommand): com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand {
-        return com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand(
-            name = service.name,
-            basePrice = service.price,
-            quantity = service.quantity,
-            discountType = service.discountType?.name,
-            discountValue = service.discountValue,
-            finalPrice = service.finalPrice,
-            approvalStatus = service.approvalStatus?.name ?: "PENDING",
-            note = service.note
-        )
-    }
-
-    // ===== VALIDATION METHODS =====
-
     private fun validateCarReceptionRequest(command: CreateCarReceptionCommand) {
         ValidationUtils.validateNotBlank(command.startDate, "Start date")
         ValidationUtils.validateNotBlank(command.make, "Vehicle make")
@@ -724,7 +527,6 @@ class ProtocolController(
         ValidationUtils.validateNotBlank(command.id, "Protocol ID")
         ValidationUtils.validateNotBlank(command.startDate, "Start date")
 
-        // Validate date formats
         try {
             LocalDateTime.parse(command.startDate, DateTimeFormatter.ISO_DATE_TIME)
         } catch (e: Exception) {
@@ -761,17 +563,13 @@ class ProtocolController(
             LocalDateTime.parse(dateTimeString)
         } catch (e: Exception) {
             try {
-                // Try parsing as LocalDate and add default time
                 val date = LocalDate.parse(dateTimeString, DateTimeFormatter.ISO_DATE)
-                LocalDateTime.of(date, LocalTime.of(0, 0)) // Beginning of day (00:00)
+                LocalDateTime.of(date, LocalTime.of(0, 0))
             } catch (e2: Exception) {
-                logger.warn("Invalid date/time format: $dateTimeString")
                 null
             }
         }
     }
-
-    // ===== DOMAIN/API MAPPING METHODS =====
 
     private fun mapApiStatusToDomain(apiStatus: com.carslab.crm.api.model.ApiProtocolStatus): ProtocolStatus {
         return when (apiStatus) {
@@ -794,8 +592,6 @@ class ProtocolController(
             ProtocolStatus.CANCELLED -> com.carslab.crm.api.model.ApiProtocolStatus.CANCELLED
         }
     }
-
-    // ===== RESPONSE CONVERSION METHODS =====
 
     private fun convertToCarReceptionListDto(readModel: ProtocolListReadModel): CarReceptionListDto {
         return CarReceptionListDto(
@@ -820,7 +616,7 @@ class ProtocolController(
             status = mapDomainStatusToApi(ProtocolStatus.valueOf(readModel.status)),
             totalServiceCount = readModel.totalServiceCount,
             totalAmount = readModel.totalAmount,
-            selectedServices = emptyList(), // Will be populated if needed
+            selectedServices = emptyList(),
             lastUpdate = readModel.lastUpdate
         )
     }
@@ -875,7 +671,7 @@ class ProtocolController(
                     size = media.size,
                     type = media.type,
                     storageId = media.id,
-                    createdAt = Instant.now(), // TODO: Use actual timestamp
+                    createdAt = Instant.now(),
                     description = media.description,
                     location = media.location,
                     tags = media.tags
@@ -886,6 +682,106 @@ class ProtocolController(
             statusUpdatedAt = readModel.audit.statusUpdatedAt,
             appointmentId = readModel.appointmentId
         )
+    }
+
+    private fun mapToCreateProtocolCommand(request: CreateCarReceptionCommand): CreateProtocolCommand {
+        return CreateProtocolCommand(
+            title = request.title,
+            calendarColorId = request.calendarColorId,
+            vehicle = CreateVehicleCommand(
+                brand = request.make,
+                model = request.model,
+                licensePlate = request.licensePlate,
+                productionYear = request.productionYear,
+                vin = request.vin,
+                color = request.color,
+                mileage = request.mileage
+            ),
+            client = CreateClientCommand(
+                name = request.ownerName,
+                email = request.email,
+                phone = request.phone,
+                companyName = request.companyName,
+                taxId = request.taxId
+            ),
+            period = CreatePeriodCommand(
+                startDate = parseDateTime(request.startDate),
+                endDate = request.endDate?.let { parseDateTime(it) } ?: parseDateTime(request.startDate).plusHours(8)
+            ),
+            status = request.status?.let { mapApiStatusToDomain(it) } ?: ProtocolStatus.SCHEDULED,
+            services = request.selectedServices?.map { ProtocolApiMappers.toCreateServiceCommand(it) } ?: emptyList(),
+            notes = request.notes,
+            referralSource = request.referralSource?.name,
+            documents = CreateDocumentsCommand(
+                keysProvided = request.keysProvided ?: false,
+                documentsProvided = request.documentsProvided ?: false
+            ),
+            appointmentId = request.appointmentId
+        )
+    }
+
+    private fun mapToUpdateProtocolCommand(request: UpdateCarReceptionCommand, protocolId: String): UpdateProtocolCommand {
+        return UpdateProtocolCommand(
+            protocolId = protocolId,
+            title = request.title,
+            calendarColorId = request.calendarColorId,
+            vehicle = UpdateVehicleCommand(
+                id = protocolId,
+                brand = request.make,
+                model = request.model,
+                licensePlate = request.licensePlate ?: "",
+                productionYear = request.productionYear,
+                vin = request.vin,
+                color = request.color,
+                mileage = request.mileage
+            ),
+            client = UpdateClientCommand(
+                id = protocolId,
+                name = request.ownerName,
+                email = request.email,
+                phone = request.phone,
+                companyName = request.companyName,
+                taxId = request.taxId
+            ),
+            period = UpdatePeriodCommand(
+                startDate = parseDateTime(request.startDate),
+                endDate = request.endDate?.let { parseDateTime(it) } ?: parseDateTime(request.startDate).plusHours(8)
+            ),
+            status = request.status?.let { mapApiStatusToDomain(it) } ?: ProtocolStatus.SCHEDULED,
+            services = request.selectedServices?.map { service ->
+                com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand(
+                    id = service.id,
+                    name = service.name,
+                    basePrice = service.price,
+                    quantity = service.quantity,
+                    discountType = service.discountType?.name,
+                    discountValue = service.discountValue,
+                    finalPrice = service.finalPrice,
+                    approvalStatus = service.approvalStatus?.name ?: "PENDING",
+                    note = service.note
+                )
+            } ?: emptyList(),
+            notes = request.notes,
+            referralSource = request.referralSource?.name,
+            documents = UpdateDocumentsCommand(
+                keysProvided = request.keysProvided ?: false,
+                documentsProvided = request.documentsProvided ?: false
+            ),
+            appointmentId = request.appointmentId
+        )
+    }
+
+    private fun parseDateTime(dateTimeString: String): LocalDateTime {
+        return try {
+            LocalDateTime.parse(dateTimeString, DateTimeFormatter.ISO_DATE_TIME)
+        } catch (e: Exception) {
+            try {
+                val date = LocalDate.parse(dateTimeString, DateTimeFormatter.ISO_DATE)
+                LocalDateTime.of(date, LocalTime.of(8, 0))
+            } catch (e2: Exception) {
+                throw IllegalArgumentException("Invalid date format: $dateTimeString")
+            }
+        }
     }
 
     private fun convertToClientProtocolHistoryDto(readModel: ProtocolListReadModel): ClientProtocolHistoryDto {
@@ -901,114 +797,6 @@ class ProtocolController(
         )
     }
 }
-
-// ===== EXTENSION METHODS FOR COMPATIBILITY =====
-
-// Extension methods to convert old commands to new DTO structure
-private fun CreateCarReceptionCommand.toCreateProtocolRequest(): com.carslab.crm.modules.visits.api.dto.CreateProtocolRequest {
-    return com.carslab.crm.modules.visits.api.dto.CreateProtocolRequest(
-        title = this.title,
-        calendarColorId = this.calendarColorId,
-        startDate = this.startDate,
-        endDate = this.endDate,
-        licensePlate = this.licensePlate,
-        make = this.make,
-        model = this.model,
-        productionYear = this.productionYear,
-        mileage = this.mileage,
-        vin = this.vin,
-        color = this.color,
-        ownerName = this.ownerName,
-        companyName = this.companyName,
-        taxId = this.taxId,
-        email = this.email,
-        phone = this.phone,
-        services = this.selectedServices?.map { service ->
-            com.carslab.crm.modules.visits.api.dto.CreateServiceRequest(
-                id = null,
-                name = service.name,
-                price = service.price,
-                quantity = service.quantity,
-                discountType = service.discountType?.name,
-                discountValue = service.discountValue,
-                finalPrice = service.finalPrice,
-                approvalStatus = service.approvalStatus?.name,
-                note = service.note
-            )
-        } ?: emptyList(),
-        notes = this.notes,
-        status = this.status?.name,
-        referralSource = this.referralSource?.name,
-        keysProvided = this.keysProvided,
-        documentsProvided = this.documentsProvided,
-        vehicleImages = this.vehicleImages?.map { image ->
-            com.carslab.crm.modules.visits.api.dto.CreateVehicleImageCommand(
-                name = image.name,
-                size = image.size,
-                type = image.type,
-                description = image.description,
-                location = image.location,
-                hasFile = image.hasFile,
-                tags = image.tags
-            )
-        },
-        appointmentId = this.appointmentId
-    )
-}
-
-private fun UpdateCarReceptionCommand.toUpdateProtocolRequest(): com.carslab.crm.modules.visits.api.dto.UpdateProtocolRequest {
-    return com.carslab.crm.modules.visits.api.dto.UpdateProtocolRequest(
-        id = this.id,
-        title = this.title,
-        calendarColorId = this.calendarColorId,
-        startDate = this.startDate,
-        endDate = this.endDate,
-        licensePlate = this.licensePlate,
-        make = this.make,
-        model = this.model,
-        productionYear = this.productionYear,
-        mileage = this.mileage,
-        vin = this.vin,
-        color = this.color,
-        ownerName = this.ownerName,
-        companyName = this.companyName,
-        taxId = this.taxId,
-        email = this.email,
-        phone = this.phone,
-        services = this.selectedServices?.map { service ->
-            com.carslab.crm.modules.visits.api.dto.CreateServiceRequest(
-                id = service.id,
-                name = service.name,
-                price = service.price,
-                quantity = service.quantity,
-                discountType = service.discountType?.name,
-                discountValue = service.discountValue,
-                finalPrice = service.finalPrice,
-                approvalStatus = service.approvalStatus?.name,
-                note = service.note
-            )
-        } ?: emptyList(),
-        notes = this.notes,
-        status = this.status?.name,
-        referralSource = this.referralSource?.name,
-        keysProvided = this.keysProvided,
-        documentsProvided = this.documentsProvided,
-        vehicleImages = this.vehicleImages?.map { image ->
-            com.carslab.crm.modules.visits.api.dto.CreateVehicleImageCommand(
-                name = image.name,
-                size = null,
-                type = null,
-                description = image.description,
-                location = image.location,
-                hasFile = false,
-                tags = image.tags
-            )
-        },
-        appointmentId = this.appointmentId
-    )
-}
-
-// ===== DATA CLASSES FOR COMPATIBILITY =====
 
 data class ImageDTO(
     val id: String,

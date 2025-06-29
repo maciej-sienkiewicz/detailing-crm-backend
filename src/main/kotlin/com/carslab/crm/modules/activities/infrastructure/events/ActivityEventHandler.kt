@@ -150,13 +150,7 @@ class ActivityEventHandler(
                 ActivityEntityReadModel(
                     id = event.visitId,
                     type = EntityType.APPOINTMENT,
-                    displayName = "Wizyta"
-                ),
-                ActivityEntityReadModel(
-                    id = event.protocolId,
-                    type = EntityType.PROTOCOL,
-                    displayName = "Protokół",
-                    relatedId = event.visitId
+                    displayName = event.visitTitle,
                 ),
                 ActivityEntityReadModel(
                     id = event.clientId,

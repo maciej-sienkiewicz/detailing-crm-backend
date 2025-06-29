@@ -2,7 +2,8 @@ package com.carslab.crm.modules.visits.api
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.mapper.CarReceptionDtoMapper
-import com.carslab.crm.api.mapper.CarReceptionDtoMapper.fromCreateImageCommand
+import com.carslab.crm.api.mapper.CarReceptionDtoMapperOld.fromCreateImageCommand
+import com.carslab.crm.api.mapper.CarReceptionDtoMapperOld
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolCountersResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolIdResponse
@@ -80,7 +81,7 @@ class CarReceptionController(
 
             validateCarReceptionRequest(protocolRequest)
 
-            val domainProtocol = CarReceptionDtoMapper.fromCreateCommand(protocolRequest)
+            val domainProtocol = CarReceptionDtoMapperOld.fromCreateCommand(protocolRequest)
             val createdProtocolId = carReceptionFacade.createProtocol(domainProtocol)
 
             processUploadedImages(request, protocolRequest.vehicleImages, createdProtocolId, domainProtocol.mediaItems)
@@ -191,7 +192,7 @@ class CarReceptionController(
     ): ResponseEntity<ProtocolIdResponse> {
         try {
             command.services
-                .map { CarReceptionDtoMapper.mapCreateServiceCommandToService(it) }
+                .map { CarReceptionDtoMapperOld.mapCreateServiceCommandToService(it) }
                 .let { carReceptionFacade.updateServices(ProtocolId(protocolId), it) }
 
             logger.info("Successfully updated services for protocol with ID: $protocolId")
@@ -276,7 +277,7 @@ class CarReceptionController(
     ): ResponseEntity<PaginatedResponse<CarReceptionListDto>> {
         logger.info("Getting all car reception protocols with filters, page: $page, size: $size")
 
-        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
+        val domainStatus = status?.let { CarReceptionDtoMapperOld.mapStatus(it) }
 
         val paginatedProtocols = carReceptionFacade.searchProtocolsWithPagination(
             clientName = clientName,
@@ -290,7 +291,7 @@ class CarReceptionController(
         )
 
         val response = PaginatedResponse(
-            data = paginatedProtocols.data.map { CarReceptionDtoMapper.toListDto(it) },
+            data = paginatedProtocols.data.map { CarReceptionDtoMapperOld.toListDto(it) },
             page = paginatedProtocols.page,
             size = paginatedProtocols.size,
             totalItems = paginatedProtocols.totalItems,
@@ -343,7 +344,7 @@ class CarReceptionController(
     ): ResponseEntity<List<CarReceptionListDto>> {
         logger.info("Getting list of car reception protocols with filters")
 
-        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
+        val domainStatus = status?.let { CarReceptionDtoMapperOld.mapStatus(it) }
 
         val protocols = carReceptionFacade.searchProtocols(
             clientName = clientName,
@@ -353,7 +354,7 @@ class CarReceptionController(
             endDate = parseDateTimeParam(endDate)
         )
 
-        val response = protocols.map { CarReceptionDtoMapper.toListDto(it) }
+        val response = protocols.map { CarReceptionDtoMapperOld.toListDto(it) }
         return ok(response)
     }
 
@@ -367,7 +368,7 @@ class CarReceptionController(
         val protocol = carReceptionFacade.getProtocolById(ProtocolId(id))
             ?: throw ResourceNotFoundException("Protocol", id)
 
-        return ok(CarReceptionDtoMapper.toDetailDto(protocol))
+        return ok(CarReceptionDtoMapperOld.toDetailDto(protocol))
     }
 
     @PutMapping("/{id}")
@@ -392,13 +393,13 @@ class CarReceptionController(
             }
 
             // Convert command to domain model
-            val domainProtocol = CarReceptionDtoMapper.fromUpdateCommand(command, existingProtocol)
+            val domainProtocol = CarReceptionDtoMapperOld.fromUpdateCommand(command, existingProtocol)
 
             // Update protocol using facade
             val updatedProtocol = carReceptionFacade.updateProtocol(domainProtocol)
 
             // Convert domain model to response
-            val response = CarReceptionDtoMapper.toDetailDto(updatedProtocol)
+            val response = CarReceptionDtoMapperOld.toDetailDto(updatedProtocol)
 
             logger.info("Successfully updated car reception protocol with ID: $id")
             return ok(response)
@@ -416,10 +417,10 @@ class CarReceptionController(
         logger.info("Updating status of car reception protocol with ID: $id to ${command.status}")
 
         try {
-            val domainStatus = CarReceptionDtoMapper.mapApiStatusToDomain(command.status)
+            val domainStatus = CarReceptionDtoMapperOld.mapApiStatusToDomain(command.status)
             val updatedProtocol = carReceptionFacade.changeStatus(ProtocolId(id), domainStatus)
 
-            val response = CarReceptionDtoMapper.toBasicDto(updatedProtocol)
+            val response = CarReceptionDtoMapperOld.toBasicDto(updatedProtocol)
             return ok(response)
         } catch (e: IllegalArgumentException) {
             throw ValidationException("Invalid status value: ${command.status}")
@@ -467,7 +468,7 @@ class CarReceptionController(
     ): ResponseEntity<List<ClientProtocolHistoryDto>> {
         logger.info("Getting protocols for client with ID: $clientId")
 
-        val domainStatus = status?.let { CarReceptionDtoMapper.mapStatus(it) }
+        val domainStatus = status?.let { CarReceptionDtoMapperOld.mapStatus(it) }
 
         val protocols = carReceptionFacade.searchProtocols(
             clientId = clientId,
@@ -480,7 +481,7 @@ class CarReceptionController(
             logger.info("Found ${protocols.size} protocols for client with ID: $clientId")
         }
 
-        val response = protocols.map { CarReceptionDtoMapper.toClientHistoryDto(it) }
+        val response = protocols.map { CarReceptionDtoMapperOld.toClientHistoryDto(it) }
         return ok(response)
     }
 
@@ -665,7 +666,7 @@ class CarReceptionController(
             )
 
             // Convert domain model to response
-            val response = CarReceptionDtoMapper.toDetailDto(updatedProtocol)
+            val response = CarReceptionDtoMapperOld.toDetailDto(updatedProtocol)
 
             logger.info("Successfully released vehicle for protocol with ID: $id")
             return ok(response)

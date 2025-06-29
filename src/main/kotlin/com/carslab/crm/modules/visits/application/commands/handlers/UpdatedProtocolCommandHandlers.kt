@@ -9,11 +9,12 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.modules.visits.domain.events.*
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.modules.visits.api.mappers.ServiceMappers
-import com.carslab.crm.modules.visits.domain.ports.CarReceptionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class UpdateProtocolCommandHandler(
@@ -35,7 +36,6 @@ class UpdateProtocolCommandHandler(
         val updatedProtocol = protocolDomainService.updateProtocol(existingProtocol, command)
         protocolRepository.save(updatedProtocol)
 
-        // Publish event if status changed
         if (existingProtocol.status != updatedProtocol.status) {
             eventPublisher.publish(
                 ProtocolStatusChangedEvent(
@@ -43,6 +43,7 @@ class UpdateProtocolCommandHandler(
                     oldStatus = existingProtocol.status.name,
                     newStatus = updatedProtocol.status.name,
                     reason = "Protocol updated",
+                    protocolTitle = updatedProtocol.title,
                     companyId = securityContext.getCurrentCompanyId(),
                     userId = securityContext.getCurrentUserId(),
                     userName = securityContext.getCurrentUserName()
@@ -76,26 +77,56 @@ class ChangeProtocolStatusCommandHandler(
 
         protocolRepository.save(updatedProtocol)
 
-        // Publish status change event
         eventPublisher.publish(
             ProtocolStatusChangedEvent(
                 protocolId = command.protocolId,
                 oldStatus = oldStatus.name,
                 newStatus = command.newStatus.name,
                 reason = command.reason,
+                protocolTitle = updatedProtocol.title,
                 companyId = securityContext.getCurrentCompanyId(),
                 userId = securityContext.getCurrentUserId(),
                 userName = securityContext.getCurrentUserName()
             )
         )
 
+        if (command.newStatus == ProtocolStatus.READY_FOR_PICKUP) {
+            eventPublisher.publish(
+                ProtocolReadyForPickupEvent(
+                    protocolId = command.protocolId,
+                    protocolTitle = updatedProtocol.title,
+                    clientId = updatedProtocol.client.id?.toString(),
+                    clientName = updatedProtocol.client.name,
+                    vehicleInfo = "${updatedProtocol.vehicle.make} ${updatedProtocol.vehicle.model} (${updatedProtocol.vehicle.licensePlate})",
+                    totalAmount = updatedProtocol.protocolServices.sumOf { it.finalPrice.amount },
+                    servicesCompleted = updatedProtocol.protocolServices.map { it.name },
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    userName = securityContext.getCurrentUserName()
+                )
+            )
+        } else {
+            eventPublisher.publish(
+                ProtocolStatusChangedEvent(
+                    protocolId = command.protocolId,
+                    oldStatus = oldStatus.name,
+                    newStatus = command.newStatus.name,
+                    reason = command.reason,
+                    protocolTitle = updatedProtocol.title,
+                    companyId = securityContext.getCurrentCompanyId(),
+                    userId = securityContext.getCurrentUserId(),
+                    userName = securityContext.getCurrentUserName()
+                )
+            )
+        }
+        
         logger.info("Successfully changed status of protocol ${command.protocolId} to ${command.newStatus}")
     }
 }
 
 @Service
 class UpdateProtocolServicesCommandHandler(
-    private val protocolServicesRepository: com.carslab.crm.modules.visits.domain.ports.ProtocolServicesRepository,
+    private val protocolRepository: ProtocolRepository,
     private val eventPublisher: EventPublisher,
     private val securityContext: SecurityContext
 ) : CommandHandler<UpdateProtocolServicesCommand, Unit> {
@@ -106,13 +137,35 @@ class UpdateProtocolServicesCommandHandler(
     override fun handle(command: UpdateProtocolServicesCommand) {
         logger.info("Updating services for protocol: ${command.protocolId}")
 
+        val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
+            ?: throw ResourceNotFoundException("Protocol", command.protocolId)
+
         val serviceModels = command.services.map { serviceCommand ->
             ServiceMappers.toCreateServiceModel(serviceCommand)
         }
 
+        val updatedServices = serviceModels.map { serviceModel ->
+            com.carslab.crm.domain.model.ProtocolService(
+                id = java.util.UUID.randomUUID().toString(),
+                name = serviceModel.name,
+                basePrice = serviceModel.basePrice,
+                discount = serviceModel.discount,
+                finalPrice = serviceModel.finalPrice,
+                approvalStatus = serviceModel.approvalStatus,
+                note = serviceModel.note,
+                quantity = serviceModel.quantity
+            )
+        }
+
+        val updatedProtocol = existingProtocol.copy(
+            protocolServices = updatedServices,
+            audit = existingProtocol.audit.copy(updatedAt = LocalDateTime.now())
+        )
+
+        protocolRepository.save(updatedProtocol)
+
         val totalAmount = command.services.sumOf { it.finalPrice ?: it.basePrice }
 
-        // Publish services updated event
         eventPublisher.publish(
             ProtocolServicesUpdatedEvent(
                 protocolId = command.protocolId,
@@ -142,7 +195,6 @@ class DeleteProtocolCommandHandler(
     override fun handle(command: DeleteProtocolCommand) {
         logger.info("Deleting protocol: ${command.protocolId}")
 
-        // Get protocol details before deletion for event
         val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
             ?: throw ResourceNotFoundException("Protocol", command.protocolId)
 
@@ -152,7 +204,6 @@ class DeleteProtocolCommandHandler(
             throw IllegalStateException("Failed to delete protocol: ${command.protocolId}")
         }
 
-        // Publish deletion event
         eventPublisher.publish(
             ProtocolDeletedEvent(
                 protocolId = command.protocolId,
@@ -187,34 +238,30 @@ class ReleaseVehicleCommandHandler(
         val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
             ?: throw ResourceNotFoundException("Protocol", command.protocolId)
 
-        // Validate protocol status
-        if (existingProtocol.status != com.carslab.crm.domain.model.ProtocolStatus.READY_FOR_PICKUP) {
+        if (existingProtocol.status != ProtocolStatus.READY_FOR_PICKUP) {
             throw IllegalStateException("Protocol must be in READY_FOR_PICKUP status to release vehicle")
         }
 
-        // Change status to COMPLETED
         val completedProtocol = protocolDomainService.changeStatus(
             existingProtocol,
-            com.carslab.crm.domain.model.ProtocolStatus.COMPLETED,
-            "Vehicle released to client"
+            ProtocolStatus.COMPLETED,
+            "Vehicle released to client with payment method: ${command.paymentMethod}"
         )
 
         protocolRepository.save(completedProtocol)
 
-        // Calculate total amount
         val totalAmount = existingProtocol.protocolServices
             .filter { it.approvalStatus == com.carslab.crm.domain.model.ApprovalStatus.APPROVED }
             .sumOf { it.finalPrice.amount }
 
-        // Publish vehicle released event
         eventPublisher.publish(
             VehicleReleasedEvent(
                 visitId = command.protocolId,
-                protocolId = command.protocolId,
+                visitTitle = existingProtocol.title,
                 clientId = existingProtocol.client.id.toString(),
                 clientName = existingProtocol.client.name,
                 vehicleId = existingProtocol.vehicle.id?.value.toString(),
-                vehicleDisplayName = "${existingProtocol.vehicle.make} ${existingProtocol.vehicle.model}",
+                vehicleDisplayName = "${existingProtocol.vehicle.make} ${existingProtocol.vehicle.model} (${existingProtocol.vehicle.licensePlate})",
                 paymentMethod = command.paymentMethod,
                 totalAmount = totalAmount,
                 releaseNotes = command.additionalNotes,

@@ -10,6 +10,7 @@ data class ProtocolStatusChangedEvent(
     val oldStatus: String,
     val newStatus: String,
     val reason: String?,
+    val protocolTitle: String? = null,
     override val companyId: Long,
     override val userId: String? = null,
     override val userName: String? = null,
@@ -24,7 +25,8 @@ data class ProtocolStatusChangedEvent(
     metadata = mapOf(
         "oldStatus" to oldStatus,
         "newStatus" to newStatus,
-        "reason" to reason
+        "reason" to reason,
+        "protocolTitle" to protocolTitle
     ) + additionalMetadata
 )
 

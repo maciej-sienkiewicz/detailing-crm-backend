@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/visits/domain/services/ProtocolDomainService.kt
 package com.carslab.crm.modules.visits.domain.services
 
 import com.carslab.crm.modules.visits.application.commands.models.CreateProtocolCommand
@@ -14,6 +13,7 @@ import com.carslab.crm.modules.visits.application.commands.models.valueobjects.C
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateMediaCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateVehicleCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
@@ -54,8 +54,23 @@ class ProtocolDomainService {
     }
 
     fun updateProtocol(existingProtocol: CarReceptionProtocol, command: UpdateProtocolCommand): CarReceptionProtocol {
-        // Business logic for updating protocol
         val now = LocalDateTime.now()
+
+        validateUpdateCommand(command, existingProtocol)
+
+        val updatedServices = command.services.map { serviceCommand ->
+            val serviceModel = mapToUpdateServiceModel(serviceCommand)
+            ProtocolService(
+                id = serviceCommand.id.ifEmpty { java.util.UUID.randomUUID().toString() },
+                name = serviceModel.name,
+                basePrice = serviceModel.basePrice,
+                discount = serviceModel.discount,
+                finalPrice = serviceModel.finalPrice,
+                approvalStatus = serviceModel.approvalStatus,
+                note = serviceModel.note,
+                quantity = serviceModel.quantity
+            )
+        }
 
         return existingProtocol.copy(
             title = command.title,
@@ -65,16 +80,23 @@ class ProtocolDomainService {
                 endDate = command.period.endDate
             ),
             status = command.status,
+            protocolServices = updatedServices,
             notes = command.notes,
+            referralSource = command.referralSource?.let { ReferralSource.valueOf(it) },
+            otherSourceDetails = command.otherSourceDetails,
+            documents = Documents(
+                keysProvided = command.documents.keysProvided,
+                documentsProvided = command.documents.documentsProvided
+            ),
             audit = existingProtocol.audit.copy(
                 updatedAt = now,
-                statusUpdatedAt = if (existingProtocol.status != command.status) now else existingProtocol.audit.statusUpdatedAt
+                statusUpdatedAt = if (existingProtocol.status != command.status) now else existingProtocol.audit.statusUpdatedAt,
+                appointmentId = command.appointmentId
             )
         )
     }
 
     fun changeStatus(protocol: CarReceptionProtocol, newStatus: ProtocolStatus, reason: String?): CarReceptionProtocol {
-        // Business logic for status change
         validateStatusTransition(protocol.status, newStatus)
 
         return protocol.copy(
@@ -86,31 +108,62 @@ class ProtocolDomainService {
         )
     }
 
+    private fun validateUpdateCommand(command: UpdateProtocolCommand, existingProtocol: CarReceptionProtocol) {
+        if (command.period.startDate.isAfter(command.period.endDate)) {
+            throw IllegalArgumentException("Start date cannot be after end date")
+        }
+
+        if (existingProtocol.status == ProtocolStatus.COMPLETED && command.status != ProtocolStatus.COMPLETED) {
+            throw IllegalStateException("Cannot change status from COMPLETED")
+        }
+
+        if (existingProtocol.status == ProtocolStatus.CANCELLED && command.status != ProtocolStatus.CANCELLED) {
+            throw IllegalStateException("Cannot change status from CANCELLED")
+        }
+    }
+
     private fun validateStatusTransition(currentStatus: ProtocolStatus, newStatus: ProtocolStatus) {
-        // Implement business rules for status transitions
         when (currentStatus) {
             ProtocolStatus.SCHEDULED -> {
-                if (newStatus !in listOf(ProtocolStatus.IN_PROGRESS, ProtocolStatus.CANCELLED)) {
+                if (newStatus !in listOf(
+                        ProtocolStatus.IN_PROGRESS,
+                        ProtocolStatus.CANCELLED,
+                        ProtocolStatus.PENDING_APPROVAL
+                    )
+                ) {
                     throw IllegalStateException("Cannot transition from SCHEDULED to $newStatus")
                 }
             }
+
+            ProtocolStatus.PENDING_APPROVAL -> {
+                if (newStatus !in listOf(
+                        ProtocolStatus.SCHEDULED,
+                        ProtocolStatus.IN_PROGRESS,
+                        ProtocolStatus.CANCELLED
+                    )
+                ) {
+                    throw IllegalStateException("Cannot transition from PENDING_APPROVAL to $newStatus")
+                }
+            }
+
             ProtocolStatus.IN_PROGRESS -> {
                 if (newStatus !in listOf(ProtocolStatus.READY_FOR_PICKUP, ProtocolStatus.CANCELLED)) {
                     throw IllegalStateException("Cannot transition from IN_PROGRESS to $newStatus")
                 }
             }
+
             ProtocolStatus.READY_FOR_PICKUP -> {
-                if (newStatus != ProtocolStatus.COMPLETED) {
+                if (newStatus !in listOf(ProtocolStatus.COMPLETED, ProtocolStatus.IN_PROGRESS)) {
                     throw IllegalStateException("Cannot transition from READY_FOR_PICKUP to $newStatus")
                 }
             }
+
             ProtocolStatus.COMPLETED -> {
                 throw IllegalStateException("Cannot change status from COMPLETED")
             }
+
             ProtocolStatus.CANCELLED -> {
                 throw IllegalStateException("Cannot change status from CANCELLED")
-            } else -> {
-                
             }
         }
     }
@@ -140,17 +193,59 @@ class ProtocolDomainService {
     }
 
     private fun mapToCreateServiceModel(command: CreateServiceCommand): CreateServiceModel {
+        val basePrice = command.basePrice
+        val finalPrice = command.finalPrice ?: basePrice
+
+        val discount = if (command.discountType != null && command.discountValue != null && command.discountValue > 0) {
+            val discountType = DiscountType.valueOf(command.discountType)
+            val calculatedAmount = when (discountType) {
+                DiscountType.PERCENTAGE -> basePrice * (command.discountValue / 100)
+                DiscountType.AMOUNT -> command.discountValue
+                DiscountType.FIXED_PRICE -> basePrice - command.discountValue
+            }
+
+            Discount(
+                type = discountType,
+                value = command.discountValue,
+                calculatedAmount = Money(calculatedAmount)
+            )
+        } else null
+
         return CreateServiceModel(
             name = command.name,
-            basePrice = Money(command.basePrice),
-            discount = if (command.discountType != null && command.discountValue != null) {
-                Discount(
-                    type = DiscountType.valueOf(command.discountType),
-                    value = command.discountValue,
-                    calculatedAmount = Money(command.basePrice - (command.finalPrice ?: command.basePrice))
-                )
-            } else null,
-            finalPrice = Money(command.finalPrice ?: command.basePrice),
+            basePrice = Money(basePrice),
+            discount = discount,
+            finalPrice = Money(finalPrice),
+            approvalStatus = ApprovalStatus.valueOf(command.approvalStatus),
+            note = command.note,
+            quantity = command.quantity
+        )
+    }
+
+    private fun mapToUpdateServiceModel(command: UpdateServiceCommand): CreateServiceModel {
+        val basePrice = command.basePrice
+        val finalPrice = command.finalPrice ?: basePrice
+
+        val discount = if (command.discountType != null && command.discountValue != null && command.discountValue > 0) {
+            val discountType = DiscountType.valueOf(command.discountType)
+            val calculatedAmount = when (discountType) {
+                DiscountType.PERCENTAGE -> basePrice * (command.discountValue / 100)
+                DiscountType.AMOUNT -> command.discountValue
+                DiscountType.FIXED_PRICE -> basePrice - command.discountValue
+            }
+
+            Discount(
+                type = discountType,
+                value = command.discountValue,
+                calculatedAmount = Money(calculatedAmount)
+            )
+        } else null
+
+        return CreateServiceModel(
+            name = command.name,
+            basePrice = Money(basePrice),
+            discount = discount,
+            finalPrice = Money(finalPrice),
             approvalStatus = ApprovalStatus.valueOf(command.approvalStatus),
             note = command.note,
             quantity = command.quantity

@@ -33,8 +33,6 @@ class CarReceptionCommentsController(
 
     @PostMapping
     fun addComment(@RequestBody comment: CommentDto): ResponseEntity<CommentDto> {
-        // W prawdziwej implementacji, tutaj dodawałbyś komentarz do bazy danych
-        // Zwracam przesłany komentarz z dodanym ID i timestampem
         val user = (SecurityContextHolder.getContext().authentication.principal as UserEntity)
         val savedComment = comment.copy(
             id = UUID.randomUUID().toString(),
@@ -57,5 +55,5 @@ data class CommentDto(
     val author: String = "",
     val content: String = "",
     val timestamp: String? = null,
-    val type: String = "" // internal, customer, system
+    val type: String = ""
 )
