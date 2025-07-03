@@ -6,6 +6,7 @@ import com.carslab.crm.modules.visits.api.response.ProtocolCountersResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolIdResponse
 import com.carslab.crm.api.model.response.VehicleImageResponse
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentType
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import com.carslab.crm.infrastructure.util.ValidationUtils
@@ -15,6 +16,7 @@ import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
+import com.carslab.crm.modules.visits.api.dto.CreateProtocolRequest
 import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateClientCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateDocumentsCommand
@@ -32,6 +34,7 @@ import jakarta.validation.Valid
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -51,6 +54,29 @@ class ProtocolController(
     private val queryBus: QueryBus,
     private val objectMapper: ObjectMapper
 ) : BaseController() {
+
+    @PostMapping
+    @Operation(summary = "Create new protocol")
+    fun createProtocol(@Valid @RequestBody request: CreateCarReceptionCommand): ResponseEntity<ProtocolIdResponse> {
+        return try {
+            logger.info("Creating new protocol for: ${request.ownerName}, vehicle: ${request.make} ${request.model}")
+
+            validateCarReceptionRequest(request)
+
+            val command = mapToCreateProtocolCommand(request)
+            val protocolId: String = commandBus.execute(command)
+
+            logger.info("Successfully created protocol: $protocolId")
+            ResponseEntity.status(HttpStatus.CREATED).body(ProtocolIdResponse(protocolId))
+        } catch (e: ValidationException) {
+            logger.warn("Validation error creating protocol: ${e.message}")
+            ResponseEntity.badRequest().build()
+        } catch (e: Exception) {
+            logger.error("Error creating protocol", e)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+    
 
     @PostMapping("/with-files", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun createCarReceptionProtocolWithFiles(request: MultipartHttpServletRequest): ResponseEntity<ProtocolIdResponse> {
@@ -391,7 +417,7 @@ class ProtocolController(
         val command = UploadProtocolDocumentCommand(
             protocolId = protocolId,
             file = file,
-            documentType = documentType,
+            documentType = ProtocolDocumentType.valueOf(documentType),
             description = description
         )
 

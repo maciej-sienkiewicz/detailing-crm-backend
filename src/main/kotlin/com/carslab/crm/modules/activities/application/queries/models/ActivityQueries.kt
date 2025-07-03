@@ -15,7 +15,8 @@ enum class ActivityCategory {
     CLIENT,       // Akcje związane z klientami
     VEHICLE,      // Akcje związane z pojazdami
     NOTIFICATION, // Powiadomienia systemowe
-    SYSTEM        // Działania systemowe
+    SYSTEM ,       // Działania systemowe,
+    DOCUMENT,     // Dokumenty i pliki
 }
 
 enum class ActivityStatus {
@@ -27,6 +28,7 @@ enum class ActivityStatus {
 enum class EntityType {
     APPOINTMENT,  // Wizyta/rezerwacja
     PROTOCOL,     // Protokół przyjęcia
+    DOCUMENT,     // Protokół przyjęcia
     CLIENT,       // Klient
     VEHICLE,      // Pojazd
     INVOICE,      // Faktura

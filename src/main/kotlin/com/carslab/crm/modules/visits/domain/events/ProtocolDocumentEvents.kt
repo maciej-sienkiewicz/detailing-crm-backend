@@ -1,14 +1,12 @@
 package com.carslab.crm.modules.visits.domain.events
 
+import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentType
 import com.carslab.crm.infrastructure.events.BaseDomainEvent
 
-/**
- * Event: Wgranie dokumentu do protokołu
- */
 data class ProtocolDocumentUploadedEvent(
     val protocolId: String,
     val documentId: String,
-    val documentType: String,
+    val documentType: ProtocolDocumentType,
     val originalName: String,
     val fileSize: Long,
     override val companyId: Long,
@@ -17,7 +15,7 @@ data class ProtocolDocumentUploadedEvent(
     private val additionalMetadata: Map<String, Any> = emptyMap()
 ) : BaseDomainEvent(
     aggregateId = protocolId,
-    aggregateType = "PROTOCOL",
+    aggregateType = "DOCUMENT",
     eventType = "PROTOCOL_DOCUMENT_UPLOADED",
     companyId = companyId,
     userId = userId,

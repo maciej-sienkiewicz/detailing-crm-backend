@@ -28,7 +28,7 @@ class UploadProtocolDocumentCommandHandler(
         val storageId = documentStorageService.storeDocument(
             file = command.file,
             protocolId = ProtocolId(command.protocolId),
-            documentType = command.documentType,
+            documentType = command.documentType.toString(),
             description = command.description
         )
 

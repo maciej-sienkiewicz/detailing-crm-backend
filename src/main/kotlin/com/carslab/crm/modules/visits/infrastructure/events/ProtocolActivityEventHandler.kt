@@ -113,14 +113,19 @@ class ProtocolActivityEventHandler(
 
         try {
             activityService.createActivity(
-                category = ActivityCategory.PROTOCOL,
-                message = "Dodano dokument: ${event.originalName}",
-                entityType = EntityType.PROTOCOL,
-                entityId = event.protocolId,
-                status = ActivityStatus.SUCCESS,
-                metadata = ActivityMetadataReadModel(
-                    notes = "Typ: ${event.documentType}, Rozmiar: ${formatFileSize(event.fileSize)}"
+                category = ActivityCategory.DOCUMENT,
+                message = "Dodano dokument: ${event.documentType.displayName}",
+                entityType = EntityType.DOCUMENT,
+                entityId = event.documentId,
+                entities = listOf(
+                    ActivityEntityReadModel(
+                        id = event.documentId,
+                        type = EntityType.PROTOCOL,
+                        displayName = event.originalName,
+                        metadata = mapOf("fileSize" to formatFileSize(event.fileSize))
+                    )
                 ),
+                status = ActivityStatus.SUCCESS,
                 userId = event.userId,
                 userName = event.userName
             )
@@ -238,7 +243,7 @@ class ProtocolActivityEventHandler(
                 relatedId = protocolId
             ))
         }
-
+    
         return entities
     }
 
