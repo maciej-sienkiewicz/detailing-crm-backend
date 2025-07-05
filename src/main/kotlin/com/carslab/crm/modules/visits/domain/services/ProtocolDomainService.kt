@@ -116,10 +116,6 @@ class ProtocolDomainService {
         if (existingProtocol.status == ProtocolStatus.COMPLETED && command.status != ProtocolStatus.COMPLETED) {
             throw IllegalStateException("Cannot change status from COMPLETED")
         }
-
-        if (existingProtocol.status == ProtocolStatus.CANCELLED && command.status != ProtocolStatus.CANCELLED) {
-            throw IllegalStateException("Cannot change status from CANCELLED")
-        }
     }
 
     private fun validateStatusTransition(currentStatus: ProtocolStatus, newStatus: ProtocolStatus) {

@@ -50,9 +50,16 @@ class GetProtocolCountersQueryHandler(
 @Service
 class GetClientProtocolHistoryQueryHandler(
     private val protocolReadRepository: ProtocolReadRepository
-) : QueryHandler<GetClientProtocolHistoryQuery, List<ProtocolListReadModel>> {
+) : QueryHandler<GetClientProtocolHistoryQuery, PaginatedResponse<ProtocolListReadModel>> {
 
-    override fun handle(query: GetClientProtocolHistoryQuery): List<ProtocolListReadModel> {
-        return protocolReadRepository.findByClientId(query.clientId)
+    override fun handle(query: GetClientProtocolHistoryQuery): PaginatedResponse<ProtocolListReadModel> {
+        return protocolReadRepository.findByClientIdWithPagination(
+            clientId = query.clientId,
+            status = query.status,
+            page = query.page,
+            size = query.size,
+            sortBy = query.sortBy,
+            sortDirection = query.sortDirection
+        )
     }
 }

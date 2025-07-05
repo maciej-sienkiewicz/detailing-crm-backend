@@ -27,5 +27,9 @@ data class GetProtocolCountersQuery(
 
 data class GetClientProtocolHistoryQuery(
     val clientId: Long,
-    val status: ProtocolStatus? = null
-) : Query<List<ProtocolListReadModel>>
+    val status: ProtocolStatus? = null,
+    val page: Int = 0,
+    val size: Int = 10,
+    val sortBy: String = "startDate",
+    val sortDirection: String = "DESC"
+) : Query<PaginatedResponse<ProtocolListReadModel>>

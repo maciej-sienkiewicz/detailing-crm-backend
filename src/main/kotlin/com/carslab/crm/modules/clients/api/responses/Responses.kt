@@ -4,6 +4,7 @@ import com.carslab.crm.modules.clients.domain.ClientDetailResponse
 import com.carslab.crm.modules.clients.domain.VehicleServiceInfoResponse
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -19,7 +20,8 @@ data class ClientResponse(
     val taxId: String?,
     val notes: String?,
     val createdAt: LocalDateTime?,
-    val updatedAt: LocalDateTime?
+    val updatedAt: LocalDateTime?,
+    val lastVisitDate: LocalDate?
 )
 
 data class ClientExpandedResponse(

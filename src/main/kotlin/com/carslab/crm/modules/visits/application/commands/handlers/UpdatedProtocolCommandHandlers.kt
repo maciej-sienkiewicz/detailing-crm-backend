@@ -1,5 +1,11 @@
 package com.carslab.crm.modules.visits.application.commands.handlers
 
+import com.carslab.crm.api.model.DocumentStatus
+import com.carslab.crm.api.model.DocumentType
+import com.carslab.crm.api.model.TransactionDirection
+import com.carslab.crm.domain.model.ApprovalStatus
+import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.modules.visits.domain.services.ProtocolDomainService
@@ -9,47 +15,42 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.modules.visits.domain.events.*
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolService
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.view.finance.DocumentItem
+import com.carslab.crm.domain.model.view.finance.PaymentMethod
+import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.modules.clients.domain.ClientApplicationService
+import com.carslab.crm.modules.clients.domain.VehicleApplicationService
+import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.visits.api.mappers.ServiceMappers
+import com.carslab.crm.modules.visits.domain.services.ProtocolUpdateDomainService
+import com.carslab.crm.modules.visits.infrastructure.events.ProtocolEventPublisher
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Service
 class UpdateProtocolCommandHandler(
-    private val protocolRepository: ProtocolRepository,
-    private val protocolDomainService: ProtocolDomainService,
-    private val eventPublisher: EventPublisher,
+    private val protocolUpdateDomainService: ProtocolUpdateDomainService,
+    private val protocolEventPublisher: ProtocolEventPublisher,
     private val securityContext: SecurityContext
 ) : CommandHandler<UpdateProtocolCommand, Unit> {
 
     private val logger = LoggerFactory.getLogger(UpdateProtocolCommandHandler::class.java)
 
-    @Transactional
     override fun handle(command: UpdateProtocolCommand) {
         logger.info("Updating protocol: ${command.protocolId}")
 
-        val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
-            ?: throw ResourceNotFoundException("Protocol", command.protocolId)
+        val result = protocolUpdateDomainService.updateProtocol(command)
 
-        val updatedProtocol = protocolDomainService.updateProtocol(existingProtocol, command)
-        protocolRepository.save(updatedProtocol)
-
-        if (existingProtocol.status != updatedProtocol.status) {
-            eventPublisher.publish(
-                ProtocolStatusChangedEvent(
-                    protocolId = command.protocolId,
-                    oldStatus = existingProtocol.status.name,
-                    newStatus = updatedProtocol.status.name,
-                    reason = "Protocol updated",
-                    protocolTitle = updatedProtocol.title,
-                    companyId = securityContext.getCurrentCompanyId(),
-                    userId = securityContext.getCurrentUserId(),
-                    userName = securityContext.getCurrentUserName()
-                )
-            )
-        }
+        protocolEventPublisher.publishUpdateEvents(result, securityContext.getCurrentUser())
 
         logger.info("Successfully updated protocol: ${command.protocolId}")
     }
@@ -145,8 +146,8 @@ class UpdateProtocolServicesCommandHandler(
         }
 
         val updatedServices = serviceModels.map { serviceModel ->
-            com.carslab.crm.domain.model.ProtocolService(
-                id = java.util.UUID.randomUUID().toString(),
+            ProtocolService(
+                id = UUID.randomUUID().toString(),
                 name = serviceModel.name,
                 basePrice = serviceModel.basePrice,
                 discount = serviceModel.discount,
@@ -226,7 +227,10 @@ class ReleaseVehicleCommandHandler(
     private val protocolRepository: ProtocolRepository,
     private val protocolDomainService: ProtocolDomainService,
     private val eventPublisher: EventPublisher,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val clientApplicationService: ClientApplicationService,
+    private val vehicleApplicationService: VehicleApplicationService,
+    private val unifiedDocumentRepository: UnifiedDocumentRepository,
 ) : CommandHandler<ReleaseVehicleCommand, Unit> {
 
     private val logger = LoggerFactory.getLogger(ReleaseVehicleCommandHandler::class.java)
@@ -235,7 +239,7 @@ class ReleaseVehicleCommandHandler(
     override fun handle(command: ReleaseVehicleCommand) {
         logger.info("Releasing vehicle for protocol: ${command.protocolId}")
 
-        val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
+        val existingProtocol: CarReceptionProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
             ?: throw ResourceNotFoundException("Protocol", command.protocolId)
 
         if (existingProtocol.status != ProtocolStatus.READY_FOR_PICKUP) {
@@ -251,8 +255,22 @@ class ReleaseVehicleCommandHandler(
         protocolRepository.save(completedProtocol)
 
         val totalAmount = existingProtocol.protocolServices
-            .filter { it.approvalStatus == com.carslab.crm.domain.model.ApprovalStatus.APPROVED }
+            .filter { it.approvalStatus == ApprovalStatus.APPROVED }
             .sumOf { it.finalPrice.amount }
+        
+        clientApplicationService.updateClientStatistics(
+            clientId = ClientId(existingProtocol.client.id!!),
+            totalGmv = totalAmount.toBigDecimal(),
+        )
+        vehicleApplicationService.updateVehicleStatistics(
+            id = existingProtocol.vehicle.id!!.value,
+            gmv = totalAmount.toBigDecimal(),
+        )
+
+        createInvoiceDocument(
+            existingProtocol = existingProtocol,
+            releaseDetails = command
+        )
 
         eventPublisher.publish(
             VehicleReleasedEvent(
@@ -272,5 +290,68 @@ class ReleaseVehicleCommandHandler(
         )
 
         logger.info("Successfully released vehicle for protocol: ${command.protocolId}")
+    }
+
+    private fun createInvoiceDocument(existingProtocol: CarReceptionProtocol, releaseDetails: ReleaseVehicleCommand) {
+        val gross = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+            .sumOf { it.finalPrice.amount }.toBigDecimal()
+        val nett = gross / 1.23.toBigDecimal()
+        val totalTax = gross - nett
+        val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
+            .map {
+                DocumentItem(
+                    name = it.name,
+                    description = it.note,
+                    quantity = 1.toBigDecimal(),
+                    unitPrice = it.finalPrice.amount.toBigDecimal(),
+                    taxRate = 23.toBigDecimal(),
+                    totalNet = it.finalPrice.amount.toBigDecimal() / 1.23.toBigDecimal(),
+                    totalGross = it.finalPrice.amount.toBigDecimal()
+                )
+            }
+        unifiedDocumentRepository.save(
+            UnifiedFinancialDocument(
+                id = UnifiedDocumentId.generate(),
+                number = "",
+                type = when (releaseDetails.documentType.lowercase()) {
+                    DocumentType.INVOICE.toString().lowercase() -> DocumentType.INVOICE
+                    DocumentType.RECEIPT.toString().lowercase() -> DocumentType.RECEIPT
+                    DocumentType.OTHER.toString().lowercase() -> DocumentType.OTHER
+                    else -> throw IllegalStateException("Unknown document type ${releaseDetails.documentType}")
+                },
+                title = "Faktura za wizytę",
+                description = "",
+                issuedDate = LocalDate.now(),
+                dueDate = LocalDate.now().plusDays(14),
+                sellerName = "Detailing Studio",
+                sellerTaxId = "123456789",
+                sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
+                buyerName = existingProtocol.client.name,
+                buyerTaxId = existingProtocol.client.taxId,
+                buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
+                status = DocumentStatus.NOT_PAID,
+                direction = TransactionDirection.INCOME,
+                paymentMethod = when (releaseDetails.paymentMethod.lowercase()) {
+                    PaymentMethod.CASH.toString().lowercase() -> PaymentMethod.CASH
+                    PaymentMethod.CARD.toString().lowercase() -> PaymentMethod.CARD
+                    else -> throw IllegalStateException("Unknown payment method ${releaseDetails.paymentMethod}")
+                },
+                totalNet = nett,
+                totalTax = totalTax,
+                totalGross = gross,
+                paidAmount = BigDecimal.ZERO,
+                currency = "PLN",
+                notes = "",
+                protocolId = existingProtocol.id.value,
+                protocolNumber = existingProtocol.id.value,
+                visitId = null,
+                items = items,
+                attachment = null,
+                audit = Audit(
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+            )
+        )
     }
 }

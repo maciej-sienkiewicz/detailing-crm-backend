@@ -30,6 +30,7 @@ class ClientStatisticsRepositoryAdapter(
             existingEntity.visitCount = statistics.visitCount
             existingEntity.totalRevenue = statistics.totalRevenue
             existingEntity.vehicleCount = statistics.vehicleCount
+            existingEntity.lastVisitDate = statistics.lastVisitDate
             existingEntity
         } else {
             ClientStatisticsEntity.fromDomain(statistics)

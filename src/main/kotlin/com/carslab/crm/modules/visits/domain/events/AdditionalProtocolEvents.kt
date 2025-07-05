@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.visits.domain.events
 
 import com.carslab.crm.infrastructure.events.BaseDomainEvent
+import com.carslab.crm.modules.clients.domain.model.VehicleId
 
 /**
  * Event: Zmiana statusu protokołu
@@ -94,6 +95,10 @@ data class ProtocolReadyForPickupEvent(
 data class ProtocolWorkStartedEvent(
     val protocolId: String,
     val protocolTitle: String,
+    val clientId: String,
+    val clientName: String,
+    val vehicleId: String,
+    val vehicleDisplayName: String,
     val assignedTechnicians: List<String>,
     val estimatedCompletionTime: String?,
     val plannedServices: List<String>,

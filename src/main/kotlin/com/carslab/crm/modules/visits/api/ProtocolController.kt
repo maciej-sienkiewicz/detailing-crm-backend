@@ -370,24 +370,39 @@ class ProtocolController(
         return ok(createSuccessResponse("Protocol successfully deleted", mapOf("protocolId" to id)))
     }
 
-    @GetMapping("/{clientId}/protocols")
+    @GetMapping("/client/{clientId}")
     @Operation(
         summary = "Get protocols for client",
-        description = "Retrieves all car reception protocols for a specific client"
+        description = "Retrieves all car reception protocols for a specific client with pagination"
     )
     fun getProtocolsByClientId(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: Long,
-        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?
-    ): ResponseEntity<List<ClientProtocolHistoryDto>> {
+        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
+        @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "Page size") @RequestParam(defaultValue = "10") size: Int,
+        @Parameter(description = "Sort field (startDate, endDate, status, totalAmount)") @RequestParam(defaultValue = "startDate") sortBy: String,
+        @Parameter(description = "Sort direction (ASC, DESC)") @RequestParam(defaultValue = "DESC") sortDirection: String
+    ): ResponseEntity<PaginatedResponse<ClientProtocolHistoryDto>> {
         val domainStatus = status?.let { ProtocolStatus.valueOf(it) }
 
         val query = GetClientProtocolHistoryQuery(
             clientId = clientId,
-            status = domainStatus
+            status = domainStatus,
+            page = page,
+            size = size,
+            sortBy = sortBy,
+            sortDirection = sortDirection
         )
 
-        val protocols = queryBus.execute(query)
-        val response = protocols.map { convertToClientProtocolHistoryDto(it) }
+        val paginatedProtocols = queryBus.execute(query)
+        val response = PaginatedResponse(
+            data = paginatedProtocols.data.map { convertToClientProtocolHistoryDto(it) },
+            page = paginatedProtocols.page,
+            size = paginatedProtocols.size,
+            totalItems = paginatedProtocols.totalItems,
+            totalPages = paginatedProtocols.totalPages
+        )
+
         return ok(response)
     }
 
@@ -819,7 +834,8 @@ class ProtocolController(
             carMake = readModel.vehicle.make,
             carModel = readModel.vehicle.model,
             licensePlate = readModel.vehicle.licensePlate,
-            totalAmount = readModel.totalAmount
+            totalAmount = readModel.totalAmount,
+            title = readModel.title,
         )
     }
 }

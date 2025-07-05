@@ -18,7 +18,8 @@ object ClientMapper {
             taxId = clientDetail.taxId,
             notes = clientDetail.notes,
             createdAt = clientDetail.createdAt,
-            updatedAt = clientDetail.updatedAt
+            updatedAt = clientDetail.updatedAt,
+            lastVisitDate = clientDetail.statistics.lastVisitDate?.toLocalDate(),
         )
     }
 }

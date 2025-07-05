@@ -6,6 +6,8 @@ import com.carslab.crm.modules.clients.domain.VehicleTableSearchCriteria
 import com.carslab.crm.modules.clients.domain.port.VehicleTableRepository
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory
 @Transactional(readOnly = true)
 class VehicleTableRepositoryAdapter(
     private val vehicleTableJpaRepository: VehicleTableJpaRepository,
+    private val vehicleStatisticsRepository: VehicleStatisticsRepository,
     private val securityContext: SecurityContext
 ) : VehicleTableRepository {
 
@@ -120,6 +123,8 @@ class VehicleTableRepositoryAdapter(
                 emptyList()
             }
 
+            val stats = vehicleStatisticsRepository.findByVehicleId(VehicleId.of(vehicleId))
+
             return VehicleTableResponse(
                 id = vehicleId,
                 make = row[1] as String,
@@ -131,7 +136,7 @@ class VehicleTableRepositoryAdapter(
                 mileage = (row[7] as Number?)?.toLong(),
                 owners = owners,
                 visitCount = (row[8] as Number).toLong(),
-                lastVisitDate = convertToLocalDateTime(row[9]),
+                lastVisitDate = stats?.lastVisitDate,
                 totalRevenue = convertToDecimal(row[10]),
                 createdAt = convertToLocalDateTime(row[11])!!,
                 updatedAt = convertToLocalDateTime(row[12])!!

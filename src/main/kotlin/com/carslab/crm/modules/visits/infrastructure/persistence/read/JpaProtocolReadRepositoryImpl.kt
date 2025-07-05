@@ -73,6 +73,87 @@ class JpaProtocolReadRepositoryImpl(
         )
     }
 
+    override fun findByClientIdWithPagination(
+        clientId: Long,
+        status: ProtocolStatus?,
+        page: Int,
+        size: Int,
+        sortBy: String,
+        sortDirection: String
+    ): PaginatedResponse<ProtocolListReadModel> {
+        val companyId = getCurrentCompanyId()
+
+        // Walidacja parametrów sortowania
+        val validatedSortBy = validateSortField(sortBy)
+        val validatedDirection = validateSortDirection(sortDirection)
+
+        val sort = Sort.by(
+            if (validatedDirection == "ASC") Sort.Direction.ASC else Sort.Direction.DESC,
+            validatedSortBy
+        )
+
+        val pageable = PageRequest.of(page, size, sort)
+
+        // Specyfikacja dla protokołów klienta
+        val specification = Specification<ProtocolEntity> { root, query, cb ->
+            val predicates = mutableListOf<Predicate>()
+
+            // Filtr po firmie
+            predicates.add(cb.equal(root.get<Long>("companyId"), companyId))
+
+            // Filtr po kliencie
+            predicates.add(cb.equal(root.get<Long>("clientId"), clientId))
+
+            // Filtr po statusie (opcjonalny)
+            status?.let {
+                predicates.add(cb.equal(root.get<ProtocolStatus>("status"), it))
+            }
+
+            cb.and(*predicates.toTypedArray())
+        }
+
+        val protocolPage = protocolJpaRepository.findAll(specification, pageable)
+
+        val protocols = protocolPage.content.map { protocolEntity ->
+            val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
+            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
+            val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
+
+            ProtocolListReadModel(
+                id = protocolEntity.id.toString(),
+                title = protocolEntity.title,
+                vehicle = VehicleBasicReadModel(
+                    make = vehicle?.make ?: "",
+                    model = vehicle?.model ?: "",
+                    licensePlate = vehicle?.licensePlate ?: "",
+                    productionYear = vehicle?.year ?: 0,
+                    color = vehicle?.color
+                ),
+                client = ClientBasicReadModel(
+                    name = "${client?.firstName ?: ""} ${client?.lastName ?: ""}".trim(),
+                    companyName = client?.company
+                ),
+                period = PeriodReadModel(
+                    startDate = protocolEntity.startDate.format(DateTimeFormatter.ISO_DATE),
+                    endDate = protocolEntity.endDate.format(DateTimeFormatter.ISO_DATE)
+                ),
+                status = protocolEntity.status.name,
+                calendarColorId = protocolEntity.calendarColorId,
+                totalServiceCount = services.size,
+                totalAmount = services.sumOf { it.finalPrice.toDouble() },
+                lastUpdate = protocolEntity.updatedAt.format(dateTimeFormatter)
+            )
+        }
+
+        return PaginatedResponse(
+            data = protocols,
+            page = page,
+            size = size,
+            totalItems = protocolPage.totalElements,
+            totalPages = protocolPage.totalPages.toLong()
+        )
+    }
+
     override fun searchProtocols(
         clientName: String?,
         clientId: Long?,
@@ -201,43 +282,7 @@ class JpaProtocolReadRepositoryImpl(
             all = protocolJpaRepository.countByCompanyId(companyId)
         )
     }
-
-    override fun findByClientId(clientId: Long): List<ProtocolListReadModel> {
-        val companyId = getCurrentCompanyId()
-        val protocols = protocolJpaRepository.findByClientIdAndCompanyId(clientId, companyId)
-
-        return protocols.map { protocolEntity ->
-            val client = clientJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.clientId).orElse(null)
-            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId, protocolEntity.vehicleId).orElse(null)
-            val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolEntity.id!!, companyId)
-
-            ProtocolListReadModel(
-                id = protocolEntity.id.toString(),
-                title = protocolEntity.title,
-                vehicle = VehicleBasicReadModel(
-                    make = vehicle?.make ?: "",
-                    model = vehicle?.model ?: "",
-                    licensePlate = vehicle?.licensePlate ?: "",
-                    productionYear = vehicle?.year ?: 0,
-                    color = vehicle?.color
-                ),
-                client = ClientBasicReadModel(
-                    name = "${client?.firstName ?: ""} ${client?.lastName ?: ""}".trim(),
-                    companyName = client?.company
-                ),
-                period = PeriodReadModel(
-                    startDate = protocolEntity.startDate.format(DateTimeFormatter.ISO_DATE),
-                    endDate = protocolEntity.endDate.format(DateTimeFormatter.ISO_DATE)
-                ),
-                status = protocolEntity.status.name,
-                calendarColorId = protocolEntity.calendarColorId,
-                totalServiceCount = services.size,
-                totalAmount = services.sumOf { it.finalPrice.toDouble() },
-                lastUpdate = protocolEntity.updatedAt.format(dateTimeFormatter)
-            )
-        }
-    }
-
+    
     private fun getCurrentCompanyId(): Long {
         return (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
     }
@@ -278,5 +323,29 @@ class JpaProtocolReadRepositoryImpl(
             approvalStatus = service.approvalStatus.name,
             note = service.note
         )
+    }
+
+    private fun validateSortField(sortBy: String): String {
+        return when (sortBy.lowercase()) {
+            "startdate", "start_date" -> "startDate"
+            "enddate", "end_date" -> "endDate"
+            "status" -> "status"
+            "totalamount", "total_amount" -> "id" // Sortowanie po totalAmount wymaga custom logiki
+            "createdat", "created_at" -> "createdAt"
+            "updatedat", "updated_at" -> "updatedAt"
+            "title" -> "title"
+            else -> "startDate"
+        }
+    }
+
+    /**
+     * Waliduje kierunek sortowania
+     */
+    private fun validateSortDirection(sortDirection: String): String {
+        return when (sortDirection.uppercase()) {
+            "ASC", "ASCENDING" -> "ASC"
+            "DESC", "DESCENDING" -> "DESC"
+            else -> "DESC"
+        }
     }
 }

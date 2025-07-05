@@ -122,7 +122,11 @@ class EnhancedCreateProtocolCommandHandler(
                         plannedServices = command.services.map { it.name },
                         companyId = securityContext.getCurrentCompanyId(),
                         userId = securityContext.getCurrentUserId(),
-                        userName = securityContext.getCurrentUserName()
+                        userName = securityContext.getCurrentUserName(),
+                        clientId = client.id.toString(),
+                        clientName = client.fullName,
+                        vehicleId = vehicle.id.toString(),
+                        vehicleDisplayName = "${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})".trim()
                     )
                 )
             }

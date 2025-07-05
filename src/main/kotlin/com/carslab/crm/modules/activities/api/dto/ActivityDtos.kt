@@ -14,7 +14,8 @@ enum class ActivityCategory {
     CLIENT,       // Akcje związane z klientami
     VEHICLE,      // Akcje związane z pojazdami
     NOTIFICATION, // Powiadomienia systemowe
-    SYSTEM        // Działania systemowe
+    SYSTEM,        // Działania systemowe,
+    DOCUMENT,    // Dokumenty i pliki
 }
 
 /**
@@ -36,7 +37,8 @@ enum class EntityType {
     VEHICLE,      // Pojazd
     INVOICE,      // Faktura
     COMMENT,      // Komentarz
-    SERVICE       // Usługa detailingowa
+    SERVICE,       // Usługa detailingowa,
+    DOCUMENT,    // Dokument
 }
 
 /**

@@ -90,7 +90,7 @@ class ProtocolActivityEventHandler(
         try {
             activityService.createActivity(
                 category = ActivityCategory.PROTOCOL,
-                message = "Zaktualizowano usługi w protokole",
+                message = "Zaktualizowano usługi w wizycie: ${event.protocolId}",
                 entityType = EntityType.PROTOCOL,
                 entityId = event.protocolId,
                 status = ActivityStatus.SUCCESS,
@@ -162,15 +162,35 @@ class ProtocolActivityEventHandler(
     fun handleProtocolWorkStarted(event: ProtocolWorkStartedEvent) {
         logger.debug("Handling protocol work started event: ${event.protocolId}")
 
+        val entities = listOf(
+            ActivityEntityReadModel(
+                id = event.protocolId,
+                type = EntityType.APPOINTMENT,
+                displayName = event.protocolTitle,
+            ),
+            ActivityEntityReadModel(
+                id = event.clientId,
+                type = EntityType.CLIENT,
+                displayName = event.clientName,
+                relatedId = event.protocolId
+            ),
+            ActivityEntityReadModel(
+                id = event.vehicleId,
+                type = EntityType.VEHICLE,
+                displayName = event.vehicleDisplayName,
+                relatedId = event.protocolId,
+            )
+        )
+
         try {
             activityService.createActivity(
                 category = ActivityCategory.PROTOCOL,
-                message = "Rozpoczęto pracę nad protokołem: ${event.protocolTitle}",
+                message = "Przyjęto nowy pojazd. Tytuł wizyty: ${event.protocolTitle}",
                 entityType = EntityType.PROTOCOL,
                 entityId = event.protocolId,
                 status = ActivityStatus.SUCCESS,
+                entities = entities,
                 metadata = ActivityMetadataReadModel(
-                    notes = "Przypisani technicy: ${event.assignedTechnicians.joinToString(", ")}",
                     servicesList = event.plannedServices
                 ),
                 userId = event.userId,

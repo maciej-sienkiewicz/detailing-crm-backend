@@ -22,5 +22,12 @@ interface ProtocolReadRepository {
 
     fun getCounters(): ProtocolCountersReadModel
 
-    fun findByClientId(clientId: Long): List<ProtocolListReadModel>
+    fun findByClientIdWithPagination(
+        clientId: Long,
+        status: ProtocolStatus? = null,
+        page: Int = 0,
+        size: Int = 10,
+        sortBy: String = "startDate",
+        sortDirection: String = "DESC"
+    ): PaginatedResponse<ProtocolListReadModel>
 }
