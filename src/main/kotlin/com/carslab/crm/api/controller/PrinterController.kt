@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/printer/")
-class PrinterController(private val protocolDocumentStorageService: ProtocolDocumentStorageService) {
+class PrinterController(
+    private val protocolDocumentStorageService: ProtocolDocumentStorageService,
+    private val pdfService: PdfService) {
 
     @GetMapping(
         value = ["/protocol/{id}/pdf"],
@@ -24,12 +26,10 @@ class PrinterController(private val protocolDocumentStorageService: ProtocolDocu
         request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<ByteArrayResource> {
-        println("Nagłówki requestu:")
-        
-        
-        val resource = protocolDocumentStorageService
+        val resource = (protocolDocumentStorageService
             .findAcceptanceProtocol(ProtocolId(id.toString()))
-            ?.let { ByteArrayResource(it) } ?: ByteArrayResource(ByteArray(0))
+            ?: pdfService.generatePdf(id))
+            .let { ByteArrayResource(it) }
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=protokol_$id.pdf")
