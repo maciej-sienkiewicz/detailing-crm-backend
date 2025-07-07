@@ -52,8 +52,9 @@ data class EmployeeDocumentReadModel(
     val employeeId: String,
     val name: String,
     val type: String,
+    val description: String? = null,
     val uploadDate: String,
-    val fileUrl: String? = null,
+    val downloadUrl: String? = null, // Zmienione z fileUrl
     val fileSize: Long? = null,
     val mimeType: String? = null
 )

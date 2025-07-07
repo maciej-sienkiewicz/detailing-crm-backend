@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/employees/infrastructure/persistence/adapter/JpaEmployeeDocumentRepositoryAdapter.kt
 package com.carslab.crm.modules.employees.infrastructure.persistence.adapter
 
 import com.carslab.crm.modules.employees.domain.model.*
@@ -15,18 +14,18 @@ class JpaEmployeeDocumentRepositoryAdapter(
 ) : EmployeeDocumentRepository {
 
     override fun save(document: EmployeeDocument): EmployeeDocument {
-        val entity = EmployeeDocumentEntity.fromCreateDomain(
-            CreateEmployeeDocument(
-                employeeId = document.employeeId,
-                companyId = document.companyId,
-                name = document.name,
-                type = document.type,
-                fileUrl = document.fileUrl,
-                fileSize = document.fileSize,
-                mimeType = document.mimeType
-            ),
-            document.id.value
+        val createDocument = CreateEmployeeDocument(
+            employeeId = document.employeeId,
+            companyId = document.companyId,
+            name = document.name,
+            type = document.type,
+            description = document.description,
+            storageId = document.storageId,
+            fileSize = document.fileSize,
+            mimeType = document.mimeType
         )
+
+        val entity = EmployeeDocumentEntity.fromCreateDomain(createDocument, document.id.value)
         val savedEntity = documentJpaRepository.save(entity)
         return savedEntity.toDomain()
     }

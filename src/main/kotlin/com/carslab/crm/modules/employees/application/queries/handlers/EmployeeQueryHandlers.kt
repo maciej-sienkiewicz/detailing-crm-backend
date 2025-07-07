@@ -46,6 +46,7 @@ class GetEmployeeByIdQueryHandler(
     }
 }
 
+@Service
 class GetEmployeeDocumentsQueryHandler(
     private val employeeReadRepository: EmployeeReadRepository
 ) : QueryHandler<GetEmployeeDocumentsQuery, List<EmployeeDocumentReadModel>> {

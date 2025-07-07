@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/employees/infrastructure/persistence/entity/EmployeeDocumentEntity.kt
 package com.carslab.crm.modules.employees.infrastructure.persistence.entity
 
 import com.carslab.crm.modules.employees.domain.model.*
@@ -11,6 +10,7 @@ import java.time.LocalDateTime
     name = "employee_documents",
     indexes = [
         Index(name = "idx_employee_documents_employee_id", columnList = "employee_id"),
+        Index(name = "idx_employee_documents_company_id", columnList = "company_id"),
         Index(name = "idx_employee_documents_type", columnList = "type")
     ]
 )
@@ -31,8 +31,11 @@ class EmployeeDocumentEntity(
     @Column(name = "type", nullable = false)
     var type: String,
 
-    @Column(name = "file_url")
-    var fileUrl: String? = null,
+    @Column(name = "description")
+    var description: String? = null,
+
+    @Column(name = "storage_id", nullable = false)
+    var storageId: String,
 
     @Column(name = "file_size")
     var fileSize: Long? = null,
@@ -63,7 +66,8 @@ class EmployeeDocumentEntity(
         companyId = companyId,
         name = name,
         type = type,
-        fileUrl = fileUrl,
+        description = description,
+        storageId = storageId,
         fileSize = fileSize,
         mimeType = mimeType,
         audit = AuditInfo(
@@ -83,7 +87,8 @@ class EmployeeDocumentEntity(
                 companyId = createDocument.companyId,
                 name = createDocument.name,
                 type = createDocument.type,
-                fileUrl = createDocument.fileUrl,
+                description = createDocument.description,
+                storageId = createDocument.storageId,
                 fileSize = createDocument.fileSize,
                 mimeType = createDocument.mimeType
             )

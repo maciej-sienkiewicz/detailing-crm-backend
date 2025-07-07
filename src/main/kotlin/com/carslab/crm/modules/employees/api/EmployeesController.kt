@@ -231,41 +231,6 @@ class EmployeesController(
         }
     }
 
-    @PostMapping("/documents", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    @Operation(summary = "Upload employee document")
-    fun uploadEmployeeDocument(
-        @RequestParam("employeeId") employeeId: String,
-        @RequestParam("name") name: String,
-        @RequestParam("type") type: String,
-        @RequestParam(value = "file", required = false) file: MultipartFile?
-    ): ResponseEntity<Map<String, Any>> {
-
-        logger.info("Uploading document for employee: $employeeId")
-
-        try {
-            // TODO: Handle file upload to storage service and get URL
-            val fileUrl = file?.let { "https://storage.example.com/documents/${java.util.UUID.randomUUID()}" }
-            val fileSize = file?.size
-            val mimeType = file?.contentType
-
-            val command = CreateEmployeeDocumentCommand(
-                employeeId = employeeId,
-                name = name,
-                type = type,
-                fileUrl = fileUrl,
-                fileSize = fileSize,
-                mimeType = mimeType
-            )
-
-            val documentId = commandBus.execute(command)
-
-            logger.info("Successfully uploaded document: $documentId")
-            return created(createSuccessResponse("Document uploaded successfully", mapOf("id" to documentId)))
-        } catch (e: Exception) {
-            return logAndRethrow("Error uploading document for employee $employeeId", e)
-        }
-    }
-
     @DeleteMapping("/documents/{documentId}")
     @Operation(summary = "Delete employee document")
     fun deleteEmployeeDocument(
@@ -274,18 +239,89 @@ class EmployeesController(
 
         logger.info("Deleting document: $documentId")
 
-        try {
+        return try {
             val command = DeleteEmployeeDocumentCommand(documentId)
             val deleted = commandBus.execute(command)
 
-            return if (deleted) {
+            if (deleted) {
                 logger.info("Successfully deleted document: $documentId")
                 ok(createSuccessResponse("Document deleted successfully", mapOf("id" to documentId)))
             } else {
                 ResponseEntity.notFound().build()
             }
         } catch (e: Exception) {
-            return logAndRethrow("Error deleting document $documentId", e)
+            logAndRethrow("Error deleting document $documentId", e)
+        }
+    }
+
+    @PostMapping("/documents", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Upload employee document")
+    fun uploadEmployeeDocument(
+        @RequestParam("employeeId") employeeId: String,
+        @RequestParam("name") name: String,
+        @RequestParam("type") type: String,
+        @RequestParam(value = "description", required = false) description: String?,
+        @RequestParam("file") file: MultipartFile
+    ): ResponseEntity<Map<String, Any>> {
+
+        logger.info("Uploading document for employee: $employeeId")
+
+        return try {
+            val command = CreateEmployeeDocumentCommand(
+                employeeId = employeeId,
+                name = name,
+                type = type,
+                description = description,
+                file = file
+            )
+
+            val documentId = commandBus.execute(command)
+
+            logger.info("Successfully uploaded document: $documentId")
+            created(createSuccessResponse("Document uploaded successfully", mapOf("id" to documentId)))
+        } catch (e: Exception) {
+            logAndRethrow("Error uploading document for employee $employeeId", e)
+        }
+    }
+
+    @GetMapping("/documents/{documentId}/download")
+    @Operation(summary = "Download employee document")
+    fun downloadEmployeeDocument(
+        @PathVariable documentId: String
+    ): ResponseEntity<ByteArray> {
+
+        logger.info("Downloading document: $documentId")
+
+        return try {
+            val command = DownloadEmployeeDocumentCommand(documentId)
+            val fileData = commandBus.execute(command)
+
+            ResponseEntity.ok()
+                .header("Content-Type", "application/octet-stream")
+                .header("Content-Disposition", "attachment; filename=\"document_$documentId\"")
+                .body(fileData)
+        } catch (e: Exception) {
+            logger.error("Error downloading document $documentId", e)
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/documents/{documentId}/url")
+    @Operation(summary = "Get presigned download URL for document")
+    fun getDocumentDownloadUrl(
+        @PathVariable documentId: String,
+        @RequestParam(defaultValue = "60") expirationMinutes: Int
+    ): ResponseEntity<Map<String, Any>> {
+
+        logger.info("Getting download URL for document: $documentId")
+
+        return try {
+            val command = GetEmployeeDocumentUrlCommand(documentId, expirationMinutes)
+            val downloadUrl = commandBus.execute(command)
+
+            ok(mapOf("downloadUrl" to downloadUrl, "expiresInMinutes" to expirationMinutes))
+        } catch (e: Exception) {
+            logAndRethrow("Error getting download URL for document $documentId", e)
         }
     }
 

@@ -145,15 +145,19 @@ class JpaEmployeeReadRepositoryImpl(
     }
 
     override fun findDocumentsByEmployeeId(employeeId: String): List<EmployeeDocumentReadModel> {
+        val companyId = securityContext.getCurrentCompanyId()
+
         return documentJpaRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId)
+            .filter { it.companyId == companyId } // Bezpieczeństwo - tylko dokumenty z tej firmy
             .map { entity ->
                 EmployeeDocumentReadModel(
                     id = entity.id,
                     employeeId = entity.employeeId,
                     name = entity.name,
                     type = entity.type,
+                    description = entity.description,
                     uploadDate = entity.createdAt.format(dateTimeFormatter),
-                    fileUrl = entity.fileUrl,
+                    downloadUrl = "/api/employees/documents/${entity.id}/download",
                     fileSize = entity.fileSize,
                     mimeType = entity.mimeType
                 )

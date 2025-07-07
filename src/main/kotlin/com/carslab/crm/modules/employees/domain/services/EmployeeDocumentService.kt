@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/employees/domain/services/EmployeeDocumentDomainService.kt
 package com.carslab.crm.modules.employees.domain.services
 
 import com.carslab.crm.modules.employees.domain.model.*
@@ -10,37 +9,31 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional
-class EmployeeDocumentDomainService(
+class EmployeeDocumentService(
     private val employeeRepository: EmployeeRepository,
     private val documentRepository: EmployeeDocumentRepository
 ) {
 
-    private val logger = LoggerFactory.getLogger(EmployeeDocumentDomainService::class.java)
+    private val logger = LoggerFactory.getLogger(EmployeeDocumentService::class.java)
 
     fun createDocument(createDocument: CreateEmployeeDocument): EmployeeDocument {
         logger.info("Creating document for employee: ${createDocument.employeeId.value}")
 
-        // Sprawdź czy pracownik istnieje
-        employeeRepository.findById(createDocument.employeeId)
+        val employee = employeeRepository.findById(createDocument.employeeId)
             ?: throw DomainException("Employee not found: ${createDocument.employeeId.value}")
 
-        val document = EmployeeDocument(
-            id = EmployeeDocumentId.generate(),
-            employeeId = createDocument.employeeId,
-            companyId = createDocument.companyId,
-            name = createDocument.name,
-            type = createDocument.type,
-            fileUrl = createDocument.fileUrl,
-            fileSize = createDocument.fileSize,
-            mimeType = createDocument.mimeType
-        )
-
-        document.validateBusinessRules()
+        if (employee.companyId != createDocument.companyId) {
+            throw DomainException("Employee does not belong to the specified company")
+        }
 
         val savedDocument = documentRepository.saveNew(createDocument)
         logger.info("Successfully created document: ${savedDocument.id.value}")
 
         return savedDocument
+    }
+
+    fun getDocument(documentId: EmployeeDocumentId): EmployeeDocument? {
+        return documentRepository.findById(documentId)
     }
 
     fun getDocumentsByEmployee(employeeId: EmployeeId): List<EmployeeDocument> {

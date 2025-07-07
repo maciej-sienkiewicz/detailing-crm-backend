@@ -166,11 +166,20 @@ data class EmployeeDocumentDto(
     @JsonProperty("type")
     val type: String,
 
+    @JsonProperty("description")
+    val description: String? = null,
+
     @JsonProperty("upload_date")
     val uploadDate: String,
 
-    @JsonProperty("file_url")
-    val fileUrl: String? = null
+    @JsonProperty("download_url")
+    val downloadUrl: String? = null,
+
+    @JsonProperty("file_size")
+    val fileSize: Long? = null,
+
+    @JsonProperty("mime_type")
+    val mimeType: String? = null
 ) {
     companion object {
         fun from(readModel: EmployeeDocumentReadModel): EmployeeDocumentDto = EmployeeDocumentDto(
@@ -178,8 +187,11 @@ data class EmployeeDocumentDto(
             employeeId = readModel.employeeId,
             name = readModel.name,
             type = readModel.type,
+            description = readModel.description,
             uploadDate = readModel.uploadDate,
-            fileUrl = readModel.fileUrl
+            downloadUrl = readModel.downloadUrl,
+            fileSize = readModel.fileSize,
+            mimeType = readModel.mimeType
         )
     }
 }

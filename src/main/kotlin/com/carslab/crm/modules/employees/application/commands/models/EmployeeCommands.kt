@@ -1,8 +1,8 @@
-// src/main/kotlin/com/carslab/crm/modules/employees/application/commands/models/EmployeeCommands.kt
 package com.carslab.crm.modules.employees.application.commands.models
 
 import com.carslab.crm.infrastructure.cqrs.Command
 import com.carslab.crm.modules.employees.domain.model.*
+import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
 
 data class CreateEmployeeCommand(
@@ -48,11 +48,19 @@ data class CreateEmployeeDocumentCommand(
     val employeeId: String,
     val name: String,
     val type: String,
-    val fileUrl: String?,
-    val fileSize: Long?,
-    val mimeType: String?
+    val description: String? = null,
+    val file: MultipartFile
 ) : Command<String>
 
 data class DeleteEmployeeDocumentCommand(
     val id: String
 ) : Command<Boolean>
+
+data class DownloadEmployeeDocumentCommand(
+    val documentId: String
+) : Command<ByteArray>
+
+data class GetEmployeeDocumentUrlCommand(
+    val documentId: String,
+    val expirationMinutes: Int = 60
+) : Command<String>

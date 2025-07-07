@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/modules/employees/domain/model/EmployeeDocument.kt
 package com.carslab.crm.modules.employees.domain.model
 
 import com.carslab.crm.modules.employees.domain.model.shared.AuditInfo
@@ -16,14 +15,16 @@ data class EmployeeDocument(
     val companyId: Long,
     val name: String,
     val type: String,
-    val fileUrl: String?,
+    val storageId: String,
     val fileSize: Long?,
     val mimeType: String?,
+    val description: String? = null,
     val audit: AuditInfo = AuditInfo()
 ) {
     fun validateBusinessRules() {
         require(name.isNotBlank()) { "Document name cannot be blank" }
         require(type.isNotBlank()) { "Document type cannot be blank" }
+        require(storageId.isNotBlank()) { "Storage ID cannot be blank" }
 
         fileSize?.let { size ->
             require(size >= 0) { "File size cannot be negative" }
@@ -37,7 +38,8 @@ data class CreateEmployeeDocument(
     val companyId: Long,
     val name: String,
     val type: String,
-    val fileUrl: String? = null,
+    val description: String? = null,
+    val storageId: String, // Nowe pole
     val fileSize: Long? = null,
     val mimeType: String? = null
 )
