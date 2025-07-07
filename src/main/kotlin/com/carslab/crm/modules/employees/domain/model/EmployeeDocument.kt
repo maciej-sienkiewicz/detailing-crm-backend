@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/modules/employees/domain/model/EmployeeDocument.kt
 package com.carslab.crm.modules.employees.domain.model
 
 import com.carslab.crm.modules.employees.domain.model.shared.AuditInfo
@@ -14,9 +15,8 @@ data class EmployeeDocument(
     val employeeId: EmployeeId,
     val companyId: Long,
     val name: String,
-    val type: String, // Zachowujemy jako String żeby nie łamać API
-    val storageId: String, // Nowe pole - ID w uniwersalnym storage
-    val fileUrl: String?, // Zachowujemy dla kompatybilności API
+    val type: String,
+    val fileUrl: String?,
     val fileSize: Long?,
     val mimeType: String?,
     val audit: AuditInfo = AuditInfo()

@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/modules/employees/infrastructure/persistence/entity/EmployeeDocumentEntity.kt
 package com.carslab.crm.modules.employees.infrastructure.persistence.entity
 
 import com.carslab.crm.modules.employees.domain.model.*
@@ -10,8 +11,7 @@ import java.time.LocalDateTime
     name = "employee_documents",
     indexes = [
         Index(name = "idx_employee_documents_employee_id", columnList = "employee_id"),
-        Index(name = "idx_employee_documents_type", columnList = "type"),
-        Index(name = "idx_employee_documents_company_storage", columnList = "company_id,storage_id")
+        Index(name = "idx_employee_documents_type", columnList = "type")
     ]
 )
 class EmployeeDocumentEntity(
@@ -30,9 +30,6 @@ class EmployeeDocumentEntity(
 
     @Column(name = "type", nullable = false)
     var type: String,
-
-    @Column(name = "storage_id", nullable = false)
-    val storageId: String,
 
     @Column(name = "file_url")
     var fileUrl: String? = null,
@@ -66,7 +63,6 @@ class EmployeeDocumentEntity(
         companyId = companyId,
         name = name,
         type = type,
-        storageId = storageId,
         fileUrl = fileUrl,
         fileSize = fileSize,
         mimeType = mimeType,
@@ -79,43 +75,14 @@ class EmployeeDocumentEntity(
         )
     )
 
-    fun updateFromDomain(document: EmployeeDocument) {
-        name = document.name
-        type = document.type
-        fileUrl = document.fileUrl
-        fileSize = document.fileSize
-        mimeType = document.mimeType
-        updatedAt = document.audit.updatedAt
-        updatedBy = document.audit.updatedBy
-        version = document.audit.version
-    }
-
     companion object {
-        fun fromDomain(document: EmployeeDocument): EmployeeDocumentEntity = EmployeeDocumentEntity(
-            id = document.id.value,
-            employeeId = document.employeeId.value,
-            companyId = document.companyId,
-            name = document.name,
-            type = document.type,
-            storageId = document.storageId,
-            fileUrl = document.fileUrl,
-            fileSize = document.fileSize,
-            mimeType = document.mimeType,
-            createdAt = document.audit.createdAt,
-            updatedAt = document.audit.updatedAt,
-            createdBy = document.audit.createdBy,
-            updatedBy = document.audit.updatedBy,
-            version = document.audit.version
-        )
-
-        fun fromCreateDomain(createDocument: CreateEmployeeDocument, documentId: String, storageId: String): EmployeeDocumentEntity =
+        fun fromCreateDomain(createDocument: CreateEmployeeDocument, documentId: String): EmployeeDocumentEntity =
             EmployeeDocumentEntity(
                 id = documentId,
                 employeeId = createDocument.employeeId.value,
                 companyId = createDocument.companyId,
                 name = createDocument.name,
                 type = createDocument.type,
-                storageId = storageId,
                 fileUrl = createDocument.fileUrl,
                 fileSize = createDocument.fileSize,
                 mimeType = createDocument.mimeType

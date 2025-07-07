@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/modules/employees/infrastructure/persistence/adapter/JpaEmployeeDocumentRepositoryAdapter.kt
 package com.carslab.crm.modules.employees.infrastructure.persistence.adapter
 
 import com.carslab.crm.modules.employees.domain.model.*
@@ -14,20 +15,27 @@ class JpaEmployeeDocumentRepositoryAdapter(
 ) : EmployeeDocumentRepository {
 
     override fun save(document: EmployeeDocument): EmployeeDocument {
-        val entity = if (documentJpaRepository.existsById(document.id.value)) {
-            val existing = documentJpaRepository.getReferenceById(document.id.value)
-            existing.updateFromDomain(document)
-            existing
-        } else {
-            EmployeeDocumentEntity.fromDomain(document)
-        }
-
+        val entity = EmployeeDocumentEntity.fromCreateDomain(
+            CreateEmployeeDocument(
+                employeeId = document.employeeId,
+                companyId = document.companyId,
+                name = document.name,
+                type = document.type,
+                fileUrl = document.fileUrl,
+                fileSize = document.fileSize,
+                mimeType = document.mimeType
+            ),
+            document.id.value
+        )
         val savedEntity = documentJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
 
     override fun saveNew(createDocument: CreateEmployeeDocument): EmployeeDocument {
-        throw UnsupportedOperationException("Use save(EmployeeDocument) with storageId instead")
+        val documentId = EmployeeDocumentId.generate().value
+        val entity = EmployeeDocumentEntity.fromCreateDomain(createDocument, documentId)
+        val savedEntity = documentJpaRepository.save(entity)
+        return savedEntity.toDomain()
     }
 
     @Transactional(readOnly = true)
@@ -40,12 +48,6 @@ class JpaEmployeeDocumentRepositoryAdapter(
     @Transactional(readOnly = true)
     override fun findByEmployeeId(employeeId: EmployeeId): List<EmployeeDocument> {
         return documentJpaRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId.value)
-            .map { it.toDomain() }
-    }
-
-    @Transactional(readOnly = true)
-    fun findByEmployeeIdAndCompanyId(employeeId: EmployeeId, companyId: Long): List<EmployeeDocument> {
-        return documentJpaRepository.findByEmployeeIdAndCompanyIdOrderByCreatedAtDesc(employeeId.value, companyId)
             .map { it.toDomain() }
     }
 

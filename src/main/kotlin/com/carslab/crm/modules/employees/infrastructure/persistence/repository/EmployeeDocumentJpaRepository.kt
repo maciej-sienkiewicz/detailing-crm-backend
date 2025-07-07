@@ -1,3 +1,4 @@
+// src/main/kotlin/com/carslab/crm/modules/employees/infrastructure/persistence/repository/EmployeeDocumentJpaRepository.kt
 package com.carslab.crm.modules.employees.infrastructure.persistence.repository
 
 import com.carslab.crm.modules.employees.infrastructure.persistence.entity.EmployeeDocumentEntity
@@ -9,16 +10,7 @@ interface EmployeeDocumentJpaRepository : JpaRepository<EmployeeDocumentEntity, 
 
     fun findByEmployeeIdOrderByCreatedAtDesc(employeeId: String): List<EmployeeDocumentEntity>
 
-    fun findByEmployeeIdAndCompanyIdOrderByCreatedAtDesc(
-        employeeId: String,
-        companyId: Long
-    ): List<EmployeeDocumentEntity>
-
     fun findByCompanyId(companyId: Long): List<EmployeeDocumentEntity>
 
     fun countByEmployeeId(employeeId: String): Long
-
-    fun findByStorageId(storageId: String): EmployeeDocumentEntity?
-
-    fun existsByStorageId(storageId: String): Boolean
 }

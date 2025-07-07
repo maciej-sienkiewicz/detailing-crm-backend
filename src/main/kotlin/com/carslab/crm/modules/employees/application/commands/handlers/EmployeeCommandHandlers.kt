@@ -140,12 +140,45 @@ class DeleteEmployeeCommandHandler(
     }
 }
 
+@Service
+class CreateEmployeeDocumentCommandHandler(
+    private val documentDomainService: EmployeeDocumentDomainService,
+    private val securityContext: SecurityContext
+) : CommandHandler<CreateEmployeeDocumentCommand, String> {
 
+    private val logger = LoggerFactory.getLogger(CreateEmployeeDocumentCommandHandler::class.java)
+
+    @Transactional
+    override fun handle(command: CreateEmployeeDocumentCommand): String {
+        logger.info("Processing create employee document command for employee: ${command.employeeId}")
+
+        try {
+            val companyId = securityContext.getCurrentCompanyId()
+
+            val createDocument = CreateEmployeeDocument(
+                employeeId = EmployeeId.of(command.employeeId),
+                companyId = companyId,
+                name = command.name,
+                type = command.type,
+                fileUrl = command.fileUrl,
+                fileSize = command.fileSize,
+                mimeType = command.mimeType
+            )
+
+            val document = documentDomainService.createDocument(createDocument)
+
+            logger.info("Successfully processed create document command, documentId: ${document.id.value}")
+            return document.id.value
+        } catch (e: Exception) {
+            logger.error("Failed to create employee document for employee: ${command.employeeId}", e)
+            throw e
+        }
+    }
+}
 
 @Service
 class DeleteEmployeeDocumentCommandHandler(
-    private val documentDomainService: EmployeeDocumentDomainService,
-    private val securityContext: SecurityContext
+    private val documentDomainService: EmployeeDocumentDomainService
 ) : CommandHandler<DeleteEmployeeDocumentCommand, Boolean> {
 
     private val logger = LoggerFactory.getLogger(DeleteEmployeeDocumentCommandHandler::class.java)
@@ -155,10 +188,8 @@ class DeleteEmployeeDocumentCommandHandler(
         logger.info("Processing delete employee document command for: ${command.id}")
 
         try {
-            val companyId = securityContext.getCurrentCompanyId()
             val documentId = EmployeeDocumentId.of(command.id)
-
-            val deleted = documentDomainService.deleteDocument(documentId, companyId)
+            val deleted = documentDomainService.deleteDocument(documentId)
 
             logger.info("Successfully processed delete document command, documentId: ${command.id}, deleted: $deleted")
             return deleted
