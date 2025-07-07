@@ -2,6 +2,7 @@ package com.carslab.crm.modules.visits.domain.events
 
 import com.carslab.crm.infrastructure.events.BaseDomainEvent
 import com.carslab.crm.modules.clients.domain.model.VehicleId
+import java.math.BigDecimal
 
 /**
  * Event: Zmiana statusu protokołu
@@ -149,4 +150,45 @@ data class ProtocolWorkCompletedEvent(
         "qualityScore" to qualityScore,
         "techniciansInvolved" to techniciansInvolved
     ) + additionalMetadata
+)
+
+data class VehicleServiceCompletedEvent(
+    val protocolId: String,
+    val protocolTitle: String,
+    val clientId: Long,
+    val clientName: String,
+    val clientTaxId: String?,
+    val clientAddress: String?,
+    val services: List<ServiceItem>,
+    val totalNet: BigDecimal,
+    val totalTax: BigDecimal,
+    val totalGross: BigDecimal,
+    val paymentMethod: String,
+    val documentType: String,
+    override val companyId: Long,
+    override val userId: String? = null,
+    override val userName: String? = null
+) : BaseDomainEvent(
+    aggregateId = protocolId,
+    aggregateType = "PROTOCOL",
+    eventType = "VEHICLE_SERVICE_COMPLETED",
+    companyId = companyId,
+    userId = userId,
+    userName = userName,
+    metadata = mapOf(
+        "clientId" to clientId,
+        "totalAmount" to totalGross,
+        "paymentMethod" to paymentMethod,
+        "documentType" to documentType
+    )
+)
+
+data class ServiceItem(
+    val name: String,
+    val description: String?,
+    val quantity: BigDecimal,
+    val unitPrice: BigDecimal,
+    val taxRate: BigDecimal,
+    val totalNet: BigDecimal,
+    val totalGross: BigDecimal
 )

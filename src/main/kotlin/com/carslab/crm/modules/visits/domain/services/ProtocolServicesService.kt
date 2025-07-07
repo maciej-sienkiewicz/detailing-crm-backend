@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.visits.domain.services
 
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.view.protocol.ProtocolServiceView
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand
 import com.carslab.crm.modules.visits.application.mappers.ProtocolServiceMapper
 import com.carslab.crm.modules.visits.domain.exceptions.ProtocolServicesUpdateException
@@ -16,6 +17,15 @@ class ProtocolServicesService(
     private val serviceMapper: ProtocolServiceMapper
 ) {
     private val logger = LoggerFactory.getLogger(ProtocolServicesService::class.java)
+
+    fun getCurrentServices(protocolId: ProtocolId): List<ProtocolServiceView> {
+        return try {
+            protocolServicesRepository.findByProtocolId(protocolId)
+        } catch (e: Exception) {
+            logger.warn("Failed to get services for protocol: ${protocolId.value}", e)
+            emptyList()
+        }
+    }
 
     @Transactional
     fun updateProtocolServices(

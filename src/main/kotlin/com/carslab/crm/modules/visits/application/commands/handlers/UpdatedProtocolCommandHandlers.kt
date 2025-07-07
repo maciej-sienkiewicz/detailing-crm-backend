@@ -26,7 +26,14 @@ import com.carslab.crm.modules.clients.domain.ClientApplicationService
 import com.carslab.crm.modules.clients.domain.VehicleApplicationService
 import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.visits.api.mappers.ServiceMappers
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand
+import com.carslab.crm.modules.visits.domain.exceptions.ProtocolNotFoundException
+import com.carslab.crm.modules.visits.domain.services.ClientStatisticsService
+import com.carslab.crm.modules.visits.domain.services.ProtocolServicesService
 import com.carslab.crm.modules.visits.domain.services.ProtocolUpdateDomainService
+import com.carslab.crm.modules.visits.domain.services.VehicleStatisticsService
+import com.carslab.crm.modules.visits.domain.valueobjects.ServicesUpdateResult
+import com.carslab.crm.modules.visits.infrastructure.events.CurrentUser
 import com.carslab.crm.modules.visits.infrastructure.events.ProtocolEventPublisher
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -38,21 +45,170 @@ import java.util.UUID
 
 @Service
 class UpdateProtocolCommandHandler(
-    private val protocolUpdateDomainService: ProtocolUpdateDomainService,
-    private val protocolEventPublisher: ProtocolEventPublisher,
+    private val protocolRepository: ProtocolRepository,
+    private val protocolServicesService: ProtocolServicesService,
+    private val protocolDomainService: ProtocolDomainService,
+    private val clientStatisticsService: ClientStatisticsService,
+    private val vehicleStatisticsService: VehicleStatisticsService,
+    private val clientApplicationService: ClientApplicationService,
+    private val vehicleApplicationService: VehicleApplicationService,
+    private val eventPublisher: EventPublisher,
     private val securityContext: SecurityContext
 ) : CommandHandler<UpdateProtocolCommand, Unit> {
 
     private val logger = LoggerFactory.getLogger(UpdateProtocolCommandHandler::class.java)
 
+    @Transactional
     override fun handle(command: UpdateProtocolCommand) {
         logger.info("Updating protocol: ${command.protocolId}")
 
-        val result = protocolUpdateDomainService.updateProtocol(command)
+        val protocolId = ProtocolId(command.protocolId)
+        val existingProtocol = protocolRepository.findById(protocolId)
+            ?: throw ProtocolNotFoundException(protocolId)
 
-        protocolEventPublisher.publishUpdateEvents(result, securityContext.getCurrentUser())
+        // 1. Sprawdź czy usługi się rzeczywiście zmieniły
+        val servicesChanged = if (command.services.isNotEmpty()) {
+            checkIfServicesActuallyChanged(protocolId, command.services)
+        } else false
+
+        // 2. Wykonaj aktualizacje
+        val servicesUpdateResult = if (servicesChanged) {
+            protocolServicesService.updateProtocolServices(protocolId, command.services)
+        } else {
+            ServicesUpdateResult.noChanges()
+        }
+
+        val updatedProtocol = protocolDomainService.updateProtocol(existingProtocol, command)
+        protocolRepository.save(updatedProtocol)
+
+        val statusChanged = existingProtocol.status != updatedProtocol.status
+
+        // 3. Aktualizuj statystyki przy przejściu do IN_PROGRESS
+        if (statusChanged && updatedProtocol.status == ProtocolStatus.IN_PROGRESS && existingProtocol.status != ProtocolStatus.IN_PROGRESS) {
+            updateStatistics(updatedProtocol)
+        }
+
+        // 4. Publikuj eventy - tylko te które są potrzebne
+        val user = getCurrentUser()
+
+        if (statusChanged) {
+            publishStatusEvent(existingProtocol.status, updatedProtocol, user)
+        }
+
+        if (servicesChanged) {
+            publishServicesEvent(protocolId, servicesUpdateResult, user)
+        }
 
         logger.info("Successfully updated protocol: ${command.protocolId}")
+    }
+
+    private fun checkIfServicesActuallyChanged(
+        protocolId: ProtocolId,
+        newServices: List<UpdateServiceCommand>
+    ): Boolean {
+        val currentServices = protocolServicesService.getCurrentServices(protocolId)
+
+        if (currentServices.size != newServices.size) return true
+
+        val currentByName = currentServices.associateBy { it.name }
+
+        return newServices.any { newService ->
+            val current = currentByName[newService.name] ?: return true
+
+            // Porównaj kluczowe pola
+            current.basePrice.amount != newService.basePrice ||
+                    current.finalPrice?.amount != (newService.finalPrice ?: newService.basePrice) ||
+                    current.quantity != newService.quantity ||
+                    current.approvalStatus.name != newService.approvalStatus ||
+                    current.note != newService.note
+        }
+    }
+
+    private fun updateStatistics(protocol: CarReceptionProtocol) {
+        try {
+            clientStatisticsService.updateLastVisitDate(ClientId.of(protocol.client.id!!))
+            clientApplicationService.updateClientStatistics(clientId = ClientId.of(protocol.client.id!!), counter = 1L)
+
+            vehicleStatisticsService.updateLastVisitDate(protocol.vehicle.id!!)
+            vehicleApplicationService.updateVehicleStatistics(id = protocol.vehicle.id!!.value, counter = 1L)
+        } catch (e: Exception) {
+            logger.warn("Failed to update statistics for protocol: ${protocol.id.value}", e)
+        }
+    }
+
+    private fun publishStatusEvent(
+        oldStatus: ProtocolStatus,
+        updatedProtocol: CarReceptionProtocol,
+        user: CurrentUser
+    ) {
+        when (updatedProtocol.status) {
+            ProtocolStatus.IN_PROGRESS -> {
+                eventPublisher.publish(ProtocolWorkStartedEvent(
+                    protocolId = updatedProtocol.id.value,
+                    protocolTitle = updatedProtocol.title,
+                    assignedTechnicians = listOf(user.name),
+                    estimatedCompletionTime = updatedProtocol.period.endDate.toString(),
+                    plannedServices = updatedProtocol.protocolServices.map { it.name },
+                    companyId = user.companyId,
+                    userId = user.id,
+                    userName = user.name,
+                    clientId = updatedProtocol.client.id.toString(),
+                    clientName = updatedProtocol.client.name,
+                    vehicleId = updatedProtocol.vehicle.id.toString(),
+                    vehicleDisplayName = "${updatedProtocol.vehicle.make} ${updatedProtocol.vehicle.model}"
+                ))
+            }
+            ProtocolStatus.READY_FOR_PICKUP -> {
+                eventPublisher.publish(ProtocolReadyForPickupEvent(
+                    protocolId = updatedProtocol.id.value,
+                    protocolTitle = updatedProtocol.title,
+                    clientId = updatedProtocol.client.id.toString(),
+                    clientName = updatedProtocol.client.name,
+                    vehicleInfo = "${updatedProtocol.vehicle.make} ${updatedProtocol.vehicle.model}",
+                    totalAmount = updatedProtocol.protocolServices.sumOf { it.finalPrice.amount },
+                    servicesCompleted = updatedProtocol.protocolServices.map { it.name },
+                    companyId = user.companyId,
+                    userId = user.id,
+                    userName = user.name
+                ))
+            }
+            else -> {
+                eventPublisher.publish(ProtocolStatusChangedEvent(
+                    protocolId = updatedProtocol.id.value,
+                    oldStatus = oldStatus.name,
+                    newStatus = updatedProtocol.status.name,
+                    reason = null,
+                    protocolTitle = updatedProtocol.title,
+                    companyId = user.companyId,
+                    userId = user.id,
+                    userName = user.name
+                ))
+            }
+        }
+    }
+
+    private fun publishServicesEvent(
+        protocolId: ProtocolId,
+        updateResult: ServicesUpdateResult,
+        user: CurrentUser
+    ) {
+        eventPublisher.publish(ProtocolServicesUpdatedEvent(
+            protocolId = protocolId.value,
+            servicesCount = updateResult.updatedCount,
+            totalAmount = updateResult.totalAmount,
+            changedServices = updateResult.serviceNames,
+            companyId = user.companyId,
+            userId = user.id,
+            userName = user.name
+        ))
+    }
+
+    private fun getCurrentUser(): CurrentUser {
+        return CurrentUser(
+            id = securityContext.getCurrentUserId()!!,
+            name = securityContext.getCurrentUserName() ?: "Unknown",
+            companyId = securityContext.getCurrentCompanyId()
+        )
     }
 }
 
@@ -229,8 +385,7 @@ class ReleaseVehicleCommandHandler(
     private val eventPublisher: EventPublisher,
     private val securityContext: SecurityContext,
     private val clientApplicationService: ClientApplicationService,
-    private val vehicleApplicationService: VehicleApplicationService,
-    private val unifiedDocumentRepository: UnifiedDocumentRepository,
+    private val vehicleApplicationService: VehicleApplicationService
 ) : CommandHandler<ReleaseVehicleCommand, Unit> {
 
     private val logger = LoggerFactory.getLogger(ReleaseVehicleCommandHandler::class.java)
@@ -239,7 +394,7 @@ class ReleaseVehicleCommandHandler(
     override fun handle(command: ReleaseVehicleCommand) {
         logger.info("Releasing vehicle for protocol: ${command.protocolId}")
 
-        val existingProtocol: CarReceptionProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
+        val existingProtocol = protocolRepository.findById(ProtocolId(command.protocolId))
             ?: throw ResourceNotFoundException("Protocol", command.protocolId)
 
         if (existingProtocol.status != ProtocolStatus.READY_FOR_PICKUP) {
@@ -257,101 +412,71 @@ class ReleaseVehicleCommandHandler(
         val totalAmount = existingProtocol.protocolServices
             .filter { it.approvalStatus == ApprovalStatus.APPROVED }
             .sumOf { it.finalPrice.amount }
-        
-        clientApplicationService.updateClientStatistics(
-            clientId = ClientId(existingProtocol.client.id!!),
-            totalGmv = totalAmount.toBigDecimal(),
-        )
-        vehicleApplicationService.updateVehicleStatistics(
-            id = existingProtocol.vehicle.id!!.value,
-            gmv = totalAmount.toBigDecimal(),
-        )
+            .toBigDecimal()
 
-        createInvoiceDocument(
-            existingProtocol = existingProtocol,
-            releaseDetails = command
-        )
+        // Aktualizuj statystyki
+        updateStatistics(existingProtocol, totalAmount)
 
-        eventPublisher.publish(
-            VehicleReleasedEvent(
-                visitId = command.protocolId,
-                visitTitle = existingProtocol.title,
-                clientId = existingProtocol.client.id.toString(),
-                clientName = existingProtocol.client.name,
-                vehicleId = existingProtocol.vehicle.id?.value.toString(),
-                vehicleDisplayName = "${existingProtocol.vehicle.make} ${existingProtocol.vehicle.model} (${existingProtocol.vehicle.licensePlate})",
-                paymentMethod = command.paymentMethod,
-                totalAmount = totalAmount,
-                releaseNotes = command.additionalNotes,
-                companyId = securityContext.getCurrentCompanyId(),
-                userId = securityContext.getCurrentUserId(),
-                userName = securityContext.getCurrentUserName()
-            )
-        )
+        // Event o zakończeniu usługi - dla modułu finansów
+        eventPublisher.publish(VehicleServiceCompletedEvent(
+            protocolId = command.protocolId,
+            protocolTitle = existingProtocol.title,
+            clientId = existingProtocol.client.id!!,
+            clientName = existingProtocol.client.name,
+            clientTaxId = existingProtocol.client.taxId,
+            clientAddress = "ul. Kliencka 2/14, 00-001 Gdańsk", // TODO: get from client
+            services = existingProtocol.protocolServices
+                .filter { it.approvalStatus == ApprovalStatus.APPROVED }
+                .map { ServiceItem(
+                    name = it.name,
+                    description = it.note,
+                    quantity = it.quantity.toBigDecimal(),
+                    unitPrice = it.finalPrice.amount.toBigDecimal(),
+                    taxRate = 23.toBigDecimal(),
+                    totalNet = (it.finalPrice.amount / 1.23).toBigDecimal(),
+                    totalGross = it.finalPrice.amount.toBigDecimal()
+                )},
+            totalNet = (totalAmount / 1.23.toBigDecimal()),
+            totalTax = totalAmount - (totalAmount / 1.23.toBigDecimal()),
+            totalGross = totalAmount,
+            paymentMethod = command.paymentMethod,
+            documentType = command.documentType,
+            companyId = securityContext.getCurrentCompanyId(),
+            userId = securityContext.getCurrentUserId(),
+            userName = securityContext.getCurrentUserName()
+        ))
+
+        // Event o zwolnieniu pojazdu
+        eventPublisher.publish(VehicleReleasedEvent(
+            visitId = command.protocolId,
+            visitTitle = existingProtocol.title,
+            clientId = existingProtocol.client.id.toString(),
+            clientName = existingProtocol.client.name,
+            vehicleId = existingProtocol.vehicle.id?.value.toString(),
+            vehicleDisplayName = "${existingProtocol.vehicle.make} ${existingProtocol.vehicle.model} (${existingProtocol.vehicle.licensePlate})",
+            paymentMethod = command.paymentMethod,
+            totalAmount = totalAmount.toDouble(),
+            releaseNotes = command.additionalNotes,
+            companyId = securityContext.getCurrentCompanyId(),
+            userId = securityContext.getCurrentUserId(),
+            userName = securityContext.getCurrentUserName()
+        ))
 
         logger.info("Successfully released vehicle for protocol: ${command.protocolId}")
     }
 
-    private fun createInvoiceDocument(existingProtocol: CarReceptionProtocol, releaseDetails: ReleaseVehicleCommand) {
-        val gross = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
-            .sumOf { it.finalPrice.amount }.toBigDecimal()
-        val nett = gross / 1.23.toBigDecimal()
-        val totalTax = gross - nett
-        val items = existingProtocol.protocolServices.filter { it.approvalStatus == ApprovalStatus.APPROVED }
-            .map {
-                DocumentItem(
-                    name = it.name,
-                    description = it.note,
-                    quantity = 1.toBigDecimal(),
-                    unitPrice = it.finalPrice.amount.toBigDecimal(),
-                    taxRate = 23.toBigDecimal(),
-                    totalNet = it.finalPrice.amount.toBigDecimal() / 1.23.toBigDecimal(),
-                    totalGross = it.finalPrice.amount.toBigDecimal()
-                )
-            }
-        unifiedDocumentRepository.save(
-            UnifiedFinancialDocument(
-                id = UnifiedDocumentId.generate(),
-                number = "",
-                type = when (releaseDetails.documentType.lowercase()) {
-                    DocumentType.INVOICE.toString().lowercase() -> DocumentType.INVOICE
-                    DocumentType.RECEIPT.toString().lowercase() -> DocumentType.RECEIPT
-                    DocumentType.OTHER.toString().lowercase() -> DocumentType.OTHER
-                    else -> throw IllegalStateException("Unknown document type ${releaseDetails.documentType}")
-                },
-                title = "Faktura za wizytę",
-                description = "",
-                issuedDate = LocalDate.now(),
-                dueDate = LocalDate.now().plusDays(14),
-                sellerName = "Detailing Studio",
-                sellerTaxId = "123456789",
-                sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
-                buyerName = existingProtocol.client.name,
-                buyerTaxId = existingProtocol.client.taxId,
-                buyerAddress = "ul. Kliencka 2/14, 00-001 Gdańsk",
-                status = DocumentStatus.NOT_PAID,
-                direction = TransactionDirection.INCOME,
-                paymentMethod = when (releaseDetails.paymentMethod.lowercase()) {
-                    PaymentMethod.CASH.toString().lowercase() -> PaymentMethod.CASH
-                    PaymentMethod.CARD.toString().lowercase() -> PaymentMethod.CARD
-                    else -> throw IllegalStateException("Unknown payment method ${releaseDetails.paymentMethod}")
-                },
-                totalNet = nett,
-                totalTax = totalTax,
-                totalGross = gross,
-                paidAmount = BigDecimal.ZERO,
-                currency = "PLN",
-                notes = "",
-                protocolId = existingProtocol.id.value,
-                protocolNumber = existingProtocol.id.value,
-                visitId = null,
-                items = items,
-                attachment = null,
-                audit = Audit(
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
+    private fun updateStatistics(protocol: CarReceptionProtocol, totalAmount: BigDecimal) {
+        try {
+            clientApplicationService.updateClientStatistics(
+                clientId = ClientId(protocol.client.id!!),
+                totalGmv = totalAmount
             )
-        )
+            vehicleApplicationService.updateVehicleStatistics(
+                id = protocol.vehicle.id!!.value,
+                gmv = totalAmount
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to update statistics for protocol: ${protocol.id.value}", e)
+        }
     }
 }
