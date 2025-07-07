@@ -9,6 +9,8 @@ import com.carslab.crm.modules.employees.application.queries.models.*
 import com.carslab.crm.modules.employees.domain.model.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.employees.domain.services.EmployeeDocumentDomainService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -23,7 +25,9 @@ import org.springframework.web.multipart.MultipartFile
 @Tag(name = "Employee Management", description = "Employee management endpoints")
 class EmployeesController(
     private val commandBus: CommandBus,
-    private val queryBus: QueryBus
+    private val queryBus: QueryBus,
+    private val securityContext: SecurityContext,
+    private val documentDomainService: EmployeeDocumentDomainService,
 ) : BaseController() {
 
     @GetMapping("/list")
@@ -237,55 +241,55 @@ class EmployeesController(
         @RequestParam("employeeId") employeeId: String,
         @RequestParam("name") name: String,
         @RequestParam("type") type: String,
-        @RequestParam(value = "file", required = false) file: MultipartFile?
+        @RequestParam(value = "file", required = true) file: MultipartFile
     ): ResponseEntity<Map<String, Any>> {
 
         logger.info("Uploading document for employee: $employeeId")
 
         try {
-            // TODO: Handle file upload to storage service and get URL
-            val fileUrl = file?.let { "https://storage.example.com/documents/${java.util.UUID.randomUUID()}" }
-            val fileSize = file?.size
-            val mimeType = file?.contentType
+            val companyId = securityContext.getCurrentCompanyId()
 
-            val command = CreateEmployeeDocumentCommand(
-                employeeId = employeeId,
+            // Użyj nowego serwisu domenowego
+            val document = documentDomainService.createDocument(
+                file = file,
+                employeeId = EmployeeId.of(employeeId),
+                companyId = companyId,
                 name = name,
-                type = type,
-                fileUrl = fileUrl,
-                fileSize = fileSize,
-                mimeType = mimeType
+                type = type
             )
 
-            val documentId = commandBus.execute(command)
-
-            logger.info("Successfully uploaded document: $documentId")
-            return created(createSuccessResponse("Document uploaded successfully", mapOf("id" to documentId)))
+            logger.info("Successfully uploaded document: ${document.id.value}")
+            return created(createSuccessResponse("Document uploaded successfully", mapOf("id" to document.id.value)))
         } catch (e: Exception) {
             return logAndRethrow("Error uploading document for employee $employeeId", e)
         }
     }
 
-    @DeleteMapping("/documents/{documentId}")
-    @Operation(summary = "Delete employee document")
-    fun deleteEmployeeDocument(
+    @GetMapping("/documents/{documentId}/download")
+    @Operation(summary = "Download employee document")
+    fun downloadEmployeeDocument(
         @PathVariable documentId: String
-    ): ResponseEntity<Map<String, Any>> {
+    ): ResponseEntity<ByteArray> {
 
-        logger.info("Deleting document: $documentId")
+        logger.info("Downloading document: $documentId")
 
         try {
-            val command = DeleteEmployeeDocumentCommand(documentId)
-            val deleted = commandBus.execute(command)
+            val companyId = securityContext.getCurrentCompanyId()
+            val docId = EmployeeDocumentId.of(documentId)
 
-            return if (deleted) {
-                logger.info("Successfully deleted document: $documentId")
-                ok(createSuccessResponse("Document deleted successfully", mapOf("id" to documentId)))
-            } else {
-                ResponseEntity.notFound().build()
-            }
+            val document = documentDomainService.getDocumentsByEmployee(/* params */).find { it.id == docId }
+                ?: return ResponseEntity.notFound().build()
+
+            val content = documentDomainService.getDocumentContent(docId, companyId)
+                ?: return ResponseEntity.notFound().build()
+
+            return ResponseEntity.ok()
+                .header("Content-Type", document.mimeType ?: "application/octet-stream")
+                .header("Content-Disposition", "attachment; filename=\"${document.name}\"")
+                .body(content)
         } catch (e: Exception) {
-            return logAndRethrow("Error deleting document $documentId", e)
+            logger.error("Error downloading document $documentId", e)
+            return ResponseEntity.internalServerError().build()
         }
     }
 
