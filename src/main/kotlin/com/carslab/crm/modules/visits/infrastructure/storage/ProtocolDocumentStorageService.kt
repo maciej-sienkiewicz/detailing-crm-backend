@@ -94,7 +94,7 @@ class ProtocolDocumentStorageService(
     fun findAcceptanceProtocol(protocolId: ProtocolId): ByteArray? {
         val companyId = getCurrentCompanyId()
         return protocolDocumentRepository.findByProtocolIdAndCompanyIdAndDocumentType(
-            protocolId.value.toLong(), companyId, ProtocolDocumentType.TERMS_ACCEPTANCE.toString()
+            protocolId.value.toLong(), companyId, ProtocolDocumentType.ACCEPTANCE_PROTOCOL.toString()
         ).maxByOrNull { it.createdAt }?.toDomain()
             ?.let { universalStorageService.retrieveFile(it.storageId) }
     }
