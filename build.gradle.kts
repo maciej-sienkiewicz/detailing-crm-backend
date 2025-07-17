@@ -57,6 +57,16 @@ dependencies {
 	implementation("io.github.resilience4j:resilience4j-retry:2.2.0")
 	implementation("io.github.resilience4j:resilience4j-timelimiter:2.2.0")
 
+	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+
+	// OpenHTML to PDF
+	implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10")
+
+	// Fonty dla PDF (opcjonalne, ale zalecane dla polskich znaków)
+	implementation("org.apache.pdfbox:fontbox:2.0.28")
+
 	// Rate limiting
 	implementation("com.github.vladimir-bukhtoyarov:bucket4j-core:7.6.0")
 	implementation("com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0")

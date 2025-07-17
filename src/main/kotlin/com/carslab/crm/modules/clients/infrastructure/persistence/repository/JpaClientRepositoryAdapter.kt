@@ -24,9 +24,13 @@ class ClientRepositoryAdapter(
 
     override fun save(client: Client): Client {
         val companyId = securityContext.getCurrentCompanyId()
-        val new = ClientEntity.fromDomain(client, companyId)
+        
+        val existingEntity = clientJpaRepository.findByIdAndCompanyId(client.id.value, companyId)
+            .orElseThrow { IllegalArgumentException("Client not found or access denied") }
 
-        val saved = clientJpaRepository.save(new)
+        updateEntityFromDomain(existingEntity, client)
+
+        val saved = clientJpaRepository.save(existingEntity)
         return saved.toDomain()
     }
 

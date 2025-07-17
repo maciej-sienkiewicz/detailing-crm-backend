@@ -124,7 +124,7 @@ class ProtocolActivityEventHandler(
                 entityId = event.documentId,
                 entities = listOf(
                     ActivityEntityReadModel(
-                        id = event.documentId,
+                        id = event.protocolId,
                         type = EntityType.PROTOCOL,
                         displayName = event.originalName,
                         metadata = mapOf("fileSize" to formatFileSize(event.fileSize))

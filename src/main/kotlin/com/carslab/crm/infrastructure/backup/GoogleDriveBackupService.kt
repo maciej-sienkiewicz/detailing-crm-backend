@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/infrastructure/backup/GoogleDriveBackupService.kt
 package com.carslab.crm.infrastructure.backup
 
 import com.carslab.crm.api.model.TransactionDirection
@@ -7,6 +6,9 @@ import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveClientFactory
 import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveFileUploader
+import com.carslab.crm.modules.invoice_templates.domain.InvoiceTemplateService
+import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
+import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +21,9 @@ class GoogleDriveBackupService(
     private val documentRepository: UnifiedDocumentRepository,
     private val universalStorageService: UniversalStorageService,
     private val googleDriveClientFactory: GoogleDriveClientFactory,
-    private val googleDriveFileUploader: GoogleDriveFileUploader
+    private val googleDriveFileUploader: GoogleDriveFileUploader,
+    private val invoiceTemplateService: InvoiceTemplateService,
+    private val companySettingsService: CompanySettingsDomainService
 ) {
     private val logger = LoggerFactory.getLogger(GoogleDriveBackupService::class.java)
 
@@ -34,7 +38,6 @@ class GoogleDriveBackupService(
 
             logger.debug("Backing up invoices from {} to {} for company {}", startDate, endDate, companyId)
 
-            // Pobierz wszystkie faktury dla danego companyId w bieżącym miesiącu
             val invoices = documentRepository.findInvoicesByCompanyAndDateRange(
                 companyId = companyId,
                 startDate = startDate,
@@ -48,48 +51,27 @@ class GoogleDriveBackupService(
 
             logger.info("Found {} invoices to backup for company {}", invoices.size, companyId)
 
-            // Inicjalizuj Google Drive client dla tego company
             val driveService = googleDriveClientFactory.createDriveService(companyId)
-
             var successCount = 0
             var errorCount = 0
 
             invoices.forEach { document ->
                 try {
-                    // Sprawdź czy dokument ma załącznik
-                    val attachment = document.attachment
-                    if (attachment == null) {
-                        logger.warn("Document {} has no attachment, skipping", document.id.value)
-                        return@forEach
-                    }
-
-                    // Pobierz plik z storage
-                    val fileData = universalStorageService.retrieveFile(attachment.storageId)
-                    if (fileData == null) {
-                        logger.error("Failed to retrieve file for document {} from storage", document.id.value)
-                        errorCount++
-                        return@forEach
-                    }
-
-                    // Wygeneruj ścieżkę w Google Drive: faktury/rok/miesiac
+                    val (fileData, fileName) = prepareInvoiceForBackup(document, companyId)
                     val folderPath = generateDriveFolderPath(document.issuedDate, document.direction)
 
-                    // Wygeneruj nazwę pliku
-                    val fileName = generateFileName(document)
-
-                    // Upload do Google Drive
                     val uploadResult = googleDriveFileUploader.uploadFile(
                         driveService = driveService,
                         fileData = fileData,
                         fileName = fileName,
                         folderPath = folderPath,
-                        mimeType = attachment.type,
+                        mimeType = "application/pdf",
                         metadata = mapOf(
                             "documentId" to document.id.value,
-                            "documentNumber" to (document.number ?: ""),
+                            "documentNumber" to (document.number),
                             "issueDate" to document.issuedDate.toString(),
                             "companyId" to companyId.toString(),
-                            "originalFileName" to attachment.name
+                            "generatedFromTemplate" to if (document.attachment == null) "true" else "false"
                         )
                     )
 
@@ -119,6 +101,49 @@ class GoogleDriveBackupService(
         }
     }
 
+    /**
+     * Przygotowuje fakturę do backup - używa załącznika lub generuje z szablonu
+     */
+    private fun prepareInvoiceForBackup(document: UnifiedFinancialDocument, companyId: Long): Pair<ByteArray, String> {
+        val fileName = generateFileName(document)
+
+        // Sprawdź czy dokument ma załącznik
+        val attachment = document.attachment
+        if (attachment != null) {
+            logger.debug("Using existing attachment for document: {}", document.id.value)
+
+            val fileData = universalStorageService.retrieveFile(attachment.storageId)
+            if (fileData != null) {
+                return Pair(fileData, fileName)
+            } else {
+                logger.warn("Could not retrieve attachment for document {}, generating from template", document.id.value)
+            }
+        }
+
+        // Generuj PDF z szablonu
+        logger.debug("Generating PDF from template for document: {}", document.id.value)
+        return try {
+            val companySettings = companySettingsService.getCompanySettings(companyId)
+                ?: throw IllegalStateException("Company settings not found")
+
+            val generationData = InvoiceGenerationData(
+                document = document,
+                companySettings = companySettings,
+                logoData = null
+            )
+
+            val pdfBytes = invoiceTemplateService.generateInvoicePdf(
+                companyId = companyId,
+                invoiceData = generationData
+            )
+
+            Pair(pdfBytes, fileName)
+        } catch (e: Exception) {
+            logger.error("Failed to generate PDF from template for document: {}", document.id.value, e)
+            throw RuntimeException("Could not prepare invoice for backup", e)
+        }
+    }
+
     private fun generateDriveFolderPath(issuedDate: LocalDate, direction: TransactionDirection): String {
         val year = issuedDate.year
         val month = issuedDate.format(DateTimeFormatter.ofPattern("MM-MMMM"))
@@ -136,7 +161,7 @@ class GoogleDriveBackupService(
             TransactionDirection.EXPENSE -> "FAKT_WYCH"
         }
 
-        val documentNumber = document.number?.replace("/", "_")?.replace(" ", "_") ?: "BRAK_NUMERU"
+        val documentNumber = document.number.replace("/", "_").replace(" ", "_")
         val date = document.issuedDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
         return "${prefix}_${documentNumber}_${date}.pdf"

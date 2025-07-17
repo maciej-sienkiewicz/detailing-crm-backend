@@ -34,7 +34,7 @@ enum class ProtocolDocumentType(val displayName: String) {
 
     companion object {
         fun fromString(value: String): ProtocolDocumentType {
-            return values().find { it.name == value.uppercase() } ?: OTHER
+            return entries.find { it.name == value.uppercase() } ?: OTHER
         }
     }
 }

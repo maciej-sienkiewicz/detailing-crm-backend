@@ -43,7 +43,7 @@ class VisitCommentActivityEventHandler(
                 entities = entities,
                 status = ActivityStatus.SUCCESS,
                 metadata = ActivityMetadataReadModel(
-                    notes = "Autor: ${event.author}, Treść: ${truncateContent(event.content)}"
+                    notes = "Treść: ${truncateContent(event.content)}"
                 ),
                 userId = event.userId,
                 userName = event.userName

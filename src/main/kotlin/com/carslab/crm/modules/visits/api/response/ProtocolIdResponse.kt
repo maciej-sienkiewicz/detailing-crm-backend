@@ -55,7 +55,7 @@ data class ProtocolDocumentDto(
                 fileSize = domain.fileSize,
                 contentType = domain.contentType,
                 documentType = domain.documentType,
-                documentTypeDisplay = documentType.displayName,
+                documentTypeDisplay = domain.documentType,
                 description = domain.description,
                 createdAt = domain.createdAt.format(DATE_FORMATTER),
                 uploadedBy = domain.uploadedBy,
@@ -80,15 +80,7 @@ data class ProtocolDocumentDto(
         }
 
         private fun getDocumentTypeDisplay(documentType: String): String {
-            return when (documentType) {
-                "MARKETING_CONSENT" -> "Zgoda marketingowa"
-                "SERVICE_CONSENT" -> "Zgoda serwisowa"
-                "TERMS_ACCEPTANCE" -> "Akceptacja regulaminu"
-                "INVOICE" -> "Faktura"
-                "RECEIPT" -> "Paragon"
-                "OTHER" -> "Inne"
-                else -> documentType
-            }
+            return ProtocolDocumentType.entries.firstOrNull { it.name == documentType }?.displayName ?: ProtocolDocumentType.OTHER.displayName
         }
     }
 }
