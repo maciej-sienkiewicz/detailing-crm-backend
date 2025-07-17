@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <title>Faktura</title>
+    <meta charset="UTF-8"/>
+    <title>Faktura {{invoice.number}}</title>
     <style>
         * {
             margin: 0;
@@ -26,7 +26,6 @@
             min-height: 297mm;
         }
 
-        /* Header Styles */
         .invoice-header {
             border-bottom: 3px solid #34495e;
             padding-bottom: 20px;
@@ -51,20 +50,17 @@
             object-fit: contain;
         }
 
-        .logo-placeholder {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         .company-initial {
             color: white;
             font-size: 32px;
             font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .company-details {
@@ -125,7 +121,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Details Section */
         .invoice-details {
             margin-bottom: 25px;
         }
@@ -185,7 +180,6 @@
             color: #e74c3c;
         }
 
-        /* Parties Section */
         .parties-section {
             margin-bottom: 25px;
         }
@@ -246,7 +240,6 @@
             font-weight: 500;
         }
 
-        /* Items Table */
         .items-section {
             margin-bottom: 25px;
         }
@@ -284,10 +277,6 @@
             background: #f8f9fa;
         }
 
-        .item-row:hover {
-            background: #e8f4f8;
-        }
-
         .col-number { width: 6%; }
         .col-description { width: 35%; }
         .col-quantity { width: 8%; }
@@ -317,7 +306,6 @@
             color: #34495e;
         }
 
-        /* VAT Summary */
         .vat-summary-section {
             margin-bottom: 20px;
         }
@@ -360,7 +348,6 @@
             background: white;
         }
 
-        /* Total Summary */
         .total-summary {
             margin-bottom: 25px;
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -405,7 +392,6 @@
             color: #f39c12;
         }
 
-        /* Additional Info */
         .additional-info {
             margin-bottom: 25px;
         }
@@ -457,7 +443,6 @@
             line-height: 1.4;
         }
 
-        /* Footer */
         .invoice-footer {
             border-top: 2px solid #e9ecef;
             padding-top: 20px;
@@ -502,7 +487,6 @@
             font-weight: 600;
         }
 
-        /* Print Styles */
         @media print {
             .invoice-wrapper {
                 padding: 0;
@@ -512,15 +496,6 @@
 
             body {
                 font-size: 10px;
-            }
-
-            .invoice-header,
-            .items-section {
-                page-break-inside: avoid;
-            }
-
-            .item-row {
-                page-break-inside: avoid;
             }
         }
 
@@ -536,29 +511,26 @@
     <header class="invoice-header">
         <div class="header-content">
             <div class="logo-section">
-                <div th:if="${hasLogo}" class="company-logo">
-                    <img th:src="'data:image/png;base64,' + ${logoBase64}" alt="Logo firmy" class="logo-img"/>
-                </div>
-                <div th:unless="${hasLogo}" class="logo-placeholder">
-                    <div class="company-initial" th:text="${sellerName.substring(0,1)}">F</div>
+                <div class="company-logo">
+                    {{logoHtml}}
                 </div>
             </div>
 
             <div class="company-details">
-                <h1 class="company-name" th:text="${sellerName}">Nazwa Firmy</h1>
+                <h1 class="company-name">{{sellerName}}</h1>
                 <div class="company-info">
-                    <p th:if="${sellerAddress}" th:text="${sellerAddress}">ul. Adres 123, 00-001 Warszawa</p>
+                    <p>{{sellerAddress}}</p>
                     <div class="contact-row">
                         <span class="label">NIP:</span>
-                        <span class="value" th:text="${sellerTaxId}">123-456-78-90</span>
+                        <span class="value">{{sellerTaxId}}</span>
                     </div>
-                    <div th:if="${sellerPhone}" class="contact-row">
+                    <div class="contact-row">
                         <span class="label">Tel:</span>
-                        <span class="value" th:text="${sellerPhone}">+48 123 456 789</span>
+                        <span class="value">{{sellerPhone}}</span>
                     </div>
-                    <div th:if="${sellerWebsite}" class="contact-row">
+                    <div class="contact-row">
                         <span class="label">Web:</span>
-                        <span class="value" th:text="${sellerWebsite}">www.firma.pl</span>
+                        <span class="value">{{sellerWebsite}}</span>
                     </div>
                 </div>
             </div>
@@ -566,7 +538,7 @@
 
         <div class="invoice-title-section">
             <h2 class="document-title">FAKTURA</h2>
-            <div class="invoice-number" th:text="${invoice.number}">FV/2024/001</div>
+            <div class="invoice-number">{{invoice.number}}</div>
         </div>
     </header>
 
@@ -576,21 +548,21 @@
             <div class="invoice-dates">
                 <div class="date-item">
                     <span class="date-label">Data wystawienia:</span>
-                    <span class="date-value" th:text="${issuedDate}">01.01.2024</span>
+                    <span class="date-value">{{issuedDate}}</span>
                 </div>
                 <div class="date-item">
                     <span class="date-label">Termin płatności:</span>
-                    <span class="date-value" th:text="${dueDate}">15.01.2024</span>
+                    <span class="date-value">{{dueDate}}</span>
                 </div>
                 <div class="date-item">
                     <span class="date-label">Sposób płatności:</span>
-                    <span class="date-value" th:text="${paymentMethod}">Przelew bankowy</span>
+                    <span class="date-value">{{paymentMethod}}</span>
                 </div>
             </div>
 
             <div class="payment-status">
-                <div class="status-badge" th:classappend="${paymentStatus == 'Opłacona' ? 'status-paid' : 'status-unpaid'}">
-                    <span th:text="${paymentStatus}">Nieopłacona</span>
+                <div class="status-badge {{statusClass}}">
+                    <span>{{paymentStatus}}</span>
                 </div>
             </div>
         </div>
@@ -602,11 +574,11 @@
             <div class="party-card seller-card">
                 <h3 class="party-title">SPRZEDAWCA</h3>
                 <div class="party-content">
-                    <div class="party-name" th:text="${sellerName}">Nazwa Sprzedawcy</div>
-                    <div th:if="${sellerAddress}" class="party-address" th:text="${sellerAddress}">Adres sprzedawcy</div>
+                    <div class="party-name">{{sellerName}}</div>
+                    <div class="party-address">{{sellerAddress}}</div>
                     <div class="party-tax">
                         <span class="tax-label">NIP:</span>
-                        <span class="tax-value" th:text="${sellerTaxId}">123-456-78-90</span>
+                        <span class="tax-value">{{sellerTaxId}}</span>
                     </div>
                 </div>
             </div>
@@ -614,11 +586,11 @@
             <div class="party-card buyer-card">
                 <h3 class="party-title">NABYWCA</h3>
                 <div class="party-content">
-                    <div class="party-name" th:text="${buyerName}">Nazwa Nabywcy</div>
-                    <div th:if="${buyerAddress}" class="party-address" th:text="${buyerAddress}">Adres nabywcy</div>
-                    <div th:if="${buyerTaxId}" class="party-tax">
+                    <div class="party-name">{{buyerName}}</div>
+                    <div class="party-address">{{buyerAddress}}</div>
+                    <div class="party-tax">
                         <span class="tax-label">NIP:</span>
-                        <span class="tax-value" th:text="${buyerTaxId}">987-654-32-10</span>
+                        <span class="tax-value">{{buyerTaxId}}</span>
                     </div>
                 </div>
             </div>
@@ -641,18 +613,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="item, iterStat : ${formattedItems}" class="item-row">
-                    <td class="item-number" th:text="${iterStat.count}">1</td>
-                    <td class="item-description">
-                        <div class="service-name" th:text="${item.name}">Kompleksowe czyszczenie pojazdu</div>
-                        <div th:if="${item.description}" class="service-details" th:text="${item.description}">Czyszczenie lakieru, wnętrza, felg</div>
-                    </td>
-                    <td class="item-quantity" th:text="${item.quantity}">1</td>
-                    <td class="item-unit-price" th:text="${item.unitPrice}">1 000,00 zł</td>
-                    <td class="item-vat" th:text="${item.taxRate}">23%</td>
-                    <td class="item-net" th:text="${item.totalNet}">1 000,00 zł</td>
-                    <td class="item-gross" th:text="${item.totalGross}">1 230,00 zł</td>
-                </tr>
+                {{itemsHtml}}
                 </tbody>
             </table>
         </div>
@@ -672,12 +633,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="vat : ${vatSummary}" class="vat-row">
-                    <td class="vat-rate" th:text="${vat.taxRate}">23%</td>
-                    <td class="vat-net" th:text="${vat.netSum}">1 000,00 zł</td>
-                    <td class="vat-amount" th:text="${vat.taxSum}">230,00 zł</td>
-                    <td class="vat-gross" th:text="${vat.grossSum}">1 230,00 zł</td>
-                </tr>
+                {{vatSummaryHtml}}
                 </tbody>
             </table>
         </div>
@@ -688,15 +644,15 @@
         <div class="summary-grid">
             <div class="summary-item">
                 <span class="summary-label">Razem netto:</span>
-                <span class="summary-value" th:text="${totalNetFormatted}">1 000,00 zł</span>
+                <span class="summary-value">{{totalNetFormatted}}</span>
             </div>
             <div class="summary-item">
                 <span class="summary-label">Razem VAT:</span>
-                <span class="summary-value" th:text="${totalTaxFormatted}">230,00 zł</span>
+                <span class="summary-value">{{totalTaxFormatted}}</span>
             </div>
             <div class="summary-item total-amount">
                 <span class="summary-label">Razem brutto:</span>
-                <span class="summary-value" th:text="${totalGrossFormatted}">1 230,00 zł</span>
+                <span class="summary-value">{{totalGrossFormatted}}</span>
             </div>
         </div>
     </section>
@@ -704,23 +660,23 @@
     <!-- Additional Information -->
     <section class="additional-info">
         <div class="info-grid">
-            <div th:if="${company.bankSettings.bankAccountNumber}" class="bank-info">
+            <div class="bank-info">
                 <h4 class="info-title">Dane do przelewu</h4>
                 <div class="bank-details">
-                    <div th:if="${company.bankSettings.bankName}" class="bank-item">
+                    <div class="bank-item">
                         <span class="bank-label">Bank:</span>
-                        <span class="bank-value" th:text="${company.bankSettings.bankName}">Nazwa Banku</span>
+                        <span class="bank-value">{{bankName}}</span>
                     </div>
                     <div class="bank-item">
                         <span class="bank-label">Nr konta:</span>
-                        <span class="bank-value account-number" th:text="${company.bankSettings.bankAccountNumber}">12 3456 7890 1234 5678 9012 3456</span>
+                        <span class="bank-value account-number">{{bankAccountNumber}}</span>
                     </div>
                 </div>
             </div>
 
-            <div th:if="${invoice.notes}" class="notes-section">
+            <div class="notes-section">
                 <h4 class="info-title">Uwagi</h4>
-                <p class="notes-content" th:text="${invoice.notes}">Dodatkowe informacje dotyczące faktury</p>
+                <p class="notes-content">{{notes}}</p>
             </div>
         </div>
     </section>
@@ -736,7 +692,7 @@
             <div class="generation-info">
                 <p class="generation-text">
                     Dokument wygenerowany automatycznie w dniu:
-                    <span class="generation-date" th:text="${generatedAt}">01.01.2024 12:00</span>
+                    <span class="generation-date">{{generatedAt}}</span>
                 </p>
             </div>
         </div>

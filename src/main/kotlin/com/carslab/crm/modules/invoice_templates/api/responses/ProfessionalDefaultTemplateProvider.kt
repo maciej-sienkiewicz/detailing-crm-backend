@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.invoice_templates.infrastructure.templates
 
 import com.carslab.crm.modules.invoice_templates.domain.model.*
+import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -51,8 +52,15 @@ class ProfessionalDefaultTemplateProvider {
     }
 
     private fun getDefaultHtmlTemplate(): String {
-        return this::class.java.getResource("/Users/maciej.sienkiewicz/Documents/crm/src/main/resources/static/template.html")
-            ?.readText() ?: throw IllegalStateException("Template not found")
+        return try {
+            ClassPathResource("static/template.html").inputStream.use { inputStream ->
+                inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                    reader.readText()
+                }
+            }
+        } catch (e: Exception) {
+            throw IllegalStateException("Template not found: static/template.html", e)
+        }
     }
 
     private fun getDefaultCssStyles(): String {

@@ -5,10 +5,6 @@ import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationD
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.thymeleaf.TemplateEngine
-import org.thymeleaf.context.Context
-import org.thymeleaf.templatemode.TemplateMode
-import org.thymeleaf.templateresolver.StringTemplateResolver
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -17,86 +13,26 @@ import java.util.*
 class ThymeleafTemplateRenderingService : TemplateRenderingService {
     private val logger = LoggerFactory.getLogger(ThymeleafTemplateRenderingService::class.java)
 
-    private val templateEngine: TemplateEngine = TemplateEngine().apply {
-        setTemplateResolver(StringTemplateResolver().apply {
-            templateMode = TemplateMode.HTML
-            // Usunięto cacheable - nie jest dostępne publicznie w StringTemplateResolver
-        })
-    }
-
     override fun renderTemplate(template: InvoiceTemplate, data: InvoiceGenerationData): String {
         try {
-            val context = Context(Locale.forLanguageTag("pl"))
+            // Przygotuj wszystkie zmienne
+            val variables = prepareVariables(data)
 
-            // Ustawienie podstawowych zmiennych
-            context.setVariable("invoice", data.document)
-            context.setVariable("company", data.companySettings)
-            context.setVariable("items", data.document.items)
+            // Zamień template HTML
+            var htmlContent = template.content.htmlTemplate
 
-            // Formatowanie dat
-            val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-            context.setVariable("issuedDate", data.document.issuedDate.format(dateFormatter))
-            context.setVariable("dueDate", data.document.dueDate?.format(dateFormatter))
-
-            // Formatowanie kwot
-            context.setVariable("totalNetFormatted", formatMoney(data.document.totalNet))
-            context.setVariable("totalTaxFormatted", formatMoney(data.document.totalTax))
-            context.setVariable("totalGrossFormatted", formatMoney(data.document.totalGross))
-
-            // Logo
-            data.logoData?.let { logoBytes ->
-                val logoBase64 = Base64.getEncoder().encodeToString(logoBytes)
-                context.setVariable("logoBase64", logoBase64)
-                context.setVariable("hasLogo", true)
-            } ?: context.setVariable("hasLogo", false)
-
-            // Data generowania
-            context.setVariable("generatedAt", java.time.LocalDateTime.now().format(
-                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
-            ))
-
-            // Dane sprzedawcy
-            context.setVariable("sellerName", data.companySettings.basicInfo.companyName)
-            context.setVariable("sellerAddress", data.companySettings.basicInfo.address)
-            context.setVariable("sellerTaxId", data.companySettings.basicInfo.taxId)
-            context.setVariable("sellerPhone", data.companySettings.basicInfo.phone)
-            context.setVariable("sellerWebsite", data.companySettings.basicInfo.website)
-
-            // Dane nabywcy
-            context.setVariable("buyerName", data.document.buyerName)
-            context.setVariable("buyerAddress", data.document.buyerAddress)
-            context.setVariable("buyerTaxId", data.document.buyerTaxId)
-
-            // Płatność
-            context.setVariable("paymentMethod", formatPaymentMethod(data.document.paymentMethod))
-            context.setVariable("paymentStatus", formatPaymentStatus(data.document.status))
-
-            // Formatowanie pozycji
-            val formattedItems = data.document.items.map { item ->
-                mapOf(
-                    "name" to item.name,
-                    "description" to item.description,
-                    "quantity" to item.quantity.toString(),
-                    "unitPrice" to formatMoney(item.unitPrice),
-                    "taxRate" to "${item.taxRate}%",
-                    "totalNet" to formatMoney(item.totalNet),
-                    "totalGross" to formatMoney(item.totalGross)
-                )
-            }
-            context.setVariable("formattedItems", formattedItems)
-
-            // Podsumowanie VAT
-            val vatSummary = calculateVatSummary(data.document.items)
-            context.setVariable("vatSummary", vatSummary)
-
-            // Dodatkowe dane
-            data.additionalData.forEach { (key, value) ->
-                context.setVariable(key, value)
+            // Przeprowadź podstawienia zmiennych
+            variables.forEach { (key, value) ->
+                htmlContent = htmlContent.replace("{{$key}}", value.toString())
             }
 
-            // Renderowanie szablonu
-            val fullTemplate = buildFullTemplate(template)
-            return templateEngine.process(fullTemplate, context)
+            // Usuń nieużywane placeholder'y
+            htmlContent = htmlContent.replace(Regex("\\{\\{[^}]+\\}\\}"), "")
+
+            // NAPRAWKA: Bezpośrednio zwróć HTML bez dodatkowej obróbki
+            // Template już zawiera kompletną strukturę HTML
+            logger.debug("Template rendered successfully")
+            return htmlContent
 
         } catch (e: Exception) {
             logger.error("Error rendering template: {}", template.name, e)
@@ -105,36 +41,91 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
     }
 
     override fun validateTemplateSyntax(htmlTemplate: String): Boolean {
-        try {
-            val context = Context()
-            // Poprawka: używamy mapy zamiast odwołania do nieistniejącej zmiennej
-            context.setVariable("invoice", mapOf("number" to "TEST/001"))
-            context.setVariable("company", mapOf("name" to "Test Company"))
-
-            templateEngine.process(htmlTemplate, context)
-            return true
+        return try {
+            htmlTemplate.contains("<div") || htmlTemplate.contains("<html")
         } catch (e: Exception) {
-            logger.warn("Template validation failed: {}", e.message)
-            return false
+            false
         }
     }
 
-    private fun buildFullTemplate(template: InvoiceTemplate): String {
-        return """
-            <!DOCTYPE html>
-            <html xmlns:th="http://www.thymeleaf.org">
-            <head>
-                <meta charset="UTF-8">
-                <title>Faktura [[${'$'}{invoice.number}]]</title>
-                <style>
-                    ${template.content.cssStyles}
-                </style>
-            </head>
-            <body>
-                ${template.content.htmlTemplate}
-            </body>
-            </html>
-        """.trimIndent()
+    private fun prepareVariables(data: InvoiceGenerationData): Map<String, Any> {
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+        // Logo
+        val logoHtml = if (data.logoData != null) {
+            val logoBase64 = Base64.getEncoder().encodeToString(data.logoData)
+            """<img src="data:image/png;base64,$logoBase64" alt="Logo firmy" class="logo-img"/>"""
+        } else {
+            """<div class="company-initial">${escapeHtml(data.companySettings.basicInfo.companyName.take(1))}</div>"""
+        }
+
+        // Items
+        val itemsHtml = data.document.items.mapIndexed { index, item ->
+            """
+            <tr class="item-row">
+                <td class="item-number">${index + 1}</td>
+                <td class="item-description">
+                    <div class="service-name">${escapeHtml(item.name)}</div>
+                    ${if (item.description?.isNotEmpty() == true) """<div class="service-details">${escapeHtml(item.description)}</div>""" else ""}
+                </td>
+                <td class="item-quantity">${item.quantity}</td>
+                <td class="item-unit-price">${formatMoney(item.unitPrice)}</td>
+                <td class="item-vat">${item.taxRate}%</td>
+                <td class="item-net">${formatMoney(item.totalNet)}</td>
+                <td class="item-gross">${formatMoney(item.totalGross)}</td>
+            </tr>
+            """.trimIndent()
+        }.joinToString("\n")
+
+        // VAT Summary
+        val vatSummaryHtml = calculateVatSummary(data.document.items).joinToString("\n") { vat ->
+            """
+            <tr class="vat-row">
+                <td class="vat-rate">${vat["taxRate"]}</td>
+                <td class="vat-net">${vat["netSum"]}</td>
+                <td class="vat-amount">${vat["taxSum"]}</td>
+                <td class="vat-gross">${vat["grossSum"]}</td>
+            </tr>
+            """.trimIndent()
+        }
+
+        return mapOf(
+            "invoice.number" to escapeHtml(data.document.number),
+            "sellerName" to escapeHtml(data.companySettings.basicInfo.companyName),
+            "sellerAddress" to escapeHtml(data.companySettings.basicInfo.address ?: ""),
+            "sellerTaxId" to escapeHtml(data.companySettings.basicInfo.taxId ?: ""),
+            "sellerPhone" to escapeHtml(data.companySettings.basicInfo.phone ?: ""),
+            "sellerWebsite" to escapeHtml(data.companySettings.basicInfo.website ?: ""),
+            "buyerName" to escapeHtml(data.document.buyerName ?: ""),
+            "buyerAddress" to escapeHtml(data.document.buyerAddress ?: ""),
+            "buyerTaxId" to escapeHtml(data.document.buyerTaxId ?: ""),
+            "issuedDate" to data.document.issuedDate.format(dateFormatter),
+            "dueDate" to (data.document.dueDate?.format(dateFormatter) ?: ""),
+            "paymentMethod" to formatPaymentMethod(data.document.paymentMethod),
+            "paymentStatus" to formatPaymentStatus(data.document.status),
+            "statusClass" to if (formatPaymentStatus(data.document.status) == "Opłacona") "status-paid" else "status-unpaid",
+            "totalNetFormatted" to formatMoney(data.document.totalNet),
+            "totalTaxFormatted" to formatMoney(data.document.totalTax),
+            "totalGrossFormatted" to formatMoney(data.document.totalGross),
+            "logoHtml" to logoHtml,
+            "itemsHtml" to itemsHtml,
+            "vatSummaryHtml" to vatSummaryHtml,
+            "generatedAt" to java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+            "hasLogo" to (data.logoData != null),
+            "bankAccountNumber" to escapeHtml(data.companySettings.bankSettings?.bankAccountNumber ?: ""),
+            "bankName" to escapeHtml(data.companySettings.bankSettings?.bankName ?: ""),
+            "notes" to escapeHtml(data.document.notes ?: "")
+        )
+    }
+
+    private fun escapeHtml(text: String?): String {
+        if (text == null) return ""
+        return text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
     }
 
     private fun formatMoney(amount: BigDecimal): String {

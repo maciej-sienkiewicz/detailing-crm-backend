@@ -41,7 +41,6 @@ dependencies {
 	implementation("jakarta.activation:jakarta.activation-api:2.0.1")
 	implementation("jakarta.mail:jakarta.mail-api:2.0.1")
 
-
 	// Database
 	implementation("org.postgresql:postgresql")
 	runtimeOnly("com.h2database:h2") // For testing
@@ -57,7 +56,9 @@ dependencies {
 	implementation("io.github.resilience4j:resilience4j-retry:2.2.0")
 	implementation("io.github.resilience4j:resilience4j-timelimiter:2.2.0")
 
+	// Thymeleaf + OGNL (NAPRAWKA)
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+	implementation("ognl:ognl:3.3.4")
 
 	// OpenHTML to PDF
 	implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10")
