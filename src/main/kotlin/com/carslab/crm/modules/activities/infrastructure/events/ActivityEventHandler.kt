@@ -290,7 +290,7 @@ class ActivityEventHandler(
             )
 
             activityService.createActivity(
-                category = ActivityCategory.SYSTEM,
+                category = ActivityCategory.DOCUMENT,
                 message = "Utworzono fakturę: ${event.invoiceNumber}",
                 entityType = EntityType.INVOICE,
                 entityId = event.invoiceId,

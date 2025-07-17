@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.slf4j.LoggerFactory
+import java.time.format.DateTimeFormatter
 
 @Service
 class EnhancedCreateProtocolCommandHandler(
@@ -104,7 +105,7 @@ class EnhancedCreateProtocolCommandHandler(
                         vehicleMake = vehicle.make,
                         vehicleModel = vehicle.model,
                         licensePlate = vehicle.licensePlate,
-                        scheduledDate = command.period.startDate.toString(),
+                        scheduledDate = command.period.startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                         services = command.services.map { it.name },
                         companyId = securityContext.getCurrentCompanyId(),
                         userId = securityContext.getCurrentUserId(),

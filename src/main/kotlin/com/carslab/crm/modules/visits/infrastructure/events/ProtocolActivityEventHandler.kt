@@ -75,7 +75,12 @@ class ProtocolActivityEventHandler(
                     notes = event.reason,
                 ),
                 userId = event.userId,
-                userName = event.userName
+                userName = event.userName,
+                entities = listOf(ActivityEntityReadModel(
+                    id = event.protocolId,
+                    type = EntityType.PROTOCOL,
+                    displayName = event.protocolTitle ?: ""
+                ))
             )
         } catch (e: Exception) {
             logger.error("Failed to create activity for protocol status changed event: ${event.protocolId}", e)

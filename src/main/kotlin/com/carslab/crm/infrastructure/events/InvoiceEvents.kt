@@ -49,7 +49,7 @@ data class InvoiceCreatedEvent(
         ) = InvoiceCreatedEvent(
             invoiceId = document.id.value,
             invoiceNumber = document.number,
-            clientId = visit?.client?.id.toString(),
+            clientId = visit?.client?.id?.toString(),
             clientName = visit?.client?.name.toString(),
             visitId = visit?.id?.value,
             visitTitle = visit?.title,

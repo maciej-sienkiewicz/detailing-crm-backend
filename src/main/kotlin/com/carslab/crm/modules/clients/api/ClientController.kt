@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.clients.api
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.clients.domain.ClientApplicationService
 import com.carslab.crm.modules.clients.domain.CreateClientRequest
 import com.carslab.crm.modules.clients.domain.UpdateClientRequest
@@ -13,6 +14,7 @@ import com.carslab.crm.modules.clients.api.responses.ClientExpandedResponse
 import com.carslab.crm.modules.clients.api.responses.ClientResponse
 import com.carslab.crm.modules.clients.api.responses.ClientStatisticsResponse
 import com.carslab.crm.modules.clients.api.responses.VehicleResponse
+import com.carslab.crm.modules.clients.domain.ClientDetailResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -85,10 +87,49 @@ class ClientController(
         return ok(response)
     }
 
+    @GetMapping("/paginated")
+    @Operation(summary = "Get clients with pagination", description = "Retrieves clients with pagination and filtering")
+    fun getClientsPaginated(
+        @Parameter(description = "Client name to search for") @RequestParam(required = false) name: String?,
+        @Parameter(description = "Client email to search for") @RequestParam(required = false) email: String?,
+        @Parameter(description = "Client phone to search for") @RequestParam(required = false) phone: String?,
+        @Parameter(description = "Company name to search for") @RequestParam(required = false) company: String?,
+        @Parameter(description = "Has vehicles filter") @RequestParam(required = false) hasVehicles: Boolean?,
+        @Parameter(description = "Minimum total revenue") @RequestParam(required = false) minTotalRevenue: Double?,
+        @Parameter(description = "Maximum total revenue") @RequestParam(required = false) maxTotalRevenue: Double?,
+        @Parameter(description = "Minimum visits") @RequestParam(required = false) minVisits: Int?,
+        @Parameter(description = "Maximum visits") @RequestParam(required = false) maxVisits: Int?,
+        @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int,
+        @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") sortBy: String?,
+        @Parameter(description = "Sort order") @RequestParam(defaultValue = "asc") sortOrder: String?
+    ): ResponseEntity<PaginatedResponse<ClientExpandedResponse>> {
+        logger.info("Getting clients with pagination: page=$page, size=$size, name=$name, email=$email, phone=$phone, company=$company")
+
+        val clients = clientApplicationService.searchClients(
+            name = name,
+            email = email,
+            phone = phone,
+            company = company,
+            pageable = PageRequest.of(page, size)
+        )
+
+        val response = PaginatedResponse(
+            data = clients.content.map { ClientExpandedResponse.fromDomain(it) },
+            page = clients.number,
+            size = clients.size,
+            totalItems = clients.totalElements,
+            totalPages = clients.totalPages.toLong()
+        )
+
+        logger.info("Successfully retrieved ${response.data.size} clients out of ${response.totalItems} total")
+        return ok(response)
+    }
+
     @GetMapping
-    @Operation(summary = "Get all clients", description = "Retrieves all clients with expanded information")
+    @Operation(summary = "Get all clients", description = "Retrieves all clients with expanded information (legacy endpoint)")
     fun getAllClients(): ResponseEntity<List<ClientExpandedResponse>> {
-        logger.info("Getting all clients")
+        logger.info("Getting all clients (legacy endpoint)")
 
         val clients = clientApplicationService.searchClients(
             name = null,
@@ -99,8 +140,10 @@ class ClientController(
         )
 
         val response = clients.content.map { client ->
-                ClientExpandedResponse.fromDomain(client)
+            ClientExpandedResponse.fromDomain(client)
         }
+
+        logger.info("Successfully retrieved ${response.size} clients")
         return ok(response)
     }
 
@@ -108,13 +151,13 @@ class ClientController(
     @Operation(summary = "Get client by ID", description = "Retrieves a client by their ID")
     fun getClientById(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long
-    ): ResponseEntity<ClientResponse> {
+    ): ResponseEntity<ClientExpandedResponse> {
         logger.info("Getting client by ID: $id")
 
-        val client = clientApplicationService.getClientById(id)
+        val client: ClientDetailResponse = clientApplicationService.getClientById(id)
             ?: throw ResourceNotFoundException("Client", id)
 
-        return ok(ClientMapper.toResponse(client))
+        return ok(ClientExpandedResponse.fromDomain(client))
     }
 
     @PutMapping("/{id}")
