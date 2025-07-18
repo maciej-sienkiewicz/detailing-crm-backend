@@ -30,11 +30,8 @@ class InvoiceTemplateRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun findByCompanyId(companyId: Long): List<InvoiceTemplate> {
-        jpaRepository.deleteAll();
-        val companyTemplates = jpaRepository.findByCompanyIdAndIsActiveTrue(companyId)
-        val systemTemplate = jpaRepository.findByTemplateTypeAndIsActiveTrue(TemplateType.SYSTEM_DEFAULT)
-
-        return (companyTemplates + systemTemplate).map { it.toDomain() }
+        return jpaRepository.findByCompanyIdOrderByIsActiveDescCreatedAtDesc(companyId)
+            .map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
@@ -56,15 +53,19 @@ class InvoiceTemplateRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun findByType(type: TemplateType): List<InvoiceTemplate> {
-        return jpaRepository.findByTemplateTypeAndIsActiveTrue(type)
+        return jpaRepository.findByTemplateType(type)
             .map { it.toDomain() }
     }
 
     @Transactional
     override fun deleteById(id: InvoiceTemplateId): Boolean {
         return try {
-            jpaRepository.deleteById(id.value)
-            true
+            if (jpaRepository.existsById(id.value)) {
+                jpaRepository.deleteById(id.value)
+                true
+            } else {
+                false
+            }
         } catch (e: Exception) {
             false
         }

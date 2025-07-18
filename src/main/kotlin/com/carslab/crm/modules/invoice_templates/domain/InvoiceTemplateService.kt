@@ -1,5 +1,7 @@
 package com.carslab.crm.modules.invoice_templates.domain
 
+import com.carslab.crm.modules.invoice_templates.api.requests.ActivateTemplateRequest
+import com.carslab.crm.modules.invoice_templates.api.requests.UploadTemplateRequest
 import com.carslab.crm.modules.invoice_templates.domain.model.*
 import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
 import com.carslab.crm.modules.invoice_templates.domain.ports.PdfGenerationService
@@ -7,10 +9,13 @@ import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingS
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.invoice_templates.infrastructure.templates.ProfessionalDefaultTemplateProvider
+import com.carslab.crm.finances.domain.UnifiedDocumentService
+import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
+import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.multipart.MultipartFile
 
 @Service
 @Transactional
@@ -21,38 +26,22 @@ class InvoiceTemplateService(
     private val companySettingsService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val professionalDefaultTemplateProvider: ProfessionalDefaultTemplateProvider,
+    private val documentService: UnifiedDocumentService
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
-    fun generateInvoicePdf(
+    fun generateInvoiceForDocument(
         companyId: Long,
-        invoiceData: InvoiceGenerationData,
+        documentId: String,
         templateId: InvoiceTemplateId? = null
     ): ByteArray {
-        val template = templateId?.let {
-            templateRepository.findById(it)
-        } ?: templateRepository.findActiveTemplateForCompany(companyId)
-        ?: getSystemDefaultTemplate()
+        val document = documentService.getDocumentById(documentId)
+        val template = getTemplateForGeneration(companyId, templateId)
+        val companySettings = getCompanySettings(companyId)
+        val logoData = getLogoData(companySettings)
 
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        val companySettings = companySettingsService.getCompanySettings(companyId)
-            ?: throw IllegalStateException("Company settings not found for company: $companyId")
-
-        val logoData = companySettings.logoSettings.logoFileId?.let { logoFileId ->
-            try {
-                logoStorageService.getLogoPath(logoFileId)?.let { path ->
-                    java.nio.file.Files.readAllBytes(path)
-                }
-            } catch (e: Exception) {
-                logger.warn("Failed to load logo for company: {}", companyId, e)
-                null
-            }
-        }
-
-        val generationData = invoiceData.copy(
+        val generationData = InvoiceGenerationData(
+            document = document,
             companySettings = companySettings,
             logoData = logoData
         )
@@ -61,37 +50,160 @@ class InvoiceTemplateService(
         return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
     }
 
-    fun uploadTemplate(
-        file: MultipartFile,
-        companyId: Long,
-        name: String,
-        description: String?
-    ): InvoiceTemplate {
-        if (file.isEmpty) {
-            throw IllegalArgumentException("File cannot be empty")
-        }
+    fun uploadTemplate(request: UploadTemplateRequest, companyId: Long): InvoiceTemplate {
+        validateUploadRequest(request)
 
-        if (file.contentType != "text/html" && !file.originalFilename?.endsWith(".html", ignoreCase = true)!!) {
-            throw IllegalArgumentException("File must be HTML format")
-        }
+        val htmlContent = extractHtmlContent(request.file)
+        validateHtmlContent(htmlContent)
 
-        if (file.size > 1024 * 1024) {
-            throw IllegalArgumentException("File size cannot exceed 1MB")
-        }
+        val template = createTemplateFromUpload(request, companyId, htmlContent)
+        return templateRepository.save(template)
+    }
 
-        val htmlContent = try {
-            String(file.bytes, Charsets.UTF_8)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Failed to read HTML content from file", e)
+    fun activateTemplate(companyId: Long, request: ActivateTemplateRequest) {
+        val template = templateRepository.findById(request.templateId)
+            ?: throw ResourceNotFoundException("Template", request.templateId.value)
+
+        if (!template.canBeUsedBy(companyId)) {
+            throw ValidationException("Template cannot be used by company: $companyId")
         }
 
         templateRepository.deactivateAllTemplatesForCompany(companyId)
+        val activatedTemplate = template.copy(isActive = true)
+        templateRepository.save(activatedTemplate)
+    }
 
-        val template = InvoiceTemplate(
+    fun generateTemplatePreview(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
+        val template = getTemplateForCompany(templateId, companyId)
+        val mockData = createMockInvoiceData(companyId)
+        val renderedHtml = templateRenderingService.renderTemplate(template, mockData)
+        return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+    }
+
+    fun exportTemplate(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
+        val template = getTemplateForCompany(templateId, companyId)
+        return template.content.htmlTemplate.toByteArray(Charsets.UTF_8)
+    }
+
+    @Transactional(readOnly = true)
+    fun getTemplatesForCompany(companyId: Long): List<InvoiceTemplate> {
+        val existingTemplates = templateRepository.findByCompanyId(companyId)
+
+        return if (existingTemplates.isEmpty()) {
+            val defaultTemplate = professionalDefaultTemplateProvider.createDefaultTemplate(companyId)
+            val savedTemplate = templateRepository.save(defaultTemplate)
+            listOf(savedTemplate)
+        } else {
+            existingTemplates
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getTemplate(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
+        return getTemplateForCompany(templateId, companyId)
+    }
+
+    fun deleteTemplate(templateId: InvoiceTemplateId, companyId: Long): Boolean {
+        val template = templateRepository.findById(templateId) ?: return false
+
+        if (!template.canBeUsedBy(companyId)) {
+            throw ValidationException("Template cannot be used by company: $companyId")
+        }
+
+        if (template.templateType == TemplateType.SYSTEM_DEFAULT) {
+            throw ValidationException("Cannot delete system default template")
+        }
+
+        return templateRepository.deleteById(templateId)
+    }
+
+    private fun getTemplateForGeneration(companyId: Long, templateId: InvoiceTemplateId?): InvoiceTemplate {
+        return templateId?.let {
+            getTemplateForCompany(it, companyId)
+        } ?: templateRepository.findActiveTemplateForCompany(companyId)
+        ?: getSystemDefaultTemplate()
+    }
+
+    private fun getTemplateForCompany(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
+        val template = templateRepository.findById(templateId)
+            ?: throw ResourceNotFoundException("Template", templateId.value)
+
+        if (!template.canBeUsedBy(companyId)) {
+            throw ValidationException("Template cannot be used by company: $companyId")
+        }
+
+        return template
+    }
+
+    private fun getSystemDefaultTemplate(): InvoiceTemplate {
+        return templateRepository.findSystemDefaultTemplate()
+            ?: throw IllegalStateException("System default template not found")
+    }
+
+    private fun getCompanySettings(companyId: Long) =
+        companySettingsService.getCompanySettings(companyId)
+            ?: throw IllegalStateException("Company settings not found for company: $companyId")
+
+    private fun getLogoData(companySettings: com.carslab.crm.modules.company_settings.domain.model.CompanySettings): ByteArray? {
+        return companySettings.logoSettings.logoFileId?.let { logoFileId ->
+            try {
+                logoStorageService.getLogoPath(logoFileId)?.let { path ->
+                    java.nio.file.Files.readAllBytes(path)
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to load logo", e)
+                null
+            }
+        }
+    }
+
+    private fun validateUploadRequest(request: UploadTemplateRequest) {
+        if (request.file.isEmpty) {
+            throw ValidationException("File cannot be empty")
+        }
+
+        if (request.file.size > 1024 * 1024) {
+            throw ValidationException("File size cannot exceed 1MB")
+        }
+
+        val filename = request.file.originalFilename
+        if (filename == null || !filename.endsWith(".html", ignoreCase = true)) {
+            throw ValidationException("File must be HTML format")
+        }
+
+        if (request.name.isBlank() || request.name.length > 100) {
+            throw ValidationException("Template name must be between 1 and 100 characters")
+        }
+    }
+
+    private fun extractHtmlContent(file: org.springframework.web.multipart.MultipartFile): String {
+        return try {
+            String(file.bytes, Charsets.UTF_8)
+        } catch (e: Exception) {
+            throw ValidationException("Failed to read HTML content from file: ${e.message}")
+        }
+    }
+
+    private fun validateHtmlContent(html: String) {
+        if (!templateRenderingService.validateTemplateSyntax(html)) {
+            throw ValidationException("Invalid HTML template syntax")
+        }
+
+        if (!pdfGenerationService.validateHtmlForPdf(html)) {
+            throw ValidationException("HTML template is not compatible with PDF generation")
+        }
+    }
+
+    private fun createTemplateFromUpload(
+        request: UploadTemplateRequest,
+        companyId: Long,
+        htmlContent: String
+    ): InvoiceTemplate {
+        return InvoiceTemplate(
             id = InvoiceTemplateId.generate(),
             companyId = companyId,
-            name = name,
-            description = description,
+            name = request.name.trim(),
+            description = request.description?.trim(),
             templateType = TemplateType.COMPANY_CUSTOM,
             content = TemplateContent(
                 htmlTemplate = htmlContent,
@@ -110,7 +222,7 @@ class InvoiceTemplateService(
                     fontSize = 12
                 )
             ),
-            isActive = true,
+            isActive = false,
             metadata = TemplateMetadata(
                 version = "1.0",
                 author = null,
@@ -128,90 +240,6 @@ class InvoiceTemplateService(
                 updatedAt = java.time.LocalDateTime.now()
             )
         )
-
-        return templateRepository.save(template)
-    }
-
-    fun activateTemplate(companyId: Long, templateId: InvoiceTemplateId) {
-        val template = templateRepository.findById(templateId)
-            ?: throw IllegalArgumentException("Template not found: ${templateId.value}")
-
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        templateRepository.deactivateAllTemplatesForCompany(companyId)
-        val activatedTemplate = template.copy(isActive = true)
-        templateRepository.save(activatedTemplate)
-    }
-
-    fun generateTemplatePreview(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
-        val template = templateRepository.findById(templateId)
-            ?: throw IllegalArgumentException("Template not found: ${templateId.value}")
-
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        val mockData = createMockInvoiceData(companyId)
-        val renderedHtml = templateRenderingService.renderTemplate(template, mockData)
-        return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
-    }
-
-    fun exportTemplate(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
-        val template = templateRepository.findById(templateId)
-            ?: throw IllegalArgumentException("Template not found: ${templateId.value}")
-
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        return template.content.htmlTemplate.toByteArray(Charsets.UTF_8)
-    }
-
-    @Transactional
-    fun getTemplatesForCompany(companyId: Long): List<InvoiceTemplate> {
-        val existingTemplates = templateRepository.findByCompanyId(companyId)
-            .filter { it.companyId == companyId }
-
-        return if (existingTemplates.isEmpty()) {
-            val defaultTemplate = professionalDefaultTemplateProvider.createDefaultTemplate(companyId)
-            val savedTemplate = templateRepository.save(defaultTemplate)
-            listOf(savedTemplate)
-        } else {
-            existingTemplates
-        }
-    }
-
-    @Transactional(readOnly = true)
-    fun getTemplate(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
-        val template = templateRepository.findById(templateId)
-            ?: throw IllegalArgumentException("Template not found: ${templateId.value}")
-
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        return template
-    }
-
-    fun deleteTemplate(templateId: InvoiceTemplateId, companyId: Long): Boolean {
-        val template = templateRepository.findById(templateId) ?: return false
-
-        if (!template.canBeUsedBy(companyId)) {
-            throw IllegalArgumentException("Template cannot be used by company: $companyId")
-        }
-
-        if (template.templateType == TemplateType.SYSTEM_DEFAULT) {
-            throw IllegalArgumentException("Cannot delete system default template")
-        }
-
-        return templateRepository.deleteById(templateId)
-    }
-
-    private fun getSystemDefaultTemplate(): InvoiceTemplate {
-        return templateRepository.findSystemDefaultTemplate()
-            ?: throw IllegalStateException("System default template not found")
     }
 
     private fun extractCssFromHtml(html: String): String {
@@ -221,8 +249,7 @@ class InvoiceTemplateService(
     }
 
     private fun createMockInvoiceData(companyId: Long): InvoiceGenerationData {
-        val companySettings = companySettingsService.getCompanySettings(companyId)
-            ?: throw IllegalStateException("Company settings not found")
+        val companySettings = getCompanySettings(companyId)
 
         val mockDocument = com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument(
             id = com.carslab.crm.domain.model.view.finance.UnifiedDocumentId("preview"),
@@ -246,7 +273,7 @@ class InvoiceTemplateService(
             totalGross = java.math.BigDecimal("1230.00"),
             paidAmount = java.math.BigDecimal.ZERO,
             currency = "PLN",
-            notes = "Przykładowe uwagi do faktury - to jest szablon do podglądu",
+            notes = "Przykładowe uwagi do faktury",
             protocolId = null,
             protocolNumber = null,
             visitId = null,
@@ -282,7 +309,7 @@ class InvoiceTemplateService(
         return InvoiceGenerationData(
             document = mockDocument,
             companySettings = companySettings,
-            logoData = null
+            logoData = getLogoData(companySettings)
         )
     }
 }

@@ -13,14 +13,20 @@ interface InvoiceTemplateJpaRepository : JpaRepository<InvoiceTemplateEntity, St
 
     fun findByCompanyIdAndIsActiveTrue(companyId: Long): List<InvoiceTemplateEntity>
 
+    fun findByCompanyIdOrderByIsActiveDescCreatedAtDesc(companyId: Long): List<InvoiceTemplateEntity>
+
     fun findByTemplateTypeAndIsActiveTrue(type: TemplateType): List<InvoiceTemplateEntity>
+
+    fun findByTemplateType(type: TemplateType): List<InvoiceTemplateEntity>
 
     fun findByCompanyIdAndNameAndIsActiveTrue(companyId: Long, name: String): InvoiceTemplateEntity?
 
     @Modifying
-    @Query("UPDATE InvoiceTemplateEntity t SET t.isActive = false WHERE t.companyId = :companyId")
+    @Query("UPDATE InvoiceTemplateEntity t SET t.isActive = false, t.updatedAt = CURRENT_TIMESTAMP WHERE t.companyId = :companyId")
     fun deactivateAllForCompany(@Param("companyId") companyId: Long)
 
     @Query("SELECT COUNT(t) FROM InvoiceTemplateEntity t WHERE t.companyId = :companyId AND t.isActive = true")
     fun countActiveTemplatesForCompany(@Param("companyId") companyId: Long): Long
+
+    fun existsByCompanyIdAndName(companyId: Long, name: String): Boolean
 }
