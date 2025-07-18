@@ -11,7 +11,7 @@
         }
 
         body {
-            font-family: 'DejaVuSans', Arial, sans-serif;
+            font-family: DejaVuSans, Arial, sans-serif;
             font-size: 11px;
             line-height: 1.5;
             color: #2c3e50;
@@ -54,7 +54,7 @@
             color: white;
             font-size: 32px;
             font-weight: bold;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             width: 80px;
             height: 80px;
             border-radius: 12px;
@@ -98,7 +98,7 @@
         .invoice-title-section {
             text-align: center;
             padding: 15px 0;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: #f8f9fa;
             border-radius: 8px;
         }
 
@@ -118,7 +118,6 @@
             background: white;
             border-radius: 20px;
             display: inline-block;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .invoice-details {
@@ -194,7 +193,6 @@
             border: 1px solid #e9ecef;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .party-title {
@@ -247,7 +245,6 @@
         .table-container {
             overflow-x: auto;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .items-table {
@@ -257,7 +254,7 @@
         }
 
         .items-table th {
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            background: #34495e;
             color: white;
             padding: 12px 8px;
             text-align: center;
@@ -350,7 +347,7 @@
 
         .total-summary {
             margin-bottom: 25px;
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            background: #2c3e50;
             color: white;
             padding: 20px;
             border-radius: 8px;
@@ -382,7 +379,8 @@
         }
 
         .total-amount {
-            background: rgba(255,255,255,0.1);
+            background: rgb(255,255,255);
+            background-opacity: 0.1;
             padding: 10px;
             border-radius: 6px;
         }
@@ -434,7 +432,7 @@
         }
 
         .account-number {
-            font-family: 'Courier New', monospace;
+            font-family: monospace;
             font-weight: bold;
         }
 
@@ -507,7 +505,6 @@
 </head>
 <body>
 <div class="invoice-wrapper">
-    <!-- Header Section -->
     <header class="invoice-header">
         <div class="header-content">
             <div class="logo-section">
@@ -542,7 +539,6 @@
         </div>
     </header>
 
-    <!-- Invoice Details -->
     <section class="invoice-details">
         <div class="details-grid">
             <div class="invoice-dates">
@@ -568,7 +564,6 @@
         </div>
     </section>
 
-    <!-- Parties Information -->
     <section class="parties-section">
         <div class="parties-grid">
             <div class="party-card seller-card">
@@ -597,7 +592,6 @@
         </div>
     </section>
 
-    <!-- Items Table -->
     <section class="items-section">
         <div class="table-container">
             <table class="items-table">
@@ -619,7 +613,6 @@
         </div>
     </section>
 
-    <!-- VAT Summary -->
     <section class="vat-summary-section">
         <div class="summary-container">
             <h4 class="summary-title">Podsumowanie VAT</h4>
@@ -639,7 +632,6 @@
         </div>
     </section>
 
-    <!-- Total Summary -->
     <section class="total-summary">
         <div class="summary-grid">
             <div class="summary-item">
@@ -657,7 +649,6 @@
         </div>
     </section>
 
-    <!-- Additional Information -->
     <section class="additional-info">
         <div class="info-grid">
             <div class="bank-info">
@@ -681,7 +672,6 @@
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="invoice-footer">
         <div class="footer-content">
             <div class="signature-section">
