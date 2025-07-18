@@ -30,6 +30,7 @@ class InvoiceTemplateRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun findByCompanyId(companyId: Long): List<InvoiceTemplate> {
+        jpaRepository.deleteAll();
         val companyTemplates = jpaRepository.findByCompanyIdAndIsActiveTrue(companyId)
         val systemTemplate = jpaRepository.findByTemplateTypeAndIsActiveTrue(TemplateType.SYSTEM_DEFAULT)
 
