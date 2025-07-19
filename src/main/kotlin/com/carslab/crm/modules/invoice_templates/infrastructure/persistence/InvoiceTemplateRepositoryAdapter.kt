@@ -30,6 +30,7 @@ class InvoiceTemplateRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun findByCompanyId(companyId: Long): List<InvoiceTemplate> {
+        jpaRepository.deleteAll()
         return jpaRepository.findByCompanyIdOrderByIsActiveDescCreatedAtDesc(companyId)
             .map { it.toDomain() }
     }

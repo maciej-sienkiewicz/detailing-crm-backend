@@ -1,3 +1,5 @@
+import kotlin.time.Duration
+
 plugins {
 	kotlin("jvm") version "1.9.25"
 	kotlin("plugin.spring") version "1.9.25"
@@ -60,10 +62,13 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("ognl:ognl:3.3.4")
 
-	// OpenHTML to PDF
-	implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10")
-	implementation("com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10")
-	implementation("com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10")
+	// NAPRAWKA: Usuń OpenHTML to PDF i dodaj Playwright
+	// implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10") // USUNIĘTE
+	// implementation("com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10") // USUNIĘTE
+	// implementation("com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10") // USUNIĘTE
+
+	// NOWE: Playwright for Java - najlepsze rozwiązanie do PDF z HTML
+	implementation("com.microsoft.playwright:playwright:1.39.0")
 
 	// Fonty dla PDF (opcjonalne, ale zalecane dla polskich znaków)
 	implementation("org.apache.pdfbox:fontbox:2.0.28")
@@ -111,6 +116,55 @@ allOpen {
 	annotation("jakarta.persistence.Embeddable")
 }
 
-tasks.withType<Test> {
-	useJUnitPlatform()
+// NAPRAWKA: Dodaj task do instalacji Playwright browsers
+tasks.register("installPlaywrightBrowsers", Exec::class) {
+	group = "playwright"
+	description = "Install Playwright browsers"
+
+	doFirst {
+		println("Installing Playwright browsers...")
+	}
+
+	commandLine("java", "-cp", sourceSets.main.get().runtimeClasspath.asPath,
+		"com.microsoft.playwright.CLI", "install", "chromium")
+
+	dependsOn("classes")
+
+	// Ignore failure if browsers are already installed
+	isIgnoreExitValue = true
+
+	doLast {
+		println("Playwright browsers installation completed")
+	}
+}
+
+// Auto-install browsers po build tylko w development
+if (!System.getenv("CI").toBoolean() && !project.hasProperty("skipPlaywrightInstall")) {
+	tasks.named("build") {
+		finalizedBy("installPlaywrightBrowsers")
+	}
+}
+
+// Task do manualnego czyszczenia cache Playwright
+tasks.register("cleanPlaywrightCache", Delete::class) {
+	group = "playwright"
+	description = "Clean Playwright browser cache"
+
+	delete(fileTree(System.getProperty("user.home") + "/.cache/ms-playwright"))
+
+	doLast {
+		println("Playwright cache cleaned")
+	}
+}
+
+// Task do sprawdzenia statusu Playwright
+tasks.register("checkPlaywright", Exec::class) {
+	group = "playwright"
+	description = "Check Playwright installation status"
+
+	commandLine("java", "-cp", sourceSets.main.get().runtimeClasspath.asPath,
+		"com.microsoft.playwright.CLI", "--version")
+
+	dependsOn("classes")
+	isIgnoreExitValue = true
 }

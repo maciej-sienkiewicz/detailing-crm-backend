@@ -3,6 +3,7 @@ package com.carslab.crm.modules.invoice_templates.infrastructure.rendering
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplate
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
+import com.carslab.crm.modules.invoice_templates.infrastructure.templates.ProfessionalDefaultTemplateProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -15,10 +16,8 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
 
     override fun renderTemplate(template: InvoiceTemplate, data: InvoiceGenerationData): String {
         try {
-            // Przygotuj wszystkie zmienne
             val variables = prepareVariables(data)
 
-            // Zamień template HTML
             var htmlContent = template.content.htmlTemplate
 
             // Przeprowadź podstawienia zmiennych
@@ -29,8 +28,6 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             // Usuń nieużywane placeholder'y
             htmlContent = htmlContent.replace(Regex("\\{\\{[^}]+\\}\\}"), "")
 
-            // NAPRAWKA: Bezpośrednio zwróć HTML bez dodatkowej obróbki
-            // Template już zawiera kompletną strukturę HTML
             logger.debug("Template rendered successfully")
             return htmlContent
 
@@ -59,7 +56,7 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             """<div class="company-initial">${escapeHtml(data.companySettings.basicInfo.companyName.take(1))}</div>"""
         }
 
-        // Items
+        // NAPRAWKA: Items HTML - bez dodatkowych podsumowań
         val itemsHtml = data.document.items.mapIndexed { index, item ->
             """
             <tr class="item-row">
@@ -77,17 +74,15 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             """.trimIndent()
         }.joinToString("\n")
 
-        // VAT Summary
-        val vatSummaryHtml = calculateVatSummary(data.document.items).joinToString("\n") { vat ->
-            """
-            <tr class="vat-row">
-                <td class="vat-rate">${vat["taxRate"]}</td>
-                <td class="vat-net">${vat["netSum"]}</td>
-                <td class="vat-amount">${vat["taxSum"]}</td>
-                <td class="vat-gross">${vat["grossSum"]}</td>
+        // NAPRAWKA: Pojedyncze, profesjonalne podsumowanie
+        val summaryHtml = """
+            <tr class="summary-row">
+                <td colspan="4" class="summary-label">RAZEM</td>
+                <td class="summary-tax">${formatMoney(data.document.totalTax)}</td>
+                <td class="summary-net">${formatMoney(data.document.totalNet)}</td>
+                <td class="summary-gross">${formatMoney(data.document.totalGross)}</td>
             </tr>
-            """.trimIndent()
-        }
+        """.trimIndent()
 
         return mapOf(
             "invoice.number" to escapeHtml(data.document.number),
@@ -109,7 +104,8 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             "totalGrossFormatted" to formatMoney(data.document.totalGross),
             "logoHtml" to logoHtml,
             "itemsHtml" to itemsHtml,
-            "vatSummaryHtml" to vatSummaryHtml,
+            // NAPRAWKA: Usuń vatSummaryHtml i zastąp summaryHtml
+            "summaryHtml" to summaryHtml,
             "generatedAt" to java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
             "hasLogo" to (data.logoData != null),
             "bankAccountNumber" to escapeHtml(data.companySettings.bankSettings?.bankAccountNumber ?: ""),
@@ -149,21 +145,5 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             com.carslab.crm.api.model.DocumentStatus.OVERDUE -> "Przeterminowana"
             com.carslab.crm.api.model.DocumentStatus.CANCELLED -> "Anulowana"
         }
-    }
-
-    private fun calculateVatSummary(items: List<com.carslab.crm.domain.model.view.finance.DocumentItem>): List<Map<String, Any>> {
-        return items.groupBy { it.taxRate }
-            .map { (taxRate, groupedItems) ->
-                val netSum = groupedItems.sumOf { it.totalNet }
-                val taxSum = groupedItems.sumOf { it.totalGross - it.totalNet }
-                val grossSum = groupedItems.sumOf { it.totalGross }
-
-                mapOf(
-                    "taxRate" to "${taxRate}%",
-                    "netSum" to formatMoney(netSum),
-                    "taxSum" to formatMoney(taxSum),
-                    "grossSum" to formatMoney(grossSum)
-                )
-            }
     }
 }

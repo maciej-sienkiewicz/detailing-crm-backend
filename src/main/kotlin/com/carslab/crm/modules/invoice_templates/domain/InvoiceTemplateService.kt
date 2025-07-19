@@ -46,7 +46,10 @@ class InvoiceTemplateService(
             logoData = logoData
         )
 
+        // NAPRAWKA: Renderuj szablon do pełnego HTML
         val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
+
+        // NAPRAWKA: Użyj Playwright do generowania PDF - BEZ dodatkowego czyszczenia!
         return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
     }
 
@@ -54,7 +57,8 @@ class InvoiceTemplateService(
         validateUploadRequest(request)
 
         val htmlContent = extractHtmlContent(request.file)
-        validateHtmlContent(htmlContent)
+        // NAPRAWKA: Zminimalizowana walidacja - Playwright obsługuje prawie wszystko
+        validateHtmlContentForPlaywright(htmlContent)
 
         val template = createTemplateFromUpload(request, companyId, htmlContent)
         return templateRepository.save(template)
@@ -162,8 +166,8 @@ class InvoiceTemplateService(
             throw ValidationException("File cannot be empty")
         }
 
-        if (request.file.size > 1024 * 1024) {
-            throw ValidationException("File size cannot exceed 1MB")
+        if (request.file.size > 5 * 1024 * 1024) { // 5MB - zwiększony limit
+            throw ValidationException("File size cannot exceed 5MB")
         }
 
         val filename = request.file.originalFilename
@@ -184,14 +188,23 @@ class InvoiceTemplateService(
         }
     }
 
-    private fun validateHtmlContent(html: String) {
+    // NAPRAWKA: Znacznie mniej restrykcyjna walidacja dla Playwright
+    private fun validateHtmlContentForPlaywright(html: String) {
+        if (html.isBlank()) {
+            throw ValidationException("HTML content cannot be empty")
+        }
+
+        if (html.length > 5_000_000) { // 5MB tekstu
+            throw ValidationException("HTML content too large (max 5MB)")
+        }
+
+        // Playwright obsługuje prawie wszystko, więc tylko podstawowe sprawdzenie
         if (!templateRenderingService.validateTemplateSyntax(html)) {
             throw ValidationException("Invalid HTML template syntax")
         }
 
-        if (!pdfGenerationService.validateHtmlForPdf(html)) {
-            throw ValidationException("HTML template is not compatible with PDF generation")
-        }
+        // NAPRAWKA: Nie sprawdzamy już kompatybilności z PDF - Playwright wszystko obsługuje!
+        logger.debug("HTML template validated for Playwright - no restrictions")
     }
 
     private fun createTemplateFromUpload(
@@ -206,7 +219,7 @@ class InvoiceTemplateService(
             description = request.description?.trim(),
             templateType = TemplateType.COMPANY_CUSTOM,
             content = TemplateContent(
-                htmlTemplate = htmlContent,
+                htmlTemplate = htmlContent, // BEZ żadnych modyfikacji!
                 cssStyles = extractCssFromHtml(htmlContent),
                 logoPlacement = LogoPlacement(
                     position = LogoPosition.TOP_LEFT,
@@ -224,9 +237,9 @@ class InvoiceTemplateService(
             ),
             isActive = false,
             metadata = TemplateMetadata(
-                version = "1.0",
+                version = "2.0", // Playwright version
                 author = null,
-                tags = setOf("custom", "uploaded"),
+                tags = setOf("custom", "uploaded", "playwright"),
                 legalCompliance = LegalCompliance(
                     country = "PL",
                     vatCompliant = true,

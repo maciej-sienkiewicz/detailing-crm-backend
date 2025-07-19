@@ -23,7 +23,7 @@ class InvoiceTemplateController(
     private val invoiceTemplateService: InvoiceTemplateService,
     private val securityContext: SecurityContext
 ) : BaseController() {
-
+    
     @GetMapping
     @Operation(summary = "Pobierz szablony faktur")
     fun getTemplates(): ResponseEntity<List<InvoiceTemplateResponse>> {
