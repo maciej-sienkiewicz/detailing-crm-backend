@@ -16,9 +16,9 @@ import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Propagation
 
 @Service
-@Transactional
 class InvoiceTemplateService(
     private val templateRepository: InvoiceTemplateRepository,
     private val pdfGenerationService: PdfGenerationService,
@@ -30,11 +30,17 @@ class InvoiceTemplateService(
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
+    @Transactional(readOnly = true)
     fun generateInvoiceForDocument(
         companyId: Long,
         documentId: String,
         templateId: InvoiceTemplateId? = null
     ): ByteArray {
+        logger.debug("Generating invoice for document {} with template {} for company {}",
+            documentId, templateId?.value, companyId)
+
+        validateCompanyId(companyId)
+
         val document = documentService.getDocumentById(documentId)
         val template = getTemplateForGeneration(companyId, templateId)
         val companySettings = getCompanySettings(companyId)
@@ -46,72 +52,123 @@ class InvoiceTemplateService(
             logoData = logoData
         )
 
-        // NAPRAWKA: Renderuj szablon do pełnego HTML
         val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
-
-        // NAPRAWKA: Użyj Playwright do generowania PDF - BEZ dodatkowego czyszczenia!
         return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
     }
 
+    @Transactional
     fun uploadTemplate(request: UploadTemplateRequest, companyId: Long): InvoiceTemplate {
+        logger.debug("Uploading template '{}' for company {}", request.name, companyId)
+
+        validateCompanyId(companyId)
         validateUploadRequest(request)
 
         val htmlContent = extractHtmlContent(request.file)
-        // NAPRAWKA: Zminimalizowana walidacja - Playwright obsługuje prawie wszystko
         validateHtmlContentForPlaywright(htmlContent)
 
         val template = createTemplateFromUpload(request, companyId, htmlContent)
         return templateRepository.save(template)
     }
 
+    @Transactional
     fun activateTemplate(companyId: Long, request: ActivateTemplateRequest) {
+        logger.debug("Activating template {} for company {}", request.templateId.value, companyId)
+
+        validateCompanyId(companyId)
+
         val template = templateRepository.findById(request.templateId)
             ?: throw ResourceNotFoundException("Template", request.templateId.value)
 
+        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
-            throw ValidationException("Template cannot be used by company: $companyId")
+            logger.warn("Company {} attempted to activate template {} which doesn't belong to them",
+                companyId, request.templateId.value)
+            throw ValidationException("Access denied - template does not belong to your company")
         }
 
         templateRepository.deactivateAllTemplatesForCompany(companyId)
         val activatedTemplate = template.copy(isActive = true)
         templateRepository.save(activatedTemplate)
+
+        logger.info("Template {} activated for company {}", request.templateId.value, companyId)
     }
 
+    @Transactional(readOnly = true)
     fun generateTemplatePreview(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
+        logger.debug("Generating preview for template {} for company {}", templateId.value, companyId)
+
+        validateCompanyId(companyId)
+
         val template = getTemplateForCompany(templateId, companyId)
         val mockData = createMockInvoiceData(companyId)
         val renderedHtml = templateRenderingService.renderTemplate(template, mockData)
         return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
     }
 
+    @Transactional(readOnly = true)
     fun exportTemplate(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
+        logger.debug("Exporting template {} for company {}", templateId.value, companyId)
+
+        validateCompanyId(companyId)
+
         val template = getTemplateForCompany(templateId, companyId)
         return template.content.htmlTemplate.toByteArray(Charsets.UTF_8)
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * NAPRAWKA: Usunięta adnotacja @Transactional(readOnly = true)
+     * bo metoda może wykonywać operacje zapisu (tworzenie domyślnego szablonu)
+     */
+    @Transactional
     fun getTemplatesForCompany(companyId: Long): List<InvoiceTemplate> {
+        logger.debug("Getting templates for company {}", companyId)
+
+        validateCompanyId(companyId)
+
         val existingTemplates = templateRepository.findByCompanyId(companyId)
 
         return if (existingTemplates.isEmpty()) {
+            logger.debug("No templates found for company {}, creating default template", companyId)
+
+            // NAPRAWKA: Sprawdź czy domyślny szablon już nie istnieje
+            val existingDefault = templateRepository.findActiveTemplateForCompany(companyId)
+            if (existingDefault != null) {
+                logger.debug("Default template already exists for company {}: {}", companyId, existingDefault.id.value)
+                return listOf(existingDefault)
+            }
+
             val defaultTemplate = professionalDefaultTemplateProvider.createDefaultTemplate(companyId)
             val savedTemplate = templateRepository.save(defaultTemplate)
+            logger.info("Default template created for company {}: {}", companyId, savedTemplate.id.value)
             listOf(savedTemplate)
         } else {
+            logger.debug("Found {} existing templates for company {}", existingTemplates.size, companyId)
             existingTemplates
         }
     }
 
     @Transactional(readOnly = true)
     fun getTemplate(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
+        logger.debug("Getting template {} for company {}", templateId.value, companyId)
+
+        validateCompanyId(companyId)
+
         return getTemplateForCompany(templateId, companyId)
     }
 
+    @Transactional
     fun deleteTemplate(templateId: InvoiceTemplateId, companyId: Long): Boolean {
+        logger.debug("Deleting template {} for company {}", templateId.value, companyId)
+
+        validateCompanyId(companyId)
+
         val template = templateRepository.findById(templateId) ?: return false
 
+        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
-            throw ValidationException("Template cannot be used by company: $companyId")
+            logger.warn("Company {} attempted to delete template {} which doesn't belong to them",
+                companyId, templateId.value)
+            throw ValidationException("Access denied - template does not belong to your company")
         }
 
         if (template.templateType == TemplateType.SYSTEM_DEFAULT) {
@@ -121,6 +178,28 @@ class InvoiceTemplateService(
         return templateRepository.deleteById(templateId)
     }
 
+    /**
+     * NAPRAWKA: Oddzielna metoda z nową transakcją dla tworzenia domyślnego szablonu
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun createDefaultTemplateIfNeeded(companyId: Long): InvoiceTemplate {
+        logger.debug("Creating default template for company {}", companyId)
+
+        // Sprawdź ponownie czy szablon nie został już utworzony przez inny wątek
+        val existing = templateRepository.findActiveTemplateForCompany(companyId)
+        if (existing != null) {
+            logger.debug("Default template already exists, returning existing: {}", existing.id.value)
+            return existing
+        }
+
+        val defaultTemplate = professionalDefaultTemplateProvider.createDefaultTemplate(companyId)
+        val savedTemplate = templateRepository.save(defaultTemplate)
+
+        logger.info("Default template created successfully for company {}: {}", companyId, savedTemplate.id.value)
+        return savedTemplate
+    }
+
+    @Transactional(readOnly = true)
     private fun getTemplateForGeneration(companyId: Long, templateId: InvoiceTemplateId?): InvoiceTemplate {
         return templateId?.let {
             getTemplateForCompany(it, companyId)
@@ -128,22 +207,28 @@ class InvoiceTemplateService(
         ?: getSystemDefaultTemplate()
     }
 
+    @Transactional(readOnly = true)
     private fun getTemplateForCompany(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
         val template = templateRepository.findById(templateId)
             ?: throw ResourceNotFoundException("Template", templateId.value)
 
+        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
-            throw ValidationException("Template cannot be used by company: $companyId")
+            logger.warn("Company {} attempted to access template {} which doesn't belong to them",
+                companyId, templateId.value)
+            throw ValidationException("Access denied - template does not belong to your company")
         }
 
         return template
     }
 
+    @Transactional(readOnly = true)
     private fun getSystemDefaultTemplate(): InvoiceTemplate {
         return templateRepository.findSystemDefaultTemplate()
             ?: throw IllegalStateException("System default template not found")
     }
 
+    @Transactional(readOnly = true)
     private fun getCompanySettings(companyId: Long) =
         companySettingsService.getCompanySettings(companyId)
             ?: throw IllegalStateException("Company settings not found for company: $companyId")
@@ -161,12 +246,22 @@ class InvoiceTemplateService(
         }
     }
 
+    /**
+     * SECURITY: Walidacja company ID
+     */
+    private fun validateCompanyId(companyId: Long) {
+        if (companyId <= 0) {
+            logger.error("Invalid company ID provided: {}", companyId)
+            throw ValidationException("Invalid company ID")
+        }
+    }
+
     private fun validateUploadRequest(request: UploadTemplateRequest) {
         if (request.file.isEmpty) {
             throw ValidationException("File cannot be empty")
         }
 
-        if (request.file.size > 5 * 1024 * 1024) { // 5MB - zwiększony limit
+        if (request.file.size > 5 * 1024 * 1024) { // 5MB
             throw ValidationException("File size cannot exceed 5MB")
         }
 
@@ -188,7 +283,6 @@ class InvoiceTemplateService(
         }
     }
 
-    // NAPRAWKA: Znacznie mniej restrykcyjna walidacja dla Playwright
     private fun validateHtmlContentForPlaywright(html: String) {
         if (html.isBlank()) {
             throw ValidationException("HTML content cannot be empty")
@@ -198,12 +292,10 @@ class InvoiceTemplateService(
             throw ValidationException("HTML content too large (max 5MB)")
         }
 
-        // Playwright obsługuje prawie wszystko, więc tylko podstawowe sprawdzenie
         if (!templateRenderingService.validateTemplateSyntax(html)) {
             throw ValidationException("Invalid HTML template syntax")
         }
 
-        // NAPRAWKA: Nie sprawdzamy już kompatybilności z PDF - Playwright wszystko obsługuje!
         logger.debug("HTML template validated for Playwright - no restrictions")
     }
 
@@ -219,7 +311,7 @@ class InvoiceTemplateService(
             description = request.description?.trim(),
             templateType = TemplateType.COMPANY_CUSTOM,
             content = TemplateContent(
-                htmlTemplate = htmlContent, // BEZ żadnych modyfikacji!
+                htmlTemplate = htmlContent,
                 cssStyles = extractCssFromHtml(htmlContent),
                 logoPlacement = LogoPlacement(
                     position = LogoPosition.TOP_LEFT,
@@ -237,7 +329,7 @@ class InvoiceTemplateService(
             ),
             isActive = false,
             metadata = TemplateMetadata(
-                version = "2.0", // Playwright version
+                version = "2.0",
                 author = null,
                 tags = setOf("custom", "uploaded", "playwright"),
                 legalCompliance = LegalCompliance(
@@ -261,6 +353,7 @@ class InvoiceTemplateService(
         return matches.joinToString("\n") { it.groupValues[1] }
     }
 
+    @Transactional(readOnly = true)
     private fun createMockInvoiceData(companyId: Long): InvoiceGenerationData {
         val companySettings = getCompanySettings(companyId)
 

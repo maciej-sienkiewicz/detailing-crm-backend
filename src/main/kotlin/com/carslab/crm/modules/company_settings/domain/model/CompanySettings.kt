@@ -81,9 +81,13 @@ data class CompanyBasicInfo(
 )
 
 data class BankSettings(
+    @JsonProperty("bank_account_number")
     val bankAccountNumber: String? = null,
+    @JsonProperty("bank_name")
     val bankName: String? = null,
+    @JsonProperty("swift-code")
     val swiftCode: String? = null,
+    @JsonProperty("account_holder_name")
     val accountHolderName: String? = null
 )
 

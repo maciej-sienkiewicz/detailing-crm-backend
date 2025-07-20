@@ -9,6 +9,7 @@ import com.carslab.crm.modules.company_settings.domain.port.CompanySettingsRepos
 import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.modules.company_settings.domain.model.BankSettings
+import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -76,7 +77,15 @@ class CompanySettingsDomainService(
         logger.debug("Updating company settings for company: $companyId")
 
         val existingSettings = companySettingsRepository.findByCompanyId(companyId)
-            ?: throw DomainException("Company settings not found for company: $companyId")
+            ?: companySettingsRepository.saveNew(
+                CreateCompanySettings(
+                    companyId = companyId,
+                    basicInfo = updateRequest.basicInfo,
+                    bankSettings = updateRequest.bankSettings ?: BankSettings(),
+                    emailSettings = encryptEmailPasswords(updateRequest.emailSettings ?: EmailSettings()),
+                    logoSettings = updateRequest.logoSettings ?: LogoSettings()
+                )
+            )
 
         // Validate basic info only if it's not placeholder values
         if (!isPlaceholderValues(updateRequest.basicInfo.companyName, updateRequest.basicInfo.taxId)) {
