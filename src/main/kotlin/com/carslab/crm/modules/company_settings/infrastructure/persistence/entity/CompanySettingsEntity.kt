@@ -20,7 +20,6 @@ class CompanySettingsEntity(
     @Column(name = "company_id", nullable = false, unique = true)
     val companyId: Long,
 
-    // Basic company info
     @Column(name = "company_name", nullable = false, length = 200)
     var companyName: String,
 
@@ -36,7 +35,6 @@ class CompanySettingsEntity(
     @Column(name = "website", length = 255)
     var website: String? = null,
 
-    // Bank settings
     @Column(name = "bank_account_number", length = 50)
     var bankAccountNumber: String? = null,
 
@@ -49,44 +47,6 @@ class CompanySettingsEntity(
     @Column(name = "account_holder_name", length = 200)
     var accountHolderName: String? = null,
 
-    // Email settings
-    @Column(name = "smtp_host", length = 255)
-    var smtpHost: String? = null,
-
-    @Column(name = "smtp_port")
-    var smtpPort: Int? = null,
-
-    @Column(name = "smtp_username", length = 255)
-    var smtpUsername: String? = null,
-
-    @Column(name = "smtp_password", length = 500) // Encrypted
-    var smtpPassword: String? = null,
-
-    @Column(name = "imap_host", length = 255)
-    var imapHost: String? = null,
-
-    @Column(name = "imap_port")
-    var imapPort: Int? = null,
-
-    @Column(name = "imap_username", length = 255)
-    var imapUsername: String? = null,
-
-    @Column(name = "imap_password", length = 500) // Encrypted
-    var imapPassword: String? = null,
-
-    @Column(name = "sender_email", length = 255)
-    var senderEmail: String? = null,
-
-    @Column(name = "sender_name", length = 200)
-    var senderName: String? = null,
-
-    @Column(name = "use_ssl", nullable = false)
-    var useSSL: Boolean = true,
-
-    @Column(name = "use_tls", nullable = false)
-    var useTLS: Boolean = true,
-
-    // Logo settings
     @Column(name = "logo_file_id", length = 100)
     var logoFileId: String? = null,
 
@@ -102,7 +62,6 @@ class CompanySettingsEntity(
     @Column(name = "logo_url", length = 500)
     var logoUrl: String? = null,
 
-    // Audit fields
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
@@ -139,20 +98,6 @@ class CompanySettingsEntity(
             swiftCode = swiftCode,
             accountHolderName = accountHolderName
         ),
-        emailSettings = EmailSettings(
-            smtpHost = smtpHost,
-            smtpPort = smtpPort,
-            smtpUsername = smtpUsername,
-            smtpPassword = smtpPassword,
-            imapHost = imapHost,
-            imapPort = imapPort,
-            imapUsername = imapUsername,
-            imapPassword = imapPassword,
-            senderEmail = senderEmail,
-            senderName = senderName,
-            useSSL = useSSL,
-            useTLS = useTLS
-        ),
         logoSettings = LogoSettings(
             logoFileId = logoFileId,
             logoFileName = logoFileName,
@@ -181,18 +126,6 @@ class CompanySettingsEntity(
             bankName = settings.bankSettings.bankName,
             swiftCode = settings.bankSettings.swiftCode,
             accountHolderName = settings.bankSettings.accountHolderName,
-            smtpHost = settings.emailSettings.smtpHost,
-            smtpPort = settings.emailSettings.smtpPort,
-            smtpUsername = settings.emailSettings.smtpUsername,
-            smtpPassword = settings.emailSettings.smtpPassword,
-            imapHost = settings.emailSettings.imapHost,
-            imapPort = settings.emailSettings.imapPort,
-            imapUsername = settings.emailSettings.imapUsername,
-            imapPassword = settings.emailSettings.imapPassword,
-            senderEmail = settings.emailSettings.senderEmail,
-            senderName = settings.emailSettings.senderName,
-            useSSL = settings.emailSettings.useSSL,
-            useTLS = settings.emailSettings.useTLS,
             logoFileId = settings.logoSettings.logoFileId,
             logoFileName = settings.logoSettings.logoFileName,
             logoContentType = settings.logoSettings.logoContentType,

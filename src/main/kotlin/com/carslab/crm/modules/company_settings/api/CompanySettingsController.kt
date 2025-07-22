@@ -180,7 +180,6 @@ class CompanySettingsController(
             return false
         }
 
-        // NIP checksum validation
         val weights = intArrayOf(6, 5, 7, 2, 3, 4, 5, 6, 7)
         val digits = nipDigits.map { it.toString().toInt() }
 
@@ -194,10 +193,6 @@ class CompanySettingsController(
         ValidationUtils.validateNotBlank(request.companyName, "Company name")
         ValidationUtils.validateNotBlank(request.taxId, "Tax ID")
 
-        request.senderEmail?.let { email ->
-            ValidationUtils.validateEmail(email)
-        }
-
         request.phone?.let { phone ->
             ValidationUtils.validatePhone(phone)
         }
@@ -207,11 +202,7 @@ class CompanySettingsController(
         ValidationUtils.validateNotBlank(request.basicInfo.companyName, "Company name")
         ValidationUtils.validateNotBlank(request.basicInfo.taxId, "Tax ID")
 
-        request.emailSettings?.senderEmail?.let { email ->
-            ValidationUtils.validateEmail(email)
-        }
-
-        request.basicInfo?.phone?.let { phone ->
+        request.basicInfo.phone?.let { phone ->
             ValidationUtils.validatePhone(phone)
         }
     }

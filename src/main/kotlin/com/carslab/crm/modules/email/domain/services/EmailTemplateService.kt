@@ -1,7 +1,6 @@
 package com.carslab.crm.modules.email.domain.services
 
 import com.carslab.crm.modules.email.domain.model.ProtocolEmailData
-import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -13,7 +12,6 @@ class EmailTemplateService {
         private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         private val DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
-        // Profesjonalny szablon HTML dla detailingu - Dark Premium Style
         private const val DEFAULT_PROTOCOL_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pl">
@@ -304,15 +302,6 @@ class EmailTemplateService {
             color: #ffffff;
         }
         
-        .address-item {
-            background: linear-gradient(145deg, #333333 0%, #2a2a2a 100%);
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid #404040;
-            margin-top: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
         .footer {
             background: linear-gradient(145deg, #1a1a1a 0%, #0f0f0f 100%);
             padding: 40px 50px;
@@ -386,13 +375,6 @@ class EmailTemplateService {
             <div class="contact-title">Kontakt w sprawie zlecenia</div>
             
             <div class="contact-info">
-                {{#if COMPANY_PHONE}}
-                <div class="contact-item">
-                    <div class="contact-label">Telefon</div>
-                    <div class="contact-value">{{COMPANY_PHONE}}</div>
-                </div>
-                {{/if}}
-                
                 {{#if COMPANY_EMAIL}}
                 <div class="contact-item">
                     <div class="contact-label">Email</div>
@@ -400,13 +382,6 @@ class EmailTemplateService {
                 </div>
                 {{/if}}
             </div>
-            
-            {{#if COMPANY_ADDRESS}}
-            <div class="address-item">
-                <div class="contact-label">Adres</div>
-                <div style="font-size: 16px; color: #ffffff;">{{COMPANY_ADDRESS}}</div>
-            </div>
-            {{/if}}
         </div>
 
         <div class="footer">
@@ -414,7 +389,7 @@ class EmailTemplateService {
                 Dziękujemy za <span class="highlight">zaufanie</span> i wybór naszego studia detailingowego
             </div>
             <div class="footer-note">
-                Ta wiadomość została wygenerowana automatycznie. W razie pytań prosimy o kontakt telefoniczny.
+                Ta wiadomość została wygenerowana automatycznie. W razie pytań prosimy o kontakt mailowy.
             </div>
         </div>
     </div>
@@ -425,36 +400,30 @@ class EmailTemplateService {
 
     fun generateProtocolEmail(
         protocolData: ProtocolEmailData,
-        companySettings: CompanySettings,
+        companyName: String,
+        companyEmail: String,
         additionalVariables: Map<String, String> = emptyMap()
     ): String {
         var content = DEFAULT_PROTOCOL_TEMPLATE
 
-        // Formatowanie okresu serwisu
         val formattedServicePeriod = formatServicePeriod(protocolData.servicePeriod)
 
-        // Podstawowe zmienne
         val variables = mutableMapOf(
-            "COMPANY_NAME" to companySettings.basicInfo.companyName,
+            "COMPANY_NAME" to companyName,
             "CLIENT_NAME" to protocolData.clientName,
             "VEHICLE_MAKE" to protocolData.vehicleMake,
             "VEHICLE_MODEL" to protocolData.vehicleModel,
             "LICENSE_PLATE" to protocolData.licensePlate,
             "SERVICE_PERIOD" to formattedServicePeriod,
-            "COMPANY_ADDRESS" to (companySettings.basicInfo.address ?: ""),
-            "COMPANY_PHONE" to (companySettings.basicInfo.phone ?: ""),
-            "COMPANY_EMAIL" to (companySettings.emailSettings?.senderEmail ?: "")
+            "COMPANY_EMAIL" to companyEmail
         )
 
-        // Dodaj dodatkowe zmienne
         variables.putAll(additionalVariables)
 
-        // Zastąp wszystkie zmienne
         variables.forEach { (key, value) ->
             content = content.replace("{{$key}}", value)
         }
 
-        // Obsługa warunków {{#if}}
         content = handleConditionalBlocks(content, variables)
 
         return content
@@ -466,7 +435,6 @@ class EmailTemplateService {
 
     private fun formatServicePeriod(servicePeriod: String): String {
         try {
-            // Oczekujemy formatu: "2025-06-17T16:31:00 - 2025-06-17T23:59:59"
             val parts = servicePeriod.split(" - ")
 
             if (parts.size == 2) {
@@ -479,7 +447,6 @@ class EmailTemplateService {
                 return "$startFormatted - $endFormatted"
             }
         } catch (e: Exception) {
-            // Jeśli parsowanie się nie uda, zwróć oryginalną wartość
         }
 
         return servicePeriod
@@ -488,7 +455,6 @@ class EmailTemplateService {
     private fun handleConditionalBlocks(content: String, variables: Map<String, String>): String {
         var result = content
 
-        // Znajdź wszystkie bloki {{#if VARIABLE}}...{{/if}}
         val conditionalRegex = Regex("\\{\\{#if (\\w+)\\}\\}(.*?)\\{\\{/if\\}\\}", RegexOption.DOT_MATCHES_ALL)
 
         result = conditionalRegex.replace(result) { matchResult ->
@@ -496,7 +462,6 @@ class EmailTemplateService {
             val blockContent = matchResult.groupValues[2]
             val variableValue = variables[variableName]
 
-            // Pokaż blok tylko jeśli zmienna istnieje i nie jest pusta
             if (!variableValue.isNullOrBlank()) {
                 blockContent
             } else {

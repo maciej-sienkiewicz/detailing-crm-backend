@@ -102,15 +102,17 @@ class ProtocolDocumentStorageService(
     /**
      * Pobiera dane dokumentu
      */
-    fun getDocumentData(storageId: String): ByteArray? {
+    fun getDocumentData(visitId: String): ByteArray? {
         val companyId = getCurrentCompanyId()
+        
+        val files = protocolDocumentRepository.findByProtocolIdAndCompanyId(visitId.toLong(), companyId)
 
         // Sprawdź uprawnienia
-        if (!protocolDocumentRepository.existsByStorageIdAndCompanyId(storageId, companyId)) {
-            throw RuntimeException("Document not found or access denied: $storageId")
+        if (files.isEmpty()) {
+            throw RuntimeException("Document not found or access denied: $visitId")
         }
 
-        return universalStorageService.retrieveFile(storageId)
+        return universalStorageService.retrieveFile(files.first().storageId)
     }
 
     /**

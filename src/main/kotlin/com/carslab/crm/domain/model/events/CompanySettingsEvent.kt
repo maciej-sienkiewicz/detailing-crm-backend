@@ -25,23 +25,6 @@ sealed class CompanySettingsEvent {
         override val timestamp: LocalDateTime = LocalDateTime.now()
     ) : CompanySettingsEvent()
 
-    data class EmailSettingsUpdated(
-        override val companyId: Long,
-        val smtpHost: String?,
-        val smtpPort: Int?,
-        val smtpUsername: String?,
-        val smtpPassword: String?,
-        val imapHost: String?,
-        val imapPort: Int?,
-        val imapUsername: String?,
-        val imapPassword: String?,
-        val senderEmail: String?,
-        val senderName: String?,
-        val useSSL: Boolean,
-        val useTLS: Boolean,
-        override val timestamp: LocalDateTime = LocalDateTime.now()
-    ) : CompanySettingsEvent()
-
     data class LogoUpdated(
         override val companyId: Long,
         val logoFileId: String?,

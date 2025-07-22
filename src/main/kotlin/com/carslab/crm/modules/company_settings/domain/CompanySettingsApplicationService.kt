@@ -7,7 +7,6 @@ import com.carslab.crm.modules.company_settings.domain.model.BankSettings
 import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
 import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import com.carslab.crm.modules.company_settings.domain.model.CreateCompanySettings
-import com.carslab.crm.modules.company_settings.domain.model.EmailSettings
 import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
@@ -46,20 +45,6 @@ class CompanySettingsApplicationService(
                     bankName = request.bankName,
                     swiftCode = request.swiftCode,
                     accountHolderName = request.accountHolderName
-                ),
-                emailSettings = EmailSettings(
-                    smtpHost = request.smtpHost,
-                    smtpPort = request.smtpPort,
-                    smtpUsername = request.smtpUsername,
-                    smtpPassword = request.smtpPassword,
-                    imapHost = request.imapHost,
-                    imapPort = request.imapPort,
-                    imapUsername = request.imapUsername,
-                    imapPassword = request.imapPassword,
-                    senderEmail = request.senderEmail,
-                    senderName = request.senderName,
-                    useSSL = request.useSSL ?: true,
-                    useTLS = request.useTLS ?: true
                 )
             )
 
@@ -106,46 +91,35 @@ class CompanySettingsApplicationService(
             companyId = null,
             basicInfo = null,
             bankSettings = null,
-            emailSettings = null,
             logoSettings = null,
             createdAt = null,
             updatedAt = null
         )
     }
 
-    /**
-     * Uploads logo for a company. If company settings don't exist, creates them with default values.
-     * This ensures that logo can be uploaded at any time, even for new companies.
-     */
     fun uploadLogo(companyId: Long, logoFile: MultipartFile): CompanySettingsResponse {
         logger.info("Uploading logo for company: $companyId")
 
         try {
             validateLogoFile(logoFile)
 
-            // Get existing settings or create defaults if they don't exist
             val existingSettings = getOrCreateDefaultCompanySettings(companyId)
 
-            // Remove previous logo if it exists
             existingSettings.logoSettings.logoFileId?.let { oldLogoId ->
                 try {
                     logoStorageService.deleteLogo(oldLogoId)
                     logger.debug("Deleted previous logo: $oldLogoId")
                 } catch (e: Exception) {
                     logger.warn("Failed to delete previous logo: $oldLogoId", e)
-                    // Continue with upload even if deletion fails
                 }
             }
 
-            // Store new logo
             val logoMetadata = logoStorageService.storeLogo(companyId, logoFile)
             logger.debug("Stored new logo with ID: ${logoMetadata.fileId}")
 
-            // Update settings with new logo information
             val updateRequest = UpdateCompanySettingsRequest(
                 basicInfo = existingSettings.basicInfo,
                 bankSettings = existingSettings.bankSettings,
-                emailSettings = existingSettings.emailSettings,
                 logoSettings = LogoSettings(
                     logoFileId = logoMetadata.fileId,
                     logoFileName = logoMetadata.fileName,
@@ -171,23 +145,19 @@ class CompanySettingsApplicationService(
         try {
             val existingSettings = getOrCreateDefaultCompanySettings(companyId)
 
-            // Delete logo file if it exists
             existingSettings.logoSettings.logoFileId?.let { logoFileId ->
                 try {
                     logoStorageService.deleteLogo(logoFileId)
                     logger.debug("Deleted logo file: $logoFileId")
                 } catch (e: Exception) {
                     logger.warn("Failed to delete logo file: $logoFileId", e)
-                    // Continue with settings update even if file deletion fails
                 }
             }
 
-            // Update settings to remove logo information
             val updateRequest = UpdateCompanySettingsRequest(
                 basicInfo = existingSettings.basicInfo,
                 bankSettings = existingSettings.bankSettings,
-                emailSettings = existingSettings.emailSettings,
-                logoSettings = LogoSettings() // Empty logo settings
+                logoSettings = LogoSettings()
             )
 
             val updatedSettings = companySettingsDomainService.updateCompanySettings(companyId, updateRequest)
@@ -210,7 +180,6 @@ class CompanySettingsApplicationService(
                 logger.debug("Deleted logo file during settings deletion: $logoFileId")
             } catch (e: Exception) {
                 logger.warn("Failed to delete logo file during settings deletion: $logoFileId", e)
-                // Continue with settings deletion even if logo deletion fails
             }
         }
 
@@ -225,33 +194,24 @@ class CompanySettingsApplicationService(
         return deleted
     }
 
-    /**
-     * Gets existing company settings or creates default ones if they don't exist.
-     * This ensures that operations like logo upload can work even for new companies.
-     */
     private fun getOrCreateDefaultCompanySettings(companyId: Long): CompanySettings {
         return companySettingsDomainService.getCompanySettings(companyId)
             ?: createDefaultCompanySettings(companyId)
     }
 
-    /**
-     * Creates default company settings for a new company.
-     * Uses placeholder values that can be updated later by the administrator.
-     */
     private fun createDefaultCompanySettings(companyId: Long): CompanySettings {
         logger.info("Creating default company settings for company: $companyId")
 
         val defaultCreateRequest = CreateCompanySettings(
             companyId = companyId,
             basicInfo = CompanyBasicInfo(
-                companyName = "Your Company", // Placeholder - to be updated by admin
-                taxId = "0000000000", // Placeholder - to be updated by admin
+                companyName = "Your Company",
+                taxId = "0000000000",
                 address = null,
                 phone = null,
                 website = null
             ),
             bankSettings = BankSettings(),
-            emailSettings = EmailSettings(),
             logoSettings = LogoSettings()
         )
 

@@ -67,19 +67,6 @@ class CompanySettingsRepositoryAdapter(
         entity.swiftCode = domain.bankSettings.swiftCode
         entity.accountHolderName = domain.bankSettings.accountHolderName
 
-        entity.smtpHost = domain.emailSettings.smtpHost
-        entity.smtpPort = domain.emailSettings.smtpPort
-        entity.smtpUsername = domain.emailSettings.smtpUsername
-        entity.smtpPassword = domain.emailSettings.smtpPassword
-        entity.imapHost = domain.emailSettings.imapHost
-        entity.imapPort = domain.emailSettings.imapPort
-        entity.imapUsername = domain.emailSettings.imapUsername
-        entity.imapPassword = domain.emailSettings.imapPassword
-        entity.senderEmail = domain.emailSettings.senderEmail
-        entity.senderName = domain.emailSettings.senderName
-        entity.useSSL = domain.emailSettings.useSSL
-        entity.useTLS = domain.emailSettings.useTLS
-
         entity.logoFileId = domain.logoSettings.logoFileId
         entity.logoFileName = domain.logoSettings.logoFileName
         entity.logoContentType = domain.logoSettings.logoContentType

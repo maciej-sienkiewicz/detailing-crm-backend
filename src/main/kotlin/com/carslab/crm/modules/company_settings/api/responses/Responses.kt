@@ -17,9 +17,6 @@ data class CompanySettingsResponse(
     @JsonProperty("bank_settings")
     val bankSettings: BankSettingsResponse?,
 
-    @JsonProperty("email_settings")
-    val emailSettings: EmailSettingsResponse?,
-
     @JsonProperty("logo_settings")
     val logoSettings: LogoSettingsResponse?,
 
@@ -35,7 +32,6 @@ data class CompanySettingsResponse(
             companyId = settings.companyId,
             basicInfo = CompanyBasicInfoResponse.from(settings.basicInfo),
             bankSettings = BankSettingsResponse.from(settings.bankSettings),
-            emailSettings = EmailSettingsResponse.from(settings.emailSettings),
             logoSettings = LogoSettingsResponse.from(settings.logoSettings),
             createdAt = settings.audit.createdAt,
             updatedAt = settings.audit.updatedAt
@@ -95,70 +91,6 @@ data class BankSettingsResponse(
     }
 }
 
-data class EmailSettingsResponse(
-    @JsonProperty("smtp_host")
-    val smtpHost: String?,
-
-    @JsonProperty("smtp_port")
-    val smtpPort: Int?,
-
-    @JsonProperty("smtp_username")
-    val smtpUsername: String?,
-
-    @JsonProperty("smtp_password_configured")
-    val smtpPasswordConfigured: Boolean,
-
-    @JsonProperty("imap_host")
-    val imapHost: String?,
-
-    @JsonProperty("imap_port")
-    val imapPort: Int?,
-
-    @JsonProperty("imap_username")
-    val imapUsername: String?,
-
-    @JsonProperty("imap_password_configured")
-    val imapPasswordConfigured: Boolean,
-
-    @JsonProperty("sender_email")
-    val senderEmail: String?,
-
-    @JsonProperty("sender_name")
-    val senderName: String?,
-
-    @JsonProperty("use_ssl")
-    val useSSL: Boolean,
-
-    @JsonProperty("use_tls")
-    val useTLS: Boolean,
-
-    @JsonProperty("smtp_configured")
-    val smtpConfigured: Boolean,
-
-    @JsonProperty("imap_configured")
-    val imapConfigured: Boolean
-) {
-    companion object {
-        fun from(emailSettings: com.carslab.crm.modules.company_settings.domain.model.EmailSettings): EmailSettingsResponse =
-            EmailSettingsResponse(
-                smtpHost = emailSettings.smtpHost,
-                smtpPort = emailSettings.smtpPort,
-                smtpUsername = emailSettings.smtpUsername,
-                smtpPasswordConfigured = !emailSettings.smtpPassword.isNullOrBlank(),
-                imapHost = emailSettings.imapHost,
-                imapPort = emailSettings.imapPort,
-                imapUsername = emailSettings.imapUsername,
-                imapPasswordConfigured = !emailSettings.imapPassword.isNullOrBlank(),
-                senderEmail = emailSettings.senderEmail,
-                senderName = emailSettings.senderName,
-                useSSL = emailSettings.useSSL,
-                useTLS = emailSettings.useTLS,
-                smtpConfigured = emailSettings.hasValidSmtpConfig(),
-                imapConfigured = emailSettings.hasValidImapConfig()
-            )
-    }
-}
-
 data class LogoSettingsResponse(
     @JsonProperty("has_logo")
     val hasLogo: Boolean,
@@ -186,14 +118,3 @@ data class LogoSettingsResponse(
             )
     }
 }
-
-data class EmailTestResponse(
-    @JsonProperty("success")
-    val success: Boolean,
-
-    @JsonProperty("message")
-    val message: String,
-
-    @JsonProperty("error_details")
-    val errorDetails: String? = null
-)
