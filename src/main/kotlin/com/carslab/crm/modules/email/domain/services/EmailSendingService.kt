@@ -28,9 +28,6 @@ class EmailSendingService(
 
     fun sendProtocolEmail(
         protocolId: String,
-        recipientEmail: String? = null,
-        customSubject: String? = null,
-        additionalVariables: Map<String, String> = emptyMap()
     ): String {
         logger.info("Starting protocol email sending process for protocol: $protocolId")
 
@@ -45,7 +42,7 @@ class EmailSendingService(
             ?: throw IllegalStateException("Company settings not found for company: $companyId")
 
         // Określ adres odbiorcy
-        val finalRecipientEmail = recipientEmail ?: protocolData.clientEmail
+        val finalRecipientEmail = protocolData.clientEmail
         if (finalRecipientEmail.isBlank()) {
             throw IllegalArgumentException("No recipient email address available")
         }
@@ -62,11 +59,10 @@ class EmailSendingService(
             val emailContent = emailTemplateService.generateProtocolEmail(
                 protocolData = protocolData,
                 companySettings = companySettings,
-                additionalVariables = additionalVariables
             )
 
             // Określ temat
-            val subject = customSubject ?: emailTemplateService.generateSubject(protocolData)
+            val subject = emailTemplateService.generateSubject(protocolData)
 
             // Zapisz w historii jako PENDING
             val emailHistory = EmailHistory(
@@ -82,7 +78,6 @@ class EmailSendingService(
             emailRepository.save(emailHistory)
 
             val attachment = protocolDocumentStorageService.getDocumentData(protocolId)
-            // Wyślij email
             val sent = emailSender.sendEmail(
                 recipientEmail = companySettings.emailSettings.senderEmail!!,
                 subject = subject,

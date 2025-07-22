@@ -5,17 +5,15 @@ import com.google.api.client.http.ByteArrayContent
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
-class GoogleDriveFileUploader(
-    @Value("\${google.drive.root.folder.id:root}") private val rootFolderId: String
-) {
+class GoogleDriveFileUploader {
     private val logger = LoggerFactory.getLogger(GoogleDriveFileUploader::class.java)
 
-    fun uploadFile(
+    fun uploadFileToFolder(
         driveService: Drive,
+        targetFolderId: String,
         fileData: ByteArray,
         fileName: String,
         folderPath: String,
@@ -24,15 +22,15 @@ class GoogleDriveFileUploader(
     ): UploadResult {
 
         return try {
-            logger.debug("Uploading file {} to Google Drive folder: {}", fileName, folderPath)
+            logger.debug("Uploading file {} to Google Drive folder: {} in path: {}", fileName, targetFolderId, folderPath)
 
-            // Użyj niestandardowego root folderu zamiast "root"
-            val folderId = createOrFindFolder(driveService, folderPath)
+            // Utwórz strukturę folderów w ramach udostępnionego folderu
+            val finalFolderId = createOrFindFolderStructure(driveService, targetFolderId, folderPath)
 
             // Przygotuj metadane pliku
             val fileMetadata = File().apply {
                 name = fileName
-                parents = listOf(folderId)
+                parents = listOf(finalFolderId)
 
                 // Dodaj custom properties jeśli są dostępne
                 if (metadata.isNotEmpty()) {
@@ -46,7 +44,7 @@ class GoogleDriveFileUploader(
             // Upload pliku
             val uploadedFile = driveService.files()
                 .create(fileMetadata, mediaContent)
-                .setFields("id,name,size,createdTime")
+                .setFields("id,name,size,createdTime,webViewLink")
                 .execute()
 
             logger.debug("Successfully uploaded file {} with ID: {}", fileName, uploadedFile.id)
@@ -55,7 +53,8 @@ class GoogleDriveFileUploader(
                 success = true,
                 fileId = uploadedFile.id,
                 fileName = uploadedFile.name,
-                fileSize = uploadedFile.getSize()
+                fileSize = uploadedFile.getSize(),
+                webViewLink = uploadedFile.webViewLink
             )
 
         } catch (e: Exception) {
@@ -67,20 +66,20 @@ class GoogleDriveFileUploader(
         }
     }
 
-    private fun createOrFindFolder(driveService: Drive, folderPath: String): String {
+    private fun createOrFindFolderStructure(driveService: Drive, parentFolderId: String, folderPath: String): String {
         val pathParts = folderPath.split("/").filter { it.isNotBlank() }
-        var currentParentId = rootFolderId // Użyj niestandardowego root folderu
+        var currentParentId = parentFolderId
 
-        logger.debug("Using root folder ID: {}", rootFolderId)
+        logger.debug("Creating folder structure: {} in parent: {}", folderPath, parentFolderId)
 
         pathParts.forEach { folderName ->
-            currentParentId = findOrCreateFolder(driveService, folderName, currentParentId)
+            currentParentId = findOrCreateSubfolder(driveService, folderName, currentParentId)
         }
 
         return currentParentId
     }
 
-    private fun findOrCreateFolder(driveService: Drive, folderName: String, parentId: String): String {
+    private fun findOrCreateSubfolder(driveService: Drive, folderName: String, parentId: String): String {
         // Sprawdź czy folder już istnieje
         val query = "name='$folderName' and '$parentId' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
 
@@ -92,7 +91,7 @@ class GoogleDriveFileUploader(
 
         val existingFolder = result.files.firstOrNull()
         if (existingFolder != null) {
-            logger.debug("Found existing folder: {} with ID: {}", folderName, existingFolder.id)
+            logger.debug("Found existing subfolder: {} with ID: {}", folderName, existingFolder.id)
             return existingFolder.id
         }
 
@@ -108,7 +107,7 @@ class GoogleDriveFileUploader(
             .setFields("id,name")
             .execute()
 
-        logger.debug("Created new folder: {} with ID: {}", folderName, createdFolder.id)
+        logger.debug("Created new subfolder: {} with ID: {}", folderName, createdFolder.id)
         return createdFolder.id
     }
 }
@@ -118,5 +117,6 @@ data class UploadResult(
     val fileId: String? = null,
     val fileName: String? = null,
     val fileSize: Long? = null,
+    val webViewLink: String? = null,
     val error: String? = null
 )

@@ -21,9 +21,6 @@ class SendProtocolEmailCommandHandler(
         try {
             val emailId = emailSendingService.sendProtocolEmail(
                 protocolId = command.protocolId,
-                recipientEmail = command.recipientEmail,
-                customSubject = command.customSubject,
-                additionalVariables = command.additionalVariables
             )
 
             logger.info("Successfully processed email sending for protocol: ${command.protocolId}, emailId: $emailId")

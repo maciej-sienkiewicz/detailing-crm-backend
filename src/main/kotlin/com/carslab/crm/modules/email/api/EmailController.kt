@@ -25,14 +25,11 @@ class EmailController(
     @PostMapping("/send/protocol")
     @Operation(summary = "Send protocol email", description = "Sends protocol email to client using default template")
     fun sendProtocolEmail(@Valid @RequestBody request: SendProtocolEmailRequest): ResponseEntity<EmailSendResponse> {
-        logger.info("Sending protocol email for protocol: ${request.protocolId}")
+        logger.info("Sending protocol email for protocol: ${request.visit_id}")
 
         try {
             val command = SendProtocolEmailCommand(
-                protocolId = request.protocolId,
-                recipientEmail = request.recipientEmail,
-                customSubject = request.customSubject,
-                additionalVariables = request.additionalVariables
+                protocolId = request.visit_id
             )
 
             val emailId = commandBus.execute(command)
@@ -44,7 +41,7 @@ class EmailController(
                 message = "Protocol email sent successfully"
             ))
         } catch (e: Exception) {
-            logger.error("Error sending protocol email for protocol: ${request.protocolId}", e)
+            logger.error("Error sending protocol email for protocol: ${request.visit_id}", e)
             return ok(EmailSendResponse(
                 emailId = null,
                 status = "FAILED",

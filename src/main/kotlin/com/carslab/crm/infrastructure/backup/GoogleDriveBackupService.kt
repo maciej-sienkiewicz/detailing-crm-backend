@@ -5,8 +5,10 @@ import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
-import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveClientFactory
+import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveSystemService
+import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveFolderService
 import com.carslab.crm.infrastructure.backup.googledrive.GoogleDriveFileUploader
+import com.carslab.crm.modules.invoice_templates.infrastructure.rendering.ThymeleafTemplateRenderingService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,21 +20,34 @@ import java.time.format.DateTimeFormatter
 class GoogleDriveBackupService(
     private val documentRepository: UnifiedDocumentRepository,
     private val universalStorageService: UniversalStorageService,
-    private val googleDriveClientFactory: GoogleDriveClientFactory,
-    private val googleDriveFileUploader: GoogleDriveFileUploader
+    private val googleDriveSystemService: GoogleDriveSystemService,
+    private val googleDriveFolderService: GoogleDriveFolderService,
+    private val googleDriveFileUploader: GoogleDriveFileUploader,
+    private val templateRenderingService: ThymeleafTemplateRenderingService
 ) {
     private val logger = LoggerFactory.getLogger(GoogleDriveBackupService::class.java)
 
-    @Transactional(readOnly = true)
     fun backupCurrentMonthInvoicesToGoogleDrive(companyId: Long) {
         logger.info("Starting Google Drive backup for company: {} for current month", companyId)
 
         try {
+            // Sprawdź czy integracja jest aktywna
+            val folderConfig = googleDriveFolderService.getFolderConfigurationForCompany(companyId)
+            if (folderConfig == null || !folderConfig.isActive) {
+                throw RuntimeException("Google Drive integration is not configured or inactive for company $companyId")
+            }
+
+            // Sprawdź czy systemowy serwis jest dostępny
+            if (!googleDriveSystemService.isSystemServiceAvailable()) {
+                throw RuntimeException("Google Drive system service is not available")
+            }
+
             val currentMonth = YearMonth.now()
             val startDate = currentMonth.atDay(1)
             val endDate = currentMonth.atEndOfMonth()
 
-            logger.debug("Backing up invoices from {} to {} for company {}", startDate, endDate, companyId)
+            logger.debug("Backing up invoices from {} to {} for company {} to folder: {}",
+                startDate, endDate, companyId, folderConfig.folderId)
 
             // Pobierz wszystkie faktury dla danego companyId w bieżącym miesiącu
             val invoices = documentRepository.findInvoicesByCompanyAndDateRange(
@@ -43,14 +58,13 @@ class GoogleDriveBackupService(
 
             if (invoices.isEmpty()) {
                 logger.info("No invoices found for company {} in current month", companyId)
+                googleDriveFolderService.updateBackupStatus(companyId, "SUCCESS_NO_FILES")
                 return
             }
 
             logger.info("Found {} invoices to backup for company {}", invoices.size, companyId)
 
-            // Inicjalizuj Google Drive client dla tego company
-            val driveService = googleDriveClientFactory.createDriveService(companyId)
-
+            val driveService = googleDriveSystemService.getSystemDriveService()
             var successCount = 0
             var errorCount = 0
 
@@ -71,15 +85,14 @@ class GoogleDriveBackupService(
                         return@forEach
                     }
 
-                    // Wygeneruj ścieżkę w Google Drive: faktury/rok/miesiac
+                    // Wygeneruj ścieżkę w folderze: faktury/rok/miesiac/kierunek
                     val folderPath = generateDriveFolderPath(document.issuedDate, document.direction)
-
-                    // Wygeneruj nazwę pliku
                     val fileName = generateFileName(document)
 
                     // Upload do Google Drive
-                    val uploadResult = googleDriveFileUploader.uploadFile(
+                    val uploadResult = googleDriveFileUploader.uploadFileToFolder(
                         driveService = driveService,
+                        targetFolderId = folderConfig.folderId,
                         fileData = fileData,
                         fileName = fileName,
                         folderPath = folderPath,
@@ -110,11 +123,15 @@ class GoogleDriveBackupService(
                 }
             }
 
+            val status = if (errorCount == 0) "SUCCESS" else "PARTIAL_SUCCESS"
+            googleDriveFolderService.updateBackupStatus(companyId, status)
+
             logger.info("Google Drive backup completed for company {}. Success: {}, Errors: {}",
                 companyId, successCount, errorCount)
 
         } catch (e: Exception) {
             logger.error("Failed to backup invoices to Google Drive for company {}", companyId, e)
+            googleDriveFolderService.updateBackupStatus(companyId, "ERROR")
             throw RuntimeException("Google Drive backup failed for company $companyId", e)
         }
     }
