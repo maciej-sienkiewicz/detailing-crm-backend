@@ -1,8 +1,10 @@
 package com.carslab.crm.modules.visits.infrastructure.events
 
+import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.modules.activities.domain.services.ActivityService
 import com.carslab.crm.modules.activities.application.queries.models.*
 import com.carslab.crm.modules.visits.domain.events.*
+import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Async
@@ -10,7 +12,8 @@ import org.springframework.stereotype.Component
 
 @Component
 class VisitCommentActivityEventHandler(
-    private val activityService: ActivityService
+    private val activityService: ActivityService,
+    private val protocolRepository: ProtocolRepository,
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommentActivityEventHandler::class.java)
 
@@ -48,6 +51,8 @@ class VisitCommentActivityEventHandler(
                 userId = event.userId,
                 userName = event.userName
             )
+            
+            protocolRepository.updateAuditLog(ProtocolId(event.visitId))
         } catch (e: Exception) {
             logger.error("Failed to create activity for visit comment added event: ${event.visitId}", e)
         }

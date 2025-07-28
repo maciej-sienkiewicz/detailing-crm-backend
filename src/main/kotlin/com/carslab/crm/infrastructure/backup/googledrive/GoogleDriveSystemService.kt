@@ -24,43 +24,43 @@ class GoogleDriveSystemService(
     fun initializeSystemDriveService() {
         logger.info("Initializing Google Drive OAuth service")
 
-        try {
-            if (googleDriveConfig.oauth.clientId.isBlank() ||
-                googleDriveConfig.oauth.clientSecret.isBlank() ||
-                googleDriveConfig.oauth.refreshToken.isBlank()) {
-                logger.warn("Google Drive OAuth credentials not configured. Service will be unavailable.")
-                return
-            }
-
-            // Utwórz credentials z refresh token
-            val credential = GoogleCredential.Builder()
-                .setTransport(httpTransport)
-                .setJsonFactory(jsonFactory)
-                .setClientSecrets(
-                    googleDriveConfig.oauth.clientId,
-                    googleDriveConfig.oauth.clientSecret
-                )
-                .build()
-                .setRefreshToken(googleDriveConfig.oauth.refreshToken)
-
-            // Odśwież access token
-            credential.refreshToken()
-
-            systemDriveService = Drive.Builder(
-                httpTransport,
-                jsonFactory,
-                credential
-            )
-                .setApplicationName("CRM-GoogleDrive-OAuth-Backup")
-                .build()
-
-            logger.info("Google Drive OAuth service initialized successfully with account: {}",
-                googleDriveConfig.system.email)
-
-        } catch (e: Exception) {
-            logger.error("Failed to initialize Google Drive OAuth service", e)
-            throw RuntimeException("Failed to initialize Google Drive OAuth service", e)
-        }
+//        try {
+//            if (googleDriveConfig.oauth.clientId.isBlank() ||
+//                googleDriveConfig.oauth.clientSecret.isBlank() ||
+//                googleDriveConfig.oauth.refreshToken.isBlank()) {
+//                logger.warn("Google Drive OAuth credentials not configured. Service will be unavailable.")
+//                return
+//            }
+//
+//            // Utwórz credentials z refresh token
+//            val credential = GoogleCredential.Builder()
+//                .setTransport(httpTransport)
+//                .setJsonFactory(jsonFactory)
+//                .setClientSecrets(
+//                    googleDriveConfig.oauth.clientId,
+//                    googleDriveConfig.oauth.clientSecret
+//                )
+//                .build()
+//                .setRefreshToken(googleDriveConfig.oauth.refreshToken)
+//
+//            // Odśwież access token
+//            credential.refreshToken()
+//
+//            systemDriveService = Drive.Builder(
+//                httpTransport,
+//                jsonFactory,
+//                credential
+//            )
+//                .setApplicationName("CRM-GoogleDrive-OAuth-Backup")
+//                .build()
+//
+//            logger.info("Google Drive OAuth service initialized successfully with account: {}",
+//                googleDriveConfig.system.email)
+//
+//        } catch (e: Exception) {
+//            logger.error("Failed to initialize Google Drive OAuth service", e)
+//            throw RuntimeException("Failed to initialize Google Drive OAuth service", e)
+//        }
     }
 
     fun getSystemDriveService(): Drive {

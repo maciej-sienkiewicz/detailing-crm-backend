@@ -115,6 +115,17 @@ class JpaProtocolRepositoryAdapter(
         return true
     }
 
+    override fun updateAuditLog(id: ProtocolId) {
+        val companyId = getCurrentCompanyId()
+
+        protocolJpaRepository.findByCompanyIdAndId(companyId = companyId, id = id.value.toLong())
+            .ifPresent { entity ->
+                entity.updatedAt = LocalDateTime.now()
+                entity.statusUpdatedAt = LocalDateTime.now()
+                protocolJpaRepository.save(entity)
+            }
+    }
+
     private fun convertEntityToDomain(entity: ProtocolEntity): CarReceptionProtocol {
         val companyId = getCurrentCompanyId()
 

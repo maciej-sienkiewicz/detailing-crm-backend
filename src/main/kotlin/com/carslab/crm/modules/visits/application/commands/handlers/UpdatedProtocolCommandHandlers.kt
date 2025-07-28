@@ -402,9 +402,9 @@ class ReleaseVehicleCommandHandler(
         }
 
         val completedProtocol = protocolDomainService.changeStatus(
-            existingProtocol,
-            ProtocolStatus.COMPLETED,
-            "Vehicle released to client with payment method: ${command.paymentMethod}"
+            protocol = existingProtocol,
+            newStatus = ProtocolStatus.COMPLETED,
+            reason = "Vehicle released to client with payment method: ${command.paymentMethod}"
         )
 
         protocolRepository.save(completedProtocol)
@@ -417,7 +417,6 @@ class ReleaseVehicleCommandHandler(
         // Aktualizuj statystyki
         updateStatistics(existingProtocol, totalAmount)
 
-        // Event o zakończeniu usługi - dla modułu finansów
         eventPublisher.publish(VehicleServiceCompletedEvent(
             protocolId = command.protocolId,
             protocolTitle = existingProtocol.title,

@@ -166,7 +166,7 @@ class JpaProtocolReadRepositoryImpl(
         size: Int
     ): PaginatedResponse<ProtocolListReadModel> {
         val companyId = getCurrentCompanyId()
-        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"))
 
         val specification = Specification<ProtocolEntity> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()

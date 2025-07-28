@@ -68,7 +68,7 @@ class ProtocolEventPublisher(
                 userName = user.name,
                 clientId = result.updatedProtocol.client.id.toString(),
                 clientName = result.updatedProtocol.client.name,
-                vehicleId = result.updatedProtocol.vehicle.id.toString(),
+                vehicleId = result.updatedProtocol.vehicle.id?.value.toString(),
                 vehicleDisplayName = "${result.updatedProtocol.vehicle.make} ${result.updatedProtocol.vehicle.model} (${result.updatedProtocol.vehicle.licensePlate})".trim()
             )
         )

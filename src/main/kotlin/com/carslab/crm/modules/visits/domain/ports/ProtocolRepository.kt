@@ -11,4 +11,5 @@ interface ProtocolRepository {
     fun findById(id: ProtocolId): CarReceptionProtocol?
     fun existsById(id: ProtocolId): Boolean
     fun deleteById(id: ProtocolId): Boolean
+    fun updateAuditLog(id: ProtocolId)
 }
