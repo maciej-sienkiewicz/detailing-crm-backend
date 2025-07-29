@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
+import java.util.*
 
 @Service
 class InvoiceTemplateService(
@@ -53,8 +54,23 @@ class InvoiceTemplateService(
             logoData = logoData
         )
 
-        val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
-        return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+        return generatePdfFromTemplate(template, generationData)
+    }
+
+    fun generatePdfFromTemplate(template: InvoiceTemplate, data: InvoiceGenerationData): ByteArray {
+        logger.debug("Generating PDF from template: ${template.id.value} for document: ${data.document.id.value}")
+
+        return try {
+            val renderedHtml = templateRenderingService.renderTemplate(template, data)
+            val pdfBytes = pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+
+            logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")
+            pdfBytes
+
+        } catch (e: Exception) {
+            logger.error("Failed to generate PDF from template: ${template.id.value}", e)
+            throw RuntimeException("PDF generation failed: ${e.message}", e)
+        }
     }
 
     @Transactional
@@ -80,7 +96,6 @@ class InvoiceTemplateService(
         val template = templateRepository.findById(request.templateId)
             ?: throw ResourceNotFoundException("Template", request.templateId.value)
 
-        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
             logger.warn("Company {} attempted to activate template {} which doesn't belong to them",
                 companyId, request.templateId.value)
@@ -102,8 +117,7 @@ class InvoiceTemplateService(
 
         val template = getTemplateForCompany(templateId, companyId)
         val mockData = createMockInvoiceData(companyId)
-        val renderedHtml = templateRenderingService.renderTemplate(template, mockData)
-        return pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+        return generatePdfFromTemplate(template, mockData)
     }
 
     @Transactional(readOnly = true)
@@ -116,10 +130,6 @@ class InvoiceTemplateService(
         return template.content.htmlTemplate.toByteArray(Charsets.UTF_8)
     }
 
-    /**
-     * NAPRAWKA: Usunięta adnotacja @Transactional(readOnly = true)
-     * bo metoda może wykonywać operacje zapisu (tworzenie domyślnego szablonu)
-     */
     @Transactional
     fun getTemplatesForCompany(companyId: Long): List<InvoiceTemplate> {
         logger.debug("Getting templates for company {}", companyId)
@@ -131,7 +141,6 @@ class InvoiceTemplateService(
         return if (existingTemplates.isEmpty()) {
             logger.debug("No templates found for company {}, creating default template", companyId)
 
-            // NAPRAWKA: Sprawdź czy domyślny szablon już nie istnieje
             val existingDefault = templateRepository.findActiveTemplateForCompany(companyId)
             if (existingDefault != null) {
                 logger.debug("Default template already exists for company {}: {}", companyId, existingDefault.id.value)
@@ -165,7 +174,6 @@ class InvoiceTemplateService(
 
         val template = templateRepository.findById(templateId) ?: return false
 
-        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
             logger.warn("Company {} attempted to delete template {} which doesn't belong to them",
                 companyId, templateId.value)
@@ -179,14 +187,10 @@ class InvoiceTemplateService(
         return templateRepository.deleteById(templateId)
     }
 
-    /**
-     * NAPRAWKA: Oddzielna metoda z nową transakcją dla tworzenia domyślnego szablonu
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun createDefaultTemplateIfNeeded(companyId: Long): InvoiceTemplate {
         logger.debug("Creating default template for company {}", companyId)
 
-        // Sprawdź ponownie czy szablon nie został już utworzony przez inny wątek
         val existing = templateRepository.findActiveTemplateForCompany(companyId)
         if (existing != null) {
             logger.debug("Default template already exists, returning existing: {}", existing.id.value)
@@ -213,7 +217,6 @@ class InvoiceTemplateService(
         val template = templateRepository.findById(templateId)
             ?: throw ResourceNotFoundException("Template", templateId.value)
 
-        // SECURITY: Sprawdź czy firma ma dostęp do tego szablonu
         if (!template.canBeUsedBy(companyId)) {
             logger.warn("Company {} attempted to access template {} which doesn't belong to them",
                 companyId, templateId.value)
@@ -245,9 +248,6 @@ class InvoiceTemplateService(
         }
     }
 
-    /**
-     * SECURITY: Walidacja company ID
-     */
     private fun validateCompanyId(companyId: Long) {
         if (companyId <= 0) {
             logger.error("Invalid company ID provided: {}", companyId)
@@ -260,7 +260,7 @@ class InvoiceTemplateService(
             throw ValidationException("File cannot be empty")
         }
 
-        if (request.file.size > 5 * 1024 * 1024) { // 5MB
+        if (request.file.size > 5 * 1024 * 1024) {
             throw ValidationException("File size cannot exceed 5MB")
         }
 
@@ -287,7 +287,7 @@ class InvoiceTemplateService(
             throw ValidationException("HTML content cannot be empty")
         }
 
-        if (html.length > 5_000_000) { // 5MB tekstu
+        if (html.length > 5_000_000) {
             throw ValidationException("HTML content too large (max 5MB)")
         }
 
