@@ -149,7 +149,6 @@
             font-size: 10px;
         }
 
-        /* NAPRAWKA: Flexbox zamiast grid */
         .parties-section {
             margin-bottom: 15px;
         }
@@ -416,9 +415,47 @@
             font-weight: 600;
         }
 
-        .generation-info {
+        /* DODANE: Style dla podpisu klienta */
+        .client-signature-section {
             flex: 1;
             text-align: right;
+        }
+
+        .client-signature-container {
+            border: 1px solid #bdc3c7;
+            border-left: 3px solid #3498db;
+            padding: 10px;
+            background: white;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .client-signature-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .client-signature-placeholder {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #bdc3c7;
+            color: #95a5a6;
+            font-size: 8px;
+            font-style: italic;
+        }
+
+        .generation-info {
+            flex: 1;
+            text-align: center;
         }
 
         .generation-text {
@@ -551,9 +588,8 @@
                 </thead>
                 <tbody>
                 {{itemsHtml}}
-                <!-- NAPRAWKA: Dodano podsumowanie VAT wbudowane w tabelę -->
                 <tr class="vat-summary-row">
-                    <td colspan="4" style="text-align: right; font-weight: 600;">RAZEM VAT {{vatSummaryHtml}}</td>
+                    <td colspan="4" style="text-align: right; font-weight: 600;">RAZEM VAT</td>
                     <td>{{totalTaxFormatted}}</td>
                     <td>{{totalNetFormatted}}</td>
                     <td>{{totalGrossFormatted}}</td>
@@ -598,6 +634,16 @@
                     Dokument wygenerowany automatycznie w dniu:
                     <span class="generation-date">{{generatedAt}}</span>
                 </p>
+            </div>
+
+            <!-- DODANE: Sekcja podpisu klienta -->
+            <div class="client-signature-section">
+                <div class="client-signature-container">
+                    <div class="client-signature-title">Podpis klienta</div>
+                    <div class="client-signature-content">
+                        {{client_signature}}
+                    </div>
+                </div>
             </div>
         </div>
     </footer>
