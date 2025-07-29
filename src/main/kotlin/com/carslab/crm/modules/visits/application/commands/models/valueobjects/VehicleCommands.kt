@@ -31,7 +31,8 @@ data class CreateClientCommand(
     val email: String? = null,
     val phone: String? = null,
     val companyName: String? = null,
-    val taxId: String? = null
+    val taxId: String? = null,
+    val address: String? = null,
 )
 
 data class UpdateClientCommand(
@@ -74,6 +75,15 @@ data class UpdateServiceCommand(
     val finalPrice: Double? = null,
     val approvalStatus: String = "PENDING",
     val note: String? = null
+)
+
+data class OverridenInvoiceServiceItem(
+    val name: String,
+    val basePrice: Double,
+    val quantity: Long,
+    val discountType: String? = null,
+    val discountValue: Double? = null,
+    val finalPrice: Double? = null,
 )
 
 data class CreateDocumentsCommand(

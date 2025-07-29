@@ -66,7 +66,8 @@ class CarReceptionService(
                 email = clientDetail?.email ?: "",
                 phone = clientDetail?.phone ?: "",
                 companyName = clientDetail?.company,
-                taxId = clientDetail?.taxId
+                taxId = clientDetail?.taxId,
+                address = clientDetail?.address ?: "",
             ),
             period = period,
             status = status,

@@ -184,7 +184,8 @@ class ProtocolDomainService {
             email = command.email,
             phone = command.phone,
             companyName = command.companyName,
-            taxId = command.taxId
+            taxId = command.taxId,
+            address = command.address
         )
     }
 

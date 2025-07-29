@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.visits.api
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolCountersResponse
 import com.carslab.crm.modules.visits.api.response.ProtocolIdResponse
@@ -17,14 +18,20 @@ import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
 import com.carslab.crm.modules.visits.api.dto.CreateProtocolRequest
+import com.carslab.crm.modules.visits.api.request.ApiDiscountType
+import com.carslab.crm.modules.visits.api.request.ApiReferralSource
+import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
+import com.carslab.crm.modules.visits.application.commands.models.ReleaseVehicleCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateClientCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateDocumentsCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreatePeriodCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateVehicleCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.OverridenInvoiceServiceItem
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateClientCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateDocumentsCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdatePeriodCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateVehicleCommand
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -493,11 +500,21 @@ class ProtocolController(
         @Parameter(description = "Protocol ID", required = true) @PathVariable id: String,
         @Valid @RequestBody command: com.carslab.crm.modules.visits.api.commands.ReleaseVehicleCommand
     ): ResponseEntity<CarReceptionDetailDto> {
-        val releaseCommand = com.carslab.crm.modules.visits.application.commands.models.ReleaseVehicleCommand(
+        val releaseCommand = ReleaseVehicleCommand(
             protocolId = id,
             paymentMethod = command.paymentMethod,
             documentType = command.documentType,
-            additionalNotes = command.additionalNotes
+            additionalNotes = command.additionalNotes,
+            overridenItems = command.overridenItems?.map {
+                OverridenInvoiceServiceItem(
+                    name = it.name,
+                    quantity = it.quantity,
+                    basePrice = it.price,
+                    discountType = it.discountType.toString(),
+                    discountValue = it.discountValue,
+                )
+            } ?: emptyList(),
+            paymentDays = command.paymentDays,
         )
 
         commandBus.execute(releaseCommand)
@@ -612,25 +629,25 @@ class ProtocolController(
         }
     }
 
-    private fun mapApiStatusToDomain(apiStatus: com.carslab.crm.api.model.ApiProtocolStatus): ProtocolStatus {
+    private fun mapApiStatusToDomain(apiStatus: ApiProtocolStatus): ProtocolStatus {
         return when (apiStatus) {
-            com.carslab.crm.api.model.ApiProtocolStatus.SCHEDULED -> ProtocolStatus.SCHEDULED
-            com.carslab.crm.api.model.ApiProtocolStatus.PENDING_APPROVAL -> ProtocolStatus.PENDING_APPROVAL
-            com.carslab.crm.api.model.ApiProtocolStatus.IN_PROGRESS -> ProtocolStatus.IN_PROGRESS
-            com.carslab.crm.api.model.ApiProtocolStatus.READY_FOR_PICKUP -> ProtocolStatus.READY_FOR_PICKUP
-            com.carslab.crm.api.model.ApiProtocolStatus.COMPLETED -> ProtocolStatus.COMPLETED
-            com.carslab.crm.api.model.ApiProtocolStatus.CANCELLED -> ProtocolStatus.CANCELLED
+            ApiProtocolStatus.SCHEDULED -> ProtocolStatus.SCHEDULED
+            ApiProtocolStatus.PENDING_APPROVAL -> ProtocolStatus.PENDING_APPROVAL
+            ApiProtocolStatus.IN_PROGRESS -> ProtocolStatus.IN_PROGRESS
+            ApiProtocolStatus.READY_FOR_PICKUP -> ProtocolStatus.READY_FOR_PICKUP
+            ApiProtocolStatus.COMPLETED -> ProtocolStatus.COMPLETED
+            ApiProtocolStatus.CANCELLED -> ProtocolStatus.CANCELLED
         }
     }
 
-    private fun mapDomainStatusToApi(domainStatus: ProtocolStatus): com.carslab.crm.api.model.ApiProtocolStatus {
+    private fun mapDomainStatusToApi(domainStatus: ProtocolStatus): ApiProtocolStatus {
         return when (domainStatus) {
-            ProtocolStatus.SCHEDULED -> com.carslab.crm.api.model.ApiProtocolStatus.SCHEDULED
-            ProtocolStatus.PENDING_APPROVAL -> com.carslab.crm.api.model.ApiProtocolStatus.PENDING_APPROVAL
-            ProtocolStatus.IN_PROGRESS -> com.carslab.crm.api.model.ApiProtocolStatus.IN_PROGRESS
-            ProtocolStatus.READY_FOR_PICKUP -> com.carslab.crm.api.model.ApiProtocolStatus.READY_FOR_PICKUP
-            ProtocolStatus.COMPLETED -> com.carslab.crm.api.model.ApiProtocolStatus.COMPLETED
-            ProtocolStatus.CANCELLED -> com.carslab.crm.api.model.ApiProtocolStatus.CANCELLED
+            ProtocolStatus.SCHEDULED -> ApiProtocolStatus.SCHEDULED
+            ProtocolStatus.PENDING_APPROVAL -> ApiProtocolStatus.PENDING_APPROVAL
+            ProtocolStatus.IN_PROGRESS -> ApiProtocolStatus.IN_PROGRESS
+            ProtocolStatus.READY_FOR_PICKUP -> ApiProtocolStatus.READY_FOR_PICKUP
+            ProtocolStatus.COMPLETED -> ApiProtocolStatus.COMPLETED
+            ProtocolStatus.CANCELLED -> ApiProtocolStatus.CANCELLED
         }
     }
 
@@ -685,24 +702,25 @@ class ProtocolController(
             email = readModel.client.email,
             phone = readModel.client.phone,
             notes = readModel.notes,
+            address = readModel.client.address,
             selectedServices = readModel.services.map { service ->
                 ServiceDto(
                     id = service.id,
                     name = service.name,
                     price = service.basePrice,
                     discountType = service.discountType?.let {
-                        com.carslab.crm.modules.visits.api.request.ApiDiscountType.valueOf(it)
+                        ApiDiscountType.valueOf(it)
                     },
                     discountValue = service.discountValue,
                     finalPrice = service.finalPrice,
-                    approvalStatus = com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus.valueOf(service.approvalStatus),
+                    approvalStatus = ServiceApprovalStatus.valueOf(service.approvalStatus),
                     note = service.note,
                     quantity = service.quantity
                 )
             },
             status = mapDomainStatusToApi(ProtocolStatus.valueOf(readModel.status)),
             referralSource = readModel.referralSource?.let {
-                com.carslab.crm.modules.visits.api.request.ApiReferralSource.valueOf(it)
+                ApiReferralSource.valueOf(it)
             },
             otherSourceDetails = readModel.otherSourceDetails,
             vehicleImages = readModel.mediaItems.map { media ->
@@ -743,7 +761,8 @@ class ProtocolController(
                 email = request.email,
                 phone = request.phone,
                 companyName = request.companyName,
-                taxId = request.taxId
+                taxId = request.taxId,
+                address = request.address
             ),
             period = CreatePeriodCommand(
                 startDate = parseDateTime(request.startDate),
@@ -790,7 +809,7 @@ class ProtocolController(
             ),
             status = request.status?.let { mapApiStatusToDomain(it) } ?: ProtocolStatus.SCHEDULED,
             services = request.selectedServices?.map { service ->
-                com.carslab.crm.modules.visits.application.commands.models.valueobjects.UpdateServiceCommand(
+                UpdateServiceCommand(
                     id = service.id,
                     name = service.name,
                     basePrice = service.price,

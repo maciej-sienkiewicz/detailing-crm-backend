@@ -68,7 +68,8 @@ data class ClientDetails(
     val email: String? = null,
     val phone: String? = null,
     val companyName: String? = null,
-    val taxId: String? = null
+    val taxId: String? = null,
+    val address: String? = null,
 ) {
     fun hasValidContactInfo(): Boolean = !(email.isNullOrBlank() && phone.isNullOrBlank())
 }

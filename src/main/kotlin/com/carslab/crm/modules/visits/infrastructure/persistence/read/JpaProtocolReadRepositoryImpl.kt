@@ -307,7 +307,8 @@ class JpaProtocolReadRepositoryImpl(
             email = client.email,
             phone = client.phone,
             companyName = client.company,
-            taxId = client.taxId
+            taxId = client.taxId,
+            address = client.address,
         )
     }
 

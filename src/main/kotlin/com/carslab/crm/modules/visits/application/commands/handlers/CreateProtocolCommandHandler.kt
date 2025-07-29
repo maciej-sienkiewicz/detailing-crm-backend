@@ -187,7 +187,8 @@ class CreateProtocolCommandHandler(
             email = clientCommand.email ?: "",
             phone = clientCommand.phone ?: "",
             company = clientCommand.companyName,
-            taxId = clientCommand.taxId
+            taxId = clientCommand.taxId,
+            address = clientCommand.address
         )
 
         return try {

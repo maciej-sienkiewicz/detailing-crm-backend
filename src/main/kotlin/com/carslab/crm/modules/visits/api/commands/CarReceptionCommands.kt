@@ -59,6 +59,8 @@ data class CreateCarReceptionCommand(
 
     @JsonProperty("tax_id")
     val taxId: String? = null,
+    
+    val address: String? = null,
 
     @JsonProperty("email")
     val email: String? = null,
@@ -365,6 +367,8 @@ data class CarReceptionDetailDto(
 
     @JsonProperty("notes")
     val notes: String? = null,
+    
+    val address: String? = null,
 
     @JsonProperty("selected_services")
     val selectedServices: List<ServiceDto>,

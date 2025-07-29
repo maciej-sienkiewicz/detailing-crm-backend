@@ -163,6 +163,7 @@ data class VehicleServiceCompletedEvent(
     val totalNet: BigDecimal,
     val totalTax: BigDecimal,
     val totalGross: BigDecimal,
+    val paymentIn: Long,
     val paymentMethod: String,
     val documentType: String,
     override val companyId: Long,

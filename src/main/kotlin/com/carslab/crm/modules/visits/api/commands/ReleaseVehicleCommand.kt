@@ -12,4 +12,10 @@ data class ReleaseVehicleCommand(
 
     @JsonProperty("additional_notes")
     val additionalNotes: String? = null,
+
+    @JsonProperty("overriden_items")
+    val overridenItems: List<CreateServiceCommand>? = null,
+    
+    @JsonProperty("payment_days")
+    val paymentDays: Long = 14,
 )

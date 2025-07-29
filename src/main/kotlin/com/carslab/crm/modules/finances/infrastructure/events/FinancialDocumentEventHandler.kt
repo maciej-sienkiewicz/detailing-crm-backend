@@ -4,11 +4,20 @@ import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.finances.domain.UnifiedDocumentService
+import com.carslab.crm.finances.domain.UnifiedDocumentStorageService
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
+import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
+import com.carslab.crm.modules.invoice_templates.domain.InvoiceTemplateService
+import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
 import com.carslab.crm.modules.visits.domain.events.VehicleServiceCompletedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
@@ -17,10 +26,13 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Component
 class FinancialDocumentEventHandler(
-    private val unifiedDocumentRepository: UnifiedDocumentRepository
+    private val unifiedDocumentRepository: UnifiedDocumentRepository,
+    private val securityContext: SecurityContext,
+    private val comppanySettingsApplicationService: CompanySettingsApplicationService,
 ) {
     private val logger = LoggerFactory.getLogger(FinancialDocumentEventHandler::class.java)
 
@@ -28,7 +40,9 @@ class FinancialDocumentEventHandler(
     @Transactional
     fun handleVehicleServiceCompleted(event: VehicleServiceCompletedEvent) {
         logger.info("Creating financial document for completed service: ${event.protocolId}")
-
+        
+        val companySettings = comppanySettingsApplicationService.getCompanySettings(companyId = securityContext.getCurrentCompanyId())
+        
         try {
             val items = event.services.map { service ->
                 DocumentItem(
@@ -53,14 +67,17 @@ class FinancialDocumentEventHandler(
                 title = "Faktura za wizytę: ${event.protocolTitle}",
                 description = "",
                 issuedDate = LocalDate.now(),
-                dueDate = LocalDate.now().plusDays(14),
-                sellerName = "Detailing Studio",
-                sellerTaxId = "123456789",
-                sellerAddress = "ul. Kowalskiego 4/14, 00-001 Warszawa",
+                dueDate = LocalDate.now().plusDays(event.paymentIn),
+                sellerName = companySettings.basicInfo?.companyName ?: "Brak nazwy firmy",
+                sellerTaxId = companySettings.basicInfo?.taxId ?: "",
+                sellerAddress = companySettings.basicInfo?.address ?: "Brak adresu",
                 buyerName = event.clientName,
                 buyerTaxId = event.clientTaxId,
                 buyerAddress = event.clientAddress ?: "Brak adresu",
-                status = DocumentStatus.NOT_PAID,
+                status = when(event.paymentMethod.lowercase()) {
+                    "cash", "card" -> DocumentStatus.PAID
+                    else -> DocumentStatus.NOT_PAID
+                },
                 direction = TransactionDirection.INCOME,
                 paymentMethod = when (event.paymentMethod.lowercase()) {
                     "cash" -> PaymentMethod.CASH

@@ -11,6 +11,7 @@ import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.invoice_templates.infrastructure.templates.ProfessionalDefaultTemplateProvider
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import org.slf4j.LoggerFactory
@@ -26,7 +27,7 @@ class InvoiceTemplateService(
     private val companySettingsService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val professionalDefaultTemplateProvider: ProfessionalDefaultTemplateProvider,
-    private val documentService: UnifiedDocumentService
+    private val documentService: UnifiedDocumentService,
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
@@ -222,13 +223,11 @@ class InvoiceTemplateService(
         return template
     }
 
-    @Transactional(readOnly = true)
     private fun getSystemDefaultTemplate(): InvoiceTemplate {
         return templateRepository.findSystemDefaultTemplate()
             ?: throw IllegalStateException("System default template not found")
     }
 
-    @Transactional(readOnly = true)
     private fun getCompanySettings(companyId: Long) =
         companySettingsService.getCompanySettings(companyId)
             ?: throw IllegalStateException("Company settings not found for company: $companyId")
@@ -353,7 +352,6 @@ class InvoiceTemplateService(
         return matches.joinToString("\n") { it.groupValues[1] }
     }
 
-    @Transactional(readOnly = true)
     private fun createMockInvoiceData(companyId: Long): InvoiceGenerationData {
         val companySettings = getCompanySettings(companyId)
 

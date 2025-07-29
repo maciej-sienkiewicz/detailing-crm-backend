@@ -56,5 +56,7 @@ data class ReleaseVehicleCommand(
     val protocolId: String,
     val paymentMethod: String,
     val documentType: String,
-    val additionalNotes: String? = null
-) : Command<Unit>
+    val additionalNotes: String? = null,
+    val overridenItems: List<OverridenInvoiceServiceItem> = emptyList(),
+    val paymentDays: Long,
+    ) : Command<Unit>

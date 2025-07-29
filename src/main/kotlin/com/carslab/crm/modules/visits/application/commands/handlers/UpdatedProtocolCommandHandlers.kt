@@ -423,18 +423,29 @@ class ReleaseVehicleCommandHandler(
             clientId = existingProtocol.client.id!!,
             clientName = existingProtocol.client.name,
             clientTaxId = existingProtocol.client.taxId,
-            clientAddress = "ul. Kliencka 2/14, 00-001 Gdańsk", // TODO: get from client
-            services = existingProtocol.protocolServices
+            clientAddress = existingProtocol.client.address,
+            paymentIn = command.paymentDays,
+            services = if(command.overridenItems.isEmpty()) { existingProtocol.protocolServices
                 .filter { it.approvalStatus == ApprovalStatus.APPROVED }
                 .map { ServiceItem(
                     name = it.name,
                     description = it.note,
-                    quantity = it.quantity.toBigDecimal(),
+                    quantity = 1.toBigDecimal(),
                     unitPrice = it.finalPrice.amount.toBigDecimal(),
                     taxRate = 23.toBigDecimal(),
                     totalNet = (it.finalPrice.amount / 1.23).toBigDecimal(),
                     totalGross = it.finalPrice.amount.toBigDecimal()
-                )},
+                )} } else command.overridenItems.map { 
+                    ServiceItem(
+                    name = it.name,
+                    description = null,
+                    quantity = 1.toBigDecimal(),
+                    unitPrice = it.basePrice.toBigDecimal(),
+                    taxRate = 23.toBigDecimal(),
+                    totalNet = (it.finalPrice ?: it.basePrice).toBigDecimal() / 1.23.toBigDecimal(),
+                    totalGross = (it.finalPrice ?: it.basePrice).toBigDecimal()
+                )
+            },
             totalNet = (totalAmount / 1.23.toBigDecimal()),
             totalTax = totalAmount - (totalAmount / 1.23.toBigDecimal()),
             totalGross = totalAmount,
