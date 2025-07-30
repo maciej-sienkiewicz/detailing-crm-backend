@@ -1,5 +1,6 @@
 package com.carslab.crm.signature.service
 
+import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
 import com.carslab.crm.signature.websocket.SignatureRequestDto
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
 import org.springframework.stereotype.Service
@@ -19,8 +20,20 @@ class WebSocketServiceImpl(
         return signatureWebSocketHandler.sendSignatureRequest(tabletId, request)
     }
 
+    override fun sendDocumentSignatureRequestWithDocument(tabletId: UUID, request: DocumentSignatureRequestDto, documentBytes: ByteArray): Boolean {
+        return signatureWebSocketHandler.sendDocumentSignatureRequestWithDocument(tabletId, request, documentBytes)
+    }
+
     override fun notifyWorkstation(workstationId: UUID, sessionId: String, success: Boolean, signedAt: Instant?) {
         signatureWebSocketHandler.notifyWorkstation(workstationId, sessionId, success, signedAt)
+    }
+
+    override fun notifySessionCancellation(sessionId: UUID) {
+        signatureWebSocketHandler.notifySessionCancellation(sessionId)
+    }
+
+    override fun broadcastToWorkstations(companyId: Long, notification: Map<String, Any>): Int {
+        return signatureWebSocketHandler.broadcastToWorkstations(companyId, notification)
     }
 
     override fun getActiveConnectionsCount(): Int {

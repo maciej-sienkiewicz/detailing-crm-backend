@@ -1,5 +1,6 @@
 package com.carslab.crm.signature.service
 
+import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
 import com.carslab.crm.signature.websocket.SignatureRequestDto
 import java.util.UUID
 
@@ -10,4 +11,12 @@ interface WebSocketService {
     fun getActiveConnectionsCount(): Int
     fun getActiveTabletsCount(): Int
     fun getActiveWorkstationsCount(): Int
+    fun sendDocumentSignatureRequestWithDocument(
+        tabletId: UUID,
+        request: DocumentSignatureRequestDto,
+        documentBytes: ByteArray
+    ): Boolean
+
+    fun notifySessionCancellation(sessionId: UUID)
+    fun broadcastToWorkstations(companyId: Long, notification: Map<String, Any>): Int
 }

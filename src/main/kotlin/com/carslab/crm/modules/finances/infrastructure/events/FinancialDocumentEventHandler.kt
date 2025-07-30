@@ -4,30 +4,23 @@ import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.Audit
-import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
-import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.infrastructure.storage.UniversalStorageService
-import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.modules.company_settings.api.responses.CompanySettingsResponse
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
-import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationService
 import com.carslab.crm.modules.visits.domain.events.VehicleServiceCompletedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Component
 class FinancialDocumentEventHandler(
@@ -49,12 +42,12 @@ class FinancialDocumentEventHandler(
             val document = createFinancialDocument(event, companySettings)
             val savedDocument = unifiedDocumentRepository.save(document)
 
-            val attachment = invoiceAttachmentGenerationService.generateInvoiceAttachment(savedDocument)
+            val attachment = invoiceAttachmentGenerationService.generateInvoiceAttachmentWithoutSignature(savedDocument)
 
             if (attachment != null) {
                 val documentWithAttachment = savedDocument.copy(attachment = attachment)
                 unifiedDocumentRepository.save(documentWithAttachment)
-                logger.info("Successfully created financial document with generated invoice attachment for protocol: ${event.protocolId}")
+                logger.info("Successfully created financial document with unsigned invoice attachment for protocol: ${event.protocolId}")
             } else {
                 logger.info("Successfully created financial document without attachment for protocol: ${event.protocolId}")
             }
@@ -111,7 +104,7 @@ class FinancialDocumentEventHandler(
             totalNet = event.totalNet,
             totalTax = event.totalTax,
             totalGross = event.totalGross,
-            paidAmount = BigDecimal.ZERO,
+            paidAmount = if (event.paymentMethod.lowercase() in listOf("cash", "card")) event.totalGross else BigDecimal.ZERO,
             currency = "PLN",
             notes = "Dokument utworzony automatycznie przy zakończeniu wizyty",
             protocolId = event.protocolId,

@@ -1,39 +1,38 @@
 package com.carslab.crm.modules.finances.domain
 
-import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
+import com.carslab.crm.signature.events.DocumentSignatureCompletedEvent
+import com.carslab.crm.modules.finances.domain.InvoiceSignatureService
 import org.slf4j.LoggerFactory
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 
 @Service
 class SignatureIntegrationService(
-    private val invoiceSignatureService: InvoiceSignatureService,
-    private val webSocketHandler: SignatureWebSocketHandler
+    private val invoiceSignatureService: InvoiceSignatureService
 ) {
     private val logger = LoggerFactory.getLogger(SignatureIntegrationService::class.java)
 
-    fun handleSignatureFromTablet(sessionId: String, signatureImageBase64: String): Boolean {
-        logger.info("Handling signature from tablet for session: $sessionId")
+    @EventListener
+    fun handleDocumentSignatureCompleted(event: DocumentSignatureCompletedEvent) {
+        logger.info("Handling signature completed event for session: ${event.sessionId}")
 
         try {
-            val session = findSessionBySessionId(sessionId)
+            val session = findSessionBySessionId(event.sessionId)
 
-            return when (session?.documentType) {
+            when (session?.documentType) {
                 "INVOICE" -> {
-                    logger.info("Processing invoice signature for session: $sessionId")
-                    invoiceSignatureService.processSignatureFromTablet(sessionId, signatureImageBase64)
+                    logger.info("Processing invoice signature for session: ${event.sessionId}")
+                    invoiceSignatureService.processSignatureFromTablet(event.sessionId, event.signatureImage)
                 }
                 "PROTOCOL" -> {
-                    logger.info("Processing protocol signature for session: $sessionId - delegating to existing service")
-                    true
+                    logger.info("Processing protocol signature for session: ${event.sessionId} - delegating to existing service")
                 }
                 else -> {
-                    logger.warn("Unknown document type for session: $sessionId")
-                    false
+                    logger.warn("Unknown document type for session: ${event.sessionId}")
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error handling signature from tablet for session: $sessionId", e)
-            return false
+            logger.error("Error handling signature completed event for session: ${event.sessionId}", e)
         }
     }
 

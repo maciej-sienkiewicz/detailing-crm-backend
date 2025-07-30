@@ -60,7 +60,7 @@ class UnifiedDocumentService(
     fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-        
+
         validateDocumentRequest(request)
         val document = convertToDocumentModel(request)
 
@@ -117,10 +117,10 @@ class UnifiedDocumentService(
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
         }
 
-        val visitDetails = document.protocolId?.let { 
+        val visitDetails = document.protocolId?.let {
             visitService.getProtocolById(ProtocolId(it))
         }
-        
+
         eventsPublisher.publish(
             InvoiceCreatedEvent.create(
                 visit = visitDetails,
@@ -204,6 +204,17 @@ class UnifiedDocumentService(
         }
 
         logger.info("Updated document with ID: {}", savedDocument.id.value)
+
+        return savedDocument
+    }
+
+    @Transactional
+    fun updateDocumentWithAttachment(document: UnifiedFinancialDocument): UnifiedFinancialDocument {
+        logger.info("Updating document with new attachment: {}", document.id.value)
+
+        val savedDocument = documentRepository.save(document)
+
+        logger.info("Document attachment updated successfully: {}", savedDocument.id.value)
 
         return savedDocument
     }

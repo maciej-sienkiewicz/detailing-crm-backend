@@ -3,33 +3,24 @@ package com.carslab.crm.modules.finances.domain
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
-import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureResponse
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatus
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatusResponse
-import com.carslab.crm.modules.invoice_templates.domain.InvoiceTemplateService
-import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
-import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
-import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.signature.infrastructure.persistance.entity.DocumentSignatureSession
 import com.carslab.crm.signature.infrastructure.persistance.repository.DocumentSignatureSessionRepository
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.websocket.SignatureWebSocketHandler
-import com.carslab.crm.signature.websocket.broadcastToWorkstations
 import com.carslab.crm.signature.service.SignatureCacheService
 import com.carslab.crm.signature.service.CachedSignatureData
 import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
 import com.carslab.crm.signature.api.dto.SignatureSessionStatus
-import com.carslab.crm.signature.websocket.notifySessionCancellation
-import com.carslab.crm.signature.websocket.sendDocumentSignatureRequestWithDocument
+import com.carslab.crm.signature.service.WebSocketService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
 
@@ -37,13 +28,10 @@ import java.util.*
 @Transactional
 class InvoiceSignatureService(
     private val unifiedDocumentService: UnifiedDocumentService,
-    private val invoiceTemplateService: InvoiceTemplateService,
-    private val templateRepository: InvoiceTemplateRepository,
-    private val companySettingsService: CompanySettingsDomainService,
-    private val logoStorageService: LogoStorageService,
+    private val invoiceAttachmentGenerationService: InvoiceAttachmentGenerationService,
     private val documentSignatureSessionRepository: DocumentSignatureSessionRepository,
     private val tabletDeviceRepository: TabletDeviceRepository,
-    private val webSocketHandler: SignatureWebSocketHandler,
+    private val webSocketService: WebSocketService,
     private val signatureCacheService: SignatureCacheService,
     private val universalStorageService: UniversalStorageService,
     private val objectMapper: ObjectMapper
@@ -65,7 +53,7 @@ class InvoiceSignatureService(
             throw InvoiceSignatureException("Tablet does not belong to company")
         }
 
-        if (!webSocketHandler.isTabletConnected(request.tabletId)) {
+        if (!webSocketService.isTabletConnected(request.tabletId)) {
             throw InvoiceSignatureException("Tablet is offline")
         }
 
@@ -74,7 +62,7 @@ class InvoiceSignatureService(
         val expiresAt = Instant.now().plus(request.timeoutMinutes.toLong(), ChronoUnit.MINUTES)
 
         try {
-            val invoicePdfWithoutSignature = generateInvoicePdfWithoutSignature(document, companyId)
+            val invoicePdfBytes = getOrGenerateUnsignedInvoicePdf(document, companyId)
 
             val session = DocumentSignatureSession(
                 sessionId = sessionId,
@@ -88,7 +76,7 @@ class InvoiceSignatureService(
                     mapOf(
                         "invoiceId" to invoiceId,
                         "documentType" to "INVOICE",
-                        "originalPdfSize" to invoicePdfWithoutSignature.size,
+                        "originalPdfSize" to invoicePdfBytes.size,
                         "replaceOriginalAttachment" to true
                     )
                 ),
@@ -102,7 +90,7 @@ class InvoiceSignatureService(
                 sessionId = sessionId.toString(),
                 signatureImageBase64 = "",
                 signatureImageBytes = ByteArray(0),
-                originalDocumentBytes = invoicePdfWithoutSignature,
+                originalDocumentBytes = invoicePdfBytes,
                 signedAt = Instant.now(),
                 signerName = request.customerName,
                 protocolId = null,
@@ -139,10 +127,10 @@ class InvoiceSignatureService(
                 signatureFields = null
             )
 
-            val sent = webSocketHandler.sendDocumentSignatureRequestWithDocument(
+            val sent = webSocketService.sendDocumentSignatureRequestWithDocument(
                 request.tabletId,
                 documentRequest,
-                invoicePdfWithoutSignature
+                invoicePdfBytes
             )
 
             if (sent) {
@@ -204,7 +192,6 @@ class InvoiceSignatureService(
                 )
             }
 
-            // NOWE: Automatyczne zastąpienie oryginalnego załącznika
             val shouldReplaceAttachment = updatedData.metadata["replaceOriginalAttachment"] as? Boolean ?: false
             if (shouldReplaceAttachment) {
                 replaceOriginalAttachmentWithSignedVersion(updatedData)
@@ -228,20 +215,7 @@ class InvoiceSignatureService(
             logger.info("Replacing original attachment with signed version for invoice: $invoiceId")
 
             val document = unifiedDocumentService.getDocumentById(invoiceId)
-            val signedInvoicePdf = generateInvoicePdfWithSignature(document, cachedData.companyId, cachedData.signatureImageBytes)
 
-            val inputStreamFile: org.springframework.web.multipart.MultipartFile = object : org.springframework.web.multipart.MultipartFile {
-                override fun getName(): String = "signed-invoice"
-                override fun getOriginalFilename(): String = "signed-invoice-${document.number}.pdf"
-                override fun getContentType(): String = "application/pdf"
-                override fun isEmpty(): Boolean = signedInvoicePdf.isEmpty()
-                override fun getSize(): Long = signedInvoicePdf.size.toLong()
-                override fun getBytes(): ByteArray = signedInvoicePdf
-                override fun getInputStream(): java.io.InputStream = signedInvoicePdf.inputStream()
-                override fun transferTo(dest: java.io.File): Unit = throw UnsupportedOperationException("Transfer not supported")
-            }
-
-            // Usuń stary załącznik jeśli istnieje
             if (document.attachment != null) {
                 try {
                     universalStorageService.deleteFile(document.attachment!!.storageId)
@@ -251,45 +225,21 @@ class InvoiceSignatureService(
                 }
             }
 
-            // Zapisz nowy podpisany załącznik
-            val storageId: String = universalStorageService.storeFile(
-                UniversalStoreRequest(
-                    file = inputStreamFile,
-                    originalFileName = "signed-invoice-${document.number}.pdf",
-                    contentType = "application/pdf",
-                    companyId = cachedData.companyId,
-                    entityId = document.id.value,
-                    entityType = "document",
-                    category = "finances",
-                    subCategory = "invoices/${document.direction.name.lowercase()}",
-                    description = "Signed invoice PDF with client signature",
-                    date = document.issuedDate,
-                    tags = mapOf(
-                        "documentType" to document.type.name,
-                        "direction" to document.direction.name,
-                        "signed" to "true",
-                        "signerName" to cachedData.signerName
-                    )
-                )
+            val signedAttachment = invoiceAttachmentGenerationService.generateSignedInvoiceAttachment(
+                document,
+                cachedData.signatureImageBytes
             )
 
-            // Zaktualizuj dokument z nowym załącznikiem
-            val newAttachment = DocumentAttachment(
-                id = UUID.randomUUID().toString(),
-                name = "signed-invoice-${document.number}.pdf",
-                size = signedInvoicePdf.size.toLong(),
-                type = "application/pdf",
-                storageId = storageId,
-                uploadedAt = LocalDateTime.now()
-            )
-
-            val updatedDocument = document.copy(attachment = newAttachment)
-
-            logger.info("Successfully replaced attachment with signed version for invoice: $invoiceId")
+            if (signedAttachment != null) {
+                val updatedDocument = document.copy(attachment = signedAttachment)
+                unifiedDocumentService.updateDocumentWithAttachment(updatedDocument)
+                logger.info("Successfully replaced attachment with signed version for invoice: $invoiceId")
+            } else {
+                logger.error("Failed to generate signed attachment for invoice: $invoiceId")
+            }
 
         } catch (e: Exception) {
             logger.error("Failed to replace original attachment with signed version", e)
-            // Nie przerywamy procesu - podpisana faktura nadal dostępna przez endpoint
         }
     }
 
@@ -329,9 +279,9 @@ class InvoiceSignatureService(
             status = mapToInvoiceStatus(currentStatus),
             signedAt = session.signedAt,
             signedInvoiceUrl = if (currentStatus == SignatureSessionStatus.COMPLETED)
-                "/api/invoices/$invoiceId/signed-document/$sessionId" else null,
+                "/api/invoices/$invoiceId/signature/$sessionId/signed-document" else null,
             signatureImageUrl = if (currentStatus == SignatureSessionStatus.COMPLETED)
-                "/api/invoices/$invoiceId/signature-image/$sessionId" else null,
+                "/api/invoices/$invoiceId/signature/$sessionId/signature-image" else null,
             timestamp = Instant.now()
         )
     }
@@ -357,10 +307,16 @@ class InvoiceSignatureService(
 
         return try {
             val document = unifiedDocumentService.getDocumentById(invoiceId)
-            val signedInvoicePdf = generateInvoicePdfWithSignature(document, companyId, cachedData.signatureImageBytes)
+            val signedAttachment = invoiceAttachmentGenerationService.generateSignedInvoiceAttachment(
+                document,
+                cachedData.signatureImageBytes
+            )
 
-            logger.info("Signed invoice generated for session: $sessionId")
-            signedInvoicePdf
+            if (signedAttachment != null) {
+                universalStorageService.retrieveFile(signedAttachment.storageId)
+            } else {
+                null
+            }
 
         } catch (e: Exception) {
             logger.error("Error generating signed invoice for session: $sessionId", e)
@@ -396,7 +352,7 @@ class InvoiceSignatureService(
 
         signatureCacheService.removeSignature(sessionId.toString())
 
-        webSocketHandler.notifySessionCancellation(sessionId)
+        webSocketService.notifySessionCancellation(sessionId)
 
         logger.info("Invoice signature session cancelled: $sessionId by $userId")
     }
@@ -405,64 +361,22 @@ class InvoiceSignatureService(
         return signatureCacheService.getSignature(sessionId)
     }
 
-    private fun generateInvoicePdfWithoutSignature(
+    private fun getOrGenerateUnsignedInvoicePdf(
         document: com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument,
         companyId: Long
     ): ByteArray {
-        val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
-            ?: throw InvoiceSignatureException("No active template found for company")
-
-        val companySettings = companySettingsService.getCompanySettings(companyId)
-            ?: throw InvoiceSignatureException("Company settings not found")
-
-        val logoData = getLogoData(companySettings)
-
-        val generationData = InvoiceGenerationData(
-            document = document,
-            companySettings = companySettings,
-            logoData = logoData,
-            additionalData = mapOf("client_signature" to "")
-        )
-
-        return invoiceTemplateService.generatePdfFromTemplate(activeTemplate, generationData)
-    }
-
-    private fun generateInvoicePdfWithSignature(
-        document: com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument,
-        companyId: Long,
-        signatureBytes: ByteArray
-    ): ByteArray {
-        val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
-            ?: throw InvoiceSignatureException("No active template found for company")
-
-        val companySettings = companySettingsService.getCompanySettings(companyId)
-            ?: throw InvoiceSignatureException("Company settings not found")
-
-        val logoData = getLogoData(companySettings)
-
-        val signatureBase64 = Base64.getEncoder().encodeToString(signatureBytes)
-        val signatureHtml = """<img src="data:image/png;base64,$signatureBase64" alt="Podpis klienta" style="max-width: 200px; max-height: 60px;"/>"""
-
-        val generationData = InvoiceGenerationData(
-            document = document,
-            companySettings = companySettings,
-            logoData = logoData,
-            additionalData = mapOf("client_signature" to signatureHtml)
-        )
-
-        return invoiceTemplateService.generatePdfFromTemplate(activeTemplate, generationData)
-    }
-
-    private fun getLogoData(companySettings: com.carslab.crm.modules.company_settings.domain.model.CompanySettings): ByteArray? {
-        return companySettings.logoSettings.logoFileId?.let { logoFileId ->
+        return document.attachment?.let { attachment ->
             try {
-                logoStorageService.getLogoPath(logoFileId)?.let { path ->
-                    java.nio.file.Files.readAllBytes(path)
-                }
+                universalStorageService.retrieveFile(attachment.storageId)
             } catch (e: Exception) {
-                logger.warn("Failed to load logo for invoice generation", e)
+                logger.warn("Failed to retrieve existing attachment, generating new one", e)
                 null
             }
+        } ?: run {
+            val unsignedAttachment = invoiceAttachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
+                ?: throw InvoiceSignatureException("Failed to generate unsigned invoice PDF")
+            universalStorageService.retrieveFile(unsignedAttachment.storageId)
+                ?: throw InvoiceSignatureException("Failed to retrieve generated invoice PDF")
         }
     }
 
@@ -477,7 +391,7 @@ class InvoiceSignatureService(
             )
         )
 
-        webSocketHandler.broadcastToWorkstations(companyId, notification)
+        webSocketService.broadcastToWorkstations(companyId, notification)
     }
 
     private fun notifyFrontendSignatureComplete(companyId: Long, sessionId: String, cachedData: CachedSignatureData) {
@@ -496,7 +410,7 @@ class InvoiceSignatureService(
             )
         )
 
-        webSocketHandler.broadcastToWorkstations(companyId, notification)
+        webSocketService.broadcastToWorkstations(companyId, notification)
     }
 
     private fun mapToInvoiceStatus(status: SignatureSessionStatus): InvoiceSignatureStatus {

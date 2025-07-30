@@ -57,11 +57,14 @@ class InvoiceTemplateService(
         return generatePdfFromTemplate(template, generationData)
     }
 
-    fun generatePdfFromTemplate(template: InvoiceTemplate, data: InvoiceGenerationData): ByteArray {
-        logger.debug("Generating PDF from template: ${template.id.value} for document: ${data.document.id.value}")
+    fun generatePdfFromTemplate(
+        template: InvoiceTemplate,
+        generationData: InvoiceGenerationData
+    ): ByteArray {
+        logger.debug("Generating PDF from template: ${template.id.value}")
 
         return try {
-            val renderedHtml = templateRenderingService.renderTemplate(template, data)
+            val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
             val pdfBytes = pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
 
             logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")

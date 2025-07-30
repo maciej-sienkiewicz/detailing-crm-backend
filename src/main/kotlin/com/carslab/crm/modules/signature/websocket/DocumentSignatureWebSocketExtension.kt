@@ -121,7 +121,6 @@ fun SignatureWebSocketHandler.notifySessionCancellation(sessionId: UUID) {
         )
     )
 
-    // Find tablet with this session and notify
     broadcastToTablets("session_cancelled", message["payload"] as Map<String, Any>)
 
     LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)

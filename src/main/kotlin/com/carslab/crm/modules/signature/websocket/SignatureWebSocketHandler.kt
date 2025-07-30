@@ -1,4 +1,3 @@
-// src/main/kotlin/com/carslab/crm/signature/websocket/SignatureWebSocketHandler.kt
 package com.carslab.crm.signature.websocket
 
 import com.carslab.crm.audit.service.AuditService
@@ -9,6 +8,8 @@ import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.service.TabletConnectionService
+import com.carslab.crm.signature.events.DocumentSignatureCompletedEvent
+import com.carslab.crm.infrastructure.events.EventPublisher
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -30,7 +31,8 @@ class SignatureWebSocketHandler(
     private val tabletConnectionService: TabletConnectionService,
     private val objectMapper: ObjectMapper,
     private val auditService: AuditService,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val eventPublisher: EventPublisher
 ) : TextWebSocketHandler() {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
@@ -83,7 +85,6 @@ class SignatureWebSocketHandler(
 
         logger.info("Tablet connection attempt for device: $deviceId")
 
-        // Tworzymy tymczasowe połączenie bez autentykacji
         val tempConnection = TabletConnection(
             session = session,
             tablet = null,
@@ -94,12 +95,10 @@ class SignatureWebSocketHandler(
             authenticated = false
         )
 
-        // Store connection with deviceId as key
         tabletConnections[deviceId] = tempConnection
 
         logger.info("Tablet pre-connected: $deviceId, awaiting authentication")
 
-        // Send connection confirmation
         sendToSession(session, mapOf(
             "type" to "connection",
             "payload" to mapOf(
@@ -173,6 +172,10 @@ class SignatureWebSocketHandler(
                     @Suppress("UNCHECKED_CAST")
                     handleSignatureCompleted(session, messageData as Map<String, Any>)
                 }
+                "document_signature_completed" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    handleDocumentSignatureCompleted(session, messageData as Map<String, Any>)
+                }
                 "tablet_status" -> {
                     @Suppress("UNCHECKED_CAST")
                     handleTabletStatusUpdate(session, messageData as Map<String, Any>)
@@ -215,7 +218,6 @@ class SignatureWebSocketHandler(
         }
 
         try {
-            // Validate JWT token
             if (!jwtService.validateToken(token)) {
                 logger.warn("Invalid JWT token received from ${session.remoteAddress}")
                 throw SecurityException("Invalid JWT token")
@@ -244,7 +246,6 @@ class SignatureWebSocketHandler(
                 )
             ))
 
-            // Close connection after failed authentication
             try {
                 session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Authentication failed"))
             } catch (closeException: Exception) {
@@ -257,12 +258,10 @@ class SignatureWebSocketHandler(
         val tabletClaims = jwtService.extractTabletClaims(token)
         val deviceId = tabletClaims.deviceId
 
-        // Verify device ID matches if provided
         if (providedDeviceId != null && UUID.fromString(providedDeviceId) != deviceId) {
             throw SecurityException("Device ID mismatch: provided=$providedDeviceId, token=$deviceId")
         }
 
-        // Find tablet in database
         val tablet = tabletDeviceRepository.findById(deviceId)
             .orElseThrow { SecurityException("Tablet not found: $deviceId") }
 
@@ -270,12 +269,10 @@ class SignatureWebSocketHandler(
             throw SecurityException("Company mismatch: tablet=${tablet.companyId}, token=${tabletClaims.companyId}")
         }
 
-        // Check if tablet is active
         if (tablet.status != DeviceStatus.ACTIVE) {
             throw SecurityException("Tablet not active: ${tablet.status}")
         }
 
-        // Update connection with authenticated data
         val authenticatedConnection = TabletConnection(
             session = session,
             tablet = tablet,
@@ -291,7 +288,6 @@ class SignatureWebSocketHandler(
 
         logger.info("Tablet authenticated successfully: ${tablet.friendlyName} (${deviceId}) from ${session.remoteAddress}")
 
-        // Send authentication success
         sendToSession(session, mapOf(
             "type" to "authentication",
             "payload" to mapOf(
@@ -308,7 +304,6 @@ class SignatureWebSocketHandler(
     private fun handleWorkstationAuthentication(session: WebSocketSession, token: String) {
         val userClaims = jwtService.extractUserClaims(token)
 
-        // Find workstation connection and update it
         val workstationConnection = workstationConnections.values.find { it.session == session }
         if (workstationConnection != null) {
             val authenticatedConnection = workstationConnection.copy(
@@ -347,7 +342,6 @@ class SignatureWebSocketHandler(
     }
 
     private fun handleHeartbeat(session: WebSocketSession) {
-        // Update tablet heartbeat
         tabletConnections.values.find { it.session == session }?.let { connection ->
             if (connection.tablet != null) {
                 tabletConnections[connection.tablet!!.id] = connection.copy(lastHeartbeat = Instant.now())
@@ -355,12 +349,10 @@ class SignatureWebSocketHandler(
             }
         }
 
-        // Update workstation heartbeat
         workstationConnections.values.find { it.session == session }?.let { connection ->
             workstationConnections[connection.workstationId] = connection.copy(lastHeartbeat = Instant.now())
         }
 
-        // Send heartbeat response
         sendToSession(session, mapOf(
             "type" to "heartbeat",
             "payload" to mapOf("timestamp" to Instant.now())
@@ -377,6 +369,55 @@ class SignatureWebSocketHandler(
         if (tabletConnection != null && sessionId != null && tabletConnection.authenticated && tabletConnection.tablet != null) {
             logger.info("Signature completion acknowledgment received from tablet ${tabletConnection.tablet!!.id} for session: $sessionId")
             auditService.logSignatureAcknowledgment(tabletConnection.tablet!!.id, sessionId, success)
+        }
+    }
+
+    private fun handleDocumentSignatureCompleted(session: WebSocketSession, messageData: Map<String, Any>) {
+        val payload = messageData["payload"] as? Map<String, Any>
+        val sessionId = payload?.get("sessionId") as? String
+        val signatureImage = payload?.get("signatureImage") as? String
+        val success = payload?.get("success") as? Boolean ?: false
+
+        val tabletConnection = tabletConnections.values.find { it.session == session }
+
+        if (tabletConnection != null && sessionId != null && tabletConnection.authenticated && tabletConnection.tablet != null) {
+            logger.info("Document signature completed received from tablet ${tabletConnection.tablet!!.id} for session: $sessionId")
+
+            if (success && signatureImage != null) {
+                eventPublisher.publish(DocumentSignatureCompletedEvent(
+                    sessionId = sessionId,
+                    signatureImage = signatureImage,
+                    tabletId = tabletConnection.tablet!!.id,
+                    companyId = tabletConnection.companyId!!
+                ))
+
+                sendToSession(session, mapOf(
+                    "type" to "document_signature_acknowledgment",
+                    "payload" to mapOf(
+                        "sessionId" to sessionId,
+                        "success" to true,
+                        "timestamp" to Instant.now()
+                    )
+                ))
+
+                logger.info("Document signature event published for session: $sessionId")
+            } else {
+                logger.warn("Document signature completion without signature image or marked as failed for session: $sessionId")
+
+                sendToSession(session, mapOf(
+                    "type" to "document_signature_acknowledgment",
+                    "payload" to mapOf(
+                        "sessionId" to sessionId,
+                        "success" to false,
+                        "error" to "Missing signature or operation failed",
+                        "timestamp" to Instant.now()
+                    )
+                ))
+            }
+
+            auditService.logSignatureAcknowledgment(tabletConnection.tablet!!.id, sessionId, success)
+        } else {
+            logger.warn("Document signature completed from unknown or unauthenticated tablet")
         }
     }
 
@@ -400,8 +441,6 @@ class SignatureWebSocketHandler(
             logger.debug("Status update from workstation ${workstationConnection.workstationId} by user ${workstationConnection.username}")
         }
     }
-
-    // Rest of the methods remain mostly the same, but with null safety improvements...
 
     fun sendSignatureRequest(tabletId: UUID, request: SignatureRequestDto): Boolean {
         val connection = tabletConnections[tabletId]
@@ -478,7 +517,6 @@ class SignatureWebSocketHandler(
         }
     }
 
-    // Monitoring methods
     fun getActiveConnectionsCount(): Int = tabletConnections.size + workstationConnections.size
     fun getActiveTabletsCount(): Int = tabletConnections.values.count { it.authenticated }
     fun getActiveWorkstationsCount(): Int = workstationConnections.values.count { it.authenticated }
@@ -492,13 +530,12 @@ class SignatureWebSocketHandler(
         val now = Instant.now()
         val staleThreshold = Duration.ofMinutes(2)
 
-        // Cleanup stale tablets - improved null safety
         val staleTablets = tabletConnections.values.filter { connection ->
             try {
                 Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
             } catch (e: Exception) {
                 logger.warn("Error checking tablet connection staleness", e)
-                true // Consider it stale if we can't check
+                true
             }
         }
 
@@ -509,7 +546,6 @@ class SignatureWebSocketHandler(
                     logger.info("Removing stale tablet connection: $tabletId")
                     tabletConnections.remove(tabletId)
                 } else {
-                    // If tablet is null, we need to find and remove by session
                     val entryToRemove = tabletConnections.entries.find { it.value.session == connection.session }
                     entryToRemove?.let {
                         logger.info("Removing stale tablet connection with null tablet: ${entryToRemove.key}")
@@ -525,13 +561,12 @@ class SignatureWebSocketHandler(
             }
         }
 
-        // Cleanup stale workstations - improved null safety
         val staleWorkstations = workstationConnections.values.filter { connection ->
             try {
                 Duration.between(connection.lastHeartbeat, now) > staleThreshold || !connection.session.isOpen
             } catch (e: Exception) {
                 logger.warn("Error checking workstation connection staleness", e)
-                true // Consider it stale if we can't check
+                true
             }
         }
 
@@ -555,7 +590,6 @@ class SignatureWebSocketHandler(
             "payload" to mapOf("timestamp" to Instant.now())
         )
 
-        // Send heartbeats to tablets
         tabletConnections.values.forEach { connection ->
             try {
                 if (connection.session.isOpen) {
@@ -566,7 +600,6 @@ class SignatureWebSocketHandler(
             }
         }
 
-        // Send heartbeats to workstations
         workstationConnections.values.forEach { connection ->
             try {
                 if (connection.session.isOpen) {
@@ -610,16 +643,13 @@ class SignatureWebSocketHandler(
         }
     }
 
-    // FIXED: Improved afterConnectionClosed with null safety
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         try {
-            // Remove tablet connection with improved null safety
             val tabletEntryToRemove = tabletConnections.entries.find { it.value.session == session }
             if (tabletEntryToRemove != null) {
                 val tabletId = tabletEntryToRemove.key
                 tabletEntryToRemove.value
 
-                // Safe removal with null check
                 if (tabletId != null) {
                     tabletConnections.remove(tabletId)
                     logger.info("Tablet disconnected: $tabletId (${status.code}: ${status.reason})")
@@ -628,18 +658,15 @@ class SignatureWebSocketHandler(
                 }
             }
 
-            // Remove workstation connection with improved null safety
             val workstationEntryToRemove = workstationConnections.entries.find { it.value.session == session }
             if (workstationEntryToRemove != null) {
                 val workstationId = workstationEntryToRemove.key
                 val connection = workstationEntryToRemove.value
 
-                // Safe removal with null check
                 if (workstationId != null) {
                     workstationConnections.remove(workstationId)
                     logger.info("Workstation disconnected: $workstationId (${status.code}: ${status.reason})")
 
-                    // Log disconnection if authenticated
                     if (connection.authenticated && connection.companyId != null && connection.userId != null) {
                         auditService.logWorkstationConnection(workstationId, connection.companyId!!, connection.userId!!, "DISCONNECTED")
                     }
@@ -648,7 +675,6 @@ class SignatureWebSocketHandler(
                 }
             }
 
-            // If no connection was found, log it for debugging
             if (tabletEntryToRemove == null && workstationEntryToRemove == null) {
                 logger.debug("Connection closed for unknown session from ${session.remoteAddress}")
             }
@@ -658,11 +684,6 @@ class SignatureWebSocketHandler(
         }
     }
 
-    // Additional utility methods with null safety...
-
-    /**
-     * Disconnect specific tablet
-     */
     fun disconnectTablet(tabletId: UUID): Boolean {
         if (tabletId == null) {
             logger.warn("Cannot disconnect tablet: tabletId is null")
@@ -672,7 +693,6 @@ class SignatureWebSocketHandler(
         val connection = tabletConnections[tabletId]
         return if (connection != null && connection.session.isOpen) {
             try {
-                // Send disconnect message
                 sendToSession(connection.session, mapOf(
                     "type" to "disconnect",
                     "payload" to mapOf(
@@ -681,10 +701,7 @@ class SignatureWebSocketHandler(
                     )
                 ))
 
-                // Close connection
                 connection.session.close(CloseStatus.NORMAL.withReason("Administrative disconnect"))
-
-                // Remove from connections map
                 tabletConnections.remove(tabletId)
 
                 logger.info("Tablet $tabletId disconnected administratively")
@@ -699,16 +716,10 @@ class SignatureWebSocketHandler(
         }
     }
 
-    /**
-     * Get list of all connected tablets
-     */
     fun getConnectedTablets(): List<UUID> {
         return tabletConnections.keys.filterNotNull().toList()
     }
 
-    /**
-     * Get connection info for specific tablet
-     */
     fun getTabletConnectionInfo(tabletId: UUID): Map<String, Any>? {
         if (tabletId == null) {
             return null
@@ -729,9 +740,6 @@ class SignatureWebSocketHandler(
         } else null
     }
 
-    /**
-     * Get all tablets connection status
-     */
     fun getAllTabletsStatus(): Map<UUID, Map<String, Any>> {
         return tabletConnections.filterKeys { it != null }.mapValues { (_, connection) ->
             mapOf(
@@ -745,9 +753,6 @@ class SignatureWebSocketHandler(
         }
     }
 
-    /**
-     * Send administrative message to tablet
-     */
     fun sendAdminMessage(tabletId: UUID, messageType: String, data: Map<String, Any>): Boolean {
         if (tabletId == null) {
             logger.warn("Cannot send admin message: tabletId is null")
@@ -778,9 +783,6 @@ class SignatureWebSocketHandler(
         }
     }
 
-    /**
-     * Ping specific tablet
-     */
     fun pingTablet(tabletId: UUID): Boolean {
         return sendAdminMessage(tabletId, "ping", mapOf(
             "requestId" to UUID.randomUUID().toString(),
@@ -788,9 +790,6 @@ class SignatureWebSocketHandler(
         ))
     }
 
-    /**
-     * Request tablet status update
-     */
     fun requestTabletStatus(tabletId: UUID): Boolean {
         return sendAdminMessage(tabletId, "status_request", mapOf(
             "requestId" to UUID.randomUUID().toString(),
@@ -799,9 +798,6 @@ class SignatureWebSocketHandler(
         ))
     }
 
-    /**
-     * Broadcast message to all connected tablets
-     */
     fun broadcastToTablets(messageType: String, data: Map<String, Any>): Int {
         var sentCount = 0
 
@@ -826,9 +822,99 @@ class SignatureWebSocketHandler(
         return sentCount
     }
 
-    /**
-     * Get connection statistics
-     */
+    fun broadcastToWorkstations(companyId: Long, notification: Map<String, Any>): Int {
+        var sentCount = 0
+
+        try {
+            workstationConnections.values
+                .filter { it.companyId == companyId && it.authenticated }
+                .forEach { connection ->
+                    if (connection.session.isOpen) {
+                        val success = sendToSession(connection.session, notification)
+                        if (success) sentCount++
+                    }
+                }
+
+            logger.info("Broadcast notification sent to $sentCount workstations in company $companyId")
+        } catch (e: Exception) {
+            logger.error("Error broadcasting to workstations", e)
+        }
+
+        return sentCount
+    }
+
+    fun notifySessionCancellation(sessionId: UUID) {
+        val message = mapOf(
+            "type" to "session_cancelled",
+            "payload" to mapOf(
+                "sessionId" to sessionId.toString(),
+                "timestamp" to Instant.now(),
+                "reason" to "Session was cancelled by administrator"
+            )
+        )
+
+        broadcastToTablets("session_cancelled", message["payload"] as Map<String, Any>)
+
+        logger.info("Session cancellation notification sent for session $sessionId")
+    }
+
+    fun sendDocumentSignatureRequestWithDocument(
+        tabletId: UUID,
+        request: DocumentSignatureRequestDto,
+        documentBytes: ByteArray
+    ): Boolean {
+        val connection = tabletConnections[tabletId]
+
+        return if (connection != null && connection.session.isOpen && connection.authenticated) {
+
+            val documentBase64 = "data:application/pdf;base64," + Base64.getEncoder().encodeToString(documentBytes)
+
+            if (documentBytes.size > 10 * 1024 * 1024) {
+                logger.error("Document too large for WebSocket transmission: ${documentBytes.size} bytes")
+                return false
+            }
+
+            val documentHash = MessageDigest.getInstance("SHA-256")
+                .digest(documentBytes)
+                .let { hash -> Base64.getEncoder().encodeToString(hash) }
+
+            val message = mapOf(
+                "type" to "document_signature_request",
+                "payload" to mapOf(
+                    "sessionId" to request.sessionId,
+                    "documentId" to request.documentId,
+                    "companyId" to request.companyId,
+                    "signerName" to request.signerName,
+                    "signatureTitle" to request.signatureTitle,
+                    "documentTitle" to request.documentTitle,
+                    "documentType" to request.documentType,
+                    "pageCount" to request.pageCount,
+                    "instructions" to request.instructions,
+                    "businessContext" to request.businessContext,
+                    "timeoutMinutes" to request.timeoutMinutes,
+                    "expiresAt" to request.expiresAt,
+                    "signatureFields" to request.signatureFields,
+                    "timestamp" to Instant.now(),
+                    "documentData" to documentBase64,
+                    "documentSize" to documentBytes.size,
+                    "documentHash" to documentHash
+                )
+            )
+
+            val success = this.sendToSession(connection.session, message)
+
+            if (success) {
+                logger.info("Document signature request with embedded document sent to tablet $tabletId for session ${request.sessionId} (${documentBytes.size} bytes)")
+            } else {
+                logger.warn("Failed to send document signature request with document to tablet $tabletId")
+            }
+            success
+        } else {
+            logger.warn("Tablet $tabletId not connected, not authenticated, or session closed")
+            false
+        }
+    }
+
     fun getConnectionStatistics(): Map<String, Any> {
         val now = Instant.now()
         val staleThreshold = Duration.ofMinutes(2)
@@ -855,7 +941,6 @@ class SignatureWebSocketHandler(
     }
 }
 
-// Updated data classes
 data class TabletConnection(
     val session: WebSocketSession,
     val tablet: TabletDevice?,
@@ -894,69 +979,3 @@ data class VehicleInfoDto(
     val licensePlate: String,
     val vin: String? = null
 )
-
-fun SignatureWebSocketHandler.sendDocumentSignatureRequestWithDocument(
-    tabletId: UUID,
-    request: DocumentSignatureRequestDto,
-    documentBytes: ByteArray  // RAW PDF BYTES
-): Boolean {
-    val connection = tabletConnections[tabletId]
-
-    return if (connection != null && connection.session.isOpen && connection.authenticated) {
-
-        // Konwertuj PDF bytes na base64
-        val documentBase64 = "data:application/pdf;base64," + Base64.getEncoder().encodeToString(documentBytes)
-
-        // Sprawdź rozmiar (max 10MB)
-        if (documentBytes.size > 10 * 1024 * 1024) {
-            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-                .error("Document too large for WebSocket transmission: ${documentBytes.size} bytes")
-            return false
-        }
-
-        // Wygeneruj hash dokumentu dla weryfikacji
-        val documentHash = MessageDigest.getInstance("SHA-256")
-            .digest(documentBytes)
-            .let { hash -> Base64.getEncoder().encodeToString(hash) }
-
-        val message = mapOf(
-            "type" to "document_signature_request",
-            "payload" to mapOf(
-                "sessionId" to request.sessionId,
-                "documentId" to request.documentId,
-                "companyId" to request.companyId,
-                "signerName" to request.signerName,
-                "signatureTitle" to request.signatureTitle,
-                "documentTitle" to request.documentTitle,
-                "documentType" to request.documentType,
-                "pageCount" to request.pageCount,
-                "instructions" to request.instructions,
-                "businessContext" to request.businessContext,
-                "timeoutMinutes" to request.timeoutMinutes,
-                "expiresAt" to request.expiresAt,
-                "signatureFields" to request.signatureFields,
-                "timestamp" to Instant.now(),
-
-                // DOKUMENT w base64
-                "documentData" to documentBase64,
-                "documentSize" to documentBytes.size,
-                "documentHash" to documentHash
-            )
-        )
-
-        val success = this.sendToSession(connection.session, message)
-
-        if (success) {
-            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-                .info("Document signature request with embedded document sent to tablet $tabletId for session ${request.sessionId} (${documentBytes.size} bytes)")
-        } else {
-            LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-                .warn("Failed to send document signature request with document to tablet $tabletId")
-        }
-        success
-    } else {
-        LoggerFactory.getLogger(SignatureWebSocketHandler::class.java)
-            .warn("Tablet $tabletId not connected, not authenticated, or session closed")
-        false
-    }
-}
