@@ -109,7 +109,7 @@ class JpaUnifiedDocumentRepositoryAdapter(
     }
 
     override fun findById(id: UnifiedDocumentId): UnifiedFinancialDocument? {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val companyId = 3L
         return documentJpaRepository.findByCompanyIdAndId(companyId, id.value)
             .map { it.toDomain() }
             .orElse(null)

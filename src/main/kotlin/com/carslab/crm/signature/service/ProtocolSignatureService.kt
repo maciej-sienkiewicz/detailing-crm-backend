@@ -28,7 +28,6 @@ import java.util.*
 class ProtocolSignatureService(
     private val pdfService: PdfService,
     private val documentSignatureSessionRepository: DocumentSignatureSessionRepository,
-    private val signatureDocumentRepository: SignatureDocumentRepository,
     private val tabletDeviceRepository: TabletDeviceRepository,
     private val webSocketHandler: SignatureWebSocketHandler,
     private val signatureCacheService: SignatureCacheService,
@@ -89,8 +88,8 @@ class ProtocolSignatureService(
             // 3. Cache oryginalny dokument dla późniejszego użycia
             val originalDocumentCache = CachedSignatureData(
                 sessionId = sessionId.toString(),
-                signatureImageBase64 = "", // Będzie uzupełnione po podpisie
-                signatureImageBytes = ByteArray(0), // Będzie uzupełnione po podpisie
+                signatureImageBase64 = "",
+                signatureImageBytes = ByteArray(0), 
                 originalDocumentBytes = pdfData,
                 signedAt = Instant.now(),
                 signerName = request.customerName,

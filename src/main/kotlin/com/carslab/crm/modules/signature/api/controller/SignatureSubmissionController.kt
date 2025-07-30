@@ -2,20 +2,15 @@
 package com.carslab.crm.modules.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
-import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.signature.service.ProtocolSignatureService
-import com.carslab.crm.signature.service.SignatureSubmissionService
 import com.carslab.crm.signature.service.SignatureException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid
-import java.util.*
 
 @RestController
 @RequestMapping("/api/signatures")
 class SignatureSubmissionController(
-    private val signatureSubmissionService: SignatureSubmissionService,
-    private val securityContext: SecurityContext,
     private val signatureService: ProtocolSignatureService,
 ) : BaseController() {
 

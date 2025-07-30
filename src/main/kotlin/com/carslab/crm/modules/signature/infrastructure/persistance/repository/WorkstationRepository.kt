@@ -9,6 +9,4 @@ import java.util.UUID
 interface WorkstationRepository : JpaRepository<Workstation, UUID> {
 
     fun findByCompanyId(companyId: Long): List<Workstation>
-
-    fun findByPairedTabletId(pairedTabletId: UUID): Workstation?
 }

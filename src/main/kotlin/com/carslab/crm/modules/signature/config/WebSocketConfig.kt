@@ -21,7 +21,6 @@ class WebSocketConfig(
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
         logger.info("Registering WebSocket handlers...")
 
-        // POPRAWKA: Uproszczona konfiguracja bez wymagania X-Device-Token w headers
         registry.addHandler(signatureWebSocketHandler, "/ws/tablet/{deviceId}", "/ws/workstation/{workstationId}")
             .setAllowedOriginPatterns(
                 "http://localhost:*",
@@ -50,7 +49,6 @@ class WebSocketHandshakeInterceptor : HandshakeInterceptor {
         val uri = request.uri.toString()
         logger.info("WebSocket handshake attempt: $uri")
 
-        // Dodaj CORS headers
         response.headers.add("Access-Control-Allow-Origin", "*")
         response.headers.add("Access-Control-Allow-Headers", "Authorization, X-Device-Token, Content-Type")
         response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")

@@ -146,12 +146,7 @@ class MultiTenantWebSocketHandler(
 
         logger.info("WebSocket connection closed: ${status.reason}")
     }
-
-    fun isTabletConnected(tabletId: UUID): Boolean {
-        val connection = tabletConnections[tabletId]
-        return connection?.session?.isOpen == true
-    }
-
+    
     private fun sendToSession(session: WebSocketSession, message: WebSocketMessage) {
         try {
             if (session.isOpen) {

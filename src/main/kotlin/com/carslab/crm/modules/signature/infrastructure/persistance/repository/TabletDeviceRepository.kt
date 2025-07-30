@@ -16,24 +16,7 @@ interface TabletDeviceRepository : JpaRepository<TabletDevice, UUID> {
     fun findByIdAndDeviceToken(id: UUID, deviceToken: String): TabletDevice?
 
     fun findByCompanyId(companyId: Long): List<TabletDevice>
-
-    @Query(
-        """
-        SELECT t FROM TabletDevice t 
-        WHERE t.companyId = :companyId 
-        AND t.locationId = :locationId 
-        AND t.status = :status 
-        AND t.lastSeen > :lastSeenAfter
-        ORDER BY t.lastSeen DESC
-    """
-    )
-    fun findAvailableTablets(
-        companyId: Long,
-        locationId: UUID,
-        status: DeviceStatus,
-        lastSeenAfter: Instant
-    ): List<TabletDevice>
-
+    
     @Modifying
     @Transactional
     @Query("UPDATE TabletDevice t SET t.lastSeen = :lastSeen WHERE t.id = :deviceId")
