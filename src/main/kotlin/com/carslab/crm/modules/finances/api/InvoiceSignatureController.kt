@@ -26,21 +26,21 @@ class InvoiceSignatureController(
     private val securityContext: SecurityContext
 ) : BaseController() {
 
-    @PostMapping("/{invoiceId}/signature/request")
-    @Operation(summary = "Request invoice signature", description = "Sends an invoice to tablet for signature")
-    fun requestInvoiceSignature(
-        @Parameter(description = "Invoice ID", required = true) @PathVariable invoiceId: String,
+    @PostMapping("/{visitId}/signature/request")
+    @Operation(summary = "Request invoice signature from visit", description = "Creates invoice from visit and sends to tablet for signature")
+    fun requestInvoiceSignatureFromVisit(
+        @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
         @RequestBody @Valid request: InvoiceSignatureRequest
     ): ResponseEntity<InvoiceSignatureResponse> {
-        logger.info("Requesting signature for invoice: {}", invoiceId)
+        logger.info("Requesting signature for visit: {}", visitId)
 
         val companyId = securityContext.getCurrentCompanyId()
         val userId = securityContext.getCurrentUserId()
 
-        val response = invoiceSignatureService.requestInvoiceSignature(
+        val response = invoiceSignatureService.requestInvoiceSignatureFromVisit(
             companyId = companyId,
             userId = userId.toString(),
-            invoiceId = invoiceId,
+            visitId = visitId,
             request = request
         )
 

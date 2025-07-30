@@ -16,12 +16,30 @@ import com.carslab.crm.signature.service.CachedSignatureData
 import com.carslab.crm.signature.api.dto.DocumentSignatureRequestDto
 import com.carslab.crm.signature.api.dto.SignatureSessionStatus
 import com.carslab.crm.signature.service.WebSocketService
+import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
+import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
+import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.ApprovalStatus
+import com.carslab.crm.domain.model.view.finance.DocumentItem
+import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
+import com.carslab.crm.domain.model.view.finance.PaymentMethod
+import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.api.model.DocumentType
+import com.carslab.crm.api.model.TransactionDirection
+import com.carslab.crm.api.model.DocumentStatus
+import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.*
 
 @Service
@@ -34,9 +52,52 @@ class InvoiceSignatureService(
     private val webSocketService: WebSocketService,
     private val signatureCacheService: SignatureCacheService,
     private val universalStorageService: UniversalStorageService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val protocolRepository: ProtocolRepository,
+    private val companySettingsService: CompanySettingsDomainService,
+    private val unifiedDocumentRepository: UnifiedDocumentRepository
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceSignatureService::class.java)
+
+    fun requestInvoiceSignatureFromVisit(
+        companyId: Long,
+        userId: String,
+        visitId: String,
+        request: InvoiceSignatureRequest
+    ): InvoiceSignatureResponse {
+        logger.info("Requesting invoice signature from visit: {} by user: {}", visitId, userId)
+
+        val tablet = tabletDeviceRepository.findById(request.tabletId).orElse(null)
+            ?: throw InvoiceSignatureException("Tablet not found: ${request.tabletId}")
+
+        if (tablet.companyId != companyId) {
+            throw InvoiceSignatureException("Tablet does not belong to company")
+        }
+
+        if (!webSocketService.isTabletConnected(request.tabletId)) {
+            throw InvoiceSignatureException("Tablet is offline")
+        }
+
+        val protocol = try {
+            protocolRepository.findById(ProtocolId(visitId))
+                ?: throw InvoiceSignatureException("Visit not found: $visitId")
+        } catch (e: Exception) {
+            throw InvoiceSignatureException("Error retrieving visit: ${e.message}", e)
+        }
+
+        if (protocol.status != ProtocolStatus.READY_FOR_PICKUP && protocol.status != ProtocolStatus.COMPLETED) {
+            throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
+        }
+
+        val document = createInvoiceFromVisit(protocol, companyId)
+
+        return requestInvoiceSignature(
+            companyId = companyId,
+            userId = userId,
+            invoiceId = document.id.value,
+            request = request
+        )
+    }
 
     fun requestInvoiceSignature(
         companyId: Long,
@@ -359,6 +420,120 @@ class InvoiceSignatureService(
 
     fun getCachedSignatureData(sessionId: String): CachedSignatureData? {
         return signatureCacheService.getSignature(sessionId)
+    }
+
+    private fun findExistingInvoiceForVisit(visitId: String, companyId: Long): UnifiedFinancialDocument? {
+        return try {
+            val documents = unifiedDocumentRepository.findInvoicesByCompanyAndDateRange(
+                companyId = companyId,
+                startDate = LocalDate.now().minusDays(30),
+                endDate = LocalDate.now()
+            )
+
+            documents.find { document ->
+                document.protocolId == visitId || document.visitId == visitId
+            }
+        } catch (e: Exception) {
+            logger.warn("Error searching for existing invoice for visit: $visitId", e)
+            null
+        }
+    }
+
+    private fun createInvoiceFromVisit(
+        protocol: com.carslab.crm.domain.model.CarReceptionProtocol,
+        companyId: Long
+    ): UnifiedFinancialDocument {
+        logger.info("Creating invoice from visit: ${protocol.id.value}")
+
+        val companySettings = try {
+            companySettingsService.getCompanySettings(companyId)
+                ?: throw InvoiceSignatureException("Company settings not found for company: $companyId")
+        } catch (e: Exception) {
+            throw InvoiceSignatureException("Error retrieving company settings: ${e.message}", e)
+        }
+
+        val approvedServices = protocol.protocolServices.filter {
+            it.approvalStatus == ApprovalStatus.APPROVED
+        }
+
+        if (approvedServices.isEmpty()) {
+            throw InvoiceSignatureException("No approved services found for visit")
+        }
+
+        val items = approvedServices.map { service ->
+            DocumentItem(
+                id = UUID.randomUUID().toString(),
+                name = service.name,
+                description = service.note,
+                quantity = service.quantity.toBigDecimal(),
+                unitPrice = service.finalPrice.amount.toBigDecimal(),
+                taxRate = BigDecimal("23"),
+                totalNet = (service.finalPrice.amount.toBigDecimal() / BigDecimal("1.23")).setScale(2, RoundingMode.HALF_UP),
+                totalGross = service.finalPrice.amount.toBigDecimal()
+            )
+        }
+
+        val totalGross = items.sumOf { it.totalGross }
+        val totalNet = items.sumOf { it.totalNet }
+        val totalTax = totalGross - totalNet
+
+        val document = UnifiedFinancialDocument(
+            id = UnifiedDocumentId.generate(),
+            number = generateInvoiceNumber(companyId),
+            type = DocumentType.INVOICE,
+            title = "Faktura za wizytę: ${protocol.title}",
+            description = "Automatycznie wygenerowana faktura z wizyty",
+            issuedDate = LocalDate.now(),
+            dueDate = LocalDate.now().plusDays(14),
+            sellerName = companySettings.basicInfo.companyName,
+            sellerTaxId = companySettings.basicInfo.taxId,
+            sellerAddress = companySettings.basicInfo.address ?: "",
+            buyerName = protocol.client.name,
+            buyerTaxId = protocol.client.taxId,
+            buyerAddress = protocol.client.address ?: "",
+            status = DocumentStatus.NOT_PAID,
+            direction = TransactionDirection.INCOME,
+            paymentMethod = PaymentMethod.BANK_TRANSFER,
+            totalNet = totalNet,
+            totalTax = totalTax,
+            totalGross = totalGross,
+            paidAmount = BigDecimal.ZERO,
+            currency = "PLN",
+            notes = "Faktura wygenerowana automatycznie dla podpisu",
+            protocolId = protocol.id.value,
+            protocolNumber = protocol.id.value,
+            visitId = protocol.id.value,
+            items = items,
+            attachment = null,
+            audit = Audit(
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        )
+
+        return try {
+            unifiedDocumentRepository.save(document)
+        } catch (e: Exception) {
+            logger.error("Error creating invoice from visit: ${protocol.id.value}", e)
+            throw InvoiceSignatureException("Failed to create invoice: ${e.message}", e)
+        }
+    }
+
+    private fun generateInvoiceNumber(companyId: Long): String {
+        val year = LocalDate.now().year
+        val month = LocalDate.now().monthValue
+
+        return try {
+            unifiedDocumentRepository.generateDocumentNumber(
+                year = year,
+                month = month,
+                type = DocumentType.INVOICE.name,
+                direction = TransactionDirection.INCOME.name
+            )
+        } catch (e: Exception) {
+            logger.warn("Error generating invoice number, using fallback", e)
+            "FV/$year/$month/${System.currentTimeMillis()}"
+        }
     }
 
     private fun getOrGenerateUnsignedInvoicePdf(
