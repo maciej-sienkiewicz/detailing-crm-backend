@@ -20,12 +20,10 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
 
             var htmlContent = template.content.htmlTemplate
 
-            // Przeprowadź podstawienia zmiennych
             variables.forEach { (key, value) ->
                 htmlContent = htmlContent.replace("{{$key}}", value.toString())
             }
 
-            // Usuń nieużywane placeholder'y
             htmlContent = htmlContent.replace(Regex("\\{\\{[^}]+\\}\\}"), "")
 
             logger.debug("Template rendered successfully")
@@ -48,7 +46,6 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
     private fun prepareVariables(data: InvoiceGenerationData): Map<String, Any> {
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
-        // Logo
         val logoHtml = if (data.logoData != null) {
             val logoBase64 = Base64.getEncoder().encodeToString(data.logoData)
             """<img src="data:image/png;base64,$logoBase64" alt="Logo firmy" class="logo-img"/>"""
@@ -56,7 +53,6 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             """<div class="company-initial">${escapeHtml(data.companySettings.basicInfo.companyName.take(1))}</div>"""
         }
 
-        // NAPRAWKA: Items HTML - bez dodatkowych podsumowań
         val itemsHtml = data.document.items.mapIndexed { index, item ->
             """
             <tr class="item-row">
@@ -74,7 +70,6 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             """.trimIndent()
         }.joinToString("\n")
 
-        // NAPRAWKA: Pojedyncze, profesjonalne podsumowanie
         val summaryHtml = """
             <tr class="summary-row">
                 <td colspan="4" class="summary-label">RAZEM</td>
@@ -83,6 +78,10 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
                 <td class="summary-gross">${formatMoney(data.document.totalGross)}</td>
             </tr>
         """.trimIndent()
+
+        val clientSignatureHtml = data.additionalData["client_signature"] as? String ?: run {
+            """<div class="client-signature-placeholder">Miejsce na podpis klienta</div>"""
+        }
 
         return mapOf(
             "invoice.number" to escapeHtml(data.document.number),
@@ -104,8 +103,8 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             "totalGrossFormatted" to formatMoney(data.document.totalGross),
             "logoHtml" to logoHtml,
             "itemsHtml" to itemsHtml,
-            // NAPRAWKA: Usuń vatSummaryHtml i zastąp summaryHtml
             "summaryHtml" to summaryHtml,
+            "client_signature" to clientSignatureHtml,
             "generatedAt" to java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
             "hasLogo" to (data.logoData != null),
             "bankAccountNumber" to escapeHtml(data.companySettings.bankSettings?.bankAccountNumber ?: ""),

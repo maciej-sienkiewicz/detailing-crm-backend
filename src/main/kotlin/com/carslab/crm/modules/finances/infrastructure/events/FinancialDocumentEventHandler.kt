@@ -35,26 +35,6 @@ class FinancialDocumentEventHandler(
     @Transactional
     fun handleVehicleServiceCompleted(event: VehicleServiceCompletedEvent) {
         logger.info("Creating financial document for completed service: ${event.protocolId}")
-
-        val companySettings: CompanySettingsResponse = companySettingsApplicationService.getCompanySettings(companyId = securityContext.getCurrentCompanyId())
-
-        try {
-            val document = createFinancialDocument(event, companySettings)
-            val savedDocument = unifiedDocumentRepository.save(document)
-
-            val attachment = invoiceAttachmentGenerationService.generateInvoiceAttachmentWithoutSignature(savedDocument)
-
-            if (attachment != null) {
-                val documentWithAttachment = savedDocument.copy(attachment = attachment)
-                unifiedDocumentRepository.save(documentWithAttachment)
-                logger.info("Successfully created financial document with unsigned invoice attachment for protocol: ${event.protocolId}")
-            } else {
-                logger.info("Successfully created financial document without attachment for protocol: ${event.protocolId}")
-            }
-
-        } catch (e: Exception) {
-            logger.error("Failed to create financial document for protocol: ${event.protocolId}", e)
-        }
     }
 
     private fun createFinancialDocument(

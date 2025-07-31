@@ -1,17 +1,22 @@
 package com.carslab.crm.modules.finances.api.requests
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import java.util.UUID
 
 data class InvoiceSignatureRequest(
-    @JsonProperty("tablet_id")
+    @field:jakarta.validation.constraints.NotNull
     val tabletId: UUID,
-    @JsonProperty("customer_name")
+
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 200)
     val customerName: String,
-    @JsonProperty("signature_title")
-    val signatureTitle: String = "Podpis faktury",
-    @JsonProperty("instructions")
-    val instructions: String? = null,
-    @JsonProperty("timeout_minutes")
-    val timeoutMinutes: Int = 10
+
+    @field:jakarta.validation.constraints.Size(max = 200)
+    val signatureTitle: String = "Podpis na fakturze",
+
+    @field:jakarta.validation.constraints.Size(max = 1000)
+    val instructions: String? = "Proszę podpisać fakturę",
+
+    @field:jakarta.validation.constraints.Positive
+    @field:jakarta.validation.constraints.Max(30)
+    val timeoutMinutes: Int = 15
 )
