@@ -31,10 +31,7 @@ class InvoiceSignatureOrchestrator(
         logger.info("Starting invoice signature process for visit: $visitId")
 
         return try {
-            // 1. Find or create invoice from visit
             val document = documentService.findOrCreateInvoiceFromVisit(visitId, companyId)
-
-            // 2. Request signature for the document
             requestInvoiceSignature(companyId, userId, document.id.value, request)
         } catch (e: Exception) {
             logger.error("Failed to request invoice signature from visit: $visitId", e)
@@ -51,13 +48,10 @@ class InvoiceSignatureOrchestrator(
         logger.info("Requesting invoice signature for invoice: $invoiceId")
 
         return try {
-            // 1. Validate tablet availability
             tabletCommunicationService.validateTabletAccess(request.tabletId, companyId)
 
-            // 2. Get document
             val document = documentService.getDocument(invoiceId)
 
-            // 3. Create signature session
             val session = sessionManager.createSession(
                 SignatureSessionRequest(
                     invoiceId = invoiceId,
@@ -71,11 +65,9 @@ class InvoiceSignatureOrchestrator(
                 )
             )
 
-            // 4. Generate unsigned PDF and cache it
             val unsignedPdf = attachmentManager.getOrGenerateUnsignedPdf(document)
             sessionManager.cacheDocumentForSignature(session.sessionId, document, unsignedPdf, request.customerName)
 
-            // 5. Send to tablet
             val sent = tabletCommunicationService.sendSignatureRequest(session, document, unsignedPdf)
 
             if (sent) {
@@ -104,22 +96,15 @@ class InvoiceSignatureOrchestrator(
         logger.info("Processing signature submission for session: $sessionId")
 
         return try {
-            // 1. Validate session
             val session = sessionManager.getSession(sessionId)
                 ?: throw InvoiceSignatureException("Session not found: $sessionId")
 
-            // 2. Validate session is still active
             if (session.status != com.carslab.crm.signature.api.dto.SignatureSessionStatus.SENT_TO_TABLET) {
                 throw InvoiceSignatureException("Session is not in valid state for signature submission: ${session.status}")
             }
 
-            // 3. Process signature and store in cache ONLY
             val signatureBytes = extractSignatureBytes(signatureImageBase64)
-
-            // 4. Update cache with signature data
             sessionManager.updateCacheWithSignature(sessionId, signatureImageBase64, signatureBytes)
-
-            // 5. Mark session as completed (but don't generate final document yet)
             sessionManager.markSessionAsCompleted(sessionId)
 
             logger.info("Signature submission cached successfully for session: $sessionId")
@@ -132,24 +117,45 @@ class InvoiceSignatureOrchestrator(
         }
     }
 
-    fun processCompletedSignature(sessionId: String): Boolean {
-        logger.info("Processing completed signature for session: $sessionId")
+    fun getSignatureStatus(sessionId: UUID, companyId: Long, invoiceId: String): InvoiceSignatureStatusResponse {
+        val status = sessionManager.getSignatureStatus(sessionId, companyId, invoiceId)
 
+        if (status.status == InvoiceSignatureStatus.COMPLETED) {
+            logger.info("Processing completed signature for session: $sessionId")
+
+            try {
+                val processed = processCompletedSignature(sessionId.toString())
+                if (processed) {
+                    sessionManager.cleanupCache(sessionId.toString())
+                    return sessionManager.getSignatureStatus(sessionId, companyId, invoiceId)
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to process completed signature for session: $sessionId", e)
+            }
+        }
+
+        return status
+    }
+
+    fun cancelSignatureSession(sessionId: UUID, companyId: Long, invoiceId: String, userId: String, reason: String?) {
+        logger.info("Cancelling signature session: $sessionId")
+
+        sessionManager.cancelSession(sessionId, companyId, invoiceId, userId, reason)
+        tabletCommunicationService.notifySessionCancellation(sessionId)
+    }
+
+    private fun processCompletedSignature(sessionId: String): Boolean {
         return try {
-            // 1. Get cached data
             val cachedData = sessionManager.getCachedData(sessionId)
                 ?: throw InvoiceSignatureException("Cached data not found for session: $sessionId")
 
-            // 2. Validate we have signature data
             if (cachedData.signatureImageBytes.isEmpty()) {
                 throw InvoiceSignatureException("No signature data found in cache for session: $sessionId")
             }
 
-            // 3. Generate signed PDF and replace attachment
             val signedPdf = attachmentManager.generateSignedPdf(cachedData.document, cachedData.signatureImageBytes)
             val newAttachment = attachmentManager.replaceAttachment(cachedData.document, signedPdf)
 
-            // 4. Notify frontend about completion
             notificationService.notifySignatureCompleted(
                 cachedData.companyId,
                 sessionId,
@@ -171,35 +177,6 @@ class InvoiceSignatureOrchestrator(
             sessionManager.markSessionAsError(sessionId, e.message)
             false
         }
-    }
-
-    fun getSignatureStatus(sessionId: UUID, companyId: Long, invoiceId: String): InvoiceSignatureStatusResponse {
-        val status = sessionManager.getSignatureStatus(sessionId, companyId, invoiceId)
-
-        // CRITICAL: If status is COMPLETED and we haven't processed the final document yet, do it now
-        if (status.status == InvoiceSignatureStatus.COMPLETED) {
-            logger.info("Detected completed signature that needs processing for session: $sessionId")
-
-            try {
-                val processed = processCompletedSignature(sessionId.toString())
-                if (processed) {
-                    sessionManager.cleanupCache(sessionId.toString())
-                    return sessionManager.getSignatureStatus(sessionId, companyId, invoiceId)
-                }
-            } catch (e: Exception) {
-                logger.error("Failed to process completed signature for session: $sessionId", e)
-                // Continue with original status if processing fails
-            }
-        }
-
-        return status
-    }
-
-    fun cancelSignatureSession(sessionId: UUID, companyId: Long, invoiceId: String, userId: String, reason: String?) {
-        logger.info("Cancelling signature session: $sessionId")
-
-        sessionManager.cancelSession(sessionId, companyId, invoiceId, userId, reason)
-        tabletCommunicationService.notifySessionCancellation(sessionId)
     }
 
     private fun extractSignatureBytes(signatureImageBase64: String): ByteArray {

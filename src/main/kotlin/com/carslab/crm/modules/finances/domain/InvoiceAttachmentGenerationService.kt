@@ -34,7 +34,7 @@ class InvoiceAttachmentGenerationService(
 
     fun generateInvoiceAttachmentWithoutSignature(document: UnifiedFinancialDocument): DocumentAttachment? {
         return try {
-            logger.debug("Generating invoice attachment without signature for document: ${document.id.value}")
+            logger.debug("Generating temporary invoice attachment without signature for document: ${document.id.value}")
 
             val companyId = securityContext.getCurrentCompanyId()
             val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
@@ -53,20 +53,17 @@ class InvoiceAttachmentGenerationService(
             )
 
             val pdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
-            val storageId = storeInvoicePdf(pdfBytes, document, "unsigned")
 
-            logger.info("Successfully generated and stored unsigned invoice attachment for document: ${document.id.value}")
+            logger.info("Successfully generated temporary unsigned invoice attachment for document: ${document.id.value}")
 
             DocumentAttachment(
                 id = UUID.randomUUID().toString(),
-                name = "invoice-${document.number}.pdf",
+                name = "temp-invoice-${document.number}.pdf",
                 size = pdfBytes.size.toLong(),
                 type = "application/pdf",
-                storageId = storageId,
+                storageId = storeTempInvoicePdf(pdfBytes, document, "unsigned"),
                 uploadedAt = LocalDateTime.now()
-            ).also { 
-                unifiedDocumentRepository.save(document.copy(attachment = it))
-            }
+            )
         } catch (e: Exception) {
             logger.error("Failed to generate invoice attachment for document: ${document.id.value}", e)
             null
@@ -99,21 +96,29 @@ class InvoiceAttachmentGenerationService(
             )
 
             val signedPdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
-            val storageId = storeInvoicePdf(signedPdfBytes, document, "signed")
-            document.attachment?.storageId?.let { universalStorageService.deleteFile(it) }
 
-            logger.info("Successfully generated and stored signed invoice attachment for document: ${document.id.value}")
+            logger.info("Successfully generated signed invoice attachment for document: ${document.id.value}")
+
+            DocumentAttachment(
+                id = UUID.randomUUID().toString(),
+                name = "signed-invoice-${document.number}.pdf",
+                size = signedPdfBytes.size.toLong(),
+                type = "application/pdf",
+                storageId = "temp-storage-id",
+                uploadedAt = LocalDateTime.now()
+            ).also {
+
+            }
 
             val attachment = DocumentAttachment(
                 id = UUID.randomUUID().toString(),
                 name = "signed-invoice-${document.number}.pdf",
                 size = signedPdfBytes.size.toLong(),
                 type = "application/pdf",
-                storageId = storageId,
+                storageId = storeTempInvoicePdf(signedPdfBytes, document, "signed-temp"),
                 uploadedAt = LocalDateTime.now()
             )
 
-            unifiedDocumentRepository.save(document.copy(attachment = attachment))
             attachment
 
         } catch (e: Exception) {
@@ -141,7 +146,7 @@ class InvoiceAttachmentGenerationService(
         }
     }
 
-    private fun storeInvoicePdf(
+    private fun storeTempInvoicePdf(
         pdfBytes: ByteArray,
         document: UnifiedFinancialDocument,
         type: String
@@ -149,7 +154,7 @@ class InvoiceAttachmentGenerationService(
         val companyId = securityContext.getCurrentCompanyId()
 
         val inputStreamFile = object : org.springframework.web.multipart.MultipartFile {
-            override fun getName(): String = "invoice"
+            override fun getName(): String = "temp-invoice"
             override fun getOriginalFilename(): String = "$type-invoice-${document.number}.pdf"
             override fun getContentType(): String = "application/pdf"
             override fun isEmpty(): Boolean = pdfBytes.isEmpty()
@@ -166,15 +171,16 @@ class InvoiceAttachmentGenerationService(
                 contentType = "application/pdf",
                 companyId = companyId,
                 entityId = document.id.value,
-                entityType = "document",
-                category = "finances",
-                subCategory = "invoices/${document.direction.name.lowercase()}",
-                description = "${type.capitalize()} invoice PDF",
+                entityType = "temp-document",
+                category = "finances-temp",
+                subCategory = "temp-invoices/${document.direction.name.lowercase()}",
+                description = "Temporary ${type.capitalize()} invoice PDF",
                 date = document.issuedDate,
                 tags = mapOf(
                     "documentType" to document.type.name,
                     "direction" to document.direction.name,
-                    "signed" to (type == "signed").toString()
+                    "temporary" to "true",
+                    "type" to type
                 )
             )
         )

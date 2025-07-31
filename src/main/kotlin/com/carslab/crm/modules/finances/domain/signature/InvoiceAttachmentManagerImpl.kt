@@ -15,11 +15,6 @@ import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
 import java.util.*
 
-/**
- * Implementation of InvoiceAttachmentManager
- * Manages invoice PDF attachments - generation, storage, and replacement
- * Handles the critical file cleanup process
- */
 @Service
 @Transactional
 class InvoiceAttachmentManagerImpl(
@@ -32,38 +27,20 @@ class InvoiceAttachmentManagerImpl(
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentManagerImpl::class.java)
 
     override fun getOrGenerateUnsignedPdf(document: UnifiedFinancialDocument): ByteArray {
-        logger.debug("Getting or generating unsigned PDF for document: ${document.id.value}")
+        logger.debug("Generating unsigned PDF for document: ${document.id.value}")
 
-        return document.attachment?.let { attachment ->
-            try {
-                storageService.retrieveFile(attachment.storageId)
-            } catch (e: Exception) {
-                logger.warn("Failed to retrieve existing attachment, generating new one", e)
-                null
-            }
-        } ?: generateNewUnsignedPdf(document)
+        return generateUnsignedPdfInMemory(document)
     }
 
     override fun generateSignedPdf(document: UnifiedFinancialDocument, signatureBytes: ByteArray): ByteArray {
         logger.debug("Generating signed PDF for document: ${document.id.value}")
 
-        val signedAttachment = attachmentGenerationService.generateSignedInvoiceAttachment(document, signatureBytes)
-            ?: throw IllegalStateException("Failed to generate signed PDF")
-
-        return storageService.retrieveFile(signedAttachment.storageId)
-            ?: throw IllegalStateException("Failed to retrieve generated signed PDF")
+        return attachmentGenerationService.generateSignedInvoiceAttachment(document, signatureBytes)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)
+            } ?: throw IllegalStateException("Failed to generate signed PDF")
     }
 
-    /**
-     * CRITICAL: Replaces old attachment with new signed version
-     * This method ensures proper cleanup of old files
-     *
-     * FIXED ISSUE: Now properly handles the order of operations to prevent data loss:
-     * 1. Generate and store new signed PDF first
-     * 2. Create new attachment record
-     * 3. Update document with new attachment (atomic operation)
-     * 4. Only after successful save, clean up old file
-     */
     override fun replaceAttachment(document: UnifiedFinancialDocument, signedPdfBytes: ByteArray): DocumentAttachment {
         logger.info("Replacing attachment for document: ${document.id.value}")
 
@@ -71,16 +48,13 @@ class InvoiceAttachmentManagerImpl(
             securityContext.getCurrentCompanyId()
         } catch (e: Exception) {
             logger.warn("Failed to get company ID from security context, trying to extract from document")
-            // Fallback: try to extract from document context or use a default
-            1L // This should be properly handled in production
+            1L
         }
 
         try {
-            // 1. CRITICAL: Store new signed PDF FIRST, before any cleanup
             val newStorageId = storeSignedPdf(signedPdfBytes, document, companyId)
             logger.info("Successfully stored new signed PDF with storage ID: $newStorageId")
 
-            // 2. Create new attachment metadata
             val newAttachment = DocumentAttachment(
                 id = UUID.randomUUID().toString(),
                 name = "signed-invoice-${document.number}.pdf",
@@ -90,16 +64,13 @@ class InvoiceAttachmentManagerImpl(
                 uploadedAt = LocalDateTime.now()
             )
 
-            // 3. Preserve old attachment ID for cleanup (BEFORE updating document)
             val oldAttachmentStorageId = document.attachment?.storageId
             logger.debug("Old attachment storage ID to cleanup: $oldAttachmentStorageId")
 
-            // 4. Update document with new attachment (atomic operation)
             val updatedDocument = document.copy(attachment = newAttachment)
             val savedDocument = documentRepository.save(updatedDocument)
             logger.info("Successfully updated document with new attachment")
 
-            // 5. CRITICAL: Clean up old attachment ONLY after successful document save
             oldAttachmentStorageId?.let { oldId ->
                 cleanupOldAttachment(oldId)
             } ?: logger.info("No old attachment to cleanup")
@@ -113,9 +84,22 @@ class InvoiceAttachmentManagerImpl(
         }
     }
 
-    /**
-     * Safely cleanup old attachment with proper error handling
-     */
+    private fun generateUnsignedPdfInMemory(document: UnifiedFinancialDocument): ByteArray {
+        logger.debug("Generating unsigned PDF in memory for document: ${document.id.value}")
+
+        return attachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)?.also {
+                    try {
+                        storageService.deleteFile(attachment.storageId)
+                        logger.debug("Cleaned up temporary unsigned PDF file")
+                    } catch (e: Exception) {
+                        logger.warn("Failed to cleanup temporary unsigned PDF file: ${attachment.storageId}", e)
+                    }
+                }
+            } ?: throw IllegalStateException("Failed to generate unsigned invoice PDF")
+    }
+
     private fun cleanupOldAttachment(oldStorageId: String) {
         try {
             logger.info("Attempting to delete old attachment: $oldStorageId")
@@ -125,24 +109,10 @@ class InvoiceAttachmentManagerImpl(
                 logger.info("Successfully deleted old attachment: $oldStorageId")
             } else {
                 logger.warn("Failed to delete old attachment (file may not exist): $oldStorageId")
-                // This is not a critical error - the new file is already saved
             }
         } catch (e: Exception) {
             logger.error("Error during old attachment cleanup: $oldStorageId", e)
-            // Don't fail the whole operation if cleanup fails
-            // The new attachment is already saved and functional
-            // Old file cleanup can be handled by a background job if needed
         }
-    }
-
-    private fun generateNewUnsignedPdf(document: UnifiedFinancialDocument): ByteArray {
-        logger.debug("Generating new unsigned PDF for document: ${document.id.value}")
-
-        val unsignedAttachment = attachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
-            ?: throw IllegalStateException("Failed to generate unsigned invoice PDF")
-
-        return storageService.retrieveFile(unsignedAttachment.storageId)
-            ?: throw IllegalStateException("Failed to retrieve generated invoice PDF")
     }
 
     private fun storeSignedPdf(pdfBytes: ByteArray, document: UnifiedFinancialDocument, companyId: Long): String {
