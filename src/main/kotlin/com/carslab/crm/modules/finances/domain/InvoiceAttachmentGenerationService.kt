@@ -2,6 +2,7 @@ package com.carslab.crm.modules.finances.domain
 
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
@@ -26,7 +27,8 @@ class InvoiceAttachmentGenerationService(
     private val universalStorageService: UniversalStorageService,
     private val pdfGenerationService: PdfGenerationService,
     private val templateRenderingService: TemplateRenderingService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val unifiedDocumentRepository: UnifiedDocumentRepository
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentGenerationService::class.java)
 
@@ -62,8 +64,9 @@ class InvoiceAttachmentGenerationService(
                 type = "application/pdf",
                 storageId = storageId,
                 uploadedAt = LocalDateTime.now()
-            )
-
+            ).also { 
+                unifiedDocumentRepository.save(document.copy(attachment = it))
+            }
         } catch (e: Exception) {
             logger.error("Failed to generate invoice attachment for document: ${document.id.value}", e)
             null
@@ -97,10 +100,11 @@ class InvoiceAttachmentGenerationService(
 
             val signedPdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
             val storageId = storeInvoicePdf(signedPdfBytes, document, "signed")
+            document.attachment?.storageId?.let { universalStorageService.deleteFile(it) }
 
             logger.info("Successfully generated and stored signed invoice attachment for document: ${document.id.value}")
 
-            DocumentAttachment(
+            val attachment = DocumentAttachment(
                 id = UUID.randomUUID().toString(),
                 name = "signed-invoice-${document.number}.pdf",
                 size = signedPdfBytes.size.toLong(),
@@ -108,6 +112,9 @@ class InvoiceAttachmentGenerationService(
                 storageId = storageId,
                 uploadedAt = LocalDateTime.now()
             )
+
+            unifiedDocumentRepository.save(document.copy(attachment = attachment))
+            attachment
 
         } catch (e: Exception) {
             logger.error("Failed to generate signed invoice attachment for document: ${document.id.value}", e)

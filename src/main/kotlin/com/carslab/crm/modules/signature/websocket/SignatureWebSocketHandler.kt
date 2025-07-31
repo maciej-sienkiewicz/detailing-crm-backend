@@ -8,7 +8,6 @@ import com.carslab.crm.signature.infrastructure.persistance.entity.DeviceStatus
 import com.carslab.crm.signature.infrastructure.persistance.entity.TabletDevice
 import com.carslab.crm.signature.infrastructure.persistance.repository.TabletDeviceRepository
 import com.carslab.crm.signature.service.TabletConnectionService
-import com.carslab.crm.infrastructure.events.EventPublisher
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -31,7 +30,6 @@ class SignatureWebSocketHandler(
     private val objectMapper: ObjectMapper,
     private val auditService: AuditService,
     private val jwtService: JwtService,
-    private val eventPublisher: EventPublisher
 ) : TextWebSocketHandler() {
 
     private val logger = LoggerFactory.getLogger(this::class.java)

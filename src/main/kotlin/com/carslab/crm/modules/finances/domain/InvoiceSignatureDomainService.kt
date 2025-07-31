@@ -206,9 +206,7 @@ class InvoiceSignatureDomainService(
             if (shouldReplaceAttachment) {
                 replaceOriginalAttachmentWithSignedVersion(updatedData)
             }
-
-            notifyFrontendSignatureComplete(updatedData.companyId, sessionId, updatedData)
-
+            
             logger.info("Invoice signature processed and frontend notified for session: $sessionId")
             return true
 
