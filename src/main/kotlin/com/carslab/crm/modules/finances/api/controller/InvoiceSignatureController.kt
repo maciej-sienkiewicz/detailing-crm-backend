@@ -4,12 +4,10 @@ import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureResponse
-import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatus
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatusResponse
-import com.carslab.crm.modules.finances.domain.InvoiceSignatureService
-import com.carslab.crm.signature.service.SignatureException
+import com.carslab.crm.modules.finances.domain.signature.InvoiceSignatureOrchestrator
+import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureException
 import com.fasterxml.jackson.annotation.JsonProperty
-import jakarta.servlet.ServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid
@@ -19,10 +17,10 @@ import java.util.*
 @RestController
 @RequestMapping("/api/invoice-signatures")
 class InvoiceSignatureController(
-    private val invoiceSignatureService: InvoiceSignatureService,
+    private val orchestrator: InvoiceSignatureOrchestrator,
     private val securityContext: SecurityContext
 ) : BaseController() {
-    
+
     @PostMapping("/request-from-visit")
     fun requestInvoiceSignatureFromVisit(
         @Valid @RequestBody request: InvoiceSignatureFromVisitRequest
@@ -31,42 +29,44 @@ class InvoiceSignatureController(
         val userId = securityContext.getCurrentUserId()
 
         return try {
-            val response = invoiceSignatureService.requestInvoiceSignatureFromVisit(
+            val signatureRequest = InvoiceSignatureRequest(
+                tabletId = request.tabletId,
+                customerName = request.customerName,
+                signatureTitle = request.signatureTitle,
+                instructions = request.instructions,
+                timeoutMinutes = request.timeoutMinutes
+            )
+
+            val response = orchestrator.requestInvoiceSignatureFromVisit(
                 companyId = companyId,
                 userId = userId.toString(),
                 visitId = request.visitId,
-                request = InvoiceSignatureRequest(
-                    tabletId = request.tabletId,
-                    customerName = request.customerName,
-                    signatureTitle = request.signatureTitle,
-                    instructions = request.instructions,
-                    timeoutMinutes = request.timeoutMinutes
-                )
+                request = signatureRequest
             )
 
             ok(response)
-        } catch (e: Exception) {
+        } catch (e: InvoiceSignatureException) {
             logger.error("Error requesting invoice signature from visit", e)
-            throw SignatureException("Failed to request invoice signature from visit: ${e.message}", e)
+            throw e
+        } catch (e: Exception) {
+            logger.error("Unexpected error requesting invoice signature from visit", e)
+            throw InvoiceSignatureException("Failed to request invoice signature: ${e.message}", e)
         }
     }
-
+    
     @GetMapping("/sessions/{sessionId}/status")
     fun getInvoiceSignatureStatus(
         @PathVariable sessionId: UUID,
-        @RequestParam invoice_id: String, servletRequest: ServletRequest
+        @RequestParam invoice_id: String
     ): ResponseEntity<InvoiceSignatureStatusResponse> {
         val companyId = securityContext.getCurrentCompanyId()
 
         return try {
-            val status = invoiceSignatureService.getInvoiceSignatureStatus(sessionId, companyId, invoice_id)
-            if(status.status == InvoiceSignatureStatus.COMPLETED) {
-                invoiceSignatureService.processSignatureFromTablet(sessionId.toString())
-            }
+            val status = orchestrator.getSignatureStatus(sessionId, companyId, invoice_id)
             ok(status)
         } catch (e: Exception) {
             logger.error("Error getting invoice signature status", e)
-            throw SignatureException("Failed to get signature status", e)
+            throw InvoiceSignatureException("Failed to get signature status", e)
         }
     }
 
@@ -80,7 +80,7 @@ class InvoiceSignatureController(
         val userId = securityContext.getCurrentUserId()
 
         return try {
-            invoiceSignatureService.cancelInvoiceSignatureSession(
+            orchestrator.cancelSignatureSession(
                 sessionId, companyId, invoiceId, userId.toString(), reason?.reason
             )
 
@@ -91,66 +91,35 @@ class InvoiceSignatureController(
             ))
         } catch (e: Exception) {
             logger.error("Error cancelling invoice signature session", e)
-            throw SignatureException("Failed to cancel session", e)
+            throw InvoiceSignatureException("Failed to cancel session", e)
         }
     }
 
-    @GetMapping("/sessions/{sessionId}/signed-document")
-    fun getSignedInvoice(
-        @PathVariable sessionId: UUID,
-        @RequestParam invoiceId: String
-    ): ResponseEntity<ByteArray> {
-        val companyId = securityContext.getCurrentCompanyId()
-
+    @PostMapping("/submit")
+    fun submitInvoiceSignature(
+        @Valid @RequestBody request: InvoiceSignatureSubmissionRequest
+    ): ResponseEntity<InvoiceSignatureSubmissionResponse> {
         return try {
-            val signedInvoice = invoiceSignatureService.getSignedInvoice(sessionId, companyId, invoiceId)
-                ?: return ResponseEntity.notFound().build()
+            val success = orchestrator.processSignatureSubmission(
+                request.sessionId,
+                request.signatureImage
+            )
 
-            ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=\"signed-invoice-$invoiceId.pdf\"")
-                .body(signedInvoice)
+            ok(InvoiceSignatureSubmissionResponse(
+                success = success,
+                sessionId = request.sessionId,
+                message = if (success) "Invoice signature submitted successfully" else "Failed to process signature",
+                timestamp = Instant.now().toString()
+            ))
         } catch (e: Exception) {
-            logger.error("Error getting signed invoice", e)
-            throw SignatureException("Failed to get signed invoice", e)
-        }
-    }
-
-    @GetMapping("/sessions/{sessionId}/signature-image")
-    fun getSignatureImage(
-        @PathVariable sessionId: UUID,
-        @RequestParam invoiceId: String
-    ): ResponseEntity<ByteArray> {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        return try {
-            val cachedData = invoiceSignatureService.getCachedSignatureData(sessionId.toString())
-                ?: return ResponseEntity.notFound().build()
-
-            if (cachedData.companyId != companyId) {
-                return ResponseEntity.notFound().build()
-            }
-
-            val contextInvoiceId = cachedData.metadata["invoiceId"] as? String
-            if (contextInvoiceId != invoiceId) {
-                return ResponseEntity.notFound().build()
-            }
-
-            if (cachedData.signatureImageBytes.isEmpty()) {
-                return ResponseEntity.notFound().build()
-            }
-
-            ResponseEntity.ok()
-                .header("Content-Type", "image/png")
-                .header("Content-Disposition", "inline; filename=\"signature-$sessionId.png\"")
-                .body(cachedData.signatureImageBytes)
-        } catch (e: Exception) {
-            logger.error("Error getting signature image", e)
-            throw SignatureException("Failed to get signature image", e)
+            logger.error("Error submitting invoice signature for session ${request.sessionId}", e)
+            throw InvoiceSignatureException("Failed to submit invoice signature: ${e.message}", e)
         }
     }
 }
 
+
+// DTOs
 data class InvoiceSignatureFromVisitRequest(
     @field:jakarta.validation.constraints.NotBlank
     @JsonProperty("visit_id")
