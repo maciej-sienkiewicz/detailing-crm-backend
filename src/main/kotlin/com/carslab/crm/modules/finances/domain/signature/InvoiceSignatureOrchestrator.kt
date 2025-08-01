@@ -31,7 +31,7 @@ class InvoiceSignatureOrchestrator(
         logger.info("Starting invoice signature process for visit: $visitId")
 
         return try {
-            val document = documentService.findOrCreateInvoiceFromVisit(visitId, companyId)
+            val document = documentService.findOrCreateInvoiceFromVisit(visitId, companyId, request)
             requestInvoiceSignature(companyId, userId, document.id.value, request)
         } catch (e: Exception) {
             logger.error("Failed to request invoice signature from visit: $visitId", e)

@@ -1,5 +1,6 @@
 package com.carslab.crm.modules.finances.domain.signature
 
+import com.carslab.crm.domain.model.ApprovalStatus
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.modules.finances.domain.signature.ports.InvoiceDocumentService
@@ -7,15 +8,14 @@ import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureE
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/**
- * Handles invoice document operations for signature process
- */
 @Service
 @Transactional
 class InvoiceDocumentServiceImpl(
@@ -36,7 +36,7 @@ class InvoiceDocumentServiceImpl(
         }
     }
 
-    override fun findOrCreateInvoiceFromVisit(visitId: String, companyId: Long): UnifiedFinancialDocument {
+    override fun findOrCreateInvoiceFromVisit(visitId: String, companyId: Long, request: InvoiceSignatureRequest): UnifiedFinancialDocument {
         logger.info("Finding or creating invoice from visit: $visitId")
 
         val existingInvoice = findExistingInvoiceForVisit(visitId, companyId)
@@ -52,7 +52,7 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
-        return createInvoiceFromVisit(protocol, companyId)
+        return createInvoiceFromVisit(protocol, companyId, request)
     }
 
     private fun findExistingInvoiceForVisit(visitId: String, companyId: Long): UnifiedFinancialDocument? {
@@ -74,7 +74,8 @@ class InvoiceDocumentServiceImpl(
 
     private fun createInvoiceFromVisit(
         protocol: com.carslab.crm.domain.model.CarReceptionProtocol,
-        companyId: Long
+        companyId: Long,
+        request: InvoiceSignatureRequest
     ): UnifiedFinancialDocument {
         logger.info("Creating invoice from visit: ${protocol.id.value}")
 
@@ -89,16 +90,24 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("No approved services found for visit")
         }
 
-        val items = approvedServices.map { service ->
-            com.carslab.crm.domain.model.view.finance.DocumentItem(
-                id = java.util.UUID.randomUUID().toString(),
-                name = service.name,
-                description = service.note,
-                quantity = service.quantity.toBigDecimal(),
-                unitPrice = service.finalPrice.amount.toBigDecimal(),
-                taxRate = java.math.BigDecimal("23"),
-                totalNet = (service.finalPrice.amount.toBigDecimal() / java.math.BigDecimal("1.23")).setScale(2, java.math.RoundingMode.HALF_UP),
-                totalGross = service.finalPrice.amount.toBigDecimal()
+        val items = if(request.overridenItems.isEmpty()) { approvedServices
+            .map { DocumentItem(
+                name = it.name,
+                description = it.note,
+                quantity = 1.toBigDecimal(),
+                unitPrice = it.finalPrice.amount.toBigDecimal(),
+                taxRate = 23.toBigDecimal(),
+                totalNet = (it.finalPrice.amount / 1.23).toBigDecimal(),
+                totalGross = it.finalPrice.amount.toBigDecimal()
+            )} } else request.overridenItems.map {
+            DocumentItem(
+                name = it.name,
+                description = null,
+                quantity = 1.toBigDecimal(),
+                unitPrice = it.basePrice.toBigDecimal(),
+                taxRate = 23.toBigDecimal(),
+                totalNet = (it.finalPrice ?: it.basePrice).toBigDecimal() / 1.23.toBigDecimal(),
+                totalGross = (it.finalPrice ?: it.basePrice).toBigDecimal()
             )
         }
 
@@ -111,9 +120,9 @@ class InvoiceDocumentServiceImpl(
             number = generateInvoiceNumber(),
             type = com.carslab.crm.api.model.DocumentType.INVOICE,
             title = "Faktura za wizytę: ${protocol.title}",
-            description = "Automatycznie wygenerowana faktura z wizyty",
+            description = "Faktura wygenerowana przy zakończeniu wizyty",
             issuedDate = java.time.LocalDate.now(),
-            dueDate = java.time.LocalDate.now().plusDays(14),
+            dueDate = java.time.LocalDate.now().plusDays(request.paymentDays),
             sellerName = companySettings.basicInfo.companyName,
             sellerTaxId = companySettings.basicInfo.taxId,
             sellerAddress = companySettings.basicInfo.address ?: "",
@@ -128,7 +137,7 @@ class InvoiceDocumentServiceImpl(
             totalGross = totalGross,
             paidAmount = java.math.BigDecimal.ZERO,
             currency = "PLN",
-            notes = "Faktura wygenerowana automatycznie dla podpisu",
+            notes = "Faktura wygenerowana przy zakończeniu wizyty",
             protocolId = protocol.id.value,
             protocolNumber = protocol.id.value,
             visitId = protocol.id.value,

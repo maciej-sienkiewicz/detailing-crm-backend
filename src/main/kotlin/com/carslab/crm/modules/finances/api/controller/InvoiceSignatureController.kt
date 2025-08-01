@@ -7,6 +7,8 @@ import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureResponse
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatusResponse
 import com.carslab.crm.modules.finances.domain.signature.InvoiceSignatureOrchestrator
 import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureException
+import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.OverridenInvoiceServiceItem
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -34,7 +36,17 @@ class InvoiceSignatureController(
                 customerName = request.customerName,
                 signatureTitle = request.signatureTitle,
                 instructions = request.instructions,
-                timeoutMinutes = request.timeoutMinutes
+                timeoutMinutes = request.timeoutMinutes,
+                overridenItems = request.overridenItems?.map {
+                    OverridenInvoiceServiceItem(
+                        name = it.name,
+                        quantity = it.quantity,
+                        basePrice = it.price,
+                        discountType = it.discountType.toString(),
+                        discountValue = it.discountValue,
+                    )
+                } ?: emptyList(),
+                paymentDays = request.paymentDays,
             )
 
             val response = orchestrator.requestInvoiceSignatureFromVisit(
@@ -144,7 +156,13 @@ data class InvoiceSignatureFromVisitRequest(
     @field:jakarta.validation.constraints.Positive
     @field:jakarta.validation.constraints.Max(30)
     @JsonProperty("timeout_minutes")
-    val timeoutMinutes: Int = 15
+    val timeoutMinutes: Int = 15,
+
+    @JsonProperty("overriden_items")
+    val overridenItems: List<CreateServiceCommand>? = null,
+
+    @JsonProperty("payment_days")
+    val paymentDays: Long = 14,
 )
 
 data class CancelInvoiceSignatureRequest(

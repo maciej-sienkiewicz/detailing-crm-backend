@@ -32,9 +32,11 @@ class InvoiceAttachmentGenerationService(
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentGenerationService::class.java)
 
+    private val pdfCache = mutableMapOf<String, ByteArray>()
+
     fun generateInvoiceAttachmentWithoutSignature(document: UnifiedFinancialDocument): DocumentAttachment? {
         return try {
-            logger.debug("Generating temporary invoice attachment without signature for document: ${document.id.value}")
+            logger.debug("Generating invoice bytes without signature for document: ${document.id.value}")
 
             val companyId = securityContext.getCurrentCompanyId()
             val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
@@ -53,15 +55,16 @@ class InvoiceAttachmentGenerationService(
             )
 
             val pdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
+            pdfCache["unsigned-${document.id.value}"] = pdfBytes
 
-            logger.info("Successfully generated temporary unsigned invoice attachment for document: ${document.id.value}")
+            logger.info("Successfully generated and cached invoice bytes for document: ${document.id.value}")
 
             DocumentAttachment(
                 id = UUID.randomUUID().toString(),
                 name = "temp-invoice-${document.number}.pdf",
                 size = pdfBytes.size.toLong(),
                 type = "application/pdf",
-                storageId = storeTempInvoicePdf(pdfBytes, document, "unsigned"),
+                storageId = "cached-unsigned-${document.id.value}",
                 uploadedAt = LocalDateTime.now()
             )
         } catch (e: Exception) {
@@ -125,6 +128,16 @@ class InvoiceAttachmentGenerationService(
             logger.error("Failed to generate signed invoice attachment for document: ${document.id.value}", e)
             null
         }
+    }
+
+    fun getCachedPdfBytes(cacheKey: String): ByteArray? {
+        return pdfCache[cacheKey]
+    }
+
+    fun clearPdfCache(documentId: String) {
+        pdfCache.remove("unsigned-$documentId")
+        pdfCache.remove("signed-$documentId")
+        logger.debug("Cleared PDF cache for document: $documentId")
     }
 
     private fun generatePdfFromTemplate(
