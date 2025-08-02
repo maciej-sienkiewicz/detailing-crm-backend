@@ -1,5 +1,6 @@
 package com.carslab.crm.modules.finances.api.requests
 
+import com.carslab.crm.modules.visits.application.commands.models.valueobjects.OverridenInvoiceServiceItem
 import java.util.UUID
 
 data class InvoiceSignatureRequest(
@@ -18,5 +19,9 @@ data class InvoiceSignatureRequest(
 
     @field:jakarta.validation.constraints.Positive
     @field:jakarta.validation.constraints.Max(30)
-    val timeoutMinutes: Int = 15
+    val timeoutMinutes: Int = 15,
+
+    val overridenItems: List<OverridenInvoiceServiceItem>,
+
+    val paymentDays: Long = 14
 )

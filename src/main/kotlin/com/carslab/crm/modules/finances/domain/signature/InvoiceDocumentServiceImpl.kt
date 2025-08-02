@@ -7,8 +7,10 @@ import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureE
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
+import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
+import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,15 +38,9 @@ class InvoiceDocumentServiceImpl(
         }
     }
 
-    override fun findOrCreateInvoiceFromVisit(visitId: String, companyId: Long): UnifiedFinancialDocument {
+    override fun createInvoiceFromVisit(visitId: String, companyId: Long, request: InvoiceSignatureRequest): UnifiedFinancialDocument {
         logger.info("Finding or creating invoice from visit: $visitId")
-
-        val existingInvoice = findExistingInvoiceForVisit(visitId, companyId)
-        if (existingInvoice != null) {
-            logger.info("Found existing invoice for visit: $visitId")
-            return existingInvoice
-        }
-
+        
         val protocol = protocolRepository.findById(ProtocolId(visitId))
             ?: throw InvoiceSignatureException("Visit not found: $visitId")
 
@@ -52,29 +48,13 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
-        return createInvoiceFromVisit(protocol, companyId)
+        return createInvoiceFromVisit(protocol, companyId, request)
     }
-
-    private fun findExistingInvoiceForVisit(visitId: String, companyId: Long): UnifiedFinancialDocument? {
-        return try {
-            val documents = unifiedDocumentRepository.findInvoicesByCompanyAndDateRange(
-                companyId = companyId,
-                startDate = java.time.LocalDate.now().minusDays(30),
-                endDate = java.time.LocalDate.now()
-            )
-
-            documents.find { document ->
-                document.protocolId == visitId || document.visitId == visitId
-            }
-        } catch (e: Exception) {
-            logger.warn("Error searching for existing invoice for visit: $visitId", e)
-            null
-        }
-    }
-
+    
     private fun createInvoiceFromVisit(
         protocol: com.carslab.crm.domain.model.CarReceptionProtocol,
-        companyId: Long
+        companyId: Long,
+        request: InvoiceSignatureRequest
     ): UnifiedFinancialDocument {
         logger.info("Creating invoice from visit: ${protocol.id.value}")
 
@@ -89,19 +69,26 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("No approved services found for visit")
         }
 
-        val items = approvedServices.map { service ->
-            com.carslab.crm.domain.model.view.finance.DocumentItem(
-                id = java.util.UUID.randomUUID().toString(),
-                name = service.name,
-                description = service.note,
-                quantity = service.quantity.toBigDecimal(),
-                unitPrice = service.finalPrice.amount.toBigDecimal(),
-                taxRate = java.math.BigDecimal("23"),
-                totalNet = (service.finalPrice.amount.toBigDecimal() / java.math.BigDecimal("1.23")).setScale(2, java.math.RoundingMode.HALF_UP),
-                totalGross = service.finalPrice.amount.toBigDecimal()
+        val items = if(request.overridenItems.isEmpty()) { approvedServices
+            .map { DocumentItem(
+                name = it.name,
+                description = it.note,
+                quantity = 1.toBigDecimal(),
+                unitPrice = it.finalPrice.amount.toBigDecimal(),
+                taxRate = 23.toBigDecimal(),
+                totalNet = (it.finalPrice.amount / 1.23).toBigDecimal(),
+                totalGross = it.finalPrice.amount.toBigDecimal()
+            )} } else request.overridenItems.map {
+            DocumentItem(
+                name = it.name,
+                description = null,
+                quantity = 1.toBigDecimal(),
+                unitPrice = (it.finalPrice ?: it.basePrice).toBigDecimal(),
+                taxRate = 23.toBigDecimal(),
+                totalNet = (it.finalPrice ?: it.basePrice).toBigDecimal() / 1.23.toBigDecimal(),
+                totalGross = (it.finalPrice ?: it.basePrice).toBigDecimal()
             )
         }
-
         val totalGross = items.sumOf { it.totalGross }
         val totalNet = items.sumOf { it.totalNet }
         val totalTax = totalGross - totalNet

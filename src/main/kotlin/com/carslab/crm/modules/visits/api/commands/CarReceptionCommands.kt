@@ -181,7 +181,7 @@ data class CreateServiceCommand(
     val price: Double,
 
     @JsonProperty("quantity")
-    val quantity: Long = 1L, // DODANA DOMYŚLNA WARTOŚĆ!
+    val quantity: Long = 1L,
 
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
