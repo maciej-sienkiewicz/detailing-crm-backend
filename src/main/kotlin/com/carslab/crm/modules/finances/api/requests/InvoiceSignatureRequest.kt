@@ -28,7 +28,5 @@ data class InvoiceSignatureRequest(
     
     val overridenItems: List<OverridenInvoiceServiceItem>,
     
-    val paymentDays: Long = 14,
-    
-    val paymentMethod: String? = null
+    val paymentDays: Long = 14
 )

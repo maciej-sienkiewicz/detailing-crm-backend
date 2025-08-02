@@ -1,6 +1,5 @@
 package com.carslab.crm.modules.finances.domain.signature
 
-import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.domain.model.ApprovalStatus
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.UnifiedDocumentService
@@ -130,10 +129,7 @@ class InvoiceDocumentServiceImpl(
             buyerName = protocol.client.name,
             buyerTaxId = protocol.client.taxId,
             buyerAddress = protocol.client.address ?: "",
-            status = when(request.paymentMethod?.lowercase()) {
-                "cash", "card" -> DocumentStatus.PAID
-                else -> DocumentStatus.NOT_PAID
-            },
+            status = com.carslab.crm.api.model.DocumentStatus.NOT_PAID,
             direction = com.carslab.crm.api.model.TransactionDirection.INCOME,
             paymentMethod = com.carslab.crm.domain.model.view.finance.PaymentMethod.BANK_TRANSFER,
             totalNet = totalNet,
