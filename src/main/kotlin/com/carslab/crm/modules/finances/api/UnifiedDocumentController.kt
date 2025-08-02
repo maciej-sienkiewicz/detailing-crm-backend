@@ -13,6 +13,8 @@ import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
+import com.carslab.crm.modules.finances.api.requests.InvoiceGenerationFromVisitRequest
+import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -105,6 +107,23 @@ class UnifiedDocumentController(
         val response = document.toResponse()
 
         return ok(response)
+    }
+
+    @PostMapping("/generate-from-visit")
+    @Operation(summary = "Generate invoice from visit", description = "Generates an invoice from visit without signature")
+    fun generateInvoiceFromVisit(
+        @Parameter(description = "Invoice generation data", required = true)
+        @RequestBody @Valid request: InvoiceGenerationFromVisitRequest
+    ): ResponseEntity<InvoiceGenerationResponse> {
+        logger.info("Generating invoice from visit: {}", request.visitId)
+
+        return try {
+            val response = documentService.generateInvoiceFromVisit(request)
+            ok(response)
+        } catch (e: Exception) {
+            logger.error("Error generating invoice from visit: ${request.visitId}", e)
+            badRequest("Failed to generate invoice: ${e.message}")
+        }
     }
 
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])

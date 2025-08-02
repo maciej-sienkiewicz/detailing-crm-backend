@@ -13,8 +13,10 @@ import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
 import com.carslab.crm.api.model.request.UpdateUnifiedDocumentRequest
+import com.carslab.crm.domain.model.ApprovalStatus
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.DocumentItem
@@ -31,6 +33,10 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
+import com.carslab.crm.modules.finances.api.requests.InvoiceGenerationFromVisitRequest
+import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
+import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationService
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.visits.domain.CarReceptionService
 import org.slf4j.LoggerFactory
@@ -53,6 +59,8 @@ class UnifiedDocumentService(
     private val balanceService: BalanceService,
     private val eventsPublisher: EventPublisher,
     private val visitService: CarReceptionService,
+    private val invoiceAttachmentGenerationService: InvoiceAttachmentGenerationService,
+    private val companySettingsApplicationService: CompanySettingsApplicationService,
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -334,6 +342,324 @@ class UnifiedDocumentService(
             } catch (e: Exception) {
                 logger.error("Failed to retrieve attachment for document $id: ${e.message}")
                 null
+            }
+        }
+    }
+
+    @Transactional
+    fun generateInvoiceFromVisit(request: InvoiceGenerationFromVisitRequest): InvoiceGenerationResponse {
+        logger.info("Generating invoice from visit: {}", request.visitId)
+        val companyId = securityContext.getCurrentCompanyId()
+
+        // Pobierz protokół wizyty
+        val protocol = visitService.getProtocolById(ProtocolId(request.visitId))
+            ?: throw ValidationException("Visit not found: ${request.visitId}")
+
+        if (protocol.status != ProtocolStatus.READY_FOR_PICKUP && protocol.status != ProtocolStatus.COMPLETED) {
+            throw ValidationException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
+        }
+
+        // Pobierz ustawienia firmy
+        val companySettings = companySettingsApplicationService.getCompanySettings(companyId)
+            ?: throw ValidationException("Company settings not found")
+
+        // Przygotuj pozycje faktury
+        val items = if (request.overridenItems.isNotEmpty()) {
+            // Użyj nadpisanych pozycji
+            request.overridenItems.map { item ->
+                val finalPrice = (item.finalPrice ?: item.basePrice).toBigDecimal()
+                val quantity = item.quantity.toBigDecimal()
+                val totalGross = finalPrice.multiply(quantity)
+                val totalNet = totalGross.divide(BigDecimal("1.23"), 2, BigDecimal.ROUND_HALF_UP)
+
+                DocumentItem(
+                    id = UUID.randomUUID().toString(),
+                    name = item.name,
+                    description = null,
+                    quantity = quantity,
+                    unitPrice = finalPrice,
+                    taxRate = BigDecimal("23"),
+                    totalNet = totalNet,
+                    totalGross = totalGross
+                )
+            }
+        } else {
+            // Użyj pozycji z protokołu
+            val approvedServices = protocol.protocolServices.filter {
+                it.approvalStatus == ApprovalStatus.APPROVED
+            }
+
+            if (approvedServices.isEmpty()) {
+                throw ValidationException("No approved services found for visit")
+            }
+
+            approvedServices.map { service ->
+                val servicePrice = service.finalPrice.amount.toBigDecimal()
+                val totalNet = servicePrice.divide(BigDecimal("1.23"), 2, BigDecimal.ROUND_HALF_UP)
+
+                DocumentItem(
+                    id = UUID.randomUUID().toString(),
+                    name = service.name,
+                    description = service.note,
+                    quantity = BigDecimal.ONE,
+                    unitPrice = servicePrice,
+                    taxRate = BigDecimal("23"),
+                    totalNet = totalNet,
+                    totalGross = servicePrice
+                )
+            }
+        }
+
+        // Oblicz sumy
+        val totalGross = items.sumOf { it.totalGross }
+        val totalNet = items.sumOf { it.totalNet }
+        val totalTax = totalGross - totalNet
+
+        // Określ metodę płatności
+        val paymentMethod = when (request.paymentMethod?.lowercase()) {
+            "cash" -> PaymentMethod.CASH
+            "card" -> PaymentMethod.CARD
+            "bank_transfer" -> PaymentMethod.BANK_TRANSFER
+            else -> PaymentMethod.BANK_TRANSFER
+        }
+
+        // Określ status dokumentu na podstawie metody płatności (jak w istniejącej logice)
+        val documentStatus = when (request.paymentMethod?.lowercase()) {
+            "cash", "card" -> DocumentStatus.PAID
+            else -> DocumentStatus.NOT_PAID
+        }
+
+        // Oblicz kwotę zapłaconą
+        val paidAmount = when (documentStatus) {
+            DocumentStatus.PAID -> totalGross
+            else -> BigDecimal.ZERO
+        }
+
+        // Utwórz dokument
+        val document = UnifiedFinancialDocument(
+            id = UnifiedDocumentId.generate(),
+            number = "",
+            type = DocumentType.INVOICE,
+            title = request.invoiceTitle ?: "Faktura za wizytę: ${protocol.title}",
+            description = "Faktura wygenerowana automatycznie z wizyty",
+            issuedDate = LocalDate.now(),
+            dueDate = LocalDate.now().plusDays(request.paymentDays),
+            sellerName = companySettings.basicInfo?.companyName ?: "",
+            sellerTaxId = companySettings.basicInfo?.taxId ?: "",
+            sellerAddress = companySettings.basicInfo?.address ?: "",
+            buyerName = protocol.client.name,
+            buyerTaxId = protocol.client.taxId,
+            buyerAddress = protocol.client.address ?: "",
+            status = documentStatus,
+            direction = TransactionDirection.INCOME,
+            paymentMethod = paymentMethod,
+            totalNet = totalNet,
+            totalTax = totalTax,
+            totalGross = totalGross,
+            paidAmount = paidAmount,
+            currency = "PLN",
+            notes = request.notes ?: "Faktura wygenerowana automatycznie bez podpisu",
+            protocolId = protocol.id.value,
+            protocolNumber = protocol.id.value,
+            visitId = request.visitId,
+            items = items,
+            attachment = null,
+            audit = Audit(
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        )
+
+        // Zapisz dokument (wykorzysta istniejącą logikę z createDocument)
+        val savedDocument = createDocumentInternal(document, null)
+
+        // Wygeneruj załącznik PDF i zapisz w właściwym katalogu
+        val documentWithAttachment = generateAndStorePermanentInvoicePdf(savedDocument, companyId)
+
+        // Zwróć odpowiedź
+        return InvoiceGenerationResponse(
+            success = true,
+            invoiceId = documentWithAttachment.id.value,
+            invoiceNumber = documentWithAttachment.number,
+            totalAmount = documentWithAttachment.totalGross,
+            issuedDate = documentWithAttachment.issuedDate,
+            dueDate = documentWithAttachment.dueDate ?: documentWithAttachment.issuedDate.plusDays(14),
+            paymentMethod = documentWithAttachment.paymentMethod.name,
+            customerName = documentWithAttachment.buyerName,
+            documentStatus = documentWithAttachment.status.name,
+            downloadUrl = if (documentWithAttachment.attachment != null) "/api/financial-documents/${documentWithAttachment.id.value}/attachment" else null,
+            message = "Invoice generated successfully",
+            createdAt = documentWithAttachment.audit.createdAt,
+            visitId = request.visitId
+        )
+    }
+
+    private fun generateAndStorePermanentInvoicePdf(document: UnifiedFinancialDocument, companyId: Long): UnifiedFinancialDocument {
+        return try {
+            // Generuj tymczasowy PDF
+            val tempAttachment = invoiceAttachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
+                ?: return document
+
+            // Pobierz bytes z tymczasowego pliku
+            val pdfBytes = documentStorageService.retrieveFile(tempAttachment.storageId)
+                ?: return document
+
+            // Usuń tymczasowy plik
+            try {
+                documentStorageService.deleteFile(tempAttachment.storageId)
+            } catch (e: Exception) {
+                logger.warn("Failed to cleanup temporary file: ${tempAttachment.storageId}", e)
+            }
+
+            // Zapisz w właściwym katalogu
+            val permanentStorageId = documentStorageService.storeFile(
+                UniversalStoreRequest(
+                    file = createMultipartFile(pdfBytes, document),
+                    originalFileName = "invoice-${document.number}.pdf",
+                    contentType = "application/pdf",
+                    companyId = companyId,
+                    entityId = document.id.value,
+                    entityType = "document",
+                    category = "finances",
+                    subCategory = "invoices/${document.direction.name.lowercase()}",
+                    description = "Generated invoice PDF without signature",
+                    date = document.issuedDate,
+                    tags = mapOf(
+                        "documentType" to document.type.name,
+                        "direction" to document.direction.name,
+                        "signed" to "false",
+                        "version" to "unsigned",
+                        "originalNumber" to document.number,
+                        "generated" to "true"
+                    )
+                )
+            )
+
+            // Utwórz stały załącznik
+            val permanentAttachment = DocumentAttachment(
+                id = UUID.randomUUID().toString(),
+                name = "invoice-${document.number}.pdf",
+                size = pdfBytes.size.toLong(),
+                type = "application/pdf",
+                storageId = permanentStorageId,
+                uploadedAt = LocalDateTime.now()
+            )
+
+            // Zaktualizuj dokument z załącznikiem
+            val updatedDocument = document.copy(attachment = permanentAttachment)
+            updateDocumentWithAttachment(updatedDocument)
+
+        } catch (e: Exception) {
+            logger.error("Failed to generate permanent invoice PDF for document: ${document.id.value}", e)
+            document
+        }
+    }
+
+    private fun createMultipartFile(pdfBytes: ByteArray, document: UnifiedFinancialDocument): MultipartFile {
+        return object : MultipartFile {
+            override fun getName(): String = "invoice"
+            override fun getOriginalFilename(): String = "invoice-${document.number}.pdf"
+            override fun getContentType(): String = "application/pdf"
+            override fun isEmpty(): Boolean = pdfBytes.isEmpty()
+            override fun getSize(): Long = pdfBytes.size.toLong()
+            override fun getBytes(): ByteArray = pdfBytes
+            override fun getInputStream(): java.io.InputStream = pdfBytes.inputStream()
+            override fun transferTo(dest: java.io.File): Unit = throw UnsupportedOperationException("Transfer not supported")
+        }
+    }
+
+    private fun createDocumentInternal(document: UnifiedFinancialDocument, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
+        val companyId = securityContext.getCurrentCompanyId()
+
+        validateDocumentRequest(document)
+
+        val attachment = attachmentFile?.let {
+            val storageId = documentStorageService.storeFile(
+                UniversalStoreRequest(
+                    file = it,
+                    originalFileName = it.originalFilename ?: "document.pdf",
+                    contentType = it.contentType ?: "application/pdf",
+                    companyId = companyId,
+                    entityId = document.id.value,
+                    entityType = "document",
+                    category = "finances",
+                    subCategory = when (document.type) {
+                        DocumentType.INVOICE -> "invoices/${document.direction.name.lowercase()}"
+                        DocumentType.RECEIPT -> "receipts"
+                        else -> "documents"
+                    },
+                    description = "Financial document attachment",
+                    date = document.issuedDate,
+                    tags = mapOf(
+                        "documentType" to document.type.name,
+                        "direction" to document.direction.name
+                    )
+                )
+            )
+
+            DocumentAttachment(
+                id = UUID.randomUUID().toString(),
+                name = it.originalFilename ?: "document.pdf",
+                size = it.size,
+                type = it.contentType ?: "application/octet-stream",
+                storageId = storageId,
+                uploadedAt = LocalDateTime.now()
+            )
+        }
+
+        val completeDocument = if (attachment != null) {
+            document.copy(attachment = attachment)
+        } else {
+            document
+        }
+
+        val savedDocument = documentRepository.save(completeDocument)
+        logger.info("Created document with ID: {}", savedDocument.id.value)
+
+        try {
+            documentBalanceService.handleDocumentChange(
+                document = savedDocument,
+                oldStatus = null,
+                companyId = companyId
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
+        }
+
+        val visitDetails = document.protocolId?.let {
+            visitService.getProtocolById(ProtocolId(it))
+        }
+
+        eventsPublisher.publish(
+            InvoiceCreatedEvent.create(
+                visit = visitDetails,
+                document = savedDocument,
+                userId = securityContext.getCurrentUserId(),
+                companyId = companyId,
+                userName = securityContext.getCurrentUserName(),
+            )
+        )
+
+        return savedDocument
+    }
+
+    private fun validateDocumentRequest(document: UnifiedFinancialDocument) {
+        document.dueDate?.let { dueDate ->
+            if (dueDate.isBefore(document.issuedDate)) {
+                throw ValidationException("Due date cannot be before issued date")
+            }
+        }
+
+        if (document.items.isNotEmpty()) {
+            val calculatedTotalNet = document.items.sumOf { it.totalNet }
+            val calculatedTotalGross = document.items.sumOf { it.totalGross }
+
+            if (calculatedTotalNet.compareTo(document.totalNet) != 0) {
+                throw ValidationException("Total net amount does not match sum of items")
+            }
+
+            if (calculatedTotalGross.compareTo(document.totalGross) != 0) {
+                throw ValidationException("Total gross amount does not match sum of items")
             }
         }
     }
