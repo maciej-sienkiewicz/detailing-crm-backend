@@ -27,21 +27,18 @@ class InvoiceAttachmentManagerImpl(
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentManagerImpl::class.java)
 
     override fun getOrGenerateUnsignedPdf(document: UnifiedFinancialDocument): ByteArray {
-        logger.debug("Getting unsigned PDF for document: ${document.id.value}")
+        logger.debug("Generating unsigned PDF for document: ${document.id.value}")
 
-        val cacheKey = "unsigned-${document.id.value}"
-        return attachmentGenerationService.getCachedPdfBytes(cacheKey)
-            ?: generateUnsignedPdfInMemory(document)
+        return generateUnsignedPdfInMemory(document)
     }
 
     override fun generateSignedPdf(document: UnifiedFinancialDocument, signatureBytes: ByteArray): ByteArray {
         logger.debug("Generating signed PDF for document: ${document.id.value}")
 
-        attachmentGenerationService.generateSignedInvoiceAttachment(document, signatureBytes)
-
-        val cacheKey = "signed-${document.id.value}"
-        return attachmentGenerationService.getCachedPdfBytes(cacheKey)
-            ?: throw IllegalStateException("Failed to generate signed PDF")
+        return attachmentGenerationService.generateSignedInvoiceAttachment(document, signatureBytes)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)
+            } ?: throw IllegalStateException("Failed to generate signed PDF")
     }
 
     override fun replaceAttachment(document: UnifiedFinancialDocument, signedPdfBytes: ByteArray): DocumentAttachment {
@@ -79,9 +76,6 @@ class InvoiceAttachmentManagerImpl(
             } ?: logger.info("No old attachment to cleanup")
 
             logger.info("Successfully completed attachment replacement for document: ${document.id.value}")
-
-            attachmentGenerationService.clearPdfCache(document.id.value)
-
             return savedDocument.attachment ?: newAttachment
 
         } catch (e: Exception) {
@@ -93,15 +87,17 @@ class InvoiceAttachmentManagerImpl(
     private fun generateUnsignedPdfInMemory(document: UnifiedFinancialDocument): ByteArray {
         logger.debug("Generating unsigned PDF in memory for document: ${document.id.value}")
 
-        attachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
-
-        val cacheKey = "unsigned-${document.id.value}"
-        return attachmentGenerationService.getCachedPdfBytes(cacheKey)
-            ?: throw IllegalStateException("Failed to generate unsigned invoice PDF")
-    }
-
-    override fun clearPdfCache(documentId: String) {
-        attachmentGenerationService.clearPdfCache(documentId)
+        return attachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)?.also {
+                    try {
+                        storageService.deleteFile(attachment.storageId)
+                        logger.debug("Cleaned up temporary unsigned PDF file")
+                    } catch (e: Exception) {
+                        logger.warn("Failed to cleanup temporary unsigned PDF file: ${attachment.storageId}", e)
+                    }
+                }
+            } ?: throw IllegalStateException("Failed to generate unsigned invoice PDF")
     }
 
     private fun cleanupOldAttachment(oldStorageId: String) {
