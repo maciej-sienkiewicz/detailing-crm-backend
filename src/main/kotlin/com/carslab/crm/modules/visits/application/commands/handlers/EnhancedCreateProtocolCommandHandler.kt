@@ -136,21 +136,6 @@ class EnhancedCreateProtocolCommandHandler(
                 logger.debug("Protocol created with status: ${command.status}")
             }
         }
-
-        // Services-related event if services are present
-        if (command.services.isNotEmpty()) {
-            eventPublisher.publish(
-                ProtocolServicesUpdatedEvent(
-                    protocolId = protocolId,
-                    servicesCount = command.services.size,
-                    totalAmount = totalAmount,
-                    changedServices = command.services.map { it.name },
-                    companyId = securityContext.getCurrentCompanyId(),
-                    userId = securityContext.getCurrentUserId(),
-                    userName = securityContext.getCurrentUserName()
-                )
-            )
-        }
     }
 
     private fun findOrCreateClient(clientCommand: CreateClientCommand): ClientDetailResponse {

@@ -36,8 +36,8 @@ data class ServicesUpdateResult(
     fun hasChanges(): Boolean = updatedCount > 0
 
     companion object {
-        fun success(updatedCount: Int, serviceIds: List<String>, totalAmount: Double): ServicesUpdateResult {
-            return ServicesUpdateResult(updatedCount, serviceIds, totalAmount, serviceIds.map { "Service $it" })
+        fun success(updatedCount: Int, serviceIds: List<String>, totalAmount: Double, serviceNames: List<String>): ServicesUpdateResult {
+            return ServicesUpdateResult(updatedCount, serviceIds, totalAmount, serviceNames)
         }
 
         fun noChanges(): ServicesUpdateResult {

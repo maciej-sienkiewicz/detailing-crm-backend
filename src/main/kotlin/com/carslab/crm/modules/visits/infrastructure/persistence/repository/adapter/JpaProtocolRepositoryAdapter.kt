@@ -10,6 +10,8 @@ import com.carslab.crm.modules.clients.infrastructure.persistence.repository.Veh
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -159,7 +161,7 @@ class JpaProtocolRepositoryAdapter(
             id = ProtocolId(entity.id.toString()),
             title = entity.title,
             vehicle = VehicleDetails(
-                id = com.carslab.crm.modules.clients.domain.model.VehicleId(vehicle.id!!),
+                id = VehicleId(vehicle.id!!),
                 make = vehicle.make,
                 model = vehicle.model,
                 licensePlate = vehicle.licensePlate,

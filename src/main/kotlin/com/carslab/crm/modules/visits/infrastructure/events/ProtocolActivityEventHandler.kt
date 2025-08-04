@@ -86,31 +86,7 @@ class ProtocolActivityEventHandler(
             logger.error("Failed to create activity for protocol status changed event: ${event.protocolId}", e)
         }
     }
-
-    @Async
-    @EventListener
-    fun handleProtocolServicesUpdated(event: ProtocolServicesUpdatedEvent) {
-        logger.debug("Handling protocol services updated event: ${event.protocolId}")
-
-        try {
-            activityService.createActivity(
-                category = ActivityCategory.PROTOCOL,
-                message = "Zaktualizowano usługi w wizycie: ${event.protocolId}",
-                entityType = EntityType.PROTOCOL,
-                entityId = event.protocolId,
-                status = ActivityStatus.SUCCESS,
-                metadata = ActivityMetadataReadModel(
-                    notes = "Liczba usług: ${event.servicesCount}, Kwota: ${event.totalAmount} PLN",
-                    servicesList = event.changedServices
-                ),
-                userId = event.userId,
-                userName = event.userName
-            )
-        } catch (e: Exception) {
-            logger.error("Failed to create activity for protocol services updated event: ${event.protocolId}", e)
-        }
-    }
-
+    
     @Async
     @EventListener
     fun handleProtocolDocumentUploaded(event: ProtocolDocumentUploadedEvent) {

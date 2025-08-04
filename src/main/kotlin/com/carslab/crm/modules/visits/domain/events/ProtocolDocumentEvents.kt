@@ -55,32 +55,6 @@ data class ProtocolDocumentDeletedEvent(
 )
 
 /**
- * Event: Aktualizacja usług w protokole
- */
-data class ProtocolServicesUpdatedEvent(
-    val protocolId: String,
-    val servicesCount: Int,
-    val totalAmount: Double,
-    val changedServices: List<String>,
-    override val companyId: Long,
-    override val userId: String? = null,
-    override val userName: String? = null,
-    private val additionalMetadata: Map<String, Any> = emptyMap()
-) : BaseDomainEvent(
-    aggregateId = protocolId,
-    aggregateType = "PROTOCOL",
-    eventType = "PROTOCOL_SERVICES_UPDATED",
-    companyId = companyId,
-    userId = userId,
-    userName = userName,
-    metadata = mapOf(
-        "servicesCount" to servicesCount,
-        "totalAmount" to totalAmount,
-        "changedServices" to changedServices
-    ) + additionalMetadata
-)
-
-/**
  * Event: Utworzenie protokołu
  */
 data class ProtocolCreatedEvent(

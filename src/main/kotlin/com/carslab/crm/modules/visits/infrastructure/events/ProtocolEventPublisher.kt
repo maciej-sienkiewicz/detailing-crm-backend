@@ -3,7 +3,6 @@ package com.carslab.crm.modules.visits.infrastructure.events
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.infrastructure.events.EventPublisher
 import com.carslab.crm.modules.visits.domain.events.ProtocolReadyForPickupEvent
-import com.carslab.crm.modules.visits.domain.events.ProtocolServicesUpdatedEvent
 import com.carslab.crm.modules.visits.domain.events.ProtocolStatusChangedEvent
 import com.carslab.crm.modules.visits.domain.events.ProtocolUpdatedEvent
 import com.carslab.crm.modules.visits.domain.events.ProtocolWorkStartedEvent
@@ -20,7 +19,6 @@ class ProtocolEventPublisher(
     fun publishUpdateEvents(result: ProtocolUpdateResult, user: CurrentUser) {
         try {
             publishStatusChangeEvents(result, user)
-            publishServicesUpdateEvents(result, user)
             publishGeneralUpdateEvent(result, user)
         } catch (e: Exception) {
             logger.warn("Failed to publish events for protocol: ${result.protocolId.value}", e)
@@ -36,22 +34,6 @@ class ProtocolEventPublisher(
                 ProtocolStatus.READY_FOR_PICKUP -> publishReadyForPickupEvent(result, user)
                 else -> publishStatusChanged(result, user)
             }
-        }
-    }
-
-    private fun publishServicesUpdateEvents(result: ProtocolUpdateResult, user: CurrentUser) {
-        if (result.servicesUpdateResult.hasChanges()) {
-            eventPublisher.publish(
-                ProtocolServicesUpdatedEvent(
-                    protocolId = result.protocolId.value,
-                    servicesCount = result.servicesUpdateResult.updatedCount,
-                    totalAmount = result.servicesUpdateResult.totalAmount,
-                    changedServices = result.servicesUpdateResult.serviceNames,
-                    companyId = user.companyId,
-                    userId = user.id,
-                    userName = user.name
-                )
-            )
         }
     }
 
