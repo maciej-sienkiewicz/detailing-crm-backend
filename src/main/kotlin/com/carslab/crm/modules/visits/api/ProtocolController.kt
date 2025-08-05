@@ -17,7 +17,6 @@ import com.carslab.crm.modules.visits.application.commands.models.*
 import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.infrastructure.cqrs.CommandBus
 import com.carslab.crm.infrastructure.cqrs.QueryBus
-import com.carslab.crm.modules.visits.api.dto.CreateProtocolRequest
 import com.carslab.crm.modules.visits.api.request.ApiDiscountType
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
@@ -220,44 +219,6 @@ class ProtocolController(
 
         commandBus.execute(command)
         return ok(createSuccessResponse("Image successfully deleted", mapOf("protocolId" to protocolId, "imageId" to imageId)))
-    }
-
-    @GetMapping("/list")
-    @Operation(summary = "Get all car reception protocols", description = "Retrieves all car reception protocols with optional filtering and pagination")
-    fun getAllCarReceptionProtocols(
-        @Parameter(description = "Client name to filter by") @RequestParam(required = false) clientName: String?,
-        @Parameter(description = "License plate to filter by") @RequestParam(required = false) licensePlate: String?,
-        @Parameter(description = "Make") @RequestParam(required = false) make: String?,
-        @Parameter(description = "Status to filter by") @RequestParam(required = false) status: String?,
-        @Parameter(description = "Start date to filter by (ISO format)") @RequestParam(required = false) startDate: String?,
-        @Parameter(description = "End date to filter by (ISO format)") @RequestParam(required = false) endDate: String?,
-        @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
-        @Parameter(description = "Page size") @RequestParam(defaultValue = "10") size: Int
-    ): ResponseEntity<PaginatedResponse<CarReceptionListDto>> {
-        val domainStatus = status?.let { ProtocolStatus.valueOf(it) }
-
-        val query = SearchProtocolsQuery(
-            clientName = clientName,
-            licensePlate = licensePlate,
-            make = make,
-            status = domainStatus,
-            startDate = parseDateTimeParam(startDate),
-            endDate = parseDateTimeParam(endDate),
-            page = page,
-            size = size
-        )
-
-        val paginatedProtocols = queryBus.execute(query)
-
-        val response = PaginatedResponse(
-            data = paginatedProtocols.data.map { convertToCarReceptionListDto(it) },
-            page = paginatedProtocols.page,
-            size = paginatedProtocols.size,
-            totalItems = paginatedProtocols.totalItems,
-            totalPages = paginatedProtocols.totalPages
-        )
-
-        return ok(response)
     }
 
     @GetMapping("/counters")

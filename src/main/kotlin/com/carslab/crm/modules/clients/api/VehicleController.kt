@@ -103,28 +103,28 @@ class VehicleController(
         @RequestParam(required = false) model: String?,
 
         @Parameter(description = "Filter by license plate")
-        @RequestParam(required = false) licensePlate: String?,
+        @RequestParam(required = false) license_plate: String?,
 
         @Parameter(description = "Filter by owner name")
-        @RequestParam(required = false) ownerName: String?,
+        @RequestParam(required = false) owner_name: String?,
 
         @Parameter(description = "Minimum number of visits")
-        @RequestParam(required = false) minVisits: Int?,
+        @RequestParam(required = false) min_visits: Int?,
 
         @Parameter(description = "Maximum number of visits")
-        @RequestParam(required = false) maxVisits: Int?
+        @RequestParam(required = false) max_visits: Int?
     ): ResponseEntity<Page<VehicleTableResponse>> {
-        logger.info("Getting vehicles for table view with filters: make=$make, model=$model, licensePlate=$licensePlate, ownerName=$ownerName")
+        logger.info("Getting vehicles for table view with filters: make=$make, model=$model, licensePlate=$license_plate, ownerName=$owner_name")
 
         try {
             val vehicleTablePage = vehicleTableService.getVehiclesForTable(
                 pageable = pageable,
                 make = make,
                 model = model,
-                licensePlate = licensePlate,
-                ownerName = ownerName,
-                minVisits = minVisits,
-                maxVisits = maxVisits
+                licensePlate = license_plate,
+                ownerName = owner_name,
+                minVisits = min_visits,
+                maxVisits = max_visits
             )
 
             logger.info("Successfully retrieved ${vehicleTablePage.numberOfElements} vehicles for table view")
