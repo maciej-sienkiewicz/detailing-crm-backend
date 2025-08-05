@@ -132,27 +132,39 @@ class ClientApplicationService(
         email: String? = null,
         phone: String? = null,
         company: String? = null,
+        hasVehicles: Boolean? = null,
+        minTotalRevenue: Double? = null,
+        maxTotalRevenue: Double? = null,
+        minVisits: Int? = null,
+        maxVisits: Int? = null,
         pageable: Pageable
     ): Page<ClientDetailResponse> {
-        logger.debug("Searching clients with criteria")
+        logger.debug("Searching clients with criteria: name=$name, email=$email, phone=$phone, company=$company, hasVehicles=$hasVehicles, minTotalRevenue=$minTotalRevenue, maxTotalRevenue=$maxTotalRevenue, minVisits=$minVisits, maxVisits=$maxVisits")
 
         val criteria = ClientSearchCriteria(
             name = name,
             email = email,
             phone = phone,
-            company = company
+            company = company,
+            hasVehicles = hasVehicles,
+            minTotalRevenue = minTotalRevenue,
+            maxTotalRevenue = maxTotalRevenue,
+            minVisits = minVisits,
+            maxVisits = maxVisits
         )
 
         return clientDomainService.searchClients(criteria, pageable)
             .map { client ->
                 val clientWithStats = ClientWithStatistics(
                     client = client,
-                    statistics = clientDomainService.getClientWithStatistics(client.id)?.statistics ?: ClientStatistics(clientId = client.id.value)
+                    statistics = clientDomainService.getClientWithStatistics(client.id)?.statistics
+                        ?: ClientStatistics(clientId = client.id.value)
                 )
                 val vehicles = associationService.getClientVehicles(client.id)
                 ClientDetailResponse.from(clientWithStats, vehicles)
             }
     }
+
 
     fun deleteClient(id: Long): Boolean {
         logger.info("Deleting client with ID: $id")

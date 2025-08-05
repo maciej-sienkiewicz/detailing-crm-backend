@@ -95,31 +95,86 @@ class ClientRepositoryAdapter(
     override fun searchClients(criteria: ClientSearchCriteria, pageable: Pageable): Page<Client> {
         val companyId = securityContext.getCurrentCompanyId()
 
-        // Używamy native query zamiast problematycznego JPQL
+        // Normalize search criteria
+        val normalizedCriteria = normalizeCriteria(criteria)
+
         val offset = pageable.pageNumber * pageable.pageSize
         val limit = pageable.pageSize
 
         val clients = clientJpaRepository.searchClientsNative(
-            criteria.name,
-            criteria.email,
-            criteria.phone,
-            criteria.company,
+            normalizedCriteria.name,
+            normalizedCriteria.email,
+            normalizedCriteria.phone,
+            normalizedCriteria.company,
+            normalizedCriteria.hasVehicles,
+            normalizedCriteria.minTotalRevenue,
+            normalizedCriteria.maxTotalRevenue,
+            normalizedCriteria.minVisits,
+            normalizedCriteria.maxVisits,
             companyId,
             limit,
             offset
         ).map { it.toDomain() }
 
         val total = clientJpaRepository.countSearchClients(
-            criteria.name,
-            criteria.email,
-            criteria.phone,
-            criteria.company,
+            normalizedCriteria.name,
+            normalizedCriteria.email,
+            normalizedCriteria.phone,
+            normalizedCriteria.company,
+            normalizedCriteria.hasVehicles,
+            normalizedCriteria.minTotalRevenue,
+            normalizedCriteria.maxTotalRevenue,
+            normalizedCriteria.minVisits,
+            normalizedCriteria.maxVisits,
             companyId
         )
 
         return PageImpl(clients, pageable, total)
     }
 
+    /**
+     * Normalizes search criteria for better matching:
+     * - Trims whitespace
+     * - Converts to lowercase for case-insensitive search
+     * - Normalizes phone numbers by removing spaces and country codes
+     */
+    private fun normalizeCriteria(criteria: ClientSearchCriteria): ClientSearchCriteria {
+        return ClientSearchCriteria(
+            name = criteria.name?.trim()?.takeIf { it.isNotBlank() }?.lowercase(),
+            email = criteria.email?.trim()?.takeIf { it.isNotBlank() }?.lowercase(),
+            phone = criteria.phone?.let { normalizePhoneNumber(it) },
+            company = criteria.company?.trim()?.takeIf { it.isNotBlank() }?.lowercase(),
+            hasVehicles = criteria.hasVehicles,
+            minTotalRevenue = criteria.minTotalRevenue,
+            maxTotalRevenue = criteria.maxTotalRevenue,
+            minVisits = criteria.minVisits,
+            maxVisits = criteria.maxVisits
+        )
+    }
+
+    /**
+     * Normalizes phone number by:
+     * - Removing all spaces
+     * - Removing common country codes (+48, 0048, 48)
+     * - Keeping only digits
+     */
+    private fun normalizePhoneNumber(phone: String): String? {
+        val trimmed = phone.trim()
+        if (trimmed.isBlank()) return null
+
+        // Remove all non-digit characters except +
+        val digitsOnly = trimmed.replace(Regex("[^+\\d]"), "")
+
+        // Remove Polish country codes
+        return when {
+            digitsOnly.startsWith("+48") -> digitsOnly.substring(3)
+            digitsOnly.startsWith("0048") -> digitsOnly.substring(4)
+            digitsOnly.startsWith("48") && digitsOnly.length > 9 -> digitsOnly.substring(2)
+            digitsOnly.startsWith("+") -> digitsOnly.substring(1)
+            else -> digitsOnly
+        }.takeIf { it.isNotBlank() }
+    }
+    
     @Transactional(readOnly = true)
     override fun existsById(id: ClientId): Boolean {
         val companyId = securityContext.getCurrentCompanyId()

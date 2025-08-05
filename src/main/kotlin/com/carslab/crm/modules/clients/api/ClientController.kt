@@ -95,10 +95,10 @@ class ClientController(
         @Parameter(description = "Client phone to search for") @RequestParam(required = false) phone: String?,
         @Parameter(description = "Company name to search for") @RequestParam(required = false) company: String?,
         @Parameter(description = "Has vehicles filter") @RequestParam(required = false) hasVehicles: Boolean?,
-        @Parameter(description = "Minimum total revenue") @RequestParam(required = false) minTotalRevenue: Double?,
-        @Parameter(description = "Maximum total revenue") @RequestParam(required = false) maxTotalRevenue: Double?,
-        @Parameter(description = "Minimum visits") @RequestParam(required = false) minVisits: Int?,
-        @Parameter(description = "Maximum visits") @RequestParam(required = false) maxVisits: Int?,
+        @Parameter(description = "Minimum total revenue") @RequestParam(required = false) min_total_revenue: Double?,
+        @Parameter(description = "Maximum total revenue") @RequestParam(required = false) max_total_revenue: Double?,
+        @Parameter(description = "Minimum visits") @RequestParam(required = false) min_visits: Int?,
+        @Parameter(description = "Maximum visits") @RequestParam(required = false) max_visits: Int?,
         @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") sortBy: String?,
@@ -111,6 +111,11 @@ class ClientController(
             email = email,
             phone = phone,
             company = company,
+            hasVehicles = hasVehicles,
+            minTotalRevenue = min_total_revenue,
+            maxTotalRevenue = max_total_revenue,
+            minVisits = min_visits,
+            maxVisits = max_visits,
             pageable = PageRequest.of(page, size)
         )
 

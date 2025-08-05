@@ -39,14 +39,25 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificat
         @Param("companyId") companyId: Long
     ): Optional<ClientEntity>
 
-    // FIXED: Native query zamiast JPQL dla wyszukiwania
     @Query(nativeQuery = true, value = """
-        SELECT * FROM clients c 
+        SELECT DISTINCT c.* FROM clients c 
+        LEFT JOIN client_vehicle_associations cva ON c.id = cva.client_id AND cva.end_date IS NULL
+        LEFT JOIN vehicles v ON cva.vehicle_id = v.id AND v.active = true
+        LEFT JOIN client_statistics cs ON c.id = cs.client_id
         WHERE c.company_id = :companyId AND c.active = true
-        AND (:name IS NULL OR LOWER(CONCAT(c.first_name, ' ', c.last_name)) LIKE LOWER(CONCAT('%', :name, '%')))
-        AND (:email IS NULL OR LOWER(c.email) LIKE LOWER(CONCAT('%', :email, '%')))
-        AND (:phone IS NULL OR c.phone LIKE CONCAT('%', :phone, '%'))
-        AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER(CONCAT('%', :company, '%')))
+        AND (:name IS NULL OR 
+             LOWER(REPLACE(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')), '  ', ' ')) LIKE CONCAT('%', :name, '%') OR
+             LOWER(COALESCE(c.company, '')) LIKE CONCAT('%', :name, '%'))
+        AND (:email IS NULL OR LOWER(COALESCE(c.email, '')) LIKE CONCAT('%', :email, '%'))
+        AND (:phone IS NULL OR REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '') LIKE CONCAT('%', :phone, '%'))
+        AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE CONCAT('%', :company, '%'))
+        AND (:hasVehicles IS NULL OR 
+             (:hasVehicles = true AND cva.client_id IS NOT NULL) OR 
+             (:hasVehicles = false AND cva.client_id IS NULL))
+        AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
+        AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
+        AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
+        AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
         ORDER BY c.created_at DESC
         LIMIT :limit OFFSET :offset
     """)
@@ -55,25 +66,46 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificat
         @Param("email") email: String?,
         @Param("phone") phone: String?,
         @Param("company") company: String?,
+        @Param("hasVehicles") hasVehicles: Boolean?,
+        @Param("minTotalRevenue") minTotalRevenue: Double?,
+        @Param("maxTotalRevenue") maxTotalRevenue: Double?,
+        @Param("minVisits") minVisits: Int?,
+        @Param("maxVisits") maxVisits: Int?,
         @Param("companyId") companyId: Long,
         @Param("limit") limit: Int,
         @Param("offset") offset: Int
     ): List<ClientEntity>
 
-    // Count query dla paginacji
     @Query(nativeQuery = true, value = """
-        SELECT COUNT(*) FROM clients c 
+        SELECT COUNT(DISTINCT c.id) FROM clients c 
+        LEFT JOIN client_vehicle_associations cva ON c.id = cva.client_id AND cva.end_date IS NULL
+        LEFT JOIN vehicles v ON cva.vehicle_id = v.id AND v.active = true
+        LEFT JOIN client_statistics cs ON c.id = cs.client_id
         WHERE c.company_id = :companyId AND c.active = true
-        AND (:name IS NULL OR LOWER(CONCAT(c.first_name, ' ', c.last_name)) LIKE LOWER(CONCAT('%', :name, '%')))
-        AND (:email IS NULL OR LOWER(c.email) LIKE LOWER(CONCAT('%', :email, '%')))
-        AND (:phone IS NULL OR c.phone LIKE CONCAT('%', :phone, '%'))
-        AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER(CONCAT('%', :company, '%')))
+        AND (:name IS NULL OR 
+             LOWER(REPLACE(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')), '  ', ' ')) LIKE CONCAT('%', :name, '%') OR
+             LOWER(COALESCE(c.company, '')) LIKE CONCAT('%', :name, '%'))
+        AND (:email IS NULL OR LOWER(COALESCE(c.email, '')) LIKE CONCAT('%', :email, '%'))
+        AND (:phone IS NULL OR REGEXP_REPLACE(COALESCE(c.phone, ''), '[^0-9]', '') LIKE CONCAT('%', :phone, '%'))
+        AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE CONCAT('%', :company, '%'))
+        AND (:hasVehicles IS NULL OR 
+             (:hasVehicles = true AND cva.client_id IS NOT NULL) OR 
+             (:hasVehicles = false AND cva.client_id IS NULL))
+        AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
+        AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
+        AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
+        AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
     """)
     fun countSearchClients(
         @Param("name") name: String?,
         @Param("email") email: String?,
         @Param("phone") phone: String?,
         @Param("company") company: String?,
+        @Param("hasVehicles") hasVehicles: Boolean?,
+        @Param("minTotalRevenue") minTotalRevenue: Double?,
+        @Param("maxTotalRevenue") maxTotalRevenue: Double?,
+        @Param("minVisits") minVisits: Int?,
+        @Param("maxVisits") maxVisits: Int?,
         @Param("companyId") companyId: Long
     ): Long
 

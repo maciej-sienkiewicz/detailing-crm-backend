@@ -26,5 +26,9 @@ data class ClientSearchCriteria(
     val email: String? = null,
     val phone: String? = null,
     val company: String? = null,
-    val hasVehicles: Boolean? = null
+    val hasVehicles: Boolean? = null,
+    val minTotalRevenue: Double?,
+    val maxTotalRevenue: Double?,
+    val minVisits: Int?,
+    val maxVisits: Int?
 )
