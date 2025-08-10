@@ -12,6 +12,144 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
+class CreateEmployeeCommandHandler(
+    private val employeeService: EmployeeService,
+    private val securityContext: SecurityContext
+) : CommandHandler<CreateEmployeeCommand, String> {
+
+    private val logger = LoggerFactory.getLogger(CreateEmployeeCommandHandler::class.java)
+
+    @Transactional
+    override fun handle(command: CreateEmployeeCommand): String {
+        logger.info("Processing create employee command for: ${command.fullName}")
+
+        try {
+            val companyId = securityContext.getCurrentCompanyId()
+            val userId = securityContext.getCurrentUserId()
+            val userName = securityContext.getCurrentUserName()
+
+            val createEmployee = CreateEmployee(
+                companyId = companyId,
+                fullName = command.fullName,
+                birthDate = command.birthDate,
+                hireDate = command.hireDate,
+                position = command.position,
+                email = command.email,
+                phone = command.phone,
+                role = command.role,
+                hourlyRate = command.hourlyRate,
+                bonusFromRevenue = command.bonusFromRevenue,
+                isActive = command.isActive,
+                workingHoursPerWeek = command.workingHoursPerWeek,
+                contractType = command.contractType,
+                emergencyContact = command.emergencyContact,
+                notes = command.notes
+            )
+
+            val employee = employeeService.createEmployee(createEmployee, userId, userName)
+
+            logger.info("Successfully processed create employee command, employeeId: ${employee.id.value}")
+            return employee.id.value
+        } catch (e: Exception) {
+            logger.error("Failed to create employee: ${command.fullName}", e)
+            throw e
+        }
+    }
+}
+
+@Service
+class UpdateEmployeeCommandHandler(
+    private val employeeService: EmployeeService,
+    private val securityContext: SecurityContext
+) : CommandHandler<UpdateEmployeeCommand, String> {
+
+    private val logger = LoggerFactory.getLogger(UpdateEmployeeCommandHandler::class.java)
+
+    @Transactional
+    override fun handle(command: UpdateEmployeeCommand): String {
+        logger.info("Processing update employee command for: ${command.id}")
+
+        try {
+            val companyId = securityContext.getCurrentCompanyId()
+            val userId = securityContext.getCurrentUserId()
+            val userName = securityContext.getCurrentUserName()
+
+            val existingEmployee = employeeService.getEmployee(EmployeeId.of(command.id))
+                ?: throw IllegalArgumentException("Employee not found: ${command.id}")
+
+            if (existingEmployee.companyId != companyId) {
+                throw IllegalArgumentException("Employee does not belong to current company")
+            }
+
+            val updatedEmployee = existingEmployee.copy(
+                fullName = command.fullName,
+                birthDate = command.birthDate,
+                hireDate = command.hireDate,
+                position = command.position,
+                email = command.email,
+                phone = command.phone,
+                role = command.role,
+                hourlyRate = command.hourlyRate,
+                bonusFromRevenue = command.bonusFromRevenue,
+                isActive = command.isActive,
+                workingHoursPerWeek = command.workingHoursPerWeek,
+                contractType = command.contractType,
+                emergencyContact = command.emergencyContact,
+                notes = command.notes,
+                audit = existingEmployee.audit.updated(userId)
+            )
+
+            val employee = employeeService.updateEmployee(updatedEmployee, userId, userName)
+
+            logger.info("Successfully processed update employee command, employeeId: ${employee.id.value}")
+            return employee.id.value
+        } catch (e: Exception) {
+            logger.error("Failed to update employee: ${command.id}", e)
+            throw e
+        }
+    }
+}
+
+@Service
+class DeleteEmployeeCommandHandler(
+    private val employeeService: EmployeeService,
+    private val securityContext: SecurityContext
+) : CommandHandler<DeleteEmployeeCommand, Boolean> {
+
+    private val logger = LoggerFactory.getLogger(DeleteEmployeeCommandHandler::class.java)
+
+    @Transactional
+    override fun handle(command: DeleteEmployeeCommand): Boolean {
+        logger.info("Processing delete employee command for: ${command.id}")
+
+        try {
+            val companyId = securityContext.getCurrentCompanyId()
+            val userId = securityContext.getCurrentUserId()
+            val userName = securityContext.getCurrentUserName()
+
+            val employee = employeeService.getEmployee(EmployeeId.of(command.id))
+                ?: throw IllegalArgumentException("Employee not found: ${command.id}")
+
+            if (employee.companyId != companyId) {
+                throw IllegalArgumentException("Employee does not belong to current company")
+            }
+
+            val result = if (employee.isActive) {
+                employeeService.deactivateEmployee(EmployeeId.of(command.id), userId, userName)
+            } else {
+                employeeService.deleteEmployee(EmployeeId.of(command.id))
+            }
+
+            logger.info("Successfully processed delete employee command, employeeId: ${command.id}")
+            return result
+        } catch (e: Exception) {
+            logger.error("Failed to delete employee: ${command.id}", e)
+            throw e
+        }
+    }
+}
+
+@Service
 class CreateEmployeeDocumentCommandHandler(
     private val employeeDocumentService: EmployeeDocumentService,
     private val universalStorageService: UniversalStorageService,
@@ -27,10 +165,8 @@ class CreateEmployeeDocumentCommandHandler(
         try {
             val companyId = securityContext.getCurrentCompanyId()
 
-            // Walidacja typu pliku
             validateFileType(command.file.originalFilename, command.file.contentType)
 
-            // Zapisz plik w storage
             val storageId = universalStorageService.storeFile(
                 UniversalStoreRequest(
                     file = command.file,
@@ -114,7 +250,6 @@ class DeleteEmployeeDocumentCommandHandler(
             val companyId = securityContext.getCurrentCompanyId()
             val documentId = EmployeeDocumentId.of(command.id)
 
-            // Pobierz dokument i sprawdź czy należy do firmy
             val document = employeeDocumentService.getDocument(documentId)
                 ?: throw IllegalArgumentException("Document not found: ${command.id}")
 
@@ -122,10 +257,8 @@ class DeleteEmployeeDocumentCommandHandler(
                 throw IllegalArgumentException("Document does not belong to current company")
             }
 
-            // Usuń plik z storage
             universalStorageService.deleteFile(document.storageId)
 
-            // Usuń rekord z bazy
             val deleted = employeeDocumentService.deleteDocument(documentId)
 
             logger.info("Successfully processed delete document command, documentId: ${command.id}, deleted: $deleted")
@@ -153,7 +286,6 @@ class DownloadEmployeeDocumentCommandHandler(
             val companyId = securityContext.getCurrentCompanyId()
             val documentId = EmployeeDocumentId.of(command.documentId)
 
-            // Pobierz dokument i sprawdź czy należy do firmy
             val document = employeeDocumentService.getDocument(documentId)
                 ?: throw IllegalArgumentException("Document not found: ${command.documentId}")
 
@@ -161,7 +293,6 @@ class DownloadEmployeeDocumentCommandHandler(
                 throw IllegalArgumentException("Document does not belong to current company")
             }
 
-            // Pobierz plik z storage
             val fileData = universalStorageService.retrieveFile(document.storageId)
                 ?: throw IllegalArgumentException("File not found in storage: ${document.storageId}")
 
@@ -190,7 +321,6 @@ class GetEmployeeDocumentUrlCommandHandler(
             val companyId = securityContext.getCurrentCompanyId()
             val documentId = EmployeeDocumentId.of(command.documentId)
 
-            // Pobierz dokument i sprawdź czy należy do firmy
             val document = employeeDocumentService.getDocument(documentId)
                 ?: throw IllegalArgumentException("Document not found: ${command.documentId}")
 
@@ -198,7 +328,6 @@ class GetEmployeeDocumentUrlCommandHandler(
                 throw IllegalArgumentException("Document does not belong to current company")
             }
 
-            // Wygeneruj presigned URL
             val downloadUrl = universalStorageService.generateDownloadUrl(
                 document.storageId,
                 command.expirationMinutes
