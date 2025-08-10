@@ -123,7 +123,7 @@ class BalanceService(
             previousBalance = previousBalance,
             newBalance = newBalance,
             userId = "SYSTEM",
-            userName = "System Operation"
+            description = ""
         )
         balanceOperationRepository.save(balanceOperation)
     }

@@ -41,19 +41,14 @@ class BalanceOperationEntity(
     @Column(name = "new_balance", nullable = false, precision = 19, scale = 2)
     val newBalance: BigDecimal,
 
-    // 🔥 NOWE POLA dla manualnych operacji
-    @Column(name = "override_reason")
-    @Enumerated(EnumType.STRING)
-    val overrideReason: OverrideReason? = null,
-
     @Column(name = "user_id", nullable = false)
     val userId: String, // Kto wykonał operację
 
     @Column(name = "user_name", nullable = false)
-    val userName: String, // Imię i nazwisko dla audytu
+    val userName: String = "",
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    val description: String? = null, // Opis powodu
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
+    val description: String, // Opis powodu - teraz wymagany
 
     @Column(name = "approved_by")
     val approvedBy: String? = null, // Kto zatwierdził (jeśli wymagane)
@@ -62,41 +57,30 @@ class BalanceOperationEntity(
     val approvalDate: LocalDateTime? = null,
 
     @Column(name = "is_approved", nullable = false)
-    val isApproved: Boolean = true, // Domyślnie zatwierdzone, chyba że wymaga zatwierdzenia
+    val isApproved: Boolean = true, // Domyślnie zatwierdzone
 
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     // Dodatkowe metadane
     @Column(name = "ip_address")
-    val ipAddress: String? = null,
-
-    @Column(name = "user_agent")
-    val userAgent: String? = null
+    val ipAddress: String? = null
 )
 
-enum class BalanceOperationType {
-    ADD,
-    SUBTRACT,
-    CORRECTION,
-    MANUAL_OVERRIDE,
-    CASH_WITHDRAWAL,
-    CASH_DEPOSIT,
-    BANK_RECONCILIATION,
-    INVENTORY_ADJUSTMENT
+enum class BalanceOperationType(val displayName: String) {
+    ADD("Dodanie środków"),
+    SUBTRACT("Odjęcie środków"),
+    CORRECTION("Korekta salda"),
+    MANUAL_OVERRIDE("Manualne nadpisanie"),
+    CASH_WITHDRAWAL("Wypłata gotówki"),
+    CASH_DEPOSIT("Wpłata gotówki"),
+    BANK_RECONCILIATION("Uzgodnienie bankowe"),
+    INVENTORY_ADJUSTMENT("Korekta inwentaryzacyjna"),
+    CASH_TO_SAFE("Przeniesienie do sejfu"),
+    CASH_FROM_SAFE("Pobranie z sejfu")
 }
 
-enum class OverrideReason(val displayName: String, val requiresApproval: Boolean) {
-    CASH_TO_SAFE("Przeniesienie gotówki do sejfu", false),
-    CASH_FROM_SAFE("Pobranie gotówki z sejfu", false),
-    BANK_STATEMENT_RECONCILIATION("Uzgodnienie z wyciągiem bankowym", true),
-    INVENTORY_COUNT("Rezultat inwentaryzacji kasy", true),
-    ERROR_CORRECTION("Korekta błędu księgowego", true),
-    EXTERNAL_PAYMENT("Płatność zewnętrzna nie odnotowana w systemie", true),
-    MANAGER_ADJUSTMENT("Korekta menedżerska", true),
-    SYSTEM_MIGRATION("Migracja danych systemowych", true),
-    OTHER("Inna przyczyna", true)
+enum class BalanceType(val displayName: String) {
+    CASH("Kasa"),
+    BANK("Konto bankowe")
 }
-
-enum class BalanceType { CASH, BANK }
-

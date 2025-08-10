@@ -9,7 +9,6 @@ import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationEn
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationType
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceType
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
-import com.carslab.crm.modules.finances.infrastructure.entity.OverrideReason
 import com.carslab.crm.modules.finances.infrastructure.repository.BalanceOperationRepository
 import com.carslab.crm.modules.finances.infrastructure.repository.CompanyBalanceRepository
 import org.slf4j.LoggerFactory
@@ -23,6 +22,7 @@ import java.time.LocalDateTime
 class BalanceOverrideService(
     private val companyBalanceRepository: CompanyBalanceRepository,
     private val balanceOperationRepository: BalanceOperationRepository,
+    private val balanceHistoryService: BalanceHistoryService,
     private val userService: UserService
 ) {
 
@@ -33,12 +33,9 @@ class BalanceOverrideService(
      */
     fun overrideBalance(request: BalanceOverrideRequest): BalanceOverrideResult {
         logger.info("Balance override requested: company=${request.companyId}, type=${request.balanceType}, " +
-                "newBalance=${request.newBalance}, reason=${request.reason}")
+                "newBalance=${request.newBalance}")
 
-        // 2. Walidacja danych
         validateOverrideRequest(request)
-
-        // 4. Wykonaj nadpisanie
         return executeBalanceOverride(request)
     }
 
@@ -49,7 +46,7 @@ class BalanceOverrideService(
         companyId: Long,
         amount: BigDecimal,
         userId: String,
-        description: String? = null
+        description: String
     ): BalanceOverrideResult {
         logger.info("💰 Moving cash to safe: company=$companyId, amount=$amount")
 
@@ -66,9 +63,8 @@ class BalanceOverrideService(
                 companyId = companyId,
                 balanceType = BalanceType.CASH,
                 newBalance = newBalance,
-                reason = OverrideReason.CASH_TO_SAFE,
+                description = description,
                 userId = userId,
-                description = description ?: "Przeniesienie $amount PLN do sejfu",
                 isPreApproved = true
             )
         )
@@ -81,22 +77,23 @@ class BalanceOverrideService(
         companyId: Long,
         amount: BigDecimal,
         userId: String,
-        description: String? = null
+        description: String
     ): BalanceOverrideResult {
         logger.info("💰 Moving cash from safe: company=$companyId, amount=$amount")
 
         val currentBalance = getCurrentCashBalance(companyId)
         val newBalance = currentBalance + amount
 
-        return overrideBalance(BalanceOverrideRequest(
-            companyId = companyId,
-            balanceType = BalanceType.CASH,
-            newBalance = newBalance,
-            reason = OverrideReason.CASH_FROM_SAFE,
-            userId = userId,
-            description = description ?: "Pobranie $amount PLN z sejfu",
-            isPreApproved = true
-        ))
+        return overrideBalance(
+            BalanceOverrideRequest(
+                companyId = companyId,
+                balanceType = BalanceType.CASH,
+                newBalance = newBalance,
+                description = description,
+                userId = userId,
+                isPreApproved = true
+            )
+        )
     }
 
     /**
@@ -110,15 +107,16 @@ class BalanceOverrideService(
     ): BalanceOverrideResult {
         logger.info("🏦 Bank statement reconciliation: company=$companyId, statementBalance=$bankStatementBalance")
 
-        return overrideBalance(BalanceOverrideRequest(
-            companyId = companyId,
-            balanceType = BalanceType.BANK,
-            newBalance = bankStatementBalance,
-            reason = OverrideReason.BANK_STATEMENT_RECONCILIATION,
-            userId = userId,
-            description = "Uzgodnienie z wyciągiem bankowym: $description",
-            isPreApproved = false // Wymaga zatwierdzenia
-        ))
+        return overrideBalance(
+            BalanceOverrideRequest(
+                companyId = companyId,
+                balanceType = BalanceType.BANK,
+                newBalance = bankStatementBalance,
+                description = "Uzgodnienie z wyciągiem bankowym: $description",
+                userId = userId,
+                isPreApproved = false // Wymaga zatwierdzenia
+            )
+        )
     }
 
     /**
@@ -136,20 +134,22 @@ class BalanceOverrideService(
         val difference = countedAmount - currentBalance
 
         val description = if (difference == BigDecimal.ZERO) {
-            "Inwentaryzacja kasy - stan zgodny: $countedAmount PLN"
+            "Inwentaryzacja kasy - stan zgodny: $countedAmount PLN. Uwagi: $inventoryNotes"
         } else {
-            "Inwentaryzacja kasy - różnica: ${difference.abs()} PLN (${if (difference > BigDecimal.ZERO) "nadwyżka" else "niedobór"}). Uwagi: $inventoryNotes"
+            val differenceType = if (difference > BigDecimal.ZERO) "nadwyżka" else "niedobór"
+            "Inwentaryzacja kasy - różnica: ${difference.abs()} PLN ($differenceType). Uwagi: $inventoryNotes"
         }
 
-        return overrideBalance(BalanceOverrideRequest(
-            companyId = companyId,
-            balanceType = BalanceType.CASH,
-            newBalance = countedAmount,
-            reason = OverrideReason.INVENTORY_COUNT,
-            userId = userId,
-            description = description,
-            isPreApproved = false // Duże różnice wymagają zatwierdzenia
-        ))
+        return overrideBalance(
+            BalanceOverrideRequest(
+                companyId = companyId,
+                balanceType = BalanceType.CASH,
+                newBalance = countedAmount,
+                description = description,
+                userId = userId,
+                isPreApproved = false // Duże różnice wymagają zatwierdzenia
+            )
+        )
     }
 
     // ============ PRIVATE METHODS ============
@@ -183,25 +183,36 @@ class BalanceOverrideService(
                 amount = request.newBalance - previousBalance,
                 previousBalance = previousBalance,
                 newBalance = request.newBalance,
-                overrideReason = request.reason,
                 userId = request.userId,
-                userName = user.firstName + " " + user.lastName,
                 description = request.description,
                 approvedBy = request.approvedBy,
                 approvalDate = if (request.approvedBy != null) LocalDateTime.now() else null,
                 isApproved = true,
-                ipAddress = request.ipAddress,
-                userAgent = request.userAgent
+                ipAddress = request.ipAddress
             )
 
-            balanceOperationRepository.save(operation)
+            val savedOperation = balanceOperationRepository.save(operation)
+
+            // Zapisz do historii
+            balanceHistoryService.recordBalanceChange(
+                companyId = request.companyId,
+                balanceType = request.balanceType,
+                balanceBefore = previousBalance,
+                balanceAfter = request.newBalance,
+                operationType = BalanceOperationType.MANUAL_OVERRIDE,
+                description = request.description,
+                userId = request.userId,
+                documentId = null,
+                operationId = savedOperation.id,
+                ipAddress = request.ipAddress
+            )
 
             logger.info("✅ Balance override successful: company=${request.companyId}, " +
                     "${request.balanceType}: $previousBalance → ${request.newBalance}")
 
             return BalanceOverrideResult(
                 success = true,
-                operationId = operation.id,
+                operationId = savedOperation.id,
                 previousBalance = previousBalance,
                 newBalance = request.newBalance,
                 difference = request.newBalance - previousBalance,
@@ -232,8 +243,12 @@ class BalanceOverrideService(
             throw ValidationException("New balance exceeds maximum allowed amount")
         }
 
-        if (request.description.isNullOrBlank() && request.reason == OverrideReason.OTHER) {
-            throw ValidationException("Description is required for 'Other' reason")
+        if (request.description.isBlank()) {
+            throw ValidationException("Description is required for balance override")
+        }
+
+        if (request.description.length > 1000) {
+            throw ValidationException("Description cannot exceed 1000 characters")
         }
     }
 
