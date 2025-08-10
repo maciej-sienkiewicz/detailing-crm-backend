@@ -26,4 +26,10 @@ interface InvoiceAttachmentManager {
     fun getOrGenerateUnsignedPdf(document: UnifiedFinancialDocument): ByteArray
     fun generateSignedPdf(document: UnifiedFinancialDocument, signatureBytes: ByteArray): ByteArray
     fun replaceAttachment(document: UnifiedFinancialDocument, signedPdfBytes: ByteArray): com.carslab.crm.domain.model.view.finance.DocumentAttachment
+    fun getOrGenerateUnsignedPdfWithSellerSignature(document: UnifiedFinancialDocument, sellerId: Long): ByteArray
+    fun generateFullySignedPdf(
+        document: UnifiedFinancialDocument,
+        clientSignatureBytes: ByteArray,
+        sellerId: Long
+    ): ByteArray
 }

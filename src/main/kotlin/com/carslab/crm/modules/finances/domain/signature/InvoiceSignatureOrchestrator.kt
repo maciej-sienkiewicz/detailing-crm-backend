@@ -1,3 +1,4 @@
+// Enhanced InvoiceSignatureOrchestrator with seller signature support
 package com.carslab.crm.modules.finances.domain.signature
 
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
@@ -65,8 +66,18 @@ class InvoiceSignatureOrchestrator(
                 )
             )
 
-            val unsignedPdf = attachmentManager.getOrGenerateUnsignedPdf(document)
-            sessionManager.cacheDocumentForSignature(session.sessionId, document, unsignedPdf, request.customerName)
+            // Generate PDF with seller signature if available
+            val unsignedPdf = attachmentManager.getOrGenerateUnsignedPdfWithSellerSignature(
+                document, userId.toLongOrNull() ?: 1L
+            )
+
+            sessionManager.cacheDocumentForSignature(
+                session.sessionId,
+                document,
+                unsignedPdf,
+                request.customerName,
+                userId.toLongOrNull() ?: 1L
+            )
 
             val sent = tabletCommunicationService.sendSignatureRequest(session, document, unsignedPdf)
 
@@ -77,7 +88,7 @@ class InvoiceSignatureOrchestrator(
                 InvoiceSignatureResponse(
                     success = true,
                     sessionId = session.sessionId,
-                    message = "Invoice signature request sent successfully",
+                    message = "Invoice signature request sent successfully (with seller signature)",
                     invoiceId = invoiceId,
                     expiresAt = session.expiresAt
                 )
@@ -153,7 +164,13 @@ class InvoiceSignatureOrchestrator(
                 throw InvoiceSignatureException("No signature data found in cache for session: $sessionId")
             }
 
-            val signedPdf = attachmentManager.generateSignedPdf(cachedData.document, cachedData.signatureImageBytes)
+            // Generate fully signed PDF with both client and seller signatures
+            val signedPdf = attachmentManager.generateFullySignedPdf(
+                cachedData.document,
+                cachedData.signatureImageBytes,
+                cachedData.sellerId
+            )
+
             val newAttachment = attachmentManager.replaceAttachment(cachedData.document, signedPdf)
 
             notificationService.notifySignatureCompleted(
@@ -165,11 +182,12 @@ class InvoiceSignatureOrchestrator(
                     success = true,
                     signedAt = java.time.Instant.now(),
                     signerName = cachedData.signerName,
-                    newAttachment = newAttachment
+                    newAttachment = newAttachment,
+                    hasSellerSignature = true
                 )
             )
 
-            logger.info("Completed signature processed successfully for session: $sessionId")
+            logger.info("Completed signature processed successfully for session: $sessionId (with seller signature)")
             true
 
         } catch (e: Exception) {

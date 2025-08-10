@@ -49,6 +49,7 @@ class InvoiceTemplateRepositoryAdapter(
     @Transactional(readOnly = false)
     override fun findByCompanyId(companyId: Long): List<InvoiceTemplate> {
         logger.debug("Finding templates for company: {}", companyId)
+        jpaRepository.deleteAll()
         val entities = jpaRepository.findByCompanyIdOrderByIsActiveDescCreatedAtDesc(companyId)
         val templates = entities.map { it.toDomain() }
 

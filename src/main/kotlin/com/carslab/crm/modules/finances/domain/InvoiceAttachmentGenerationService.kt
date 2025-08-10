@@ -1,3 +1,4 @@
+// Enhanced InvoiceAttachmentGenerationService with seller signature support
 package com.carslab.crm.modules.finances.domain
 
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
@@ -8,6 +9,7 @@ import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
+import com.carslab.crm.modules.company_settings.domain.UserSignatureApplicationService
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
 import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
 import com.carslab.crm.modules.invoice_templates.domain.ports.PdfGenerationService
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.util.UUID
+import java.util.Base64
 
 @Service
 @Transactional
@@ -28,54 +31,74 @@ class InvoiceAttachmentGenerationService(
     private val pdfGenerationService: PdfGenerationService,
     private val templateRenderingService: TemplateRenderingService,
     private val securityContext: SecurityContext,
-    private val unifiedDocumentRepository: UnifiedDocumentRepository
+    private val unifiedDocumentRepository: UnifiedDocumentRepository,
+    private val userSignatureApplicationService: UserSignatureApplicationService
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentGenerationService::class.java)
 
+    /**
+     * Generates invoice attachment without any signatures
+     */
     fun generateInvoiceAttachmentWithoutSignature(document: UnifiedFinancialDocument): DocumentAttachment? {
-        return try {
-            logger.debug("Generating temporary invoice attachment without signature for document: ${document.id.value}")
-
-            val companyId = securityContext.getCurrentCompanyId()
-            val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
-                ?: throw IllegalStateException("No active template found for company: $companyId")
-
-            val companySettings = companySettingsService.getCompanySettings(companyId)
-                ?: throw IllegalStateException("Company settings not found for company: $companyId")
-
-            val logoData = getLogoData(companySettings)
-
-            val generationData = InvoiceGenerationData(
-                document = document,
-                companySettings = companySettings,
-                logoData = logoData,
-                additionalData = mapOf("client_signature" to "")
-            )
-
-            val pdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
-
-            logger.info("Successfully generated temporary unsigned invoice attachment for document: ${document.id.value}")
-
-            DocumentAttachment(
-                id = UUID.randomUUID().toString(),
-                name = "temp-invoice-${document.number}.pdf",
-                size = pdfBytes.size.toLong(),
-                type = "application/pdf",
-                storageId = storeTempInvoicePdf(pdfBytes, document, "unsigned"),
-                uploadedAt = LocalDateTime.now()
-            )
-        } catch (e: Exception) {
-            logger.error("Failed to generate invoice attachment for document: ${document.id.value}", e)
-            null
-        }
+        return generateInvoiceAttachment(document, null, null)
     }
 
+    /**
+     * Generates invoice attachment with seller signature only
+     */
+    fun generateInvoiceAttachmentWithSellerSignature(
+        document: UnifiedFinancialDocument,
+        sellerId: Long
+    ): DocumentAttachment? {
+        val sellerSignatureHtml = getSellerSignatureHtml(sellerId)
+        return generateInvoiceAttachment(document, null, sellerSignatureHtml)
+    }
+
+    /**
+     * Generates signed invoice attachment with client signature
+     */
     fun generateSignedInvoiceAttachment(
         document: UnifiedFinancialDocument,
         signatureImageBytes: ByteArray
     ): DocumentAttachment? {
+        val clientSignatureHtml = createClientSignatureHtml(signatureImageBytes)
+        val sellerId = try {
+            securityContext.getCurrentUserId()
+        } catch (e: Exception) {
+            logger.warn("Could not get current user ID for seller signature", e)
+            null
+        }
+
+        val sellerSignatureHtml = sellerId?.let { getSellerSignatureHtml(it.toLong()) }
+
+        return generateInvoiceAttachment(document, clientSignatureHtml, sellerSignatureHtml, "signed")
+    }
+
+    /**
+     * Generates invoice attachment with both client and seller signatures
+     */
+    fun generateFullySignedInvoiceAttachment(
+        document: UnifiedFinancialDocument,
+        clientSignatureBytes: ByteArray,
+        sellerId: Long
+    ): DocumentAttachment? {
+        val clientSignatureHtml = createClientSignatureHtml(clientSignatureBytes)
+        val sellerSignatureHtml = getSellerSignatureHtml(sellerId)
+
+        return generateInvoiceAttachment(document, clientSignatureHtml, sellerSignatureHtml, "fully-signed")
+    }
+
+    /**
+     * Core method to generate invoice with optional signatures
+     */
+    private fun generateInvoiceAttachment(
+        document: UnifiedFinancialDocument,
+        clientSignatureHtml: String? = null,
+        sellerSignatureHtml: String? = null,
+        type: String = "unsigned"
+    ): DocumentAttachment? {
         return try {
-            logger.debug("Generating signed invoice attachment for document: ${document.id.value}")
+            logger.debug("Generating invoice attachment for document: ${document.id.value}, type: $type")
 
             val companyId = securityContext.getCurrentCompanyId()
             val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
@@ -85,44 +108,106 @@ class InvoiceAttachmentGenerationService(
                 ?: throw IllegalStateException("Company settings not found for company: $companyId")
 
             val logoData = getLogoData(companySettings)
-            val signatureBase64 = java.util.Base64.getEncoder().encodeToString(signatureImageBytes)
-            val signatureHtml = """<img src="data:image/png;base64,$signatureBase64" alt="Podpis klienta" style="max-width: 200px; max-height: 60px;"/>"""
+
+            val additionalData = mutableMapOf<String, Any>()
+
+            // Add client signature if provided
+            if (clientSignatureHtml != null) {
+                additionalData["client_signature"] = clientSignatureHtml
+            } else {
+                additionalData["client_signature"] = ""
+            }
+
+            // Add seller signature if provided
+            if (sellerSignatureHtml != null) {
+                additionalData["seller_signature"] = sellerSignatureHtml
+            } else {
+                additionalData["seller_signature"] = ""
+            }
 
             val generationData = InvoiceGenerationData(
                 document = document,
                 companySettings = companySettings,
                 logoData = logoData,
-                additionalData = mapOf("client_signature" to signatureHtml)
+                additionalData = additionalData
             )
 
-            val signedPdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
+            val pdfBytes = generatePdfFromTemplate(activeTemplate, generationData)
 
-            logger.info("Successfully generated signed invoice attachment for document: ${document.id.value}")
+            logger.info("Successfully generated $type invoice attachment for document: ${document.id.value}")
+
+            val fileName = when (type) {
+                "signed" -> "signed-invoice-${document.number}.pdf"
+                "fully-signed" -> "fully-signed-invoice-${document.number}.pdf"
+                else -> "temp-invoice-${document.number}.pdf"
+            }
 
             DocumentAttachment(
                 id = UUID.randomUUID().toString(),
-                name = "signed-invoice-${document.number}.pdf",
-                size = signedPdfBytes.size.toLong(),
+                name = fileName,
+                size = pdfBytes.size.toLong(),
                 type = "application/pdf",
-                storageId = "temp-storage-id",
-                uploadedAt = LocalDateTime.now()
-            ).also {
-
-            }
-
-            val attachment = DocumentAttachment(
-                id = UUID.randomUUID().toString(),
-                name = "signed-invoice-${document.number}.pdf",
-                size = signedPdfBytes.size.toLong(),
-                type = "application/pdf",
-                storageId = storeTempInvoicePdf(signedPdfBytes, document, "signed-temp"),
+                storageId = storeTempInvoicePdf(pdfBytes, document, type),
                 uploadedAt = LocalDateTime.now()
             )
-
-            attachment
-
         } catch (e: Exception) {
-            logger.error("Failed to generate signed invoice attachment for document: ${document.id.value}", e)
+            logger.error("Failed to generate invoice attachment for document: ${document.id.value}, type: $type", e)
+            null
+        }
+    }
+
+    /**
+     * Retrieves seller signature HTML for given user ID (multi-tenant safe)
+     */
+    private fun getSellerSignatureHtml(sellerId: Long): String? {
+        return try {
+            val companyId = securityContext.getCurrentCompanyId()
+            logger.debug("Retrieving seller signature for user: $sellerId in company: $companyId")
+
+            val signatureResponse = userSignatureApplicationService.getUserSignature(sellerId, companyId)
+
+            if (signatureResponse != null) {
+                logger.debug("Found seller signature for user: $sellerId")
+
+                // Extract base64 data from data URL
+                val base64Data = extractBase64FromDataUrl(signatureResponse.content)
+                if (base64Data != null) {
+                    """<img src="data:image/png;base64,$base64Data" alt="Podpis sprzedawcy" style="max-width: 150px; max-height: 50px; object-fit: contain;"/>"""
+                } else {
+                    logger.warn("Could not extract base64 data from seller signature for user: $sellerId")
+                    null
+                }
+            } else {
+                logger.debug("No seller signature found for user: $sellerId in company: $companyId")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error retrieving seller signature for user: $sellerId", e)
+            null
+        }
+    }
+
+    /**
+     * Creates client signature HTML from raw bytes
+     */
+    private fun createClientSignatureHtml(signatureImageBytes: ByteArray): String {
+        val signatureBase64 = Base64.getEncoder().encodeToString(signatureImageBytes)
+        return """<img src="data:image/png;base64,$signatureBase64" alt="Podpis klienta" style="max-width: 200px; max-height: 60px; object-fit: contain;"/>"""
+    }
+
+    /**
+     * Extracts base64 data from data URL (e.g., "data:image/png;base64,iVBORw0KGgo...")
+     */
+    private fun extractBase64FromDataUrl(dataUrl: String): String? {
+        return try {
+            if (dataUrl.contains("base64,")) {
+                dataUrl.split("base64,")[1]
+            } else {
+                logger.warn("Invalid data URL format: does not contain 'base64,' separator")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error extracting base64 from data URL", e)
             null
         }
     }
@@ -174,13 +259,15 @@ class InvoiceAttachmentGenerationService(
                 entityType = "temp-document",
                 category = "finances-temp",
                 subCategory = "temp-invoices/${document.direction.name.lowercase()}",
-                description = "Temporary ${type.capitalize()} invoice PDF",
+                description = "Temporary ${type.capitalize()} invoice PDF with signatures",
                 date = document.issuedDate,
                 tags = mapOf(
                     "documentType" to document.type.name,
                     "direction" to document.direction.name,
                     "temporary" to "true",
-                    "type" to type
+                    "type" to type,
+                    "hasClientSignature" to (type == "signed" || type == "fully-signed").toString(),
+                    "hasSellerSignature" to (type != "unsigned").toString()
                 )
             )
         )

@@ -1,3 +1,4 @@
+// Enhanced SignatureSessionManager with seller signature context
 package com.carslab.crm.modules.finances.domain.signature
 
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
@@ -19,7 +20,7 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 
 /**
- * Manages signature sessions and caching
+ * Enhanced session manager that supports seller signature context
  */
 @Service
 @Transactional
@@ -49,7 +50,9 @@ class SignatureSessionManager(
                 mapOf(
                     "invoiceId" to request.invoiceId,
                     "documentType" to "INVOICE",
-                    "replaceOriginalAttachment" to true
+                    "replaceOriginalAttachment" to true,
+                    "sellerId" to request.userId,
+                    "includeSellerSignature" to true
                 )
             ),
             createdBy = request.userId,
@@ -69,13 +72,17 @@ class SignatureSessionManager(
         )
     }
 
+    /**
+     * Enhanced cache method that includes seller information
+     */
     fun cacheDocumentForSignature(
         sessionId: UUID,
         document: UnifiedFinancialDocument,
         pdfBytes: ByteArray,
-        signerName: String
+        signerName: String,
+        sellerId: Long
     ) {
-        logger.debug("Caching document for signature: ${document.id.value}")
+        logger.debug("Caching document for signature: ${document.id.value} with seller: $sellerId")
         val companyId = securityContext.getCurrentCompanyId()
 
         val cachedData = CachedInvoiceSignatureData(
@@ -90,11 +97,14 @@ class SignatureSessionManager(
             companyId = companyId,
             metadata = mapOf(
                 "document" to document,
-                "replaceOriginalAttachment" to true
+                "replaceOriginalAttachment" to true,
+                "sellerId" to sellerId,
+                "hasSellerSignature" to true
             )
         )
 
         cacheService.cacheInvoiceSignature(sessionId.toString(), cachedData)
+        logger.debug("Cached signature data with seller context for session: $sessionId")
     }
 
     fun cleanupCache(sessionId: String) {
@@ -110,6 +120,7 @@ class SignatureSessionManager(
                 signedAt = Instant.now()
             )
         }
+        logger.debug("Updated cache with client signature for session: $sessionId")
     }
 
     fun markSessionAsSentToTablet(sessionId: UUID) {
@@ -148,20 +159,23 @@ class SignatureSessionManager(
             return null
         }
 
-        logger.debug("Found cached data for session: $sessionId, signature bytes size: ${cachedData.signatureImageBytes.size}")
+        val sellerId = cachedData.metadata["sellerId"] as? Long ?: 1L
+        logger.debug("Found cached data for session: $sessionId, signature bytes size: ${cachedData.signatureImageBytes.size}, seller: $sellerId")
 
         return CachedSignatureData(
             sessionId = cachedData.sessionId,
             document = cachedData.metadata["document"] as UnifiedFinancialDocument,
             originalPdfBytes = cachedData.originalInvoiceBytes,
-            signatureImageBytes = cachedData.signatureImageBytes, // FIXED: Added missing parameter
+            signatureImageBytes = cachedData.signatureImageBytes,
             signerName = cachedData.signerName,
-            companyId = cachedData.companyId
+            companyId = cachedData.companyId,
+            sellerId = sellerId
         )
     }
 
     fun getSignatureStatus(sessionId: UUID, companyId: Long, invoiceId: String): InvoiceSignatureStatusResponse {
-        logger.info("getSignatureStatus status for invoice $invoiceId")
+        logger.info("Getting signature status for invoice $invoiceId, session: $sessionId")
+
         val session = sessionRepository.findBySessionIdAndCompanyId(sessionId, companyId)
             ?: throw IllegalArgumentException("Signature session not found")
 
@@ -173,6 +187,8 @@ class SignatureSessionManager(
         if (contextInvoiceId != invoiceId) {
             throw IllegalArgumentException("Session does not belong to this invoice")
         }
+
+        val hasSellerSignature = businessContext?.get("includeSellerSignature") as? Boolean ?: false
 
         val currentStatus = if (session.isExpired() && session.status in listOf(
                 SignatureSessionStatus.PENDING,
@@ -187,6 +203,12 @@ class SignatureSessionManager(
             session.status
         }
 
+        val statusMessage = if (hasSellerSignature) {
+            "Invoice includes seller signature"
+        } else {
+            "Standard invoice signature process"
+        }
+
         return InvoiceSignatureStatusResponse(
             success = true,
             sessionId = sessionId,
@@ -197,7 +219,7 @@ class SignatureSessionManager(
                 "/api/invoice-signatures/sessions/$sessionId/signed-document?invoiceId=$invoiceId" else null,
             signatureImageUrl = if (currentStatus == SignatureSessionStatus.COMPLETED)
                 "/api/invoice-signatures/sessions/$sessionId/signature-image?invoiceId=$invoiceId" else null,
-            timestamp = Instant.now()
+            timestamp = Instant.now(),
         )
     }
 
@@ -210,12 +232,14 @@ class SignatureSessionManager(
 
         // Cleanup cache
         cacheService.removeInvoiceSignature(sessionId.toString())
+        logger.info("Cancelled session: $sessionId, reason: $reason")
     }
 
     private fun updateSessionStatus(sessionId: UUID, status: SignatureSessionStatus, errorMessage: String? = null) {
         val session = sessionRepository.findBySessionId(sessionId)
         if (session != null) {
             sessionRepository.save(session.updateStatus(status, errorMessage))
+            logger.debug("Updated session $sessionId status to: $status")
         }
     }
 

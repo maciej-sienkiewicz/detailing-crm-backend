@@ -1,3 +1,4 @@
+// Enhanced signature models with seller signature support
 package com.carslab.crm.modules.finances.domain.signature.model
 
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
@@ -27,13 +28,17 @@ data class SignatureSession(
     val status: SignatureSessionStatus
 )
 
+/**
+ * Enhanced cached signature data with seller information
+ */
 data class CachedSignatureData(
     val sessionId: String,
     val document: UnifiedFinancialDocument,
     val originalPdfBytes: ByteArray,
-    val signatureImageBytes: ByteArray, // Added signature bytes
+    val signatureImageBytes: ByteArray,
     val signerName: String,
-    val companyId: Long
+    val companyId: Long,
+    val sellerId: Long = 1L // NEW: Seller ID for multi-tenant safety
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -45,13 +50,17 @@ data class CachedSignatureData(
     override fun hashCode(): Int = sessionId.hashCode()
 }
 
+/**
+ * Enhanced signature completion data with seller signature information
+ */
 data class SignatureCompletionData(
     val sessionId: String,
     val invoiceId: String,
     val success: Boolean,
     val signedAt: Instant,
     val signerName: String,
-    val newAttachment: DocumentAttachment
+    val newAttachment: DocumentAttachment,
+    val hasSellerSignature: Boolean = false // NEW: Indicates if seller signature is included
 )
 
 class InvoiceSignatureException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

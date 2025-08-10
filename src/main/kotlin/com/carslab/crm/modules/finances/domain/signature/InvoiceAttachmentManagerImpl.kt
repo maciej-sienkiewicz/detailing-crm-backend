@@ -1,3 +1,4 @@
+// Enhanced InvoiceAttachmentManagerImpl with seller signature support
 package com.carslab.crm.modules.finances.domain.signature
 
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
@@ -28,8 +29,15 @@ class InvoiceAttachmentManagerImpl(
 
     override fun getOrGenerateUnsignedPdf(document: UnifiedFinancialDocument): ByteArray {
         logger.debug("Generating unsigned PDF for document: ${document.id.value}")
-
         return generateUnsignedPdfInMemory(document)
+    }
+
+    /**
+     * NEW: Generates unsigned PDF with seller signature if available
+     */
+    override fun getOrGenerateUnsignedPdfWithSellerSignature(document: UnifiedFinancialDocument, sellerId: Long): ByteArray {
+        logger.debug("Generating unsigned PDF with seller signature for document: ${document.id.value}, seller: $sellerId")
+        return generateUnsignedPdfWithSellerSignatureInMemory(document, sellerId)
     }
 
     override fun generateSignedPdf(document: UnifiedFinancialDocument, signatureBytes: ByteArray): ByteArray {
@@ -39,6 +47,22 @@ class InvoiceAttachmentManagerImpl(
             ?.let { attachment ->
                 storageService.retrieveFile(attachment.storageId)
             } ?: throw IllegalStateException("Failed to generate signed PDF")
+    }
+
+    /**
+     * NEW: Generates fully signed PDF with both client and seller signatures
+     */
+    override fun generateFullySignedPdf(
+        document: UnifiedFinancialDocument,
+        clientSignatureBytes: ByteArray,
+        sellerId: Long
+    ): ByteArray {
+        logger.debug("Generating fully signed PDF for document: ${document.id.value} with seller: $sellerId")
+
+        return attachmentGenerationService.generateFullySignedInvoiceAttachment(document, clientSignatureBytes, sellerId)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)
+            } ?: throw IllegalStateException("Failed to generate fully signed PDF")
     }
 
     override fun replaceAttachment(document: UnifiedFinancialDocument, signedPdfBytes: ByteArray): DocumentAttachment {
@@ -55,9 +79,11 @@ class InvoiceAttachmentManagerImpl(
             val newStorageId = storeSignedPdf(signedPdfBytes, document, companyId)
             logger.info("Successfully stored new signed PDF with storage ID: $newStorageId")
 
+            val attachmentName = determineAttachmentName(document, signedPdfBytes.size)
+
             val newAttachment = DocumentAttachment(
                 id = UUID.randomUUID().toString(),
-                name = "signed-invoice-${document.number}.pdf",
+                name = attachmentName,
                 size = signedPdfBytes.size.toLong(),
                 type = "application/pdf",
                 storageId = newStorageId,
@@ -100,6 +126,28 @@ class InvoiceAttachmentManagerImpl(
             } ?: throw IllegalStateException("Failed to generate unsigned invoice PDF")
     }
 
+    private fun generateUnsignedPdfWithSellerSignatureInMemory(
+        document: UnifiedFinancialDocument,
+        sellerId: Long
+    ): ByteArray {
+        logger.debug("Generating unsigned PDF with seller signature in memory for document: ${document.id.value}")
+
+        return attachmentGenerationService.generateInvoiceAttachmentWithSellerSignature(document, sellerId)
+            ?.let { attachment ->
+                storageService.retrieveFile(attachment.storageId)?.also {
+                    try {
+                        storageService.deleteFile(attachment.storageId)
+                        logger.debug("Cleaned up temporary PDF file with seller signature")
+                    } catch (e: Exception) {
+                        logger.warn("Failed to cleanup temporary PDF file: ${attachment.storageId}", e)
+                    }
+                }
+            } ?: run {
+            logger.warn("Failed to generate PDF with seller signature, falling back to unsigned PDF")
+            generateUnsignedPdfInMemory(document)
+        }
+    }
+
     private fun cleanupOldAttachment(oldStorageId: String) {
         try {
             logger.info("Attempting to delete old attachment: $oldStorageId")
@@ -123,24 +171,34 @@ class InvoiceAttachmentManagerImpl(
         return storageService.storeFile(
             UniversalStoreRequest(
                 file = multipartFile,
-                originalFileName = "signed-invoice-${document.number}.pdf",
+                originalFileName = determineAttachmentName(document, pdfBytes.size),
                 contentType = "application/pdf",
                 companyId = companyId,
                 entityId = document.id.value,
                 entityType = "document",
                 category = "finances",
                 subCategory = "invoices/${document.direction.name.lowercase()}",
-                description = "Signed invoice PDF with customer signature",
+                description = "Signed invoice PDF with customer and seller signatures",
                 date = document.issuedDate,
                 tags = mapOf(
                     "documentType" to document.type.name,
                     "direction" to document.direction.name,
                     "signed" to "true",
-                    "version" to "signed",
-                    "originalNumber" to document.number
+                    "version" to "fully-signed",
+                    "originalNumber" to document.number,
+                    "hasClientSignature" to "true",
+                    "hasSellerSignature" to "true"
                 )
             )
         )
+    }
+
+    private fun determineAttachmentName(document: UnifiedFinancialDocument, pdfSize: Int): String {
+        val sizeInKb = pdfSize / 1024
+        return when {
+            sizeInKb > 500 -> "fully-signed-invoice-${document.number}.pdf"
+            else -> "signed-invoice-${document.number}.pdf"
+        }
     }
 
     private fun createMultipartFile(pdfBytes: ByteArray, document: UnifiedFinancialDocument): MultipartFile {
