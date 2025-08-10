@@ -1,15 +1,12 @@
-// src/main/kotlin/com/carslab/crm/finances/infrastructure/entity/FixedCostEntity.kt
 package com.carslab.crm.finances.infrastructure.entity
 
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.domain.model.fixedcosts.*
-import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode
-import org.springframework.security.core.context.SecurityContextHolder
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -90,9 +87,6 @@ class FixedCostEntity(
     var payments: MutableList<FixedCostPaymentEntity> = mutableListOf()
 ) {
 
-    /**
-     * Konwersja do modelu domenowego
-     */
     fun toDomain(): FixedCost {
         return FixedCost(
             id = FixedCostId(id),
@@ -113,9 +107,6 @@ class FixedCostEntity(
         )
     }
 
-    /**
-     * Bezpieczne mapowanie płatności
-     */
     private fun safeMapPayments(): List<FixedCostPayment> {
         return try {
             payments.map { it.toDomain() }
@@ -125,9 +116,6 @@ class FixedCostEntity(
         }
     }
 
-    /**
-     * Tworzenie informacji o dostawcy
-     */
     private fun createSupplierInfo(): SupplierInfo? {
         return if (supplierName != null) {
             SupplierInfo(
@@ -138,10 +126,10 @@ class FixedCostEntity(
     }
 
     companion object {
-        fun fromDomain(domain: FixedCost): FixedCostEntity {
+        fun fromDomain(domain: FixedCost, companyId: Long): FixedCostEntity {
             return FixedCostEntity(
                 id = domain.id.value,
-                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                companyId = companyId,
                 name = domain.name,
                 description = domain.description,
                 category = domain.category,
@@ -158,6 +146,10 @@ class FixedCostEntity(
                 createdAt = domain.audit.createdAt,
                 updatedAt = domain.audit.updatedAt
             )
+        }
+
+        fun fromDomain(domain: FixedCost): FixedCostEntity {
+            throw UnsupportedOperationException("Use fromDomain(domain, companyId) instead to ensure multi-tenant safety")
         }
     }
 }
@@ -200,9 +192,6 @@ class FixedCostPaymentEntity(
     var createdAt: LocalDateTime
 ) {
 
-    /**
-     * Konwersja do modelu domenowego
-     */
     fun toDomain(): FixedCostPayment {
         return FixedCostPayment(
             id = id,
@@ -273,9 +262,6 @@ class BreakevenConfigurationEntity(
     var updatedAt: LocalDateTime
 ) {
 
-    /**
-     * Konwersja do modelu domenowego
-     */
     fun toDomain(): BreakevenConfiguration {
         return BreakevenConfiguration(
             id = BreakevenConfigurationId(id),
@@ -291,10 +277,10 @@ class BreakevenConfigurationEntity(
     }
 
     companion object {
-        fun fromDomain(domain: BreakevenConfiguration): BreakevenConfigurationEntity {
+        fun fromDomain(domain: BreakevenConfiguration, companyId: Long): BreakevenConfigurationEntity {
             return BreakevenConfigurationEntity(
                 id = domain.id.value,
-                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                companyId = companyId,
                 name = domain.name,
                 description = domain.description,
                 averageServicePrice = domain.averageServicePrice,

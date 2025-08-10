@@ -7,6 +7,7 @@ import com.carslab.crm.modules.employees.domain.events.EmployeeCreatedEvent
 import com.carslab.crm.modules.employees.domain.events.EmployeeDeactivatedEvent
 import com.carslab.crm.modules.employees.domain.events.EmployeeUpdatedEvent
 import com.carslab.crm.modules.employees.domain.model.ContractType
+import com.carslab.crm.modules.employees.infrastructure.persistence.SecureFixedCostService
 import com.carslab.crm.domain.model.Audit
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -19,7 +20,7 @@ import java.time.LocalDateTime
 @Service
 @Transactional
 class SalaryFixedCostService(
-    private val fixedCostRepository: FixedCostRepository,
+    private val secureFixedCostService: SecureFixedCostService,
     private val salaryCostProperties: SalaryCostProperties
 ) {
 
@@ -36,7 +37,7 @@ class SalaryFixedCostService(
             return
         }
 
-        logger.info("Creating salary fixed cost for employee: ${event.employeeId}")
+        logger.info("Creating salary fixed cost for employee: ${event.employeeId}, company: ${event.companyId}")
 
         try {
             val grossSalary = event.calculateMonthlyGrossSalary(salaryCostProperties) ?: return
@@ -73,12 +74,15 @@ class SalaryFixedCostService(
                 )
             )
 
-            fixedCostRepository.save(fixedCost)
-            logger.info("Created salary fixed cost ${fixedCost.id.value} for employee ${event.employeeId}, amount: ${totalMonthlyCost}")
+            val savedFixedCost = secureFixedCostService.createFixedCostForCompany(fixedCost, event.companyId)
+            logger.info("Created salary fixed cost ${savedFixedCost.id.value} for employee ${event.employeeId}, company: ${event.companyId}, amount: ${totalMonthlyCost}")
 
         } catch (e: Exception) {
-            logger.error("Failed to create salary fixed cost for employee ${event.employeeId}", e)
-            throw e
+            logger.error("Failed to create salary fixed cost for employee ${event.employeeId}, company: ${event.companyId}", e)
+            if (salaryCostProperties.retryFailedOperations) {
+                logger.info("Will retry salary cost creation for employee ${event.employeeId}")
+                throw e
+            }
         }
     }
 
@@ -93,13 +97,13 @@ class SalaryFixedCostService(
             return
         }
 
-        logger.info("Updating salary fixed cost for employee: ${event.employeeId}")
+        logger.info("Updating salary fixed cost for employee: ${event.employeeId}, company: ${event.companyId}")
 
         try {
-            val existingFixedCosts = findSalaryFixedCostsForEmployee(event.employeeId, event.companyId)
+            val existingFixedCosts = secureFixedCostService.findSalaryFixedCostsForEmployee(event.employeeId, event.companyId)
 
             if (existingFixedCosts.isEmpty()) {
-                logger.warn("No existing salary fixed cost found for employee ${event.employeeId}")
+                logger.warn("No existing salary fixed cost found for employee ${event.employeeId} in company ${event.companyId}")
 
                 if (event.newHourlyRate != null && event.newHourlyRate > 0.0) {
                     logger.info("Creating new salary fixed cost for employee ${event.employeeId}")
@@ -112,7 +116,7 @@ class SalaryFixedCostService(
 
             val newGrossSalary = event.calculateNewMonthlyGrossSalary(salaryCostProperties)
             if (newGrossSalary == null || newGrossSalary <= 0.0) {
-                deactivateSalaryFixedCost(existingFixedCost, "Wynagrodzenie zostało usunięte")
+                secureFixedCostService.deactivateFixedCost(existingFixedCost.id, event.companyId, "Wynagrodzenie zostało usunięte")
                 return
             }
 
@@ -136,12 +140,14 @@ class SalaryFixedCostService(
                 audit = existingFixedCost.audit.copy(updatedAt = LocalDateTime.now())
             )
 
-            fixedCostRepository.save(updatedFixedCost)
-            logger.info("Updated salary fixed cost ${updatedFixedCost.id.value} for employee ${event.employeeId}, new amount: ${totalMonthlyCost}")
+            val savedFixedCost = secureFixedCostService.updateFixedCostForCompany(updatedFixedCost, event.companyId)
+            logger.info("Updated salary fixed cost ${savedFixedCost.id.value} for employee ${event.employeeId}, company: ${event.companyId}, new amount: ${totalMonthlyCost}")
 
         } catch (e: Exception) {
-            logger.error("Failed to update salary fixed cost for employee ${event.employeeId}", e)
-            throw e
+            logger.error("Failed to update salary fixed cost for employee ${event.employeeId}, company: ${event.companyId}", e)
+            if (salaryCostProperties.retryFailedOperations) {
+                throw e
+            }
         }
     }
 
@@ -151,18 +157,22 @@ class SalaryFixedCostService(
             return
         }
 
-        logger.info("Deactivating salary fixed cost for employee: ${event.employeeId}")
+        logger.info("Deactivating salary fixed cost for employee: ${event.employeeId}, company: ${event.companyId}")
 
         try {
-            val existingFixedCosts = findSalaryFixedCostsForEmployee(event.employeeId, event.companyId)
+            val existingFixedCosts = secureFixedCostService.findSalaryFixedCostsForEmployee(event.employeeId, event.companyId)
 
             existingFixedCosts.forEach { fixedCost ->
-                deactivateSalaryFixedCost(fixedCost, "Pracownik został dezaktywowany")
+                secureFixedCostService.deactivateFixedCost(fixedCost.id, event.companyId, "Pracownik został dezaktywowany")
             }
 
+            logger.info("Successfully deactivated ${existingFixedCosts.size} salary fixed costs for employee ${event.employeeId}")
+
         } catch (e: Exception) {
-            logger.error("Failed to deactivate salary fixed cost for employee ${event.employeeId}", e)
-            throw e
+            logger.error("Failed to deactivate salary fixed cost for employee ${event.employeeId}, company: ${event.companyId}", e)
+            if (salaryCostProperties.retryFailedOperations) {
+                throw e
+            }
         }
     }
 
@@ -201,28 +211,8 @@ class SalaryFixedCostService(
             )
         )
 
-        fixedCostRepository.save(fixedCost)
-        logger.info("Created new salary fixed cost ${fixedCost.id.value} from update for employee ${event.employeeId}")
-    }
-
-    private fun deactivateSalaryFixedCost(fixedCost: FixedCost, reason: String) {
-        val deactivatedFixedCost = fixedCost.copy(
-            status = FixedCostStatus.INACTIVE,
-            endDate = LocalDate.now(),
-            notes = "${fixedCost.notes ?: ""}\n\nDezaktywowano: ${LocalDate.now()} - $reason".trim(),
-            audit = fixedCost.audit.copy(updatedAt = LocalDateTime.now())
-        )
-
-        fixedCostRepository.save(deactivatedFixedCost)
-        logger.info("Deactivated salary fixed cost ${fixedCost.id.value}")
-    }
-
-    private fun findSalaryFixedCostsForEmployee(employeeId: String, companyId: Long): List<FixedCost> {
-        return fixedCostRepository.findByCategory(FixedCostCategory.PERSONNEL)
-            .filter {
-                it.status == FixedCostStatus.ACTIVE &&
-                        it.notes?.contains("Employee ID: $employeeId") == true
-            }
+        val savedFixedCost = secureFixedCostService.createFixedCostForCompany(fixedCost, event.companyId)
+        logger.info("Created new salary fixed cost ${savedFixedCost.id.value} from update for employee ${event.employeeId}, company: ${event.companyId}")
     }
 
     private fun calculateSocialContributions(grossSalary: Double, contractType: ContractType?): BigDecimal {
@@ -254,7 +244,6 @@ class SalaryFixedCostService(
         val hourlyRate = event.hourlyRate ?: 0.0
 
         return """
-Employee ID: ${event.employeeId}
 Typ kontraktu: $contractTypeText
 Stawka godzinowa: ${String.format("%.2f", hourlyRate)} PLN
 Godziny tygodniowo: ${String.format("%.1f", workingHours)}
@@ -271,7 +260,6 @@ Utworzono automatycznie: ${LocalDate.now()}
         val previousGross = event.calculatePreviousMonthlyGrossSalary(salaryCostProperties) ?: 0.0
 
         return """
-Employee ID: ${event.employeeId}
 Typ kontraktu: $contractTypeText
 Stawka godzinowa: ${String.format("%.2f", hourlyRate)} PLN (poprzednio: ${String.format("%.2f", event.previousHourlyRate ?: 0.0)})
 Godziny tygodniowo: ${String.format("%.1f", workingHours)} (poprzednio: ${String.format("%.1f", event.previousWorkingHours ?: salaryCostProperties.defaultWorkingHoursPerWeek)})

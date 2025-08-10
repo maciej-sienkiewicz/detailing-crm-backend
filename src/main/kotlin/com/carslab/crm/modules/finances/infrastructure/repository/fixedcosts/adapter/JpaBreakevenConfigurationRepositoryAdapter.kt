@@ -9,15 +9,17 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import com.carslab.crm.infrastructure.security.SecurityContext
 
 @Repository
 class JpaBreakevenConfigurationRepositoryAdapter(
-    private val breakevenConfigurationJpaRepository: BreakevenConfigurationJpaRepository
+    private val breakevenConfigurationJpaRepository: BreakevenConfigurationJpaRepository,
+    private val securityContext: SecurityContext,
 ) : BreakevenConfigurationRepository {
 
     @Transactional
     override fun save(configuration: BreakevenConfiguration): BreakevenConfiguration {
-        val entity = BreakevenConfigurationEntity.Companion.fromDomain(configuration)
+        val entity = BreakevenConfigurationEntity.Companion.fromDomain(configuration, companyId = securityContext.getCurrentCompanyId())
         val savedEntity = breakevenConfigurationJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
