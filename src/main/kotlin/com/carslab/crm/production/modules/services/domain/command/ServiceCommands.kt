@@ -4,6 +4,8 @@ import java.math.BigDecimal
 
 data class CreateServiceCommand(
     val companyId: Long,
+    val userId: String,
+    val userName: String,
     val name: String,
     val description: String?,
     val price: BigDecimal,

@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.services.application.dto.UpdateService
 import com.carslab.crm.production.modules.services.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.services.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.services.domain.service.ServiceDomainService
+import com.carslab.crm.production.shared.exception.UserNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,7 +29,9 @@ class ServiceCommandService(
             name = request.name.trim(),
             description = request.description?.trim(),
             price = request.price,
-            vatRate = request.vatRate
+            vatRate = request.vatRate,
+            userId = securityContext.getCurrentUserId() ?: throw UserNotFoundException("User ID not found in security context"),
+            userName = securityContext.getCurrentUserName() ?: throw UserNotFoundException("User name not found in security context")
         )
 
         val service = domainService.createService(command)

@@ -10,14 +10,6 @@ import java.time.LocalDateTime
 @Entity
 @Table(
     name = "activities_deprecated",
-    indexes = [
-        Index(name = "idx_activities_company_timestamp", columnList = "companyId,timestamp"),
-        Index(name = "idx_activities_category", columnList = "category"),
-        Index(name = "idx_activities_entity", columnList = "entityType,entityId"),
-        Index(name = "idx_activities_user", columnList = "userId"),
-        Index(name = "idx_activities_status", columnList = "status"),
-        Index(name = "idx_activities_date_range", columnList = "companyId,timestamp,category")
-    ]
 )
 class ActivityEntityDeprecated(
     @Id

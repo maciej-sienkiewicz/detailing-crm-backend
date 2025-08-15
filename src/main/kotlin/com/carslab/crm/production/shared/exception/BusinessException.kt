@@ -19,3 +19,8 @@ class ServiceNotFoundException(
     message: String,
     cause: Throwable? = null
 ) : RuntimeException(message, cause)
+
+class UserNotFoundException(
+    message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)
