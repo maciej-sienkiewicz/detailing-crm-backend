@@ -193,7 +193,7 @@ data class CompanyResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
-        fun fromEntity(entity: CompanyEntity): CompanyResponse {
+        fun fromEntity(entity: CompanyEntities): CompanyResponse {
             return CompanyResponse(
                 id = entity.id ?: throw IllegalStateException("Company ID cannot be null"),
                 name = entity.name,

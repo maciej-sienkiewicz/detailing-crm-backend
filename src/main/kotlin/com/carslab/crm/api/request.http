@@ -81,12 +81,11 @@ POST {{baseUrl}}/api/users
 Content-Type: application/json
 
 {
-  "username": "jan.kazimierzzz",
+  "username": "macko",
   "password": "haslo123",
-  "email": "maciej.sienkiewiczz563872gmail.com",
+  "email": "maciej.sienkiewiczz56387231122gmail.com",
   "firstName": "Jan",
-  "lastName": "Nowak",
-  "companyId": 5
+  "lastName": "Nowak"
 }
 
 ### Get created user (save ID for later)

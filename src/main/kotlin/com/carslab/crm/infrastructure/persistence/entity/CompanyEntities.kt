@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(name = "companiess")
-class CompanyEntity(
+class CompanyEntities(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
@@ -39,7 +39,7 @@ class CompanyEntity(
     }
 
     companion object {
-        fun fromDomain(domain: Company): CompanyEntity = CompanyEntity(
+        fun fromDomain(domain: Company): CompanyEntities = CompanyEntities(
             id = domain.id,
             name = domain.name,
             address = domain.address,

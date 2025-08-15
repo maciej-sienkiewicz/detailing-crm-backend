@@ -23,4 +23,11 @@ class CompanyRepositoryImpl(
     override fun existsByTaxId(taxId: String): Boolean {
         return jpaRepository.existsByTaxIdAndActiveTrue(taxId)
     }
+    
+    @Transactional(readOnly = true)
+    override fun findById(companyId: Long): Company? {
+        return jpaRepository.findByIdAndActiveTrue(companyId)
+            .map { it.toDomain() }
+            .orElse(null)
+    }
 }

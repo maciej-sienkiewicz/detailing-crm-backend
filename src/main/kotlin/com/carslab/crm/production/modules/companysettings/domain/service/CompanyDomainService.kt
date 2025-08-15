@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.companysettings.domain.model.Company
 import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
 import com.carslab.crm.production.modules.companysettings.domain.repository.CompanyRepository
 import com.carslab.crm.production.shared.exception.BusinessException
+import com.carslab.crm.production.shared.exception.CompanyNotFoundException
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
@@ -38,5 +39,10 @@ class CompanyDomainService(
         )
 
         return repository.save(company)
+    }
+    
+    fun getCompanyById(companyId: Long): Company {
+        return repository.findById(companyId)
+            ?: throw CompanyNotFoundException("Company with ID $companyId not found")
     }
 }

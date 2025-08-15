@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.company_settings.api.responses
 
 import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
+import com.carslab.crm.production.modules.companysettings.domain.model.Company
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 
@@ -35,6 +36,33 @@ data class CompanySettingsResponse(
             logoSettings = LogoSettingsResponse.from(settings.logoSettings),
             createdAt = settings.audit.createdAt,
             updatedAt = settings.audit.updatedAt
+        )
+
+        fun from(companyDetails: Company): CompanySettingsResponse = CompanySettingsResponse(
+            id = companyDetails.id.value,
+            companyId = companyDetails.id.value,
+            basicInfo = CompanyBasicInfoResponse(
+                companyName = companyDetails.name,
+                taxId = companyDetails.taxId,
+                address = companyDetails.address,
+                phone = companyDetails.phone,
+                website = companyDetails.website
+            ),
+            bankSettings = BankSettingsResponse(
+                bankAccountNumber = companyDetails.bankSettings.bankAccountNumber,
+                bankName = companyDetails.bankSettings.bankName,
+                swiftCode = companyDetails.bankSettings.swiftCode,
+                accountHolderName = companyDetails.bankSettings.accountHolderName
+            ),
+            logoSettings = LogoSettingsResponse(
+                hasLogo = false, // Assuming no logo for basic company details
+                logoFileName = null,
+                logoContentType = null,
+                logoSize = null,
+                logoUrl = null
+            ),
+            createdAt = companyDetails.createdAt,
+            updatedAt = companyDetails.updatedAt
         )
     }
 }

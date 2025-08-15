@@ -11,6 +11,7 @@ import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.carslab.crm.domain.exception.DomainException
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,6 +23,7 @@ class CompanySettingsApplicationService(
     private val companySettingsDomainService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val securityContext: SecurityContext,
+    private val companyDetailsFetchService: CompanyDetailsFetchService,
 ) {
     private val logger = LoggerFactory.getLogger(CompanySettingsApplicationService::class.java)
 
@@ -81,21 +83,8 @@ class CompanySettingsApplicationService(
     }
 
     @Transactional(readOnly = true)
-    fun getCompanySettings(companyId: Long): CompanySettingsResponse {
-        logger.debug("Getting company settings for company: $companyId")
-
-        val companySettings = companySettingsDomainService.getCompanySettings(companyId)
-
-        return companySettings?.let { CompanySettingsResponse.from(it) } ?: CompanySettingsResponse(
-            id = null,
-            companyId = null,
-            basicInfo = null,
-            bankSettings = null,
-            logoSettings = null,
-            createdAt = null,
-            updatedAt = null
-        )
-    }
+    fun getCompanySettings(companyId: Long): CompanySettingsResponse =
+        companyDetailsFetchService.getCompanySettings(companyId)
 
     fun uploadLogo(companyId: Long, logoFile: MultipartFile): CompanySettingsResponse {
         logger.info("Uploading logo for company: $companyId")
