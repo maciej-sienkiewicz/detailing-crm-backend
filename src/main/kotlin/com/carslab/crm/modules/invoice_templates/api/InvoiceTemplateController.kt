@@ -7,12 +7,10 @@ import com.carslab.crm.modules.invoice_templates.api.requests.UploadTemplateRequ
 import com.carslab.crm.modules.invoice_templates.api.responses.InvoiceTemplateResponse
 import com.carslab.crm.modules.invoice_templates.domain.InvoiceTemplateService
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplateId
-import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -29,15 +27,14 @@ class InvoiceTemplateController(
     
     @GetMapping
     @Operation(summary = "Pobierz szablony faktur")
-    fun getTemplates(): ResponseEntity<List<InvoiceTemplateResponse>> {
+    fun getTemplates(): ResponseEntity<List<com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateHeaderResponse>> {
         val companyId = getSecureCompanyId()
 
         logger.debug("Getting templates for company: {}", companyId)
-        val templates = invoiceTemplateService.getTemplatesForCompany(companyId)
-        val responses = templates.map { InvoiceTemplateResponse.from(it) }
+        val templates = invoiceTemplateService.getTemplatesForCompany()
 
-        logger.debug("Found {} templates for company: {}", responses.size, companyId)
-        return ok(responses)
+        logger.debug("Found {} templates for company: {}", templates.size, companyId)
+        return ok(templates)
     }
 
     @GetMapping("/{id}")
@@ -89,13 +86,12 @@ class InvoiceTemplateController(
     @PostMapping("/{id}/preview")
     @Operation(summary = "Podgląd szablonu")
     fun previewTemplate(@PathVariable id: String): ResponseEntity<ByteArray> {
-        val companyId = getSecureCompanyId()
         val templateId = InvoiceTemplateId(id)
 
-        logger.debug("Generating preview for template {} for company: {}", templateId.value, companyId)
+        logger.debug("Generating preview for template {}}", templateId.value)
 
         // Sprawdź uprawnienia w service
-        val pdfBytes = invoiceTemplateService.generateTemplatePreview(templateId, companyId)
+        val pdfBytes = invoiceTemplateService.generateTemplatePreview(templateId)
 
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_PDF)

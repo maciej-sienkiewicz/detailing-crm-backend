@@ -4,6 +4,7 @@ package com.carslab.crm.modules.invoice_templates.infrastructure.rendering
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplate
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
+import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -14,11 +15,11 @@ import java.util.*
 class ThymeleafTemplateRenderingService : TemplateRenderingService {
     private val logger = LoggerFactory.getLogger(ThymeleafTemplateRenderingService::class.java)
 
-    override fun renderTemplate(template: InvoiceTemplate, data: InvoiceGenerationData): String {
+    override fun renderTemplate(template: InvoiceTemplateResponse, data: InvoiceGenerationData): String {
         try {
             val variables = prepareVariables(data)
 
-            var htmlContent = template.content.htmlTemplate
+            var htmlContent = template.htmlContent
 
             // Simple string replacement approach - no complex regex
             variables.forEach { (key, value) ->
@@ -35,7 +36,7 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             return htmlContent
 
         } catch (e: Exception) {
-            logger.error("Error rendering template: {}", template.name, e)
+            logger.error("Error rendering template: {}", template.header.name, e)
             throw RuntimeException("Failed to render invoice template", e)
         }
     }

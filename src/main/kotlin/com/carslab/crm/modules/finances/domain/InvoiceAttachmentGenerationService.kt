@@ -11,9 +11,11 @@ import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainServ
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.company_settings.domain.UserSignatureApplicationService
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
-import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
 import com.carslab.crm.modules.invoice_templates.domain.ports.PdfGenerationService
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
+import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateHeaderResponse
+import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
+import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceTemplateQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,7 +26,6 @@ import java.util.Base64
 @Service
 @Transactional
 class InvoiceAttachmentGenerationService(
-    private val templateRepository: InvoiceTemplateRepository,
     private val companySettingsService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val universalStorageService: UniversalStorageService,
@@ -32,7 +33,8 @@ class InvoiceAttachmentGenerationService(
     private val templateRenderingService: TemplateRenderingService,
     private val securityContext: SecurityContext,
     private val unifiedDocumentRepository: UnifiedDocumentRepository,
-    private val userSignatureApplicationService: UserSignatureApplicationService
+    private val userSignatureApplicationService: UserSignatureApplicationService,
+    private val invoiceTemplateQueryService: InvoiceTemplateQueryService,
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentGenerationService::class.java)
 
@@ -101,8 +103,7 @@ class InvoiceAttachmentGenerationService(
             logger.debug("Generating invoice attachment for document: ${document.id.value}, type: $type")
 
             val companyId = securityContext.getCurrentCompanyId()
-            val activeTemplate = templateRepository.findActiveTemplateForCompany(companyId)
-                ?: throw IllegalStateException("No active template found for company: $companyId")
+            val activeTemplate = invoiceTemplateQueryService.findActiveTemplateForCompany()
 
             val companySettings = companySettingsService.getCompanySettings(companyId)
                 ?: throw IllegalStateException("Company settings not found for company: $companyId")
@@ -213,20 +214,20 @@ class InvoiceAttachmentGenerationService(
     }
 
     private fun generatePdfFromTemplate(
-        template: com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplate,
+        template: InvoiceTemplateResponse,
         data: InvoiceGenerationData
     ): ByteArray {
-        logger.debug("Generating PDF from template: ${template.id.value} for document: ${data.document.id.value}")
+        logger.debug("Generating PDF from template: ${template.header.id} for document: ${data.document.id.value}")
 
         return try {
             val renderedHtml = templateRenderingService.renderTemplate(template, data)
-            val pdfBytes = pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+            val pdfBytes = pdfGenerationService.generatePdf(renderedHtml)
 
             logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")
             pdfBytes
 
         } catch (e: Exception) {
-            logger.error("Failed to generate PDF from template: ${template.id.value}", e)
+            logger.error("Failed to generate PDF from template: ${template.header.id}", e)
             throw RuntimeException("PDF generation failed: ${e.message}", e)
         }
     }

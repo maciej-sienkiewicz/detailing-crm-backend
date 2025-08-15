@@ -12,7 +12,6 @@ import com.carslab.crm.modules.invoice_templates.domain.model.*
 import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
 import com.carslab.crm.modules.invoice_templates.domain.ports.PdfGenerationService
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.invoice_templates.infrastructure.templates.ProfessionalDefaultTemplateProvider
 import com.carslab.crm.finances.domain.UnifiedDocumentService
@@ -28,6 +27,10 @@ import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
 import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.carslab.crm.modules.company_settings.domain.model.shared.AuditInfo
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateHeaderResponse
+import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
+import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceGenerationService
+import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceTemplateQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -37,8 +40,6 @@ import java.math.BigDecimal
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
-import kotlin.apply
 
 @Service
 class InvoiceTemplateService(
@@ -48,7 +49,9 @@ class InvoiceTemplateService(
     private val logoStorageService: LogoStorageService,
     private val professionalDefaultTemplateProvider: ProfessionalDefaultTemplateProvider,
     private val documentService: UnifiedDocumentService,
-    private val companyDetailsFetchService: CompanyDetailsFetchService
+    private val companyDetailsFetchService: CompanyDetailsFetchService,
+    private val templateQueryService: InvoiceTemplateQueryService,
+    private val templateGenerationService: InvoiceGenerationService,
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
@@ -64,7 +67,7 @@ class InvoiceTemplateService(
         validateCompanyId(companyId)
 
         val document = documentService.getDocumentById(documentId)
-        val template = getTemplateForGeneration(companyId, templateId)
+        val template = getTemplateForGeneration(templateId)
         val companySettings = getCompanySettings(companyId)
         val logoData = null
 
@@ -78,20 +81,20 @@ class InvoiceTemplateService(
     }
 
     fun generatePdfFromTemplate(
-        template: InvoiceTemplate,
+        template: InvoiceTemplateResponse,
         generationData: InvoiceGenerationData
     ): ByteArray {
-        logger.debug("Generating PDF from template: ${template.id.value}")
+        logger.debug("Generating PDF from template: ${template.header.id}")
 
         return try {
             val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
-            val pdfBytes = pdfGenerationService.generatePdf(renderedHtml, template.content.layout)
+            val pdfBytes = pdfGenerationService.generatePdf(renderedHtml)
 
             logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")
             pdfBytes
 
         } catch (e: Exception) {
-            logger.error("Failed to generate PDF from template: ${template.id.value}", e)
+            logger.error("Failed to generate PDF from template: ${template.header.id}", e)
             throw RuntimeException("PDF generation failed: ${e.message}", e)
         }
     }
@@ -133,15 +136,9 @@ class InvoiceTemplateService(
     }
 
     @Transactional(readOnly = true)
-    fun generateTemplatePreview(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
-        logger.debug("Generating preview for template {} for company {}", templateId.value, companyId)
-
-        validateCompanyId(companyId)
-
-        val template = getTemplateForCompany(templateId, companyId)
-        val mockData = createMockInvoiceData(companyId)
-        return generatePdfFromTemplate(template, mockData)
-    }
+    fun generateTemplatePreview(templateId: InvoiceTemplateId): ByteArray =
+        templateGenerationService
+            .generatePreview(templateId.value)
 
     @Transactional(readOnly = true)
     fun exportTemplate(templateId: InvoiceTemplateId, companyId: Long): ByteArray {
@@ -154,31 +151,8 @@ class InvoiceTemplateService(
     }
 
     @Transactional
-    fun getTemplatesForCompany(companyId: Long): List<InvoiceTemplate> {
-        logger.debug("Getting templates for company {}", companyId)
-
-        validateCompanyId(companyId)
-
-        val existingTemplates = templateRepository.findByCompanyId(companyId)
-
-        return if (existingTemplates.isEmpty()) {
-            logger.debug("No templates found for company {}, creating default template", companyId)
-
-            val existingDefault = templateRepository.findActiveTemplateForCompany(companyId)
-            if (existingDefault != null) {
-                logger.debug("Default template already exists for company {}: {}", companyId, existingDefault.id.value)
-                return listOf(existingDefault)
-            }
-
-            val defaultTemplate = professionalDefaultTemplateProvider.createDefaultTemplate(companyId)
-            val savedTemplate = templateRepository.save(defaultTemplate)
-            logger.info("Default template created for company {}: {}", companyId, savedTemplate.id.value)
-            listOf(savedTemplate)
-        } else {
-            logger.debug("Found {} existing templates for company {}", existingTemplates.size, companyId)
-            existingTemplates
-        }
-    }
+    fun getTemplatesForCompany(): List<InvoiceTemplateHeaderResponse> =
+        templateQueryService.getTemplatesForCurrentCompany()
 
     @Transactional(readOnly = true)
     fun getTemplate(templateId: InvoiceTemplateId, companyId: Long): InvoiceTemplate {
@@ -228,11 +202,9 @@ class InvoiceTemplateService(
     }
 
     @Transactional(readOnly = true)
-    private fun getTemplateForGeneration(companyId: Long, templateId: InvoiceTemplateId?): InvoiceTemplate {
-        return templateId?.let {
-            getTemplateForCompany(it, companyId)
-        } ?: templateRepository.findActiveTemplateForCompany(companyId)
-        ?: getSystemDefaultTemplate()
+    private fun getTemplateForGeneration(templateId: InvoiceTemplateId?): InvoiceTemplateResponse {
+        return templateQueryService
+            .getTemplate(templateId?.value ?: throw ValidationException("Template ID cannot be null"))
     }
 
     @Transactional(readOnly = true)

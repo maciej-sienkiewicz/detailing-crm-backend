@@ -67,7 +67,7 @@ class PlaywrightPdfService : PdfGenerationService {
         }
     }
 
-    override fun generatePdf(html: String, layoutSettings: LayoutSettings): ByteArray {
+    override fun generatePdf(html: String): ByteArray {
         val startTime = System.currentTimeMillis()
 
         return try {
@@ -98,13 +98,7 @@ class PlaywrightPdfService : PdfGenerationService {
 
                 // Konfiguracja PDF zgodna z layoutSettings
                 val pdfOptions = Page.PdfOptions()
-                    .setFormat(convertPageSize(layoutSettings.pageSize))
-                    .setMargin(Margin()
-                        .setTop("${layoutSettings.margins.top}mm")
-                        .setRight("${layoutSettings.margins.right}mm")
-                        .setBottom("${layoutSettings.margins.bottom}mm")
-                        .setLeft("${layoutSettings.margins.left}mm")
-                    )
+                    .setFormat(convertPageSize())
                     .setPrintBackground(true)
                     .setPreferCSSPageSize(false)
                     .setDisplayHeaderFooter(false)
@@ -144,11 +138,7 @@ class PlaywrightPdfService : PdfGenerationService {
         }
     }
 
-    private fun convertPageSize(pageSize: PageSize): String {
-        return when (pageSize) {
-            PageSize.A4 -> "A4"
-            PageSize.A5 -> "A5"
-            PageSize.LETTER -> "Letter"
-        }
+    private fun convertPageSize(): String {
+        return "A4"
     }
 }

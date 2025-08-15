@@ -9,3 +9,8 @@ class CompanyNotFoundException(
     message: String,
     cause: Throwable? = null
 ) : RuntimeException(message, cause)
+
+class InvoiceNotFoundException(
+    message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)
