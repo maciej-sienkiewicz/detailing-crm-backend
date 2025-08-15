@@ -27,26 +27,7 @@ class CompanySettingsController(
     private val securityContext: SecurityContext,
     private val logoStorageService: FileLogoStorageService
 ) : BaseController() {
-
-    @PostMapping
-    @Operation(summary = "Create company settings", description = "Creates company settings for the current company")
-    fun createCompanySettings(@Valid @RequestBody request: CreateCompanySettingsRequest): ResponseEntity<CompanySettingsResponse> {
-        val companyId = securityContext.getCurrentCompanyId()
-        logger.info("Creating company settings for company: $companyId")
-
-        try {
-            validateCreateRequest(request)
-
-            val requestWithCompanyId = request.copy(companyId = companyId)
-            val response = companySettingsApplicationService.createCompanySettings(requestWithCompanyId)
-
-            logger.info("Successfully created company settings for company: $companyId")
-            return created(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error creating company settings", e)
-        }
-    }
-
+    
     @GetMapping
     @Operation(summary = "Get company settings", description = "Retrieves company settings for the current company")
     fun getCompanySettings(): ResponseEntity<CompanySettingsResponse> {

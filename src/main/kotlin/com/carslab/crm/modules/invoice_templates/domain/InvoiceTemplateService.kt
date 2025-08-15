@@ -1,5 +1,11 @@
 package com.carslab.crm.modules.invoice_templates.domain
 
+import com.carslab.crm.api.model.DocumentStatus
+import com.carslab.crm.api.model.DocumentType
+import com.carslab.crm.api.model.TransactionDirection
+import com.carslab.crm.domain.model.Audit
+import com.carslab.crm.domain.model.view.finance.DocumentItem
+import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.modules.invoice_templates.api.requests.ActivateTemplateRequest
 import com.carslab.crm.modules.invoice_templates.api.requests.UploadTemplateRequest
 import com.carslab.crm.modules.invoice_templates.domain.model.*
@@ -14,11 +20,25 @@ import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.modules.company_settings.api.responses.CompanySettingsResponse
+import com.carslab.crm.modules.company_settings.domain.model.BankSettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
+import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
+import com.carslab.crm.modules.company_settings.domain.model.shared.AuditInfo
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
+import org.springframework.web.multipart.MultipartFile
+import java.math.BigDecimal
+import java.nio.file.Files
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.*
+import kotlin.apply
 
 @Service
 class InvoiceTemplateService(
@@ -29,6 +49,7 @@ class InvoiceTemplateService(
     private val logoStorageService: LogoStorageService,
     private val professionalDefaultTemplateProvider: ProfessionalDefaultTemplateProvider,
     private val documentService: UnifiedDocumentService,
+    private val companyDetailsFetchService: CompanyDetailsFetchService
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
@@ -46,11 +67,11 @@ class InvoiceTemplateService(
         val document = documentService.getDocumentById(documentId)
         val template = getTemplateForGeneration(companyId, templateId)
         val companySettings = getCompanySettings(companyId)
-        val logoData = getLogoData(companySettings)
+        val logoData = null
 
         val generationData = InvoiceGenerationData(
             document = document,
-            companySettings = companySettings,
+            companySettings = createCompanySettings(companySettings),
             logoData = logoData
         )
 
@@ -234,15 +255,14 @@ class InvoiceTemplateService(
             ?: throw IllegalStateException("System default template not found")
     }
 
-    private fun getCompanySettings(companyId: Long) =
-        companySettingsService.getCompanySettings(companyId)
-            ?: throw IllegalStateException("Company settings not found for company: $companyId")
+    private fun getCompanySettings(companyId: Long): CompanySettingsResponse =
+        companyDetailsFetchService.getCompanySettings(companyId)
 
-    private fun getLogoData(companySettings: com.carslab.crm.modules.company_settings.domain.model.CompanySettings): ByteArray? {
+    private fun getLogoData(companySettings: CompanySettings): ByteArray? {
         return companySettings.logoSettings.logoFileId?.let { logoFileId ->
             try {
                 logoStorageService.getLogoPath(logoFileId)?.let { path ->
-                    java.nio.file.Files.readAllBytes(path)
+                    Files.readAllBytes(path)
                 }
             } catch (e: Exception) {
                 logger.warn("Failed to load logo", e)
@@ -277,7 +297,7 @@ class InvoiceTemplateService(
         }
     }
 
-    private fun extractHtmlContent(file: org.springframework.web.multipart.MultipartFile): String {
+    private fun extractHtmlContent(file: MultipartFile): String {
         return try {
             String(file.bytes, Charsets.UTF_8)
         } catch (e: Exception) {
@@ -342,9 +362,9 @@ class InvoiceTemplateService(
                 ),
                 supportedLanguages = setOf("pl")
             ),
-            audit = com.carslab.crm.domain.model.Audit(
-                createdAt = java.time.LocalDateTime.now(),
-                updatedAt = java.time.LocalDateTime.now()
+            audit = Audit(
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
             )
         )
     }
@@ -358,65 +378,96 @@ class InvoiceTemplateService(
     private fun createMockInvoiceData(companyId: Long): InvoiceGenerationData {
         val companySettings = getCompanySettings(companyId)
 
-        val mockDocument = com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument(
-            id = com.carslab.crm.domain.model.view.finance.UnifiedDocumentId("preview"),
+        val mockDocument = UnifiedFinancialDocument(
+            id = UnifiedDocumentId("preview"),
             number = "PREVIEW/2024/001",
-            type = com.carslab.crm.api.model.DocumentType.INVOICE,
+            type = DocumentType.INVOICE,
             title = "Przykładowa faktura - podgląd szablonu",
             description = "Podgląd szablonu faktury z przykładowymi danymi",
-            issuedDate = java.time.LocalDate.now(),
-            dueDate = java.time.LocalDate.now().plusDays(14),
-            sellerName = companySettings.basicInfo.companyName,
-            sellerTaxId = companySettings.basicInfo.taxId,
-            sellerAddress = companySettings.basicInfo.address ?: "ul. Przykładowa 1\n00-001 Warszawa",
+            issuedDate = LocalDate.now(),
+            dueDate = LocalDate.now().plusDays(14),
+            sellerName = companySettings.basicInfo?.companyName ?: "",
+            sellerTaxId = companySettings.basicInfo?.taxId ?: "0000000000",
+            sellerAddress = companySettings.basicInfo?.address ?: "ul. Przykładowa 1\n00-001 Warszawa",
             buyerName = "Przykładowy Klient Sp. z o.o.",
             buyerTaxId = "1234567890",
             buyerAddress = "ul. Kliencka 123\n00-002 Kraków",
-            status = com.carslab.crm.api.model.DocumentStatus.NOT_PAID,
-            direction = com.carslab.crm.api.model.TransactionDirection.INCOME,
-            paymentMethod = com.carslab.crm.domain.model.view.finance.PaymentMethod.BANK_TRANSFER,
-            totalNet = java.math.BigDecimal("1000.00"),
-            totalTax = java.math.BigDecimal("230.00"),
-            totalGross = java.math.BigDecimal("1230.00"),
-            paidAmount = java.math.BigDecimal.ZERO,
+            status = DocumentStatus.NOT_PAID,
+            direction = TransactionDirection.INCOME,
+            paymentMethod = PaymentMethod.BANK_TRANSFER,
+            totalNet = BigDecimal("1000.00"),
+            totalTax = BigDecimal("230.00"),
+            totalGross = BigDecimal("1230.00"),
+            paidAmount = BigDecimal.ZERO,
             currency = "PLN",
             notes = "Przykładowe uwagi do faktury",
             protocolId = null,
             protocolNumber = null,
             visitId = null,
             items = listOf(
-                com.carslab.crm.domain.model.view.finance.DocumentItem(
+                DocumentItem(
                     id = "item1",
                     name = "Usługa detailingowa Premium",
                     description = "Kompleksowe czyszczenie zewnętrzne i wewnętrzne pojazdu",
-                    quantity = java.math.BigDecimal("1"),
-                    unitPrice = java.math.BigDecimal("800.00"),
-                    taxRate = java.math.BigDecimal("23"),
-                    totalNet = java.math.BigDecimal("800.00"),
-                    totalGross = java.math.BigDecimal("984.00")
+                    quantity = BigDecimal("1"),
+                    unitPrice = BigDecimal("800.00"),
+                    taxRate = BigDecimal("23"),
+                    totalNet = BigDecimal("800.00"),
+                    totalGross = BigDecimal("984.00")
                 ),
-                com.carslab.crm.domain.model.view.finance.DocumentItem(
+                DocumentItem(
                     id = "item2",
                     name = "Wosk ochronny",
                     description = "Aplikacja wysokiej jakości wosku ochronnego",
-                    quantity = java.math.BigDecimal("1"),
-                    unitPrice = java.math.BigDecimal("200.00"),
-                    taxRate = java.math.BigDecimal("23"),
-                    totalNet = java.math.BigDecimal("200.00"),
-                    totalGross = java.math.BigDecimal("246.00")
+                    quantity = BigDecimal("1"),
+                    unitPrice = BigDecimal("200.00"),
+                    taxRate = BigDecimal("23"),
+                    totalNet = BigDecimal("200.00"),
+                    totalGross = BigDecimal("246.00")
                 )
             ),
             attachment = null,
-            audit = com.carslab.crm.domain.model.Audit(
-                createdAt = java.time.LocalDateTime.now(),
-                updatedAt = java.time.LocalDateTime.now()
+            audit = Audit(
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
             )
         )
 
         return InvoiceGenerationData(
             document = mockDocument,
-            companySettings = companySettings,
-            logoData = getLogoData(companySettings)
+            companySettings = createCompanySettings(companySettings),
+            logoData = ByteArray(0),
+        )
+    }
+    
+    private fun createCompanySettings(company: CompanySettingsResponse): CompanySettings {
+        return CompanySettings(
+            id = CompanySettingsId.of(company.id ?: 0),
+            companyId = company.companyId ?: 0,
+            basicInfo = CompanyBasicInfo(
+                companyName = company.basicInfo?.companyName ?: "",
+                taxId = company.basicInfo?.taxId ?: "",
+                address = company.basicInfo?.address,
+                phone = company.basicInfo?.phone,
+                website = company.basicInfo?.website
+            ),
+            bankSettings = BankSettings(
+                bankAccountNumber = company.bankSettings?.bankAccountNumber,
+                bankName = company.bankSettings?.bankName,
+                swiftCode = company.bankSettings?.swiftCode,
+                accountHolderName = company.bankSettings?.accountHolderName
+            ),
+            logoSettings = LogoSettings(
+                logoFileId = null, // Assuming no logo for basic details
+                logoFileName = null,
+                logoContentType = null,
+                logoSize = null,
+                logoUrl = null
+            ),
+            audit = AuditInfo(
+                createdAt = company.createdAt!!,
+                updatedAt = company.updatedAt!!
+            )
         )
     }
 }
