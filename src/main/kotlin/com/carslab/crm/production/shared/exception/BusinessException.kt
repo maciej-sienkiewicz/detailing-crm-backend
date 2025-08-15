@@ -14,3 +14,8 @@ class InvoiceNotFoundException(
     message: String,
     cause: Throwable? = null
 ) : RuntimeException(message, cause)
+
+class ServiceNotFoundException(
+    message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)

@@ -119,10 +119,3 @@ interface VehicleImageJpaRepository : JpaRepository<VehicleImageEntity, String> 
     fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<VehicleImageEntity>
     fun findByCompanyIdAndIdIn(companyId: Long, ids: Set<String>): List<VehicleImageEntity>
 }
-
-@Repository
-interface ServiceRecipeJpaRepository : JpaRepository<ServiceRecipeEntity, Long> {
-    fun findByCompanyId(companyId: Long): List<ServiceRecipeEntity>
-    fun findByCompanyIdAndId(companyId: Long, id: Long): Optional<ServiceRecipeEntity>
-    fun findByNameContainingIgnoreCaseAndCompanyId(name: String, companyId: Long): List<ServiceRecipeEntity>
-}

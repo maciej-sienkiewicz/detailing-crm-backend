@@ -34,7 +34,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.modules.employees.infrastructure.persistence",
     "com.carslab.crm.modules.invoice_templates.infrastructure.persistence",
     "com.carslab.crm.production.modules.companysettings.infrastructure.repository",
-    "com.carslab.crm.production.modules.invoice_templates.infrastructure.repository"
+    "com.carslab.crm.production.modules.invoice_templates.infrastructure.repository",
+    "com.carslab.crm.production.modules.services.infrastructure.repository",
 ])
 class PersistenceConfig {
 
@@ -81,10 +82,6 @@ class PersistenceConfig {
     @Bean
     @Primary
     fun imageStorageService(service: FileImageStorageService): FileImageStorageService = service
-
-    @Bean
-    @Primary
-    fun serviceRecipeRepository(adapter: JpaServiceRecipeRepositoryAdapter): ServiceRecipeRepository = adapter
 
     @Bean
     @Primary
