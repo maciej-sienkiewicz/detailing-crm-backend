@@ -8,7 +8,6 @@ interface CompanySettingsRepository {
     fun save(settings: CompanySettings): CompanySettings
     fun saveNew(settings: CreateCompanySettings): CompanySettings
     fun findByCompanyId(companyId: Long): CompanySettings?
-    fun findById(id: CompanySettingsId): CompanySettings?
     fun existsByCompanyId(companyId: Long): Boolean
     fun deleteByCompanyId(companyId: Long): Boolean
 }

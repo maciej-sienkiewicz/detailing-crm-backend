@@ -26,43 +26,7 @@ class CompanySettingsApplicationService(
     private val companyDetailsFetchService: CompanyDetailsFetchService,
 ) {
     private val logger = LoggerFactory.getLogger(CompanySettingsApplicationService::class.java)
-
-    fun createCompanySettings(request: CreateCompanySettingsRequest): CompanySettingsResponse {
-        logger.info("Creating company settings for company: ${request.companyId}")
-        try {
-            validateCreateRequest(request)
-
-            val companyId = securityContext.getCurrentCompanyId()
-            val createDomain = CreateCompanySettings(
-                companyId = companyId,
-                basicInfo = CompanyBasicInfo(
-                    companyName = request.companyName,
-                    taxId = request.taxId,
-                    address = request.address,
-                    phone = request.phone,
-                    website = request.website
-                ),
-                bankSettings = BankSettings(
-                    bankAccountNumber = request.bankAccountNumber,
-                    bankName = request.bankName,
-                    swiftCode = request.swiftCode,
-                    accountHolderName = request.accountHolderName
-                )
-            )
-
-            val companySettings = companySettingsDomainService.createCompanySettings(createDomain)
-
-            logger.info("Successfully created company settings with ID: ${companySettings.id.value}")
-            return CompanySettingsResponse.from(companySettings)
-        } catch (e: DomainException) {
-            logger.error("Failed to create company settings: ${e.message}")
-            throw e
-        } catch (e: Exception) {
-            logger.error("Unexpected error creating company settings", e)
-            throw RuntimeException("Failed to create company settings", e)
-        }
-    }
-
+    
     fun updateCompanySettings(companyId: Long, request: UpdateCompanySettingsRequest): CompanySettingsResponse {
         logger.info("Updating company settings for company: $companyId")
 

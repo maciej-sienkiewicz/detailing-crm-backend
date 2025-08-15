@@ -16,22 +16,7 @@ class CompanySettingsDomainService(
     private val companySettingsRepository: CompanySettingsRepository
 ) {
     private val logger = LoggerFactory.getLogger(CompanySettingsDomainService::class.java)
-
-    fun createCompanySettings(createRequest: CreateCompanySettings): CompanySettings {
-        logger.debug("Creating company settings with full validation for company: ${createRequest.companyId}")
-
-        if (companySettingsRepository.existsByCompanyId(createRequest.companyId)) {
-            throw DomainException("Company settings already exist for company: ${createRequest.companyId}")
-        }
-
-        validateBasicInfo(createRequest.basicInfo.companyName, createRequest.basicInfo.taxId)
-
-        val savedSettings = companySettingsRepository.saveNew(createRequest)
-        logger.info("Created company settings with ID: ${savedSettings.id.value} for company: ${createRequest.companyId}")
-
-        return savedSettings
-    }
-
+    
     fun createCompanySettingsWithDefaults(createRequest: CreateCompanySettings): CompanySettings {
         logger.debug("Creating default company settings for company: ${createRequest.companyId}")
 
@@ -76,13 +61,7 @@ class CompanySettingsDomainService(
         logger.debug("Getting company settings for company: $companyId")
         return companySettingsRepository.findByCompanyId(companyId)
     }
-
-    @Transactional(readOnly = true)
-    fun getCompanySettingsById(id: CompanySettingsId): CompanySettings? {
-        logger.debug("Getting company settings by ID: ${id.value}")
-        return companySettingsRepository.findById(id)
-    }
-
+    
     fun deleteCompanySettings(companyId: Long): Boolean {
         logger.info("Deleting company settings for company: $companyId")
 

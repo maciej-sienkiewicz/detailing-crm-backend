@@ -54,6 +54,39 @@ data class CompanySettings(
             )
         }
     }
+
+    companion object {
+        fun createCompanySettings(company: CompanySettingsResponse): CompanySettings {
+            return CompanySettings(
+                id = CompanySettingsId.of(company.id ?: 0),
+                companyId = company.companyId ?: 0,
+                basicInfo = CompanyBasicInfo(
+                    companyName = company.basicInfo?.companyName ?: "",
+                    taxId = company.basicInfo?.taxId ?: "",
+                    address = company.basicInfo?.address,
+                    phone = company.basicInfo?.phone,
+                    website = company.basicInfo?.website
+                ),
+                bankSettings = BankSettings(
+                    bankAccountNumber = company.bankSettings?.bankAccountNumber,
+                    bankName = company.bankSettings?.bankName,
+                    swiftCode = company.bankSettings?.swiftCode,
+                    accountHolderName = company.bankSettings?.accountHolderName
+                ),
+                logoSettings = LogoSettings(
+                    logoFileId = null, // Assuming no logo for basic details
+                    logoFileName = null,
+                    logoContentType = null,
+                    logoSize = null,
+                    logoUrl = null
+                ),
+                audit = AuditInfo(
+                    createdAt = company.createdAt!!,
+                    updatedAt = company.updatedAt!!
+                )
+            )
+        }
+    }
 }
 
 data class CompanyBasicInfo(

@@ -7,13 +7,13 @@ import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.company_settings.domain.UserSignatureApplicationService
+import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceGenerationData
 import com.carslab.crm.modules.invoice_templates.domain.ports.PdfGenerationService
 import com.carslab.crm.modules.invoice_templates.domain.ports.TemplateRenderingService
-import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateHeaderResponse
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
 import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceTemplateQueryService
 import org.slf4j.LoggerFactory
@@ -26,15 +26,14 @@ import java.util.Base64
 @Service
 @Transactional
 class InvoiceAttachmentGenerationService(
-    private val companySettingsService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val universalStorageService: UniversalStorageService,
     private val pdfGenerationService: PdfGenerationService,
     private val templateRenderingService: TemplateRenderingService,
     private val securityContext: SecurityContext,
-    private val unifiedDocumentRepository: UnifiedDocumentRepository,
     private val userSignatureApplicationService: UserSignatureApplicationService,
     private val invoiceTemplateQueryService: InvoiceTemplateQueryService,
+    private val companyDetailsFetchService: CompanyDetailsFetchService,
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceAttachmentGenerationService::class.java)
 
@@ -105,10 +104,9 @@ class InvoiceAttachmentGenerationService(
             val companyId = securityContext.getCurrentCompanyId()
             val activeTemplate = invoiceTemplateQueryService.findActiveTemplateForCompany()
 
-            val companySettings = companySettingsService.getCompanySettings(companyId)
-                ?: throw IllegalStateException("Company settings not found for company: $companyId")
+            val companySettings = companyDetailsFetchService.getCompanySettings(companyId)
 
-            val logoData = getLogoData(companySettings)
+            val logoData = getLogoData()
 
             val additionalData = mutableMapOf<String, Any>()
 
@@ -128,7 +126,7 @@ class InvoiceAttachmentGenerationService(
 
             val generationData = InvoiceGenerationData(
                 document = document,
-                companySettings = companySettings,
+                companySettings = CompanySettings.createCompanySettings(companySettings),
                 logoData = logoData,
                 additionalData = additionalData
             )
@@ -274,16 +272,7 @@ class InvoiceAttachmentGenerationService(
         )
     }
 
-    private fun getLogoData(companySettings: com.carslab.crm.modules.company_settings.domain.model.CompanySettings): ByteArray? {
-        return companySettings.logoSettings.logoFileId?.let { logoFileId ->
-            try {
-                logoStorageService.getLogoPath(logoFileId)?.let { path ->
-                    java.nio.file.Files.readAllBytes(path)
-                }
-            } catch (e: Exception) {
-                logger.warn("Failed to load logo for invoice generation", e)
-                null
-            }
-        }
+    private fun getLogoData(): ByteArray? {
+        return null
     }
 }

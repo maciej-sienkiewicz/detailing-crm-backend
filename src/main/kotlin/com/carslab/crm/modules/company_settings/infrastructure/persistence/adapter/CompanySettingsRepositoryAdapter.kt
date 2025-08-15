@@ -39,13 +39,6 @@ class CompanySettingsRepositoryAdapter(
     }
 
     @Transactional(readOnly = true)
-    override fun findById(id: CompanySettingsId): CompanySettings? {
-        return companySettingsJpaRepository.findByIdAndActiveTrue(id.value)
-            .map { it.toDomain() }
-            .orElse(null)
-    }
-
-    @Transactional(readOnly = true)
     override fun existsByCompanyId(companyId: Long): Boolean {
         return companySettingsJpaRepository.existsByCompanyIdAndActiveTrue(companyId)
     }
