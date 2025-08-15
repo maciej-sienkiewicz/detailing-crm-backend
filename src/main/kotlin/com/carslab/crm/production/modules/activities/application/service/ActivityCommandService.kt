@@ -1,7 +1,6 @@
 package com.carslab.crm.production.modules.activities.application.service
 
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.production.modules.activities.application.dto.ActivityResponse
 import com.carslab.crm.production.modules.activities.application.dto.CreateActivityRequest
 import com.carslab.crm.production.modules.activities.domain.command.CreateActivityCommand
 import com.carslab.crm.production.modules.activities.domain.command.RelatedEntity
