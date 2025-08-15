@@ -45,7 +45,6 @@ class InvoiceTemplateService(
     private val templateRepository: InvoiceTemplateRepository,
     private val pdfGenerationService: PdfGenerationService,
     private val templateRenderingService: TemplateRenderingService,
-    private val companySettingsService: CompanySettingsDomainService,
     private val logoStorageService: LogoStorageService,
     private val professionalDefaultTemplateProvider: ProfessionalDefaultTemplateProvider,
     private val documentService: UnifiedDocumentService,
