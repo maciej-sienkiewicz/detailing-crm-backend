@@ -4,15 +4,15 @@ import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplate
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplateId
 import com.carslab.crm.modules.invoice_templates.domain.model.TemplateType
 import com.carslab.crm.modules.invoice_templates.domain.ports.InvoiceTemplateRepository
-import com.carslab.crm.modules.invoice_templates.infrastructure.persistence.entity.InvoiceTemplateEntity
-import com.carslab.crm.modules.invoice_templates.infrastructure.persistence.repository.InvoiceTemplateJpaRepository
+import com.carslab.crm.modules.invoice_templates.infrastructure.persistence.entity.InvoiceTemplateEntityDeprecated
+import com.carslab.crm.modules.invoice_templates.infrastructure.persistence.repository.InvoiceTemplateJpaRepositoryDeprecated
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class InvoiceTemplateRepositoryAdapter(
-    private val jpaRepository: InvoiceTemplateJpaRepository
+    private val jpaRepository: InvoiceTemplateJpaRepositoryDeprecated
 ) : InvoiceTemplateRepository {
 
     private val logger = LoggerFactory.getLogger(InvoiceTemplateRepositoryAdapter::class.java)
@@ -21,7 +21,7 @@ class InvoiceTemplateRepositoryAdapter(
     override fun save(template: InvoiceTemplate): InvoiceTemplate {
         logger.debug("Saving template {} for company {}", template.id.value, template.companyId)
 
-        val entity = InvoiceTemplateEntity.fromDomain(template)
+        val entity = InvoiceTemplateEntityDeprecated.fromDomain(template)
         val savedEntity = jpaRepository.save(entity)
 
         logger.debug("Template {} saved successfully", savedEntity.id)

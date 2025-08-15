@@ -7,14 +7,14 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "invoice_templates",
+    name = "invoice_templates_deprecated",
     indexes = [
         Index(name = "idx_invoice_templates_company_id", columnList = "company_id"),
         Index(name = "idx_invoice_templates_type", columnList = "template_type"),
         Index(name = "idx_invoice_templates_default", columnList = "company_id,is_default,is_active")
     ]
 )
-class InvoiceTemplateEntity(
+class InvoiceTemplateEntityDeprecated(
     @Id
     @Column(nullable = false)
     val id: String,
@@ -161,8 +161,8 @@ class InvoiceTemplateEntity(
     }
 
     companion object {
-        fun fromDomain(template: InvoiceTemplate): InvoiceTemplateEntity {
-            return InvoiceTemplateEntity(
+        fun fromDomain(template: InvoiceTemplate): InvoiceTemplateEntityDeprecated {
+            return InvoiceTemplateEntityDeprecated(
                 id = template.id.value,
                 companyId = template.companyId,
                 name = template.name,
