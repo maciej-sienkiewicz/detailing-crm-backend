@@ -1,17 +1,10 @@
-package com.carslab.crm.modules.company_settings.api.requests
+package com.carslab.crm.production.modules.companysettings.application.dto
 
-import com.carslab.crm.modules.company_settings.domain.model.BankSettings
-import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
-import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.fasterxml.jackson.annotation.JsonProperty
-import jakarta.annotation.Nullable
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
-data class CreateCompanySettingsRequest(
-    @JsonProperty("company_id")
-    val companyId: Long? = null,
-
+data class CreateCompanyRequest(
     @field:NotBlank(message = "Company name is required")
     @field:Size(max = 200, message = "Company name cannot exceed 200 characters")
     @JsonProperty("company_name")
@@ -49,17 +42,4 @@ data class CreateCompanySettingsRequest(
     @field:Size(max = 200, message = "Account holder name cannot exceed 200 characters")
     @JsonProperty("account_holder_name")
     val accountHolderName: String? = null
-)
-
-data class UpdateCompanySettingsRequest(
-    @JsonProperty("basic_info")
-    val basicInfo: CompanyBasicInfo,
-
-    @JsonProperty("bank_settings")
-    @Nullable
-    val bankSettings: BankSettings? = BankSettings(),
-
-    @JsonProperty("logo_settings")
-    @Nullable
-    val logoSettings: LogoSettings? = LogoSettings()
 )

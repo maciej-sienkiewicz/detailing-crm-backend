@@ -116,8 +116,6 @@ data class CreateUserCommand(
     val firstName: String = "",
     @JsonProperty("lastName")
     val lastName: String = "",
-    @JsonProperty("companyId")
-    val companyId: Long = 0
 )
 
 data class UserResponse(

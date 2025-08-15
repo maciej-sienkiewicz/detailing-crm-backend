@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "companies")
+@Table(name = "companiess")
 class CompanyEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
