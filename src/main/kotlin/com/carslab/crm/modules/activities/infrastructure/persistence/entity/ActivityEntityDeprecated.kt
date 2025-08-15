@@ -3,14 +3,13 @@ package com.carslab.crm.modules.activities.infrastructure.persistence.entity
 
 import com.carslab.crm.modules.activities.application.queries.models.*
 import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "activities",
+    name = "activities_deprecated",
     indexes = [
         Index(name = "idx_activities_company_timestamp", columnList = "companyId,timestamp"),
         Index(name = "idx_activities_category", columnList = "category"),
@@ -20,7 +19,7 @@ import java.time.LocalDateTime
         Index(name = "idx_activities_date_range", columnList = "companyId,timestamp,category")
     ]
 )
-class ActivityEntity(
+class ActivityEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -145,7 +144,7 @@ class ActivityEntity(
 
     companion object {
         private val objectMapper = jacksonObjectMapper()
-        private val logger = org.slf4j.LoggerFactory.getLogger(ActivityEntity::class.java)
+        private val logger = org.slf4j.LoggerFactory.getLogger(ActivityEntityDeprecated::class.java)
 
         fun fromDomain(
             activityId: String,
@@ -162,7 +161,7 @@ class ActivityEntity(
             status: ActivityStatus? = null,
             statusText: String? = null,
             metadata: ActivityMetadataReadModel? = null
-        ): ActivityEntity {
+        ): ActivityEntityDeprecated {
 
             val entitiesJson = entities?.let { entitiesList ->
                 try {
@@ -209,7 +208,7 @@ class ActivityEntity(
                 }
             }
 
-            return ActivityEntity(
+            return ActivityEntityDeprecated(
                 activityId = activityId,
                 companyId = companyId,
                 timestamp = timestamp,

@@ -1,7 +1,7 @@
 // src/main/kotlin/com/carslab/crm/modules/activities/infrastructure/persistence/repository/ActivityJpaRepository.kt
 package com.carslab.crm.modules.activities.infrastructure.persistence.repository
 
-import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntity
+import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntityDeprecated
 import com.carslab.crm.modules.activities.application.queries.models.*
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -13,17 +13,17 @@ import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
 @Repository
-interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecificationExecutor<ActivityEntity> {
+interface ActivityJpaRepositoryDeprecated : JpaRepository<ActivityEntityDeprecated, Long>, JpaSpecificationExecutor<ActivityEntityDeprecated> {
 
     /**
      * Find activity by activityId and companyId
      */
-    fun findByActivityIdAndCompanyId(activityId: String, companyId: Long): ActivityEntity?
+    fun findByActivityIdAndCompanyId(activityId: String, companyId: Long): ActivityEntityDeprecated?
 
     /**
      * Find activities by company with pagination
      */
-    fun findByCompanyIdOrderByTimestampDesc(companyId: Long, pageable: Pageable): Page<ActivityEntity>
+    fun findByCompanyIdOrderByTimestampDesc(companyId: Long, pageable: Pageable): Page<ActivityEntityDeprecated>
 
     /**
      * Find activities by entity
@@ -33,23 +33,25 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
         entityType: EntityType,
         entityId: String,
         pageable: Pageable
-    ): Page<ActivityEntity>
+    ): Page<ActivityEntityDeprecated>
 
     /**
      * Find recent activities for company
      */
-    @Query("""
-        SELECT a FROM ActivityEntity a 
+    @Query(
+        """
+        SELECT a FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         ORDER BY a.timestamp DESC
-    """)
+    """
+    )
     fun findRecentActivities(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
         @Param("endDate") endDate: LocalDateTime,
         pageable: Pageable
-    ): List<ActivityEntity>
+    ): List<ActivityEntityDeprecated>
 
     /**
      * Count activities by category for company
@@ -64,7 +66,8 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Daily statistics query
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             DATE(a.timestamp) as date,
             SUM(CASE WHEN a.category = 'APPOINTMENT' THEN 1 ELSE 0 END) as appointmentsScheduled,
@@ -73,11 +76,12 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
             SUM(CASE WHEN a.category = 'CLIENT' THEN 1 ELSE 0 END) as newClients,
             SUM(CASE WHEN a.category = 'COMMENT' THEN 1 ELSE 0 END) as commentsAdded,
             COUNT(*) as totalActivities
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND DATE(a.timestamp) = :date
         GROUP BY DATE(a.timestamp)
-    """)
+    """
+    )
     fun getDailySummary(
         @Param("companyId") companyId: Long,
         @Param("date") date: java.time.LocalDate
@@ -86,13 +90,15 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Category breakdown for analytics
      */
-    @Query("""
+    @Query(
+        """
         SELECT a.category, COUNT(*) 
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         GROUP BY a.category
-    """)
+    """
+    )
     fun getCategoryBreakdown(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
@@ -102,15 +108,17 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * User breakdown for analytics
      */
-    @Query("""
+    @Query(
+        """
         SELECT a.userId, a.userName, COUNT(*) 
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         AND a.userId IS NOT NULL
         GROUP BY a.userId, a.userName
         ORDER BY COUNT(*) DESC
-    """)
+    """
+    )
     fun getUserBreakdown(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
@@ -120,13 +128,15 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Status breakdown for analytics
      */
-    @Query("""
+    @Query(
+        """
         SELECT COALESCE(a.status, 'NONE'), COUNT(*) 
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         GROUP BY a.status
-    """)
+    """
+    )
     fun getStatusBreakdown(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
@@ -136,17 +146,19 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Daily trends for analytics
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             DATE(a.timestamp) as date,
             a.category,
             COUNT(*) as count
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         GROUP BY DATE(a.timestamp), a.category
         ORDER BY DATE(a.timestamp)
-    """)
+    """
+    )
     fun getDailyTrends(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
@@ -156,20 +168,22 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Entity statistics
      */
-    @Query("""
+    @Query(
+        """
         SELECT 
             a.entityType,
             a.entityId,
             COUNT(*) as activityCount,
             MAX(a.timestamp) as lastActivity
-        FROM ActivityEntity a 
+        FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp BETWEEN :startDate AND :endDate
         AND a.entityType IS NOT NULL
         AND a.entityId IS NOT NULL
         GROUP BY a.entityType, a.entityId
         ORDER BY COUNT(*) DESC
-    """)
+    """
+    )
     fun getEntityStats(
         @Param("companyId") companyId: Long,
         @Param("startDate") startDate: LocalDateTime,
@@ -179,11 +193,13 @@ interface ActivityJpaRepository : JpaRepository<ActivityEntity, Long>, JpaSpecif
     /**
      * Delete old activities (for cleanup)
      */
-    @Query("""
-        DELETE FROM ActivityEntity a 
+    @Query(
+        """
+        DELETE FROM ActivityEntityDeprecated a 
         WHERE a.companyId = :companyId 
         AND a.timestamp < :cutoffDate
-    """)
+    """
+    )
     fun deleteOldActivities(
         @Param("companyId") companyId: Long,
         @Param("cutoffDate") cutoffDate: LocalDateTime

@@ -1,8 +1,8 @@
 package com.carslab.crm.modules.activities.infrastructure.persistence.read
 
 import com.carslab.crm.modules.activities.application.queries.models.*
-import com.carslab.crm.modules.activities.infrastructure.persistence.repository.ActivityJpaRepository
-import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntity
+import com.carslab.crm.modules.activities.infrastructure.persistence.repository.ActivityJpaRepositoryDeprecated
+import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntityDeprecated
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.api.model.response.PaginatedResponse
 import org.springframework.data.domain.PageRequest
@@ -17,7 +17,7 @@ import java.time.LocalDateTime
 
 @Repository
 class JpaActivityReadRepositoryImpl(
-    private val activityJpaRepository: ActivityJpaRepository
+    private val activityJpaRepositoryDeprecated: ActivityJpaRepositoryDeprecated
 ) : ActivityReadRepository {
 
     override fun findActivities(
@@ -44,7 +44,7 @@ class JpaActivityReadRepositoryImpl(
 
         val pageable = PageRequest.of(page, size, sort)
 
-        val specification = Specification<ActivityEntity> { root, query, cb ->
+        val specification = Specification<ActivityEntityDeprecated> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
             // Company filter (mandatory)
@@ -95,7 +95,7 @@ class JpaActivityReadRepositoryImpl(
             cb.and(*predicates.toTypedArray())
         }
 
-        val activityPage = activityJpaRepository.findAll(specification, pageable)
+        val activityPage = activityJpaRepositoryDeprecated.findAll(specification, pageable)
         val activities = activityPage.content.map { it.toReadModel() }
 
         return PaginatedResponse(
@@ -109,7 +109,7 @@ class JpaActivityReadRepositoryImpl(
 
     override fun findById(activityId: String): ActivityReadModel? {
         val companyId = getCurrentCompanyId()
-        return activityJpaRepository.findByActivityIdAndCompanyId(activityId, companyId)?.toReadModel()
+        return activityJpaRepositoryDeprecated.findByActivityIdAndCompanyId(activityId, companyId)?.toReadModel()
     }
 
     override fun findRecentActivities(
@@ -120,7 +120,7 @@ class JpaActivityReadRepositoryImpl(
         val companyId = getCurrentCompanyId()
         val pageable = PageRequest.of(0, limit)
 
-        return activityJpaRepository.findRecentActivities(companyId, startDate, endDate, pageable)
+        return activityJpaRepositoryDeprecated.findRecentActivities(companyId, startDate, endDate, pageable)
             .map { it.toReadModel() }
     }
 
@@ -133,7 +133,7 @@ class JpaActivityReadRepositoryImpl(
         val companyId = getCurrentCompanyId()
         val pageable = PageRequest.of(page, size)
 
-        val activityPage = activityJpaRepository.findByCompanyIdAndEntityTypeAndEntityIdOrderByTimestampDesc(
+        val activityPage = activityJpaRepositoryDeprecated.findByCompanyIdAndEntityTypeAndEntityIdOrderByTimestampDesc(
             companyId, entityType, entityId, pageable
         )
 
@@ -157,7 +157,7 @@ class JpaActivityReadRepositoryImpl(
     ): List<ActivityReadModel> {
         val companyId = getCurrentCompanyId()
 
-        val specification = Specification<ActivityEntity> { root, query, cb ->
+        val specification = Specification<ActivityEntityDeprecated> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
             predicates.add(cb.equal(root.get<Long>("companyId"), companyId))
@@ -186,14 +186,14 @@ class JpaActivityReadRepositoryImpl(
         }
 
         val sort = Sort.by(Sort.Direction.DESC, "timestamp")
-        return activityJpaRepository.findAll(specification, sort).map { it.toReadModel() }
+        return activityJpaRepositoryDeprecated.findAll(specification, sort).map { it.toReadModel() }
     }
 
     @Cacheable(value = ["activity-daily-summary"], key = "#date + ':' + @securityContext.getCurrentCompanyId()")
     override fun getDailySummary(date: LocalDate): DailySummaryReadModel {
         val companyId = getCurrentCompanyId()
 
-        val summaryData = activityJpaRepository.getDailySummary(companyId, date)?.firstOrNull()
+        val summaryData = activityJpaRepositoryDeprecated.getDailySummary(companyId, date)?.firstOrNull()
 
         return if (summaryData != null) {
             DailySummaryReadModel(
@@ -228,25 +228,25 @@ class JpaActivityReadRepositoryImpl(
         val companyId = getCurrentCompanyId()
 
         // Get category breakdown
-        val categoryBreakdown = activityJpaRepository.getCategoryBreakdown(companyId, startDate, endDate)
+        val categoryBreakdown = activityJpaRepositoryDeprecated.getCategoryBreakdown(companyId, startDate, endDate)
             .associate { row ->
                 ActivityCategory.valueOf(row[0] as String) to (row[1] as Number).toInt()
             }
 
         // Get user breakdown
-        val userBreakdown = activityJpaRepository.getUserBreakdown(companyId, startDate, endDate)
+        val userBreakdown = activityJpaRepositoryDeprecated.getUserBreakdown(companyId, startDate, endDate)
             .associate { row ->
                 (row[0] as String) to (row[2] as Number).toInt()
             }
 
         // Get status breakdown
-        val statusBreakdown = activityJpaRepository.getStatusBreakdown(companyId, startDate, endDate)
+        val statusBreakdown = activityJpaRepositoryDeprecated.getStatusBreakdown(companyId, startDate, endDate)
             .associate { row ->
                 (row[0] as String) to (row[1] as Number).toInt()
             }
 
         // Get daily trends
-        val trendsData = activityJpaRepository.getDailyTrends(companyId, startDate, endDate)
+        val trendsData = activityJpaRepositoryDeprecated.getDailyTrends(companyId, startDate, endDate)
             .groupBy { row -> row[0] as LocalDate }
             .map { (date, trends) ->
                 val categoryCounts = trends.associate { trend ->
@@ -261,7 +261,7 @@ class JpaActivityReadRepositoryImpl(
             .sortedBy { it.date }
 
         // Get top users
-        val topUsers = activityJpaRepository.getUserBreakdown(companyId, startDate, endDate)
+        val topUsers = activityJpaRepositoryDeprecated.getUserBreakdown(companyId, startDate, endDate)
             .take(10)
             .map { row ->
                 TopUserReadModel(
@@ -273,7 +273,7 @@ class JpaActivityReadRepositoryImpl(
             }
 
         // Get entity stats
-        val entityStats = activityJpaRepository.getEntityStats(companyId, startDate, endDate)
+        val entityStats = activityJpaRepositoryDeprecated.getEntityStats(companyId, startDate, endDate)
             .take(20)
             .map { row ->
                 EntityStatsReadModel(

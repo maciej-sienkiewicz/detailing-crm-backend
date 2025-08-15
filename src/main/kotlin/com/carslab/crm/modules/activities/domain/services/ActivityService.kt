@@ -2,8 +2,8 @@
 package com.carslab.crm.modules.activities.domain.services
 
 import com.carslab.crm.modules.activities.application.queries.models.*
-import com.carslab.crm.modules.activities.infrastructure.persistence.repository.ActivityJpaRepository
-import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntity
+import com.carslab.crm.modules.activities.infrastructure.persistence.repository.ActivityJpaRepositoryDeprecated
+import com.carslab.crm.modules.activities.infrastructure.persistence.entity.ActivityEntityDeprecated
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.slf4j.LoggerFactory
@@ -20,7 +20,7 @@ import java.util.*
 @Service
 @Transactional
 class ActivityService(
-    private val activityJpaRepository: ActivityJpaRepository,
+    private val activityJpaRepositoryDeprecated: ActivityJpaRepositoryDeprecated,
     private val securityContext: SecurityContext
 ) {
 
@@ -50,7 +50,7 @@ class ActivityService(
         val currentUserName = userName ?: securityContext.getCurrentUserName()
 
         try {
-            val activityEntity = ActivityEntity.fromDomain(
+            val activityEntityDeprecated = ActivityEntityDeprecated.fromDomain(
                 activityId = activityId,
                 companyId = companyId,
                 timestamp = timestamp,
@@ -67,7 +67,7 @@ class ActivityService(
                 metadata = metadata
             )
 
-            activityJpaRepository.save(activityEntity)
+            activityJpaRepositoryDeprecated.save(activityEntityDeprecated)
 
             logger.info("Created activity: {} for company: {}", activityId, companyId)
             return activityId
@@ -395,9 +395,9 @@ class ActivityService(
         val companyId = getCurrentCompanyId()
 
         return try {
-            val activity = activityJpaRepository.findByActivityIdAndCompanyId(activityId, companyId)
+            val activity = activityJpaRepositoryDeprecated.findByActivityIdAndCompanyId(activityId, companyId)
             if (activity != null) {
-                val updatedActivity = ActivityEntity.fromDomain(
+                val updatedActivity = ActivityEntityDeprecated.fromDomain(
                     activityId = activity.activityId,
                     companyId = activity.companyId,
                     timestamp = activity.timestamp,
@@ -414,7 +414,7 @@ class ActivityService(
                     metadata = activity.toReadModel().metadata
                 )
 
-                activityJpaRepository.save(updatedActivity)
+                activityJpaRepositoryDeprecated.save(updatedActivity)
                 logger.info("Updated activity status: {} to {}", activityId, status)
                 true
             } else {
@@ -434,9 +434,9 @@ class ActivityService(
         val companyId = getCurrentCompanyId()
 
         return try {
-            val activity = activityJpaRepository.findByActivityIdAndCompanyId(activityId, companyId)
+            val activity = activityJpaRepositoryDeprecated.findByActivityIdAndCompanyId(activityId, companyId)
             if (activity != null) {
-                activityJpaRepository.delete(activity)
+                activityJpaRepositoryDeprecated.delete(activity)
                 logger.info("Deleted activity: {}", activityId)
 
                 // Create system activity about deletion
@@ -464,7 +464,7 @@ class ActivityService(
         val cutoffDate = LocalDateTime.now().minusDays(olderThanDays.toLong())
 
         return try {
-            val deletedCount = activityJpaRepository.deleteOldActivities(companyId, cutoffDate)
+            val deletedCount = activityJpaRepositoryDeprecated.deleteOldActivities(companyId, cutoffDate)
             logger.info("Cleaned up {} old activities for company: {}", deletedCount, companyId)
 
             if (deletedCount > 0) {
@@ -487,7 +487,7 @@ class ActivityService(
      */
     fun activityExists(activityId: String): Boolean {
         val companyId = getCurrentCompanyId()
-        return activityJpaRepository.existsByActivityIdAndCompanyId(activityId, companyId)
+        return activityJpaRepositoryDeprecated.existsByActivityIdAndCompanyId(activityId, companyId)
     }
 
     private fun getCurrentCompanyId(): Long {
