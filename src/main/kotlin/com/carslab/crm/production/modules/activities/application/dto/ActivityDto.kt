@@ -19,6 +19,7 @@ data class ActivityResponse(
     val timestamp: String,
     val category: ActivityCategory,
     val message: String,
+    val description: String? = null,
     @JsonProperty("user_id")
     val userId: String?,
     @JsonProperty("user_name")
@@ -41,6 +42,7 @@ data class ActivityResponse(
                 timestamp = activity.timestamp.format(dateTimeFormatter),
                 category = activity.category,
                 message = activity.message,
+                description = activity.description,
                 userId = activity.userId,
                 userName = activity.userName,
                 status = activity.status,
@@ -64,6 +66,7 @@ data class CreateActivityRequest(
     val userId: String? = null,
     @JsonProperty("user_name")
     val userName: String? = null,
+    val description: String? = null,
     val status: ActivityStatus? = null,
     @JsonProperty("status_text")
     val statusText: String? = null,

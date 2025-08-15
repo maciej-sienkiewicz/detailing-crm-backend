@@ -32,6 +32,9 @@ class ActivityEntity(
 
     @Column(nullable = false, columnDefinition = "TEXT")
     val message: String,
+    
+    @Column(nullable = true, columnDefinition = "TEXT")
+    val description: String? = null,
 
     @Column(name = "user_id", nullable = true)
     val userId: String? = null,

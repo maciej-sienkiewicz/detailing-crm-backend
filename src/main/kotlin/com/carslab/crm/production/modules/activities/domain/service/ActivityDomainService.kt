@@ -32,6 +32,7 @@ class ActivityDomainService(
             timestamp = now,
             category = command.category,
             message = command.message,
+            description = command.description,
             userId = command.userId,
             userName = command.userName,
             status = command.status,

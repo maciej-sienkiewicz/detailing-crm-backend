@@ -1,10 +1,5 @@
 package com.carslab.crm.production.modules.services.domain.service
 
-import com.carslab.crm.production.modules.activities.application.dto.CreateActivityRequest
-import com.carslab.crm.production.modules.activities.application.dto.RelatedEntityDto
-import com.carslab.crm.production.modules.activities.application.service.ActivityCommandService
-import com.carslab.crm.production.modules.activities.domain.model.ActivityCategory
-import com.carslab.crm.production.modules.activities.domain.model.ActivityStatus
 import com.carslab.crm.production.modules.services.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.services.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.services.domain.model.Service
@@ -19,7 +14,7 @@ import java.time.LocalDateTime
 @SpringService
 class ServiceDomainService(
     private val repository: ServiceRepository,
-    private val activityCommandService: ActivityCommandService,
+    private val activitySender: ActivitySender,
 ) {
     private val logger = LoggerFactory.getLogger(ServiceDomainService::class.java)
 
@@ -45,20 +40,10 @@ class ServiceDomainService(
         )
 
         val savedService = repository.save(service)
-        activityCommandService.createActivity(CreateActivityRequest(
-            category = ActivityCategory.SYSTEM,
-            message = "Utworzono nową usługę: \"${savedService.name}\"",
-            userId = command.userId,
-            userName = command.userName,
-            status = ActivityStatus.SUCCESS,
-            statusText = "Usługa została pomyślnie utworzona",
-            primaryEntity = null,
-            relatedEntities = emptyList(),
-            metadata = emptyMap())
-        )
         
         logger.info("Service created: {} for company: {}", savedService.id.value, command.companyId)
         return savedService
+            .also { activitySender.onServiceCreated(it) }
     }
 
     fun updateService(command: UpdateServiceCommand): Service {
@@ -83,6 +68,7 @@ class ServiceDomainService(
         val savedService = repository.save(updatedService)
         logger.info("Service updated: {} for company: {}", savedService.id.value, command.companyId)
         return savedService
+            .also { activitySender.onServiceChanged(existingService, savedService) }
     }
 
     fun getServicesForCompany(companyId: Long): List<Service> {
@@ -115,5 +101,6 @@ class ServiceDomainService(
 
         logger.info("Service deactivated: {} for company: {}", serviceId, companyId)
         return true
+            .also { activitySender.onServiceDeleted(service) }
     }
 }

@@ -27,6 +27,7 @@ class ActivityCommandService(
             companyId = companyId,
             category = request.category,
             message = request.message,
+            description = request.description,
             userId = request.userId,
             userName = request.userName,
             status = request.status,

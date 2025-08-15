@@ -35,6 +35,7 @@ data class Activity(
     val timestamp: LocalDateTime,
     val category: ActivityCategory,
     val message: String,
+    val description: String? = null,
     val userId: String? = null,
     val userName: String? = null,
     val status: ActivityStatus? = null,
