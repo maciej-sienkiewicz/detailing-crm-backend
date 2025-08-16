@@ -4,7 +4,7 @@ import com.carslab.crm.modules.visits.application.commands.models.CreateProtocol
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.modules.visits.domain.services.ProtocolDomainService
 import com.carslab.crm.modules.clients.domain.ClientApplicationService
-import com.carslab.crm.modules.clients.domain.VehicleApplicationService
+import com.carslab.crm.modules.clients.domain.VehicleApplicationServiceDeprecated
 import com.carslab.crm.modules.clients.domain.ClientVehicleAssociationService
 import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.VehicleId
@@ -31,7 +31,7 @@ class EnhancedCreateProtocolCommandHandler(
     private val protocolRepository: ProtocolRepository,
     private val protocolDomainService: ProtocolDomainService,
     private val clientApplicationService: ClientApplicationService,
-    private val vehicleApplicationService: VehicleApplicationService,
+    private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val clientVehicleAssociationService: ClientVehicleAssociationService,
     private val eventPublisher: EventPublisher,
     private val securityContext: SecurityContext,
@@ -158,7 +158,7 @@ class EnhancedCreateProtocolCommandHandler(
 
     private fun findOrCreateVehicle(vehicleCommand: CreateVehicleCommand): VehicleDetailResponse {
         vehicleCommand.id?.toLongOrNull()?.let { id ->
-            vehicleApplicationService.getVehicleById(id)?.let {
+            vehicleApplicationServiceDeprecated.getVehicleById(id)?.let {
                 logger.debug("Found existing vehicle by ID: $id")
                 return it
             }
@@ -201,7 +201,7 @@ class EnhancedCreateProtocolCommandHandler(
         }
 
         return try {
-            val searchResults = vehicleApplicationService.searchVehicles(
+            val searchResults = vehicleApplicationServiceDeprecated.searchVehicles(
                 vin = vin,
                 licensePlate = licensePlate,
                 pageable = PageRequest.of(0, 1)
@@ -250,7 +250,7 @@ class EnhancedCreateProtocolCommandHandler(
         )
 
         return try {
-            vehicleApplicationService.createVehicle(createRequest)
+            vehicleApplicationServiceDeprecated.createVehicle(createRequest)
         } catch (e: Exception) {
             logger.warn("Failed to create vehicle, trying to find existing one", e)
             findVehicleByIdentifiers(vehicleCommand.vin, vehicleCommand.licensePlate)

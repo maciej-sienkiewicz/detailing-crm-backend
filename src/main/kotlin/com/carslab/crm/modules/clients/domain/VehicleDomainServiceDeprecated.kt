@@ -11,11 +11,11 @@ import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
 import com.carslab.crm.modules.clients.domain.model.VehicleStatistics
 import com.carslab.crm.modules.clients.domain.model.VehicleWithStatistics
-import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.modules.clients.domain.port.VehicleRepository
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepositoryDeprecated
+import com.carslab.crm.modules.clients.domain.port.VehicleRepositoryDeprecated
 import com.carslab.crm.modules.clients.domain.port.VehicleSearchCriteria
-import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -25,11 +25,11 @@ import java.time.LocalDateTime
 
 @Service
 @Transactional
-class VehicleDomainService(
-    private val vehicleRepository: VehicleRepository,
-    private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val associationRepository: ClientVehicleAssociationRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository
+class VehicleDomainServiceDeprecated(
+    private val vehicleRepository: VehicleRepositoryDeprecated,
+    private val vehicleStatisticsRepositoryDeprecated: VehicleStatisticsRepositoryDeprecated,
+    private val associationRepository: ClientVehicleAssociationRepositoryDeprecated,
+    private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated
 ) {
 
     fun createVehicle(command: CreateVehicleCommand): Vehicle {
@@ -94,7 +94,7 @@ class VehicleDomainService(
     @Transactional(readOnly = true)
     fun getVehicleWithStatistics(id: VehicleId): VehicleWithStatistics? {
         val vehicle = vehicleRepository.findById(id) ?: return null
-        val statistics = vehicleStatisticsRepository.findByVehicleId(id)
+        val statistics = vehicleStatisticsRepositoryDeprecated.findByVehicleId(id)
             ?: VehicleStatistics(vehicleId = id.value)
 
         return VehicleWithStatistics(vehicle, statistics)
@@ -106,12 +106,12 @@ class VehicleDomainService(
     }
     
     fun updateVehicleLastVisit(id: Long, companyId: Long, date: LocalDateTime) {
-        vehicleJpaRepository.updateLastVisitAndIncrementCount(id, companyId, date)
+        vehicleJpaRepositoryDeprecated.updateLastVisitAndIncrementCount(id, companyId, date)
     }
 
     fun updateStatistics(id: VehicleId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
-        vehicleStatisticsRepository.updateVisitCount(id, counter)
-        vehicleStatisticsRepository.updateRevenue(id, gmv)
+        vehicleStatisticsRepositoryDeprecated.updateVisitCount(id, counter)
+        vehicleStatisticsRepositoryDeprecated.updateRevenue(id, gmv)
     }
 
     fun deleteVehicle(id: VehicleId): Boolean {
@@ -121,7 +121,7 @@ class VehicleDomainService(
         associationRepository.deleteByVehicleId(id)
 
         // Delete statistics
-        vehicleStatisticsRepository.deleteByVehicleId(id)
+        vehicleStatisticsRepositoryDeprecated.deleteByVehicleId(id)
 
         return vehicleRepository.deleteById(id)
     }
@@ -142,6 +142,6 @@ class VehicleDomainService(
 
     private fun initializeVehicleStatistics(vehicleId: VehicleId) {
         val statistics = VehicleStatistics(vehicleId = vehicleId.value)
-        vehicleStatisticsRepository.save(statistics)
+        vehicleStatisticsRepositoryDeprecated.save(statistics)
     }
 }

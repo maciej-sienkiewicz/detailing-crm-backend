@@ -6,7 +6,7 @@ import com.carslab.crm.modules.clients.domain.model.VehicleId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
-interface VehicleRepository {
+interface VehicleRepositoryDeprecated {
     fun save(vehicle: Vehicle): Vehicle
     fun save(vehicle: CreateVehicle): Vehicle
     fun findById(id: VehicleId): Vehicle?

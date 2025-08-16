@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "client_vehicle_associations",
+    name = "client_vehicle_associations_deprecated",
     indexes = [
         Index(name = "idx_association_client_id", columnList = "client_id"),
         Index(name = "idx_association_vehicle_id", columnList = "vehicle_id"),
@@ -28,7 +28,7 @@ import java.time.LocalDateTime
         Index(name = "idx_association_company_id", columnList = "company_id")
     ]
 )
-class ClientVehicleAssociationEntity(
+class ClientVehicleAssociationEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -38,11 +38,11 @@ class ClientVehicleAssociationEntity(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
-    val client: ClientEntity,
+    val client: ClientEntityDeprecated,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = false)
-    val vehicle: VehicleEntity,
+    val vehicle: VehicleEntityDeprecated,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "relationship_type", nullable = false)
@@ -72,10 +72,10 @@ class ClientVehicleAssociationEntity(
     companion object {
         fun fromDomain(
             association: ClientVehicleAssociation,
-            client: ClientEntity,
-            vehicle: VehicleEntity,
+            client: ClientEntityDeprecated,
+            vehicle: VehicleEntityDeprecated,
             companyId: Long
-        ): ClientVehicleAssociationEntity = ClientVehicleAssociationEntity(
+        ): ClientVehicleAssociationEntityDeprecated = ClientVehicleAssociationEntityDeprecated(
             companyId = companyId,
             client = client,
             vehicle = vehicle,

@@ -1,8 +1,8 @@
 package com.carslab.crm.modules.clients.infrastructure.persistence.repository
 
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientStatisticsEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleStatisticsEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntityDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientStatisticsEntityDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleStatisticsEntityDeprecated
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -16,28 +16,28 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Repository
-interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificationExecutor<ClientEntity> {
+interface ClientJpaRepositoryDeprecated : JpaRepository<ClientEntityDeprecated, Long>, JpaSpecificationExecutor<ClientEntityDeprecated> {
 
     // Basic queries with company isolation
-    @Query("SELECT c FROM ClientEntity c WHERE c.companyId = :companyId AND c.active = true")
-    fun findByCompanyId(@Param("companyId") companyId: Long, pageable: Pageable): Page<ClientEntity>
+    @Query("SELECT c FROM ClientEntityDeprecated c WHERE c.companyId = :companyId AND c.active = true")
+    fun findByCompanyId(@Param("companyId") companyId: Long, pageable: Pageable): Page<ClientEntityDeprecated>
 
-    @Query("SELECT c FROM ClientEntity c WHERE c.id = :id AND c.companyId = :companyId AND c.active = true")
-    fun findByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long): Optional<ClientEntity>
+    @Query("SELECT c FROM ClientEntityDeprecated c WHERE c.id = :id AND c.companyId = :companyId AND c.active = true")
+    fun findByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long): Optional<ClientEntityDeprecated>
 
     // Simple queries without LOWER function
-    @Query("SELECT c FROM ClientEntity c WHERE c.email = :email AND c.companyId = :companyId AND c.active = true")
-    fun findByEmailAndCompanyId(@Param("email") email: String, @Param("companyId") companyId: Long): Optional<ClientEntity>
+    @Query("SELECT c FROM ClientEntityDeprecated c WHERE c.email = :email AND c.companyId = :companyId AND c.active = true")
+    fun findByEmailAndCompanyId(@Param("email") email: String, @Param("companyId") companyId: Long): Optional<ClientEntityDeprecated>
 
-    @Query("SELECT c FROM ClientEntity c WHERE c.phone = :phone AND c.companyId = :companyId AND c.active = true")
-    fun findByPhoneAndCompanyId(@Param("phone") phone: String, @Param("companyId") companyId: Long): Optional<ClientEntity>
+    @Query("SELECT c FROM ClientEntityDeprecated c WHERE c.phone = :phone AND c.companyId = :companyId AND c.active = true")
+    fun findByPhoneAndCompanyId(@Param("phone") phone: String, @Param("companyId") companyId: Long): Optional<ClientEntityDeprecated>
 
-    @Query("SELECT c FROM ClientEntity c WHERE (c.email = :email OR c.phone = :phone) AND c.companyId = :companyId AND c.active = true")
+    @Query("SELECT c FROM ClientEntityDeprecated c WHERE (c.email = :email OR c.phone = :phone) AND c.companyId = :companyId AND c.active = true")
     fun findByEmailOrPhoneAndCompanyId(
         @Param("email") email: String?,
         @Param("phone") phone: String?,
         @Param("companyId") companyId: Long
-    ): Optional<ClientEntity>
+    ): Optional<ClientEntityDeprecated>
 
     @Query(nativeQuery = true, value = """
         SELECT DISTINCT c.* FROM clients c 
@@ -74,7 +74,7 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificat
         @Param("companyId") companyId: Long,
         @Param("limit") limit: Int,
         @Param("offset") offset: Int
-    ): List<ClientEntity>
+    ): List<ClientEntityDeprecated>
 
     @Query(nativeQuery = true, value = """
         SELECT COUNT(DISTINCT c.id) FROM clients c 
@@ -111,11 +111,11 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificat
 
     // Soft delete
     @Modifying
-    @Query("UPDATE ClientEntity c SET c.active = false, c.updatedAt = :now WHERE c.id = :id AND c.companyId = :companyId")
+    @Query("UPDATE ClientEntityDeprecated c SET c.active = false, c.updatedAt = :now WHERE c.id = :id AND c.companyId = :companyId")
     fun softDeleteByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long, @Param("now") now: LocalDateTime): Int
 
     // Statistics
-    @Query("SELECT COUNT(c) FROM ClientEntity c WHERE c.companyId = :companyId AND c.active = true")
+    @Query("SELECT COUNT(c) FROM ClientEntityDeprecated c WHERE c.companyId = :companyId AND c.active = true")
     fun countByCompanyId(@Param("companyId") companyId: Long): Long
 
     // Check existence
@@ -124,63 +124,73 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long>, JpaSpecificat
 }
 
 @Repository
-interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, Long> {
+interface ClientStatisticsJpaRepositoryDeprecated : JpaRepository<ClientStatisticsEntityDeprecated, Long> {
 
-    @Query("SELECT s FROM ClientStatisticsEntity s WHERE s.clientId = :clientId")
-    fun findByClientId(@Param("clientId") clientId: Long): Optional<ClientStatisticsEntity>
+    @Query("SELECT s FROM ClientStatisticsEntityDeprecated s WHERE s.clientId = :clientId")
+    fun findByClientId(@Param("clientId") clientId: Long): Optional<ClientStatisticsEntityDeprecated>
 
     @Modifying
-    @Query("""
-        UPDATE ClientStatisticsEntity s 
+    @Query(
+        """
+        UPDATE ClientStatisticsEntityDeprecated s 
         SET s.visitCount = s.visitCount + :increment, s.updatedAt = :now 
         WHERE s.clientId = :clientId
-    """)
+    """
+    )
     fun updateVisitCount(@Param("clientId") clientId: Long, @Param("increment") increment: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
-    @Query("""
-        UPDATE ClientStatisticsEntity s 
+    @Query(
+        """
+        UPDATE ClientStatisticsEntityDeprecated s 
         SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
         WHERE s.clientId = :clientId
-    """)
+    """
+    )
     fun updateRevenue(@Param("clientId") clientId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime): Int
 
     @Modifying
-    @Query("""
-        UPDATE ClientStatisticsEntity s 
+    @Query(
+        """
+        UPDATE ClientStatisticsEntityDeprecated s 
         SET s.vehicleCount = s.vehicleCount + :increment, s.updatedAt = :now 
         WHERE s.clientId = :clientId
-    """)
+    """
+    )
     fun updateVehicleCount(@Param("clientId") clientId: Long, @Param("increment") increment: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
-    @Query("DELETE FROM ClientStatisticsEntity s WHERE s.clientId = :clientId")
+    @Query("DELETE FROM ClientStatisticsEntityDeprecated s WHERE s.clientId = :clientId")
     fun deleteByClientId(@Param("clientId") clientId: Long): Int
 }
 @Repository
-interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity, Long> {
+interface VehicleStatisticsJpaRepositoryDeprecated : JpaRepository<VehicleStatisticsEntityDeprecated, Long> {
 
-    @Query("SELECT s FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
-    fun findByVehicleId(@Param("vehicleId") vehicleId: Long): Optional<VehicleStatisticsEntity>
+    @Query("SELECT s FROM VehicleStatisticsEntityDeprecated s WHERE s.vehicleId = :vehicleId")
+    fun findByVehicleId(@Param("vehicleId") vehicleId: Long): Optional<VehicleStatisticsEntityDeprecated>
 
     @Modifying
-    @Query("""
-        UPDATE VehicleStatisticsEntity s 
+    @Query(
+        """
+        UPDATE VehicleStatisticsEntityDeprecated s 
         SET s.visitCount = s.visitCount + :increment, s.updatedAt = :now 
         WHERE s.vehicleId = :vehicleId
-    """)
+    """
+    )
     fun updateVisitCount(@Param("vehicleId") vehicleId: Long, @Param("increment") increment: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
-    @Query("""
-        UPDATE VehicleStatisticsEntity s 
+    @Query(
+        """
+        UPDATE VehicleStatisticsEntityDeprecated s 
         SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
         WHERE s.vehicleId = :vehicleId
-    """)
+    """
+    )
     fun updateRevenue(@Param("vehicleId") vehicleId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime): Int
 
     @Modifying
-    @Query("DELETE FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
+    @Query("DELETE FROM VehicleStatisticsEntityDeprecated s WHERE s.vehicleId = :vehicleId")
     fun deleteByVehicleId(@Param("vehicleId") vehicleId: Long): Int
 
     @Query(nativeQuery = true, value = """

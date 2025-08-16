@@ -4,10 +4,10 @@ import com.carslab.crm.modules.clients.api.responses.VehicleTableResponse
 import com.carslab.crm.modules.clients.api.responses.VehicleOwnerSummary
 import com.carslab.crm.modules.clients.domain.VehicleTableSearchCriteria
 import com.carslab.crm.modules.clients.domain.port.VehicleTableRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.clients.domain.model.VehicleId
-import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleStatisticsRepositoryDeprecated
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory
 @Repository
 @Transactional(readOnly = true)
 class VehicleTableRepositoryAdapter(
-    private val vehicleTableJpaRepository: VehicleTableJpaRepository,
-    private val vehicleStatisticsRepository: VehicleStatisticsRepository,
+    private val vehicleTableJpaRepositoryDeprecated: VehicleTableJpaRepositoryDeprecated,
+    private val vehicleStatisticsRepositoryDeprecated: VehicleStatisticsRepositoryDeprecated,
     private val securityContext: SecurityContext
 ) : VehicleTableRepository {
 
@@ -44,7 +44,7 @@ class VehicleTableRepositoryAdapter(
 
         return try {
             // Execute native query to get vehicle table data
-            val vehicleTableData = vehicleTableJpaRepository.findVehiclesForTableNative(
+            val vehicleTableData = vehicleTableJpaRepositoryDeprecated.findVehiclesForTableNative(
                 make = criteria.make?.takeIf { it.isNotBlank() },
                 model = criteria.model?.takeIf { it.isNotBlank() },
                 licensePlate = criteria.licensePlate?.takeIf { it.isNotBlank() },
@@ -61,7 +61,7 @@ class VehicleTableRepositoryAdapter(
             logger.debug("Found ${vehicleTableData.size} vehicles from database")
 
             // Get total count for pagination
-            val totalCount = vehicleTableJpaRepository.countVehiclesForTableNative(
+            val totalCount = vehicleTableJpaRepositoryDeprecated.countVehiclesForTableNative(
                 make = criteria.make?.takeIf { it.isNotBlank() },
                 model = criteria.model?.takeIf { it.isNotBlank() },
                 licensePlate = criteria.licensePlate?.takeIf { it.isNotBlank() },
@@ -102,7 +102,7 @@ class VehicleTableRepositoryAdapter(
 
             // Get owners for this vehicle with error handling
             val owners = try {
-                vehicleTableJpaRepository.findVehicleOwnersNative(vehicleId, companyId)
+                vehicleTableJpaRepositoryDeprecated.findVehicleOwnersNative(vehicleId, companyId)
                     .mapNotNull { ownerRow ->
                         try {
                             VehicleOwnerSummary(
@@ -123,7 +123,7 @@ class VehicleTableRepositoryAdapter(
                 emptyList()
             }
 
-            val stats = vehicleStatisticsRepository.findByVehicleId(VehicleId.of(vehicleId))
+            val stats = vehicleStatisticsRepositoryDeprecated.findByVehicleId(VehicleId.of(vehicleId))
 
             return VehicleTableResponse(
                 id = vehicleId,

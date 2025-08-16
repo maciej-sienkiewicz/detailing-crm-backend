@@ -4,7 +4,7 @@ import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 
-interface ClientVehicleAssociationRepository {
+interface ClientVehicleAssociationRepositoryDeprecated {
     fun save(association: ClientVehicleAssociation): ClientVehicleAssociation
     fun findByClientId(clientId: ClientId): List<ClientVehicleAssociation>
     fun findByVehicleId(vehicleId: VehicleId): List<ClientVehicleAssociation>

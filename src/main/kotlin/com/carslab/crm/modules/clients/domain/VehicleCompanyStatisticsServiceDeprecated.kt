@@ -13,10 +13,10 @@ import java.time.LocalDateTime
  */
 @Service
 @Transactional(readOnly = true)
-class VehicleCompanyStatisticsService(
+class VehicleCompanyStatisticsServiceDeprecated(
     private val vehicleCompanyStatisticsRepository: VehicleCompanyStatisticsRepository
 ) {
-    private val logger = LoggerFactory.getLogger(VehicleCompanyStatisticsService::class.java)
+    private val logger = LoggerFactory.getLogger(VehicleCompanyStatisticsServiceDeprecated::class.java)
 
     /**
      * Retrieves comprehensive company-wide vehicle statistics

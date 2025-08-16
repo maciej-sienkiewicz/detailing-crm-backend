@@ -7,20 +7,20 @@ import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
 import com.carslab.crm.modules.clients.domain.model.Vehicle
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.modules.clients.domain.model.VehicleRelationshipType
-import com.carslab.crm.modules.clients.domain.port.ClientRepository
-import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.modules.clients.domain.port.VehicleRepository
+import com.carslab.crm.modules.clients.domain.port.ClientRepositoryDeprecated
+import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepositoryDeprecated
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepositoryDeprecated
+import com.carslab.crm.modules.clients.domain.port.VehicleRepositoryDeprecated
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional
 class ClientVehicleAssociationService(
-    private val associationRepository: ClientVehicleAssociationRepository,
-    private val clientRepository: ClientRepository,
-    private val vehicleRepository: VehicleRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository
+    private val associationRepository: ClientVehicleAssociationRepositoryDeprecated,
+    private val clientRepositoryDeprecated: ClientRepositoryDeprecated,
+    private val vehicleRepositoryDeprecated: VehicleRepositoryDeprecated,
+    private val clientStatisticsRepositoryDeprecated: ClientStatisticsRepositoryDeprecated
 ) {
 
     fun associateClientWithVehicle(
@@ -31,9 +31,9 @@ class ClientVehicleAssociationService(
     ): ClientVehicleAssociation {
 
         // Validate entities exist
-        clientRepository.findById(clientId)
+        clientRepositoryDeprecated.findById(clientId)
             ?: throw DomainException("Client not found: ${clientId.value}")
-        vehicleRepository.findById(vehicleId)
+        vehicleRepositoryDeprecated.findById(vehicleId)
             ?: throw DomainException("Vehicle not found: ${vehicleId.value}")
 
         // Check if association already exists
@@ -52,7 +52,7 @@ class ClientVehicleAssociationService(
         val savedAssociation = associationRepository.save(association)
 
         // Update client vehicle count
-        clientStatisticsRepository.updateVehicleCount(clientId, 1)
+        clientStatisticsRepositoryDeprecated.updateVehicleCount(clientId, 1)
 
         return savedAssociation
     }
@@ -62,7 +62,7 @@ class ClientVehicleAssociationService(
 
         if (removed) {
             // Update client vehicle count
-            clientStatisticsRepository.updateVehicleCount(clientId, -1)
+            clientStatisticsRepositoryDeprecated.updateVehicleCount(clientId, -1)
         }
 
         return removed
@@ -72,14 +72,14 @@ class ClientVehicleAssociationService(
     fun getClientVehicles(clientId: ClientId): List<Vehicle> {
         val associations = associationRepository.findActiveByClientId(clientId)
         val vehicleIds = associations.map { it.vehicleId }
-        return vehicleRepository.findByIds(vehicleIds)
+        return vehicleRepositoryDeprecated.findByIds(vehicleIds)
     }
 
     @Transactional(readOnly = true)
     fun getVehicleOwners(vehicleId: VehicleId): List<ClientSummary> {
         val associations = associationRepository.findActiveByVehicleId(vehicleId)
         val clientIds = associations.map { it.clientId }
-        return clientRepository.findByIds(clientIds).map { client ->
+        return clientRepositoryDeprecated.findByIds(clientIds).map { client ->
             ClientSummary(
                 id = client.id,
                 fullName = client.fullName,

@@ -7,8 +7,8 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "client_statistics")
-class ClientStatisticsEntity(
+@Table(name = "client_statistics_deprecated")
+class ClientStatisticsEntityDeprecated(
     @Id
     @Column(name = "client_id")
     val clientId: Long,
@@ -30,7 +30,7 @@ class ClientStatisticsEntity(
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", insertable = false, updatable = false)
-    var client: ClientEntity? = null
+    var client: ClientEntityDeprecated? = null
 ) {
     fun toDomain(): ClientStatistics {
         return ClientStatistics(
@@ -43,8 +43,8 @@ class ClientStatisticsEntity(
     }
 
     companion object {
-        fun fromDomain(domain: ClientStatistics): ClientStatisticsEntity {
-            return ClientStatisticsEntity(
+        fun fromDomain(domain: ClientStatistics): ClientStatisticsEntityDeprecated {
+            return ClientStatisticsEntityDeprecated(
                 clientId = domain.clientId,
                 visitCount = domain.visitCount,
                 totalRevenue = domain.totalRevenue,
@@ -56,15 +56,15 @@ class ClientStatisticsEntity(
 }
 
 @Entity
-@Table(name = "vehicle_statistics")
-class VehicleStatisticsEntity(
+@Table(name = "vehicle_statistics_deprecated")
+class VehicleStatisticsEntityDeprecated(
     @Id
     @Column(name = "vehicle_id")
     val vehicleId: Long,
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", insertable = false, updatable = false)
-    val vehicle: VehicleEntity? = null,
+    val vehicle: VehicleEntityDeprecated? = null,
 
     @Column(name = "visit_count", nullable = false)
     var visitCount: Long = 0,
@@ -86,7 +86,7 @@ class VehicleStatisticsEntity(
     )
 
     companion object {
-        fun fromDomain(statistics: VehicleStatistics): VehicleStatisticsEntity = VehicleStatisticsEntity(
+        fun fromDomain(statistics: VehicleStatistics): VehicleStatisticsEntityDeprecated = VehicleStatisticsEntityDeprecated(
             vehicleId = statistics.vehicleId,
             visitCount = statistics.visitCount,
             totalRevenue = statistics.totalRevenue,

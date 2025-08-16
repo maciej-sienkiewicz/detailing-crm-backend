@@ -28,10 +28,10 @@ import java.util.*
 @RequestMapping("/api/vehicles")
 @Tag(name = "Vehicles", description = "Vehicle management endpoints")
 class VehicleController(
-    private val vehicleApplicationService: VehicleApplicationService,
+    private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleTableService: VehicleTableService,
-    private val vehicleCompanyStatisticsService: VehicleCompanyStatisticsService
+    private val vehicleCompanyStatisticsServiceDeprecated: VehicleCompanyStatisticsServiceDeprecated
 ) : BaseController() {
 
     @PostMapping
@@ -60,7 +60,7 @@ class VehicleController(
                 ownerIds = request.ownerIds
             )
 
-            val createdVehicle = vehicleApplicationService.createVehicle(appRequest)
+            val createdVehicle = vehicleApplicationServiceDeprecated.createVehicle(appRequest)
             val response = VehicleMapper.toResponse(createdVehicle)
 
             logger.info("Successfully created vehicle with ID: ${response.id}")
@@ -75,7 +75,7 @@ class VehicleController(
     fun getAllVehicles(): ResponseEntity<List<VehicleResponse>> {
         logger.info("Getting all vehicles")
 
-        val vehicles = vehicleApplicationService.searchVehicles(
+        val vehicles = vehicleApplicationServiceDeprecated.searchVehicles(
             make = null,
             model = null,
             licensePlate = null,
@@ -143,7 +143,7 @@ class VehicleController(
         logger.info("Getting company vehicle statistics")
 
         try {
-            val statistics = vehicleCompanyStatisticsService.getCompanyStatistics()
+            val statistics = vehicleCompanyStatisticsServiceDeprecated.getCompanyStatistics()
 
             logger.info("Successfully retrieved company vehicle statistics: ${statistics.totalVehicles} total vehicles, ${statistics.premiumVehicles} premium vehicles")
             return ok(statistics)
@@ -159,7 +159,7 @@ class VehicleController(
     ): ResponseEntity<List<VehicleOwnerResponse>> {
         logger.info("Getting owners for vehicle ID: $id")
 
-        val vehicleDetail = vehicleApplicationService.getVehicleById(id.toLong())
+        val vehicleDetail = vehicleApplicationServiceDeprecated.getVehicleById(id.toLong())
             ?: throw ResourceNotFoundException("Vehicle", id)
 
         val owners = vehicleDetail.owners.map {
@@ -175,7 +175,7 @@ class VehicleController(
     ): ResponseEntity<VehicleResponse> {
         logger.info("Getting vehicle by ID: $id")
 
-        val vehicle = vehicleApplicationService.getVehicleById(id.toLong())
+        val vehicle = vehicleApplicationServiceDeprecated.getVehicleById(id.toLong())
             ?: throw ResourceNotFoundException("Vehicle", id)
 
         return ok(VehicleMapper.toResponse(vehicle))
@@ -188,7 +188,7 @@ class VehicleController(
     ): ResponseEntity<VehicleStatisticsResponse> {
         logger.info("Getting vehicle statistics: $id")
 
-        val vehicleDetail = vehicleApplicationService.getVehicleById(id.toLong())
+        val vehicleDetail = vehicleApplicationServiceDeprecated.getVehicleById(id.toLong())
             ?: throw ResourceNotFoundException("Vehicle", id)
 
         val stats = VehicleStatisticsResponse(
@@ -239,7 +239,7 @@ class VehicleController(
                 ownerIds = request.ownerIds
             )
 
-            val updatedVehicle = vehicleApplicationService.updateVehicle(id.toLong(), appRequest)
+            val updatedVehicle = vehicleApplicationServiceDeprecated.updateVehicle(id.toLong(), appRequest)
             val response = VehicleMapper.toResponse(updatedVehicle)
 
             logger.info("Successfully updated vehicle with ID: $id")
@@ -256,7 +256,7 @@ class VehicleController(
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Deleting vehicle with ID: $id")
 
-        val deleted = vehicleApplicationService.deleteVehicle(id.toLong())
+        val deleted = vehicleApplicationServiceDeprecated.deleteVehicle(id.toLong())
 
         return if (deleted) {
             logger.info("Successfully deleted vehicle with ID: $id")
@@ -290,7 +290,7 @@ class VehicleController(
 
         try {
             // Verify vehicle exists
-            vehicleApplicationService.getVehicleById(id.toLong())
+            vehicleApplicationServiceDeprecated.getVehicleById(id.toLong())
                 ?: throw ResourceNotFoundException("Vehicle", id)
 
             // Validate service history entry
@@ -344,7 +344,7 @@ class VehicleController(
     ): ResponseEntity<List<VehicleResponse>> {
         logger.info("Searching vehicles with filters: licensePlate=$licensePlate, make=$make, model=$model")
 
-        val vehicles = vehicleApplicationService.searchVehicles(
+        val vehicles = vehicleApplicationServiceDeprecated.searchVehicles(
             make = make,
             model = model,
             licensePlate = licensePlate,

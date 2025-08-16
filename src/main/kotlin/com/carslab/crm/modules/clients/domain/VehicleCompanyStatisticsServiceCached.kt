@@ -17,7 +17,7 @@ class VehiclePerformanceMonitor {
 
     private val logger = LoggerFactory.getLogger(VehiclePerformanceMonitor::class.java)
 
-    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepository.*(..))")
+    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleTableJpaRepositoryDeprecated.*(..))")
     fun monitorTableQueries(joinPoint: org.aspectj.lang.ProceedingJoinPoint): Any? {
         val startTime = System.currentTimeMillis()
         val methodName = joinPoint.signature.name
@@ -40,7 +40,7 @@ class VehiclePerformanceMonitor {
         }
     }
 
-    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository.*(..))")
+    @org.aspectj.lang.annotation.Around("execution(* com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepositoryDeprecated.*(..))")
     fun monitorStatisticsQueries(joinPoint: org.aspectj.lang.ProceedingJoinPoint): Any? {
         val startTime = System.currentTimeMillis()
         val methodName = joinPoint.signature.name

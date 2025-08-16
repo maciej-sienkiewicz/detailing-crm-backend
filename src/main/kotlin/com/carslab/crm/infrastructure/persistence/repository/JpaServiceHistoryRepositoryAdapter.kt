@@ -4,7 +4,7 @@ import com.carslab.crm.domain.model.ServiceHistory
 import com.carslab.crm.domain.model.ServiceHistoryId
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.domain.port.ServiceHistoryRepository
-import com.carslab.crm.modules.clients.domain.port.VehicleRepository
+import com.carslab.crm.modules.clients.domain.port.VehicleRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.entity.ServiceHistoryEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ServiceHistoryJpaRepository
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository
 @Repository
 class JpaServiceHistoryRepositoryAdapter(
     private val serviceHistoryJpaRepository: ServiceHistoryJpaRepository,
-    private val vehicleJpaRepository: VehicleRepository
+    private val vehicleJpaRepository: VehicleRepositoryDeprecated
 ) : ServiceHistoryRepository {
 
     override fun save(serviceHistory: ServiceHistory): ServiceHistory {

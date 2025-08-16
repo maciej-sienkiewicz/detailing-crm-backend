@@ -4,7 +4,7 @@ import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.ClientStatistics
 import java.math.BigDecimal
 
-interface ClientStatisticsRepository {
+interface ClientStatisticsRepositoryDeprecated {
     fun findByClientId(clientId: ClientId): ClientStatistics?
     fun save(statistics: ClientStatistics): ClientStatistics
     fun updateVisitCount(clientId: ClientId, increment: Long)

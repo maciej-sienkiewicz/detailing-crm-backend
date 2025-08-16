@@ -42,11 +42,11 @@ class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientRepository(adapter: ClientRepositoryAdapter): ClientRepository = adapter
+    fun clientRepository(adapter: ClientRepositoryAdapter): ClientRepositoryDeprecated = adapter
 
     @Bean
     @Primary
-    fun vehicleRepository(adapter: VehicleRepositoryAdapter): VehicleRepository = adapter
+    fun vehicleRepository(adapter: VehicleRepositoryDeprecatedAdapter): VehicleRepositoryDeprecated = adapter
 
     @Bean
     @Primary
@@ -66,11 +66,11 @@ class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientStatisticsRepository(adapter: ClientStatisticsRepositoryAdapter): ClientStatisticsRepository = adapter
+    fun clientStatisticsRepository(adapter: ClientStatisticsRepositoryDeprecatedAdapter): ClientStatisticsRepositoryDeprecated = adapter
 
     @Bean
     @Primary
-    fun vehicleStatisticsRepository(adapter: VehicleStatisticsRepositoryAdapter): VehicleStatisticsRepository = adapter
+    fun vehicleStatisticsRepository(adapter: VehicleStatisticsRepositoryAdapter): VehicleStatisticsRepositoryDeprecated = adapter
 
     @Bean
     @Primary
@@ -78,7 +78,7 @@ class PersistenceConfig {
 
     @Bean
     @Primary
-    fun clientVehicleRepository(adapter: ClientVehicleAssociationRepositoryAdapter): ClientVehicleAssociationRepository = adapter
+    fun clientVehicleRepository(adapter: ClientVehicleAssociationRepositoryDeprecatedAdapter): ClientVehicleAssociationRepositoryDeprecated = adapter
 
     @Bean
     @Primary

@@ -8,10 +8,10 @@ import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.ClientStatistics
 import com.carslab.crm.modules.clients.domain.model.ClientWithStatistics
 import com.carslab.crm.modules.clients.domain.model.CreateClient
-import com.carslab.crm.modules.clients.domain.port.ClientRepository
+import com.carslab.crm.modules.clients.domain.port.ClientRepositoryDeprecated
 import com.carslab.crm.modules.clients.domain.port.ClientSearchCriteria
-import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepository
-import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
+import com.carslab.crm.modules.clients.domain.port.ClientStatisticsRepositoryDeprecated
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepositoryDeprecated
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -20,10 +20,10 @@ import java.math.BigDecimal
 
 @Service
 @Transactional
-class ClientDomainService(
-    private val clientRepository: ClientRepository,
-    private val clientStatisticsRepository: ClientStatisticsRepository,
-    private val associationRepository: ClientVehicleAssociationRepository
+class ClientDomainServiceDeprecated(
+    private val clientRepositoryDeprecated: ClientRepositoryDeprecated,
+    private val clientStatisticsRepositoryDeprecated: ClientStatisticsRepositoryDeprecated,
+    private val associationRepository: ClientVehicleAssociationRepositoryDeprecated
 ) {
 
     fun createClient(command: CreateClientCommand): Client {
@@ -40,14 +40,14 @@ class ClientDomainService(
             notes = command.notes
         )
 
-        val savedClient = clientRepository.saveNew(client)
+        val savedClient = clientRepositoryDeprecated.saveNew(client)
         initializeClientStatistics(savedClient.id)
 
         return savedClient
     }
 
     fun updateClient(id: ClientId, command: UpdateClientCommand): Client {
-        val existingClient = clientRepository.findById(id)
+        val existingClient = clientRepositoryDeprecated.findById(id)
             ?: throw DomainException("Client not found: ${id.value}")
 
         if (command.email != existingClient.email || command.phone != existingClient.phone) {
@@ -66,21 +66,21 @@ class ClientDomainService(
             audit = existingClient.audit.updated()
         )
 
-        return clientRepository.save(updatedClient)
+        return clientRepositoryDeprecated.save(updatedClient)
     }
 
     fun updateClientStatistics(id: ClientId, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
-        clientStatisticsRepository.updateVisitCount(id, counter)
-        clientStatisticsRepository.updateRevenue(id, gmv)
+        clientStatisticsRepositoryDeprecated.updateVisitCount(id, counter)
+        clientStatisticsRepositoryDeprecated.updateRevenue(id, gmv)
     }
 
     @Transactional(readOnly = true)
-    fun getClientById(id: ClientId): Client? = clientRepository.findById(id)
+    fun getClientById(id: ClientId): Client? = clientRepositoryDeprecated.findById(id)
 
     @Transactional(readOnly = true)
     fun getClientWithStatistics(id: ClientId): ClientWithStatistics? {
-        val client = clientRepository.findById(id) ?: return null
-        val statistics = clientStatisticsRepository.findByClientId(id)
+        val client = clientRepositoryDeprecated.findById(id) ?: return null
+        val statistics = clientStatisticsRepositoryDeprecated.findByClientId(id)
             ?: ClientStatistics(clientId = id.value)
 
         return ClientWithStatistics(client, statistics)
@@ -88,31 +88,31 @@ class ClientDomainService(
 
     @Transactional(readOnly = true)
     fun searchClients(criteria: ClientSearchCriteria, pageable: Pageable): Page<Client> {
-        return clientRepository.searchClients(criteria, pageable)
+        return clientRepositoryDeprecated.searchClients(criteria, pageable)
     }
 
     fun deleteClient(id: ClientId): Boolean {
-        clientRepository.findById(id) ?: return false
+        clientRepositoryDeprecated.findById(id) ?: return false
 
         // Remove all vehicle associations
         associationRepository.deleteByClientId(id)
 
         // Delete statistics
-        clientStatisticsRepository.deleteByClientId(id)
+        clientStatisticsRepositoryDeprecated.deleteByClientId(id)
 
-        return clientRepository.deleteById(id)
+        return clientRepositoryDeprecated.deleteById(id)
     }
 
     private fun validateClientUniqueness(email: String?, phone: String?, excludeId: ClientId? = null) {
         if (!email.isNullOrBlank()) {
-            val existingByEmail = clientRepository.findByEmail(email)
+            val existingByEmail = clientRepositoryDeprecated.findByEmail(email)
             if (existingByEmail != null && existingByEmail.id != excludeId) {
                 throw DomainException("Client with email $email already exists")
             }
         }
 
         if (!phone.isNullOrBlank()) {
-            val existingByPhone = clientRepository.findByPhone(phone)
+            val existingByPhone = clientRepositoryDeprecated.findByPhone(phone)
             if (existingByPhone != null && existingByPhone.id != excludeId) {
                 throw DomainException("Client with phone $phone already exists")
             }
@@ -121,6 +121,6 @@ class ClientDomainService(
 
     private fun initializeClientStatistics(clientId: ClientId) {
         val statistics = ClientStatistics(clientId = clientId.value)
-        clientStatisticsRepository.save(statistics)
+        clientStatisticsRepositoryDeprecated.save(statistics)
     }
 }

@@ -14,7 +14,7 @@
     
     @Entity
     @Table(
-        name = "vehicles",
+        name = "vehicles_deprecated",
         indexes = [
             Index(name = "idx_vehicle_license_plate", columnList = "license_plate"),
             Index(name = "idx_vehicle_vin", columnList = "vin"),
@@ -22,7 +22,7 @@
             Index(name = "idx_vehicle_make_model", columnList = "make, model")
         ]
     )
-    class VehicleEntity(
+    class VehicleEntityDeprecated(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id: Long? = null,
@@ -86,7 +86,7 @@
             cascade = [CascadeType.REMOVE]
         )
         @BatchSize(size = 50)
-        var associations: MutableSet<ClientVehicleAssociationEntity> = mutableSetOf()
+        var associations: MutableSet<ClientVehicleAssociationEntityDeprecated> = mutableSetOf()
     
         @OneToOne(
             mappedBy = "vehicle",
@@ -94,7 +94,7 @@
             cascade = [CascadeType.ALL],
             orphanRemoval = true
         )
-        var statistics: VehicleStatisticsEntity? = null
+        var statistics: VehicleStatisticsEntityDeprecated? = null
     
         fun toDomain(): Vehicle = Vehicle(
             id = VehicleId.of(id!!),
@@ -121,7 +121,7 @@
         )
     
         companion object {
-            fun fromDomain(vehicle: CreateVehicle, companyId: Long): VehicleEntity = VehicleEntity(
+            fun fromDomain(vehicle: CreateVehicle, companyId: Long): VehicleEntityDeprecated = VehicleEntityDeprecated(
                 id = null,
                 companyId = companyId,
                 make = vehicle.make,

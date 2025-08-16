@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "clients",
+    name = "clients_deprecated",
     indexes = [
         Index(name = "idx_client_email", columnList = "email"),
         Index(name = "idx_client_phone", columnList = "phone"),
@@ -18,7 +18,7 @@ import java.time.LocalDateTime
         Index(name = "idx_client_full_name", columnList = "first_name, last_name")
     ]
 )
-class ClientEntity(
+class ClientEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -77,7 +77,7 @@ class ClientEntity(
         cascade = [CascadeType.REMOVE]
     )
     @BatchSize(size = 50)
-    var associations: MutableSet<ClientVehicleAssociationEntity> = mutableSetOf()
+    var associations: MutableSet<ClientVehicleAssociationEntityDeprecated> = mutableSetOf()
 
     @OneToOne(
         mappedBy = "client",
@@ -85,7 +85,7 @@ class ClientEntity(
         cascade = [CascadeType.ALL],
         orphanRemoval = true
     )
-    var statistics: ClientStatisticsEntity? = null
+    var statistics: ClientStatisticsEntityDeprecated? = null
 
     fun toDomain(): Client = Client(
         id = ClientId.of(id!!),
@@ -107,7 +107,7 @@ class ClientEntity(
     )
 
     companion object {
-        fun fromDomain(client: CreateClient, companyId: Long): ClientEntity = ClientEntity(
+        fun fromDomain(client: CreateClient, companyId: Long): ClientEntityDeprecated = ClientEntityDeprecated(
             id = null,
             companyId = companyId,
             firstName = client.firstName,
@@ -125,7 +125,7 @@ class ClientEntity(
             version = client.audit.version
         )
 
-        fun fromDomain(client: Client, companyId: Long): ClientEntity = ClientEntity(
+        fun fromDomain(client: Client, companyId: Long): ClientEntityDeprecated = ClientEntityDeprecated(
             id = null,
             companyId = companyId,
             firstName = client.firstName,

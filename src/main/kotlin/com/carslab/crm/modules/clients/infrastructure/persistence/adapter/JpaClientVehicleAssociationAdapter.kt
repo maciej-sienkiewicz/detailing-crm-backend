@@ -3,33 +3,33 @@ package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.ClientVehicleAssociation
 import com.carslab.crm.modules.clients.domain.model.VehicleId
-import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientVehicleAssociationEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientVehicleAssociationJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.domain.port.ClientVehicleAssociationRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientVehicleAssociationEntityDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientVehicleAssociationJpaRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
 @Repository
-class ClientVehicleAssociationRepositoryAdapter(
-    private val associationJpaRepository: ClientVehicleAssociationJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository,
+class ClientVehicleAssociationRepositoryDeprecatedAdapter(
+    private val associationJpaRepository: ClientVehicleAssociationJpaRepositoryDeprecated,
+    private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated,
+    private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
     private val securityContext: SecurityContext
-) : ClientVehicleAssociationRepository {
+) : ClientVehicleAssociationRepositoryDeprecated {
 
     override fun save(association: ClientVehicleAssociation): ClientVehicleAssociation {
         val companyId = securityContext.getCurrentCompanyId()
 
-        val clientEntity = clientJpaRepository.findByIdAndCompanyId(association.clientId.value, companyId)
+        val clientEntity = clientJpaRepositoryDeprecated.findByIdAndCompanyId(association.clientId.value, companyId)
             .orElseThrow { IllegalStateException("Client not found or access denied") }
 
-        val vehicleEntity = vehicleJpaRepository.findByIdAndCompanyId(association.vehicleId.value, companyId)
+        val vehicleEntity = vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(association.vehicleId.value, companyId)
             .orElseThrow { IllegalStateException("Vehicle not found or access denied") }
 
-        val entity = ClientVehicleAssociationEntity.fromDomain(
+        val entity = ClientVehicleAssociationEntityDeprecated.fromDomain(
             association = association,
             client = clientEntity,
             vehicle = vehicleEntity,

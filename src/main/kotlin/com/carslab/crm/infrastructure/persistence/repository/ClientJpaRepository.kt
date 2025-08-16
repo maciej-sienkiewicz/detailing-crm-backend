@@ -70,14 +70,14 @@ interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, Long>, JpaSpecif
 
     // Podobnie modyfikujemy pozostałe metody
     @Query("SELECT p FROM ProtocolEntity p " +
-            "JOIN ClientEntity c ON p.clientId = c.id " +
+            "JOIN ClientEntityDeprecated c ON p.clientId = c.id " +
             "WHERE (LOWER(c.firstName) LIKE LOWER(CONCAT('%', :name, '%')) OR " +
             "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND p.companyId = :companyId")
     fun findByClientNameAndCompanyId(@Param("name") name: String, @Param("companyId") companyId: Long): List<ProtocolEntity>
 
     @Query("SELECT p FROM ProtocolEntity p " +
-            "JOIN VehicleEntity v ON p.vehicleId = v.id " +
+            "JOIN VehicleEntityDeprecated v ON p.vehicleId = v.id " +
             "WHERE LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%')) " +
             "AND p.companyId = :companyId")
     fun findByLicensePlateContainingAndCompanyId(@Param("licensePlate") licensePlate: String, @Param("companyId") companyId: Long): List<ProtocolEntity>

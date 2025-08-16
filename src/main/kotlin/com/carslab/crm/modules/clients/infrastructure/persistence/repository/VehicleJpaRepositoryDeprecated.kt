@@ -1,6 +1,6 @@
 package com.carslab.crm.modules.clients.infrastructure.persistence.repository
 
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntityDeprecated
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -13,28 +13,28 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 @Repository
-interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long>, JpaSpecificationExecutor<VehicleEntity> {
+interface VehicleJpaRepositoryDeprecated : JpaRepository<VehicleEntityDeprecated, Long>, JpaSpecificationExecutor<VehicleEntityDeprecated> {
 
     // Basic queries with company isolation
-    @Query("SELECT v FROM VehicleEntity v WHERE v.companyId = :companyId AND v.active = true")
-    fun findByCompanyId(@Param("companyId") companyId: Long, pageable: Pageable): Page<VehicleEntity>
+    @Query("SELECT v FROM VehicleEntityDeprecated v WHERE v.companyId = :companyId AND v.active = true")
+    fun findByCompanyId(@Param("companyId") companyId: Long, pageable: Pageable): Page<VehicleEntityDeprecated>
 
-    @Query("SELECT v FROM VehicleEntity v WHERE v.id = :id AND v.companyId = :companyId AND v.active = true")
-    fun findByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long): Optional<VehicleEntity>
+    @Query("SELECT v FROM VehicleEntityDeprecated v WHERE v.id = :id AND v.companyId = :companyId AND v.active = true")
+    fun findByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long): Optional<VehicleEntityDeprecated>
 
     // Simple queries without LOWER function
-    @Query("SELECT v FROM VehicleEntity v WHERE v.licensePlate = :licensePlate AND v.companyId = :companyId AND v.active = true")
-    fun findByLicensePlateAndCompanyId(@Param("licensePlate") licensePlate: String, @Param("companyId") companyId: Long): Optional<VehicleEntity>
+    @Query("SELECT v FROM VehicleEntityDeprecated v WHERE v.licensePlate = :licensePlate AND v.companyId = :companyId AND v.active = true")
+    fun findByLicensePlateAndCompanyId(@Param("licensePlate") licensePlate: String, @Param("companyId") companyId: Long): Optional<VehicleEntityDeprecated>
 
-    @Query("SELECT v FROM VehicleEntity v WHERE v.vin = :vin AND v.companyId = :companyId AND v.active = true")
-    fun findByVinAndCompanyId(@Param("vin") vin: String, @Param("companyId") companyId: Long): Optional<VehicleEntity>
+    @Query("SELECT v FROM VehicleEntityDeprecated v WHERE v.vin = :vin AND v.companyId = :companyId AND v.active = true")
+    fun findByVinAndCompanyId(@Param("vin") vin: String, @Param("companyId") companyId: Long): Optional<VehicleEntityDeprecated>
 
-    @Query("SELECT v FROM VehicleEntity v WHERE (v.vin = :vin OR v.licensePlate = :licensePlate) AND v.companyId = :companyId AND v.active = true")
+    @Query("SELECT v FROM VehicleEntityDeprecated v WHERE (v.vin = :vin OR v.licensePlate = :licensePlate) AND v.companyId = :companyId AND v.active = true")
     fun findByVinOrLicensePlateAndCompanyId(
         @Param("vin") vin: String?,
         @Param("licensePlate") licensePlate: String?,
         @Param("companyId") companyId: Long
-    ): Optional<VehicleEntity>
+    ): Optional<VehicleEntityDeprecated>
 
     // FIXED: Native query zamiast JPQL dla wyszukiwania
     @Query(nativeQuery = true, value = """
@@ -57,7 +57,7 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long>, JpaSpecific
         @Param("companyId") companyId: Long,
         @Param("limit") limit: Int,
         @Param("offset") offset: Int
-    ): List<VehicleEntity>
+    ): List<VehicleEntityDeprecated>
 
     // Count query dla paginacji
     @Query(nativeQuery = true, value = """
@@ -80,11 +80,11 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long>, JpaSpecific
 
     // Soft delete
     @Modifying
-    @Query("UPDATE VehicleEntity v SET v.active = false, v.updatedAt = :now WHERE v.id = :id AND v.companyId = :companyId")
+    @Query("UPDATE VehicleEntityDeprecated v SET v.active = false, v.updatedAt = :now WHERE v.id = :id AND v.companyId = :companyId")
     fun softDeleteByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long, @Param("now") now: LocalDateTime): Int
 
     // Statistics
-    @Query("SELECT COUNT(v) FROM VehicleEntity v WHERE v.companyId = :companyId AND v.active = true")
+    @Query("SELECT COUNT(v) FROM VehicleEntityDeprecated v WHERE v.companyId = :companyId AND v.active = true")
     fun countByCompanyId(@Param("companyId") companyId: Long): Long
 
     // Check existence
@@ -92,22 +92,26 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long>, JpaSpecific
     fun existsByVinAndCompanyIdAndActiveTrue(vin: String, companyId: Long): Boolean
 
     // Find vehicles by client (jeśli masz taką relację)
-    @Query("""
-        SELECT v FROM VehicleEntity v 
-        JOIN ClientVehicleAssociationEntity cva ON v.id = cva.vehicle.id 
+    @Query(
+        """
+        SELECT v FROM VehicleEntityDeprecated v 
+        JOIN ClientVehicleAssociationEntityDeprecated cva ON v.id = cva.vehicle.id 
         WHERE cva.client.id = :clientId AND cva.companyId = :companyId 
         AND cva.endDate IS NULL AND v.active = true
-    """)
-    fun findActiveVehiclesByClientId(@Param("clientId") clientId: Long, @Param("companyId") companyId: Long): List<VehicleEntity>
+    """
+    )
+    fun findActiveVehiclesByClientId(@Param("clientId") clientId: Long, @Param("companyId") companyId: Long): List<VehicleEntityDeprecated>
 
     @Modifying
-    @Query("""
-    UPDATE VehicleEntity v 
+    @Query(
+        """
+    UPDATE VehicleEntityDeprecated v 
     SET v.lastServiceDate = :lastVisitDate, 
         v.totalServices = v.totalServices + 1,
         v.updatedAt = :now 
     WHERE v.id = :vehicleId AND v.companyId = :companyId AND v.active = true
-""")
+"""
+    )
     fun updateLastVisitAndIncrementCount(
         @Param("vehicleId") vehicleId: Long,
         @Param("companyId") companyId: Long,

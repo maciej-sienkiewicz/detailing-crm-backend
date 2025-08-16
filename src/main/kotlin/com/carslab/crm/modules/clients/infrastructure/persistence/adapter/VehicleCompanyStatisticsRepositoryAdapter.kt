@@ -3,7 +3,7 @@ package com.carslab.crm.modules.clients.infrastructure.persistence.adapter
 import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatisticsRepository
 import com.carslab.crm.modules.clients.domain.port.VehicleCompanyStatistics
 import com.carslab.crm.modules.clients.domain.port.MostActiveVehicleData
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleStatisticsJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.security.SecurityContext
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 @Repository
 @Transactional(readOnly = true)
 class VehicleCompanyStatisticsRepositoryAdapter(
-    private val vehicleStatisticsJpaRepository: VehicleStatisticsJpaRepository,
+    private val vehicleStatisticsJpaRepositoryDeprecated: VehicleStatisticsJpaRepositoryDeprecated,
     private val securityContext: SecurityContext
 ) : VehicleCompanyStatisticsRepository {
 
@@ -27,7 +27,7 @@ class VehicleCompanyStatisticsRepositoryAdapter(
         return try {
             // Get total vehicle count with error handling
             val totalVehicles = try {
-                vehicleStatisticsJpaRepository.countTotalVehiclesForCompany(companyId)
+                vehicleStatisticsJpaRepositoryDeprecated.countTotalVehiclesForCompany(companyId)
             } catch (e: Exception) {
                 logger.warn("Error getting total vehicles count: ${e.message}")
                 0L
@@ -37,7 +37,7 @@ class VehicleCompanyStatisticsRepositoryAdapter(
 
             // Get premium vehicle count (vehicles with 10k+ PLN in completed visits)
             val premiumVehicles = try {
-                vehicleStatisticsJpaRepository.countPremiumVehiclesForCompany(companyId, BigDecimal("10000"))
+                vehicleStatisticsJpaRepositoryDeprecated.countPremiumVehiclesForCompany(companyId, BigDecimal("10000"))
             } catch (e: Exception) {
                 logger.warn("Error getting premium vehicles count: ${e.message}")
                 0L
@@ -57,7 +57,7 @@ class VehicleCompanyStatisticsRepositoryAdapter(
 
             // Get total revenue from all completed visits
             val totalRevenue = try {
-                vehicleStatisticsJpaRepository.getTotalRevenueFromProtocolServicesForCompany(companyId) ?: BigDecimal.ZERO
+                vehicleStatisticsJpaRepositoryDeprecated.getTotalRevenueFromProtocolServicesForCompany(companyId) ?: BigDecimal.ZERO
             } catch (e: Exception) {
                 logger.warn("Error getting total revenue: ${e.message}")
                 BigDecimal.ZERO
@@ -106,7 +106,7 @@ class VehicleCompanyStatisticsRepositoryAdapter(
      */
     private fun calculateMedianVisitRevenue(companyId: Long): BigDecimal {
         return try {
-            val revenues = vehicleStatisticsJpaRepository.getAllCompletedVisitRevenuesForCompany(companyId)
+            val revenues = vehicleStatisticsJpaRepositoryDeprecated.getAllCompletedVisitRevenuesForCompany(companyId)
 
             if (revenues.isEmpty()) {
                 logger.debug("No revenue data found for median calculation")
@@ -150,7 +150,7 @@ class VehicleCompanyStatisticsRepositoryAdapter(
      */
     private fun getMostActiveVehicle(companyId: Long): MostActiveVehicleData? {
         return try {
-            val result = vehicleStatisticsJpaRepository.findMostActiveVehicleForCompany(companyId)
+            val result = vehicleStatisticsJpaRepositoryDeprecated.findMostActiveVehicleForCompany(companyId)
 
             if (result == null) {
                 logger.debug("No active vehicle found for companyId: $companyId")

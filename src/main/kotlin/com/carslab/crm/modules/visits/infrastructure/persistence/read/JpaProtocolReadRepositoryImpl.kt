@@ -5,13 +5,13 @@ import com.carslab.crm.modules.visits.application.queries.models.*
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntityDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntityDeprecated
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
@@ -24,8 +24,8 @@ import java.time.format.DateTimeFormatter
 @Repository
 class JpaProtocolReadRepositoryImpl(
     private val protocolJpaRepository: ProtocolJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository,
+    private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated,
+    private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
     private val protocolServiceJpaRepository: ProtocolServiceJpaRepository
 ) : ProtocolReadRepository {
 
@@ -36,10 +36,10 @@ class JpaProtocolReadRepositoryImpl(
         val protocolEntity = protocolJpaRepository.findByCompanyIdAndId(companyId, protocolId.toLong())
             .orElse(null) ?: return null
 
-        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId)
+        val client = clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId)
             .orElse(null) ?: return null
 
-        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId)
+        val vehicle = vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId)
             .orElse(null) ?: return null
 
         val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
@@ -115,8 +115,8 @@ class JpaProtocolReadRepositoryImpl(
         val protocolPage = protocolJpaRepository.findAll(specification, pageable)
 
         val protocols = protocolPage.content.map { protocolEntity ->
-            val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
-            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
+            val client = clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
+            val vehicle = vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
             val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
 
             ProtocolListReadModel(
@@ -176,8 +176,8 @@ class JpaProtocolReadRepositoryImpl(
 
             // Client name filter
             if (clientName != null) {
-                val clientSubquery = query!!.subquery(ClientEntity::class.java)
-                val clientRoot = clientSubquery.from(ClientEntity::class.java)
+                val clientSubquery = query!!.subquery(ClientEntityDeprecated::class.java)
+                val clientRoot = clientSubquery.from(ClientEntityDeprecated::class.java)
                 val clientPredicates = mutableListOf<Predicate>()
                 clientPredicates.add(cb.equal(clientRoot.get<Long>("id"), root.get<Long>("clientId")))
                 val firstNamePredicate = cb.like(cb.lower(clientRoot.get("firstName")), "%" + clientName.lowercase() + "%")
@@ -194,8 +194,8 @@ class JpaProtocolReadRepositoryImpl(
 
             // Vehicle filters
             if (licensePlate != null || make != null) {
-                val vehicleSubquery = query!!.subquery(VehicleEntity::class.java)
-                val vehicleRoot = vehicleSubquery.from(VehicleEntity::class.java)
+                val vehicleSubquery = query!!.subquery(VehicleEntityDeprecated::class.java)
+                val vehicleRoot = vehicleSubquery.from(VehicleEntityDeprecated::class.java)
                 val vehiclePredicates = mutableListOf<Predicate>()
                 vehiclePredicates.add(cb.equal(vehicleRoot.get<Long>("id"), root.get<Long>("vehicleId")))
 
@@ -231,8 +231,8 @@ class JpaProtocolReadRepositoryImpl(
         val protocolPage = protocolJpaRepository.findAll(specification, pageable)
 
         val protocols = protocolPage.content.map { protocolEntity ->
-            val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
-            val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
+            val client = clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.clientId).orElse(null)
+            val vehicle = vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = protocolEntity.vehicleId).orElse(null)
             val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(protocolId = protocolEntity.id!!, companyId = companyId)
 
             ProtocolListReadModel(
@@ -287,7 +287,7 @@ class JpaProtocolReadRepositoryImpl(
         return (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
     }
 
-    private fun toVehicleReadModel(vehicle: VehicleEntity): VehicleReadModel {
+    private fun toVehicleReadModel(vehicle: VehicleEntityDeprecated): VehicleReadModel {
         return VehicleReadModel(
             id = vehicle.id.toString(),
             make = vehicle.make,
@@ -300,7 +300,7 @@ class JpaProtocolReadRepositoryImpl(
         )
     }
 
-    private fun toClientReadModel(client: ClientEntity): ClientReadModel {
+    private fun toClientReadModel(client: ClientEntityDeprecated): ClientReadModel {
         return ClientReadModel(
             id = client.id.toString(),
             name = "${client.firstName} ${client.lastName}".trim(),

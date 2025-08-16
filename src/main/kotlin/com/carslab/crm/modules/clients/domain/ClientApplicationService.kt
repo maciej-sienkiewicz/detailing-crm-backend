@@ -24,7 +24,7 @@ import java.time.LocalDateTime
 @Service
 @Transactional
 class ClientApplicationService(
-    private val clientDomainService: ClientDomainService,
+    private val clientDomainServiceDeprecated: ClientDomainServiceDeprecated,
     private val associationService: ClientVehicleAssociationService
 ) {
     private val logger = LoggerFactory.getLogger(ClientApplicationService::class.java)
@@ -46,12 +46,12 @@ class ClientApplicationService(
                 notes = request.notes
             )
 
-            val client = clientDomainService.createClient(command)
+            val client = clientDomainServiceDeprecated.createClient(command)
 
             logger.info("Successfully created client with ID: ${client.id.value}")
 
             // Get client with statistics and vehicles
-            val clientWithStats = clientDomainService.getClientWithStatistics(client.id)!!
+            val clientWithStats = clientDomainServiceDeprecated.getClientWithStatistics(client.id)!!
             val vehicles = associationService.getClientVehicles(client.id)
 
             return ClientDetailResponse.from(clientWithStats, vehicles)
@@ -82,12 +82,12 @@ class ClientApplicationService(
                 notes = request.notes
             )
 
-            val client = clientDomainService.updateClient(ClientId.of(id), command)
+            val client = clientDomainServiceDeprecated.updateClient(ClientId.of(id), command)
 
             logger.info("Successfully updated client with ID: $id")
 
             // Get client with statistics and vehicles
-            val clientWithStats = clientDomainService.getClientWithStatistics(client.id)!!
+            val clientWithStats = clientDomainServiceDeprecated.getClientWithStatistics(client.id)!!
             val vehicles = associationService.getClientVehicles(client.id)
 
             return ClientDetailResponse.from(clientWithStats, vehicles)
@@ -103,7 +103,7 @@ class ClientApplicationService(
     fun updateClientStatistics(clientId: ClientId, totalGmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0) {
         logger.info("Updating statistics for client with ID: $clientId")
         try {
-            clientDomainService.updateClientStatistics(clientId, totalGmv, counter)
+            clientDomainServiceDeprecated.updateClientStatistics(clientId, totalGmv, counter)
             logger.info("Successfully updated statistics for client with ID: $clientId")
         } catch (e: DomainException) {
             logger.error("Failed to update statistics for client $clientId: ${e.message}")
@@ -118,7 +118,7 @@ class ClientApplicationService(
     fun getClientById(id: Long): ClientDetailResponse? {
         logger.debug("Getting client by ID: $id")
 
-        val clientWithStats = clientDomainService.getClientWithStatistics(ClientId.of(id))
+        val clientWithStats = clientDomainServiceDeprecated.getClientWithStatistics(ClientId.of(id))
             ?: return null
 
         val vehicles = associationService.getClientVehicles(ClientId.of(id))
@@ -153,11 +153,11 @@ class ClientApplicationService(
             maxVisits = maxVisits
         )
 
-        return clientDomainService.searchClients(criteria, pageable)
+        return clientDomainServiceDeprecated.searchClients(criteria, pageable)
             .map { client ->
                 val clientWithStats = ClientWithStatistics(
                     client = client,
-                    statistics = clientDomainService.getClientWithStatistics(client.id)?.statistics
+                    statistics = clientDomainServiceDeprecated.getClientWithStatistics(client.id)?.statistics
                         ?: ClientStatistics(clientId = client.id.value)
                 )
                 val vehicles = associationService.getClientVehicles(client.id)
@@ -169,7 +169,7 @@ class ClientApplicationService(
     fun deleteClient(id: Long): Boolean {
         logger.info("Deleting client with ID: $id")
 
-        val deleted = clientDomainService.deleteClient(ClientId.of(id))
+        val deleted = clientDomainServiceDeprecated.deleteClient(ClientId.of(id))
 
         if (deleted) {
             logger.info("Successfully deleted client with ID: $id")

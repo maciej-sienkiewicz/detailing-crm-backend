@@ -6,7 +6,7 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface VehicleTableJpaRepository : JpaRepository<com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity, Long> {
+interface VehicleTableJpaRepositoryDeprecated : JpaRepository<com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntityDeprecated, Long> {
 
     /**
      * POPRAWIONA implementacja - usunięto DISTINCT i dodano GROUP BY

@@ -1,7 +1,7 @@
 package com.carslab.crm.infrastructure.persistence.adapter
 
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntity
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntityDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntityDeprecated
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
@@ -9,9 +9,9 @@ import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.protocol.ProtocolView
 import com.carslab.crm.modules.visits.domain.ports.CarReceptionRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -24,8 +24,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 @Repository
 class JpaCarReceptionRepositoryAdapter(
     private val protocolJpaRepository: ProtocolJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository
+    private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
+    private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated
 ) : CarReceptionRepository {
 
     override fun save(protocol: CreateProtocolRootModel): ProtocolId {
@@ -38,10 +38,10 @@ class JpaCarReceptionRepositoryAdapter(
             ?: throw IllegalStateException("Client ID is required")
 
         // Sprawdzamy, czy encje istnieją i należą do tej samej firmy
-        vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
+        vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
             .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
 
-        clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id  = clientId)
+        clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id  = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         val protocolEntity = ProtocolEntity(
@@ -72,7 +72,7 @@ class JpaCarReceptionRepositoryAdapter(
         val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Sprawdź pojazd i klienta
-        val vehicle = vehicleJpaRepository.findByVinOrLicensePlateAndCompanyId(
+        val vehicle = vehicleJpaRepositoryDeprecated.findByVinOrLicensePlateAndCompanyId(
             protocol.vehicle.vin,
             protocol.vehicle.licensePlate,
             companyId
@@ -81,7 +81,7 @@ class JpaCarReceptionRepositoryAdapter(
         val clientId = protocol.client.id
             ?: throw IllegalStateException("Client ID is required")
 
-        clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = clientId)
+        clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         // Sprawdź, czy protokół istnieje
@@ -213,8 +213,8 @@ class JpaCarReceptionRepositoryAdapter(
             // Filtr po kliencie (name)
             if (clientName != null) {
                 // Tworzymy subquery dla klienta
-                val clientSubquery = query!!.subquery(ClientEntity::class.java)
-                val clientRoot = clientSubquery.from(ClientEntity::class.java)
+                val clientSubquery = query!!.subquery(ClientEntityDeprecated::class.java)
+                val clientRoot = clientSubquery.from(ClientEntityDeprecated::class.java)
 
                 // Łączymy warunki: client.id = protocol.clientId oraz (firstName LIKE name OR lastName LIKE name)
                 val clientPredicates = mutableListOf<Predicate>()
@@ -242,8 +242,8 @@ class JpaCarReceptionRepositoryAdapter(
             // Filtr po pojeździe (licensePlate lub make)
             if (licensePlate != null || make != null) {
                 // Tworzymy subquery dla pojazdu
-                val vehicleSubquery = query!!.subquery(VehicleEntity::class.java)
-                val vehicleRoot = vehicleSubquery.from(VehicleEntity::class.java)
+                val vehicleSubquery = query!!.subquery(VehicleEntityDeprecated::class.java)
+                val vehicleRoot = vehicleSubquery.from(VehicleEntityDeprecated::class.java)
 
                 // Łączymy warunki: vehicle.id = protocol.vehicleId oraz (licencePlate LIKE value OR make LIKE value)
                 val vehiclePredicates = mutableListOf<Predicate>()

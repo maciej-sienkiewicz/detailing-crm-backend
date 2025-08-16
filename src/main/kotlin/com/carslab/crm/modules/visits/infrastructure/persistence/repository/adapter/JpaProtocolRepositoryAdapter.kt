@@ -5,13 +5,12 @@ import com.carslab.crm.domain.model.create.protocol.CreateProtocolRootModel
 import com.carslab.crm.domain.model.view.calendar.CalendarColorId
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepository
-import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepository
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
+import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.modules.clients.domain.model.VehicleId
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -19,8 +18,8 @@ import java.time.LocalDateTime
 @Repository
 class JpaProtocolRepositoryAdapter(
     private val protocolJpaRepository: ProtocolJpaRepository,
-    private val vehicleJpaRepository: VehicleJpaRepository,
-    private val clientJpaRepository: ClientJpaRepository,
+    private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
+    private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated,
     private val protocolServiceJpaRepository: ProtocolServiceJpaRepository
 ) : ProtocolRepository {
 
@@ -33,10 +32,10 @@ class JpaProtocolRepositoryAdapter(
         val clientId = protocol.client.id?.toLong()
             ?: throw IllegalStateException("Client ID is required")
 
-        vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
+        vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
             .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
 
-        clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = clientId)
+        clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         val protocolEntity = ProtocolEntity(
@@ -131,10 +130,10 @@ class JpaProtocolRepositoryAdapter(
     private fun convertEntityToDomain(entity: ProtocolEntity): CarReceptionProtocol {
         val companyId = getCurrentCompanyId()
 
-        val client = clientJpaRepository.findByIdAndCompanyId(companyId = companyId, id = entity.clientId)
+        val client = clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = entity.clientId)
             .orElseThrow { IllegalStateException("Client not found") }
 
-        val vehicle = vehicleJpaRepository.findByIdAndCompanyId(companyId = companyId, id = entity.vehicleId)
+        val vehicle = vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = entity.vehicleId)
             .orElseThrow { IllegalStateException("Vehicle not found") }
 
         val services = protocolServiceJpaRepository.findByProtocolIdAndCompanyId(entity.id!!, companyId)

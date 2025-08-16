@@ -6,7 +6,7 @@ import com.carslab.crm.modules.clients.domain.model.CreateClient
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
-interface ClientRepository {
+interface ClientRepositoryDeprecated {
     fun save(client: Client): Client
     fun saveNew(client: CreateClient): Client
     fun findById(id: ClientId): Client?

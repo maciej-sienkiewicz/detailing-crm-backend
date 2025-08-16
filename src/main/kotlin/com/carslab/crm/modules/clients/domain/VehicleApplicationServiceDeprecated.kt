@@ -17,11 +17,11 @@ import java.time.LocalDateTime
 
 @Service
 @Transactional
-class VehicleApplicationService(
-    private val vehicleDomainService: VehicleDomainService,
+class VehicleApplicationServiceDeprecated(
+    private val vehicleDomainServiceDeprecated: VehicleDomainServiceDeprecated,
     private val associationService: ClientVehicleAssociationService
 ) {
-    private val logger = LoggerFactory.getLogger(VehicleApplicationService::class.java)
+    private val logger = LoggerFactory.getLogger(VehicleApplicationServiceDeprecated::class.java)
 
     fun createVehicle(request: CreateVehicleRequest): VehicleDetailResponse {
         logger.info("Creating vehicle: ${request.make} ${request.model} (${request.licensePlate})")
@@ -40,7 +40,7 @@ class VehicleApplicationService(
                 ownerIds = request.ownerIds.map { it.toString() }
             )
 
-            val vehicle = vehicleDomainService.createVehicle(command)
+            val vehicle = vehicleDomainServiceDeprecated.createVehicle(command)
 
             // Associate with owners if provided
             request.ownerIds.forEach { ownerId ->
@@ -60,7 +60,7 @@ class VehicleApplicationService(
             logger.info("Successfully created vehicle with ID: ${vehicle.id.value}")
 
             // Get vehicle with statistics and owners
-            val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+            val vehicleWithStats = vehicleDomainServiceDeprecated.getVehicleWithStatistics(vehicle.id)!!
             val owners = associationService.getVehicleOwners(vehicle.id)
 
             return VehicleDetailResponse.from(vehicleWithStats, owners)
@@ -90,12 +90,12 @@ class VehicleApplicationService(
                 ownersIds = request.ownerIds.map { it.toLong() }
             )
 
-            val vehicle = vehicleDomainService.updateVehicle(VehicleId.of(id), command)
+            val vehicle = vehicleDomainServiceDeprecated.updateVehicle(VehicleId.of(id), command)
 
             logger.info("Successfully updated vehicle with ID: $id")
 
             // Get vehicle with statistics and owners
-            val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+            val vehicleWithStats = vehicleDomainServiceDeprecated.getVehicleWithStatistics(vehicle.id)!!
             val owners = associationService.getVehicleOwners(vehicle.id)
 
             return VehicleDetailResponse.from(vehicleWithStats, owners)
@@ -109,14 +109,14 @@ class VehicleApplicationService(
     }
     
     fun updateVehicleLastVisit(id: Long, companyId: Long, date: LocalDateTime) {
-        vehicleDomainService.updateVehicleLastVisit(id, companyId, date)
+        vehicleDomainServiceDeprecated.updateVehicleLastVisit(id, companyId, date)
     }
 
     fun updateVehicleStatistics(id: Long, gmv: BigDecimal = BigDecimal.ZERO, counter: Long = 0L) {
         logger.debug("Updating statistics for vehicle ID: $id")
 
         try {
-            vehicleDomainService.updateStatistics(VehicleId.of(id), gmv, counter)
+            vehicleDomainServiceDeprecated.updateStatistics(VehicleId.of(id), gmv, counter)
             logger.info("Successfully updated statistics for vehicle ID: $id")
         } catch (e: DomainException) {
             logger.error("Failed to update statistics for vehicle $id: ${e.message}")
@@ -131,7 +131,7 @@ class VehicleApplicationService(
     fun getVehicleById(id: Long): VehicleDetailResponse? {
         logger.debug("Getting vehicle by ID: $id")
 
-        val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(VehicleId.of(id))
+        val vehicleWithStats = vehicleDomainServiceDeprecated.getVehicleWithStatistics(VehicleId.of(id))
             ?: return null
 
         val owners = associationService.getVehicleOwners(VehicleId.of(id))
@@ -158,9 +158,9 @@ class VehicleApplicationService(
             year = year
         )
 
-        return vehicleDomainService.searchVehicles(criteria, pageable)
+        return vehicleDomainServiceDeprecated.searchVehicles(criteria, pageable)
             .map { vehicle ->
-                val vehicleWithStats = vehicleDomainService.getVehicleWithStatistics(vehicle.id)!!
+                val vehicleWithStats = vehicleDomainServiceDeprecated.getVehicleWithStatistics(vehicle.id)!!
                 val owners = associationService.getVehicleOwners(vehicle.id)
                 VehicleDetailResponse.from(vehicleWithStats, owners)
             }
@@ -169,7 +169,7 @@ class VehicleApplicationService(
     fun deleteVehicle(id: Long): Boolean {
         logger.info("Deleting vehicle with ID: $id")
 
-        val deleted = vehicleDomainService.deleteVehicle(VehicleId.of(id))
+        val deleted = vehicleDomainServiceDeprecated.deleteVehicle(VehicleId.of(id))
 
         if (deleted) {
             logger.info("Successfully deleted vehicle with ID: $id")

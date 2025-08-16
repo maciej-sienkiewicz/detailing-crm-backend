@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 class CarReceptionService(
     private val carReceptionRepository: CarReceptionRepository,
     private val clientApplicationService: ClientApplicationService,
-    private val vehicleApplicationService: VehicleApplicationService,
+    private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
 ) {
@@ -42,7 +42,7 @@ class CarReceptionService(
     }
 
     private fun ProtocolView.enrichProtocol(): CarReceptionProtocol {
-        val vehicleDetail = vehicleApplicationService.getVehicleById(vehicleId.value)
+        val vehicleDetail = vehicleApplicationServiceDeprecated.getVehicleById(vehicleId.value)
         val clientDetail = clientApplicationService.getClientById(clientId.value)
         val services = protocolServicesRepository.findByProtocolId(id)
         val images = imageStorageService.getImagesByProtocol(id)

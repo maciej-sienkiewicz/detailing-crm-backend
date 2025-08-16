@@ -3,7 +3,7 @@ package com.carslab.crm.modules.visits.domain.services
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.modules.clients.domain.ClientApplicationService
-import com.carslab.crm.modules.clients.domain.VehicleApplicationService
+import com.carslab.crm.modules.clients.domain.VehicleApplicationServiceDeprecated
 import com.carslab.crm.modules.clients.domain.model.ClientId
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.modules.visits.application.commands.models.UpdateProtocolCommand
@@ -15,7 +15,6 @@ import com.carslab.crm.modules.visits.domain.valueobjects.StatusChangeResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.math.BigDecimal
 
 @Service
 class ProtocolUpdateDomainService(
@@ -24,7 +23,7 @@ class ProtocolUpdateDomainService(
     private val clientStatisticsService: ClientStatisticsService,
     private val vehicleStatisticsService: VehicleStatisticsService,
     private val clientApplicationService: ClientApplicationService,
-    private val vehicleApplicationService: VehicleApplicationService,
+    private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val protocolDomainService: ProtocolDomainService
 ) {
     private val logger = LoggerFactory.getLogger(ProtocolUpdateDomainService::class.java)
@@ -83,7 +82,7 @@ class ProtocolUpdateDomainService(
                 counter = 1L
             )
             vehicleStatisticsService.updateLastVisitDate(vehicleId)
-            vehicleApplicationService.updateVehicleStatistics(
+            vehicleApplicationServiceDeprecated.updateVehicleStatistics(
                 id = vehicleId.value,
                 counter = 1L
             )
