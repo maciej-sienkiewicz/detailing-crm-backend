@@ -83,7 +83,7 @@ class ClientQueryService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Finding clients by IDs for company: {} with IDs: {}", companyId, clientIds)
 
-        val clients = clientDomainService.findByIds(clientIds.map { ClientId(it) }, companyId)
+        val clients = clientDomainService.findByIds(clientIds, companyId)
 
         logger.debug("Found {} clients by IDs for company: {}", clients.size, companyId)
 

@@ -6,6 +6,7 @@ import java.math.BigDecimal
 
 interface VehicleStatisticsRepository {
     fun findByVehicleId(vehicleId: VehicleId): VehicleStatistics?
+    fun findByVehicleIds(vehicleIds: List<VehicleId>): List<VehicleStatistics>
     fun save(statistics: VehicleStatistics): VehicleStatistics
     fun incrementVisitCount(vehicleId: VehicleId)
     fun addRevenue(vehicleId: VehicleId, amount: BigDecimal)

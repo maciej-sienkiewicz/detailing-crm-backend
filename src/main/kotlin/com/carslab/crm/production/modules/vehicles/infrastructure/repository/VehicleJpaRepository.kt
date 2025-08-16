@@ -25,6 +25,7 @@ interface VehicleJpaRepository : JpaRepository<VehicleEntity, Long> {
 
     fun existsByLicensePlateAndCompanyIdAndActiveTrue(licensePlate: String, companyId: Long): Boolean
     fun existsByVinAndCompanyIdAndActiveTrue(vin: String, companyId: Long): Boolean
+    fun existsByIdAndCompanyIdAndActiveTrue(id: Long, companyId: Long): Boolean
 
     @Modifying
     @Query("UPDATE VehicleEntity v SET v.active = false, v.updatedAt = :now WHERE v.id = :id AND v.companyId = :companyId")

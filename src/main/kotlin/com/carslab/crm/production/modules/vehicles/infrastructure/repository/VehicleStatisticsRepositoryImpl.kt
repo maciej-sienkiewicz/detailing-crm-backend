@@ -27,6 +27,17 @@ class VehicleStatisticsRepositoryImpl(
             .orElse(null)
     }
 
+    @Transactional(readOnly = true)
+    override fun findByVehicleIds(vehicleIds: List<VehicleId>): List<VehicleStatistics> {
+        if (vehicleIds.isEmpty()) return emptyList()
+
+        logger.debug("Finding statistics for {} vehicles", vehicleIds.size)
+
+        val vehicleIdValues = vehicleIds.map { it.value }
+        return jpaRepository.findByVehicleIds(vehicleIdValues)
+            .map { it.toDomain() }
+    }
+
     override fun save(statistics: VehicleStatistics): VehicleStatistics {
         logger.debug("Saving statistics for vehicle: {}", statistics.vehicleId.value)
 

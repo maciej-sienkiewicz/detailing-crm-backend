@@ -4,6 +4,7 @@ import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.CreateVehicleRequest
 import com.carslab.crm.production.modules.vehicles.application.dto.UpdateVehicleRequest
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
+import com.carslab.crm.production.modules.vehicles.application.dto.VehicleTableResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleWithStatisticsResponse
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
@@ -20,6 +21,8 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.*
 
 @RestController
@@ -43,7 +46,7 @@ class VehicleController(
 
     @GetMapping
     @Operation(summary = "Get all vehicles", description = "Retrieves all vehicles")
-    fun getAllVehicles(): ResponseEntity<List<VehicleResponse>> {
+    fun getAllVehicles(): ResponseEntity<List<VehicleTableResponse>> {
         logger.info("Getting all vehicles")
 
         val vehicles = vehicleQueryService.searchVehicles(
@@ -90,14 +93,16 @@ class VehicleController(
     ): ResponseEntity<Page<VehicleTableResponse>> {
         logger.info("Getting vehicles for table view with filters: make=$make, model=$model, licensePlate=$license_plate, ownerName=$owner_name")
 
-        val vehicleTablePage = vehicleQueryService.getVehiclesForTable(
+        val vehicleTablePage = vehicleQueryService.searchVehicles(
             make = make,
             model = model,
             licensePlate = license_plate,
             ownerName = owner_name,
             minVisits = min_visits,
             maxVisits = max_visits,
-            pageable = pageable
+            pageable = pageable,
+            vin = null,
+            year = null,
         )
 
         logger.info("Successfully retrieved ${vehicleTablePage.numberOfElements} vehicles for table view")
@@ -119,7 +124,7 @@ class VehicleController(
             totalRevenue = BigDecimal.ZERO,
             averageRevenuePerVehicle = BigDecimal.ZERO,
             mostActiveVehicle = null,
-            calculatedAt = java.time.LocalDateTime.now()
+            calculatedAt = LocalDateTime.now()
         )
 
         logger.info("Successfully retrieved company vehicle statistics")
@@ -253,7 +258,7 @@ class VehicleController(
         @Parameter(description = "License plate to search for") @RequestParam(required = false) licensePlate: String?,
         @Parameter(description = "Vehicle make to search for") @RequestParam(required = false) make: String?,
         @Parameter(description = "Vehicle model to search for") @RequestParam(required = false) model: String?
-    ): ResponseEntity<List<VehicleResponse>> {
+    ): ResponseEntity<List<VehicleTableResponse>> {
         logger.info("Searching vehicles with filters: licensePlate=$licensePlate, make=$make, model=$model")
 
         val vehicles = vehicleQueryService.searchVehicles(
@@ -281,31 +286,7 @@ class VehicleController(
     }
 }
 
-data class VehicleTableResponse(
-    val id: Long,
-    val make: String,
-    val model: String,
-    val year: Int?,
-    val licensePlate: String,
-    val color: String?,
-    val vin: String?,
-    val mileage: Long?,
-    val owners: List<VehicleOwnerSummary>,
-    val visitCount: Long,
-    val lastVisitDate: java.time.LocalDateTime?,
-    val totalRevenue: BigDecimal,
-    val createdAt: java.time.LocalDateTime,
-    val updatedAt: java.time.LocalDateTime
-)
 
-data class VehicleOwnerSummary(
-    val id: Long,
-    val firstName: String,
-    val lastName: String,
-    val fullName: String,
-    val email: String?,
-    val phone: String?
-)
 
 data class VehicleCompanyStatisticsResponse(
     val totalVehicles: Long,
@@ -314,7 +295,7 @@ data class VehicleCompanyStatisticsResponse(
     val totalRevenue: BigDecimal,
     val averageRevenuePerVehicle: BigDecimal,
     val mostActiveVehicle: MostActiveVehicleInfo?,
-    val calculatedAt: java.time.LocalDateTime
+    val calculatedAt: LocalDateTime
 )
 
 data class MostActiveVehicleInfo(
@@ -351,5 +332,5 @@ data class ServiceHistoryRequest(
     val serviceType: String,
     val description: String,
     val price: BigDecimal,
-    val date: java.time.LocalDate
+    val date: LocalDate
 )

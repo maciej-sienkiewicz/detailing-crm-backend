@@ -16,6 +16,9 @@ interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity
     @Query("SELECT s FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
     fun findByVehicleId(@Param("vehicleId") vehicleId: Long): Optional<VehicleStatisticsEntity>
 
+    @Query("SELECT s FROM VehicleStatisticsEntity s WHERE s.vehicleId IN :vehicleIds")
+    fun findByVehicleIds(@Param("vehicleIds") vehicleIds: List<Long>): List<VehicleStatisticsEntity>
+
     @Modifying
     @Query("""
         UPDATE VehicleStatisticsEntity s 

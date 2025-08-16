@@ -147,4 +147,9 @@ class VehicleRepositoryImpl(
 
         return PageImpl(vehicles, pageable, totalCount)
     }
+
+    override fun existsByIdAndCompanyId(
+        vehicleId: VehicleId,
+        companyId: Long
+    ): Boolean = jpaRepository.existsByIdAndCompanyIdAndActiveTrue(vehicleId.value, companyId)
 }

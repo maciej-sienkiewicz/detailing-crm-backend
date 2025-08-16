@@ -15,6 +15,7 @@ interface VehicleRepository {
     fun existsByVin(vin: String, companyId: Long): Boolean
     fun deleteById(id: VehicleId): Boolean
     fun searchVehicles(companyId: Long, searchCriteria: VehicleSearchCriteria, pageable: Pageable): Page<Vehicle>
+    fun existsByIdAndCompanyId(vehicleId: VehicleId, companyId: Long): Boolean
 }
 
 data class VehicleSearchCriteria(

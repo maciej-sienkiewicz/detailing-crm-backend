@@ -11,6 +11,9 @@ import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaR
 import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.modules.clients.domain.model.VehicleId
+import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
+import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -20,7 +23,9 @@ class JpaProtocolRepositoryAdapter(
     private val protocolJpaRepository: ProtocolJpaRepository,
     private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
     private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated,
-    private val protocolServiceJpaRepository: ProtocolServiceJpaRepository
+    private val protocolServiceJpaRepository: ProtocolServiceJpaRepository,
+    private val vehicleQueryService: VehicleQueryService,
+    private val clientQueryService: ClientQueryService,
 ) : ProtocolRepository {
 
     override fun save(protocol: CreateProtocolRootModel): ProtocolId {
@@ -32,12 +37,13 @@ class JpaProtocolRepositoryAdapter(
         val clientId = protocol.client.id?.toLong()
             ?: throw IllegalStateException("Client ID is required")
 
-        vehicleJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = vehicleId)
-            .orElse(null) ?: throw IllegalStateException("Vehicle with ID $vehicleId not found or access denied")
-
-        clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = clientId)
-            .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
-
+        if(!vehicleQueryService.exists(com.carslab.crm.production.modules.vehicles.domain.model.VehicleId(vehicleId)))
+            throw IllegalStateException("Vehicle with ID $vehicleId does not exist")
+        
+        clientQueryService.findByIds(listOf(ClientId(clientId)))
+            .takeIf { it.isNotEmpty() }
+            ?: throw IllegalStateException("Client with ID $clientId does not exist")
+        
         val protocolEntity = ProtocolEntity(
             title = protocol.title,
             companyId = companyId,

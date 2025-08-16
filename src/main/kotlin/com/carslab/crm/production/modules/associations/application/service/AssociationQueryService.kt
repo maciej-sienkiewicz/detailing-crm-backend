@@ -1,7 +1,6 @@
 package com.carslab.crm.production.modules.associations.application.service
 
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.production.modules.associations.application.dto.AssociationResponse
 import com.carslab.crm.production.modules.associations.domain.service.AssociationDomainService
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
@@ -31,7 +30,7 @@ class AssociationQueryService(
         return associationDomainService.getVehicleClients(VehicleId.of(vehicleId.toLong()))
     }
 
-    fun getVehicleOwnersMap(vehicleIds: List<VehicleId>): Map<VehicleId, List<ClientId>> {
+    fun getVehicleOwners(vehicleIds: List<VehicleId>): Map<VehicleId, List<ClientId>> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting owners for {} vehicles in company: {}", vehicleIds.size, companyId)
 
