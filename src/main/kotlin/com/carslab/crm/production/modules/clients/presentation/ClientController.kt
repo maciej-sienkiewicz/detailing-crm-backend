@@ -1,20 +1,13 @@
-package com.carslab.crm.modules.clients.api
+package com.carslab.crm.production.modules.clients.presentation
 
-import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.modules.clients.domain.ClientApplicationService
-import com.carslab.crm.modules.clients.domain.CreateClientRequest
-import com.carslab.crm.modules.clients.domain.UpdateClientRequest
-import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
-import com.carslab.crm.infrastructure.util.ValidationUtils
-import com.carslab.crm.modules.clients.api.mapper.ClientMapper
-import com.carslab.crm.modules.clients.api.mapper.VehicleMapper
-import com.carslab.crm.modules.clients.api.requests.ClientRequest
-import com.carslab.crm.modules.clients.api.responses.ClientExpandedResponse
-import com.carslab.crm.modules.clients.api.responses.ClientResponse
-import com.carslab.crm.modules.clients.api.responses.ClientStatisticsResponse
-import com.carslab.crm.modules.clients.api.responses.VehicleResponse
-import com.carslab.crm.modules.clients.domain.ClientDetailResponse
+import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
+import com.carslab.crm.production.modules.clients.application.dto.ClientWithStatisticsResponse
+import com.carslab.crm.production.modules.clients.application.dto.CreateClientRequest
+import com.carslab.crm.production.modules.clients.application.dto.UpdateClientRequest
+import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
+import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
+import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -27,43 +20,19 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/clients")
 @Tag(name = "Clients", description = "Client management endpoints")
 class ClientController(
-    private val clientApplicationService: ClientApplicationService
+    private val clientCommandService: ClientCommandService,
+    private val clientQueryService: ClientQueryService
 ) : BaseController() {
 
     @PostMapping
     @Operation(summary = "Create a new client", description = "Creates a new client with the provided information")
-    fun createClient(@Valid @RequestBody request: CreateClientCommand): ResponseEntity<ClientExpandedResponse> {
+    fun createClient(@Valid @RequestBody request: CreateClientRequest): ResponseEntity<ClientResponse> {
         logger.info("Received request to create new client: ${request.firstName} ${request.lastName}")
 
-        try {
-            ValidationUtils.validateNotBlank(request.firstName, "First name")
-            ValidationUtils.validateNotBlank(request.lastName, "Last name")
-            ValidationUtils.validateEmail(request.email)
-            ValidationUtils.validatePhone(request.phone)
-            ValidationUtils.validateAtLeastOneNotBlank(mapOf(
-                "Email" to request.email,
-                "Phone" to request.phone
-            ))
+        val response = clientCommandService.createClient(request)
+        logger.info("Successfully created client with ID: ${response.id}")
 
-            val appRequest = CreateClientRequest(
-                firstName = request.firstName,
-                lastName = request.lastName,
-                email = request.email,
-                phone = request.phone,
-                address = request.address,
-                company = request.company,
-                taxId = request.taxId,
-                notes = request.notes
-            )
-
-            val createdClient = clientApplicationService.createClient(appRequest)
-            val response = ClientExpandedResponse.fromDomain(createdClient)
-
-            logger.info("Successfully created client with ID: ${response.id}")
-            return created(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error creating client", e)
-        }
+        return created(response)
     }
 
     @GetMapping("/search")
@@ -75,15 +44,20 @@ class ClientController(
     ): ResponseEntity<List<ClientResponse>> {
         logger.info("Searching clients with filters: name=$name, email=$email, phone=$phone")
 
-        val clients = clientApplicationService.searchClients(
+        val clients = clientQueryService.searchClients(
             name = name,
             email = email,
             phone = phone,
             company = null,
+            hasVehicles = null,
+            minTotalRevenue = null,
+            maxTotalRevenue = null,
+            minVisits = null,
+            maxVisits = null,
             pageable = PageRequest.of(0, 1000)
         )
 
-        val response = clients.content.map { ClientMapper.toResponse(it) }
+        val response = clients.content.map { it }
         return ok(response)
     }
 
@@ -103,10 +77,10 @@ class ClientController(
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") sortBy: String?,
         @Parameter(description = "Sort order") @RequestParam(defaultValue = "asc") sortOrder: String?
-    ): ResponseEntity<PaginatedResponse<ClientExpandedResponse>> {
+    ): ResponseEntity<PaginatedResponse<ClientResponse>> {
         logger.info("Getting clients with pagination: page=$page, size=$size, name=$name, email=$email, phone=$phone, company=$company")
 
-        val clients = clientApplicationService.searchClients(
+        val clients = clientQueryService.searchClients(
             name = name,
             email = email,
             phone = phone,
@@ -120,7 +94,7 @@ class ClientController(
         )
 
         val response = PaginatedResponse(
-            data = clients.content.map { ClientExpandedResponse.fromDomain(it) },
+            data = clients.content,
             page = clients.number,
             size = clients.size,
             totalItems = clients.totalElements,
@@ -133,21 +107,23 @@ class ClientController(
 
     @GetMapping
     @Operation(summary = "Get all clients", description = "Retrieves all clients with expanded information (legacy endpoint)")
-    fun getAllClients(): ResponseEntity<List<ClientExpandedResponse>> {
+    fun getAllClients(): ResponseEntity<List<ClientResponse>> {
         logger.info("Getting all clients (legacy endpoint)")
 
-        val clients = clientApplicationService.searchClients(
+        val clients = clientQueryService.searchClients(
             name = null,
             email = null,
             phone = null,
             company = null,
+            hasVehicles = null,
+            minTotalRevenue = null,
+            maxTotalRevenue = null,
+            minVisits = null,
+            maxVisits = null,
             pageable = PageRequest.of(0, 1000)
         )
 
-        val response = clients.content.map { client ->
-            ClientExpandedResponse.fromDomain(client)
-        }
-
+        val response = clients.content
         logger.info("Successfully retrieved ${response.size} clients")
         return ok(response)
     }
@@ -156,52 +132,25 @@ class ClientController(
     @Operation(summary = "Get client by ID", description = "Retrieves a client by their ID")
     fun getClientById(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long
-    ): ResponseEntity<ClientExpandedResponse> {
+    ): ResponseEntity<ClientWithStatisticsResponse> {
         logger.info("Getting client by ID: $id")
 
-        val client: ClientDetailResponse = clientApplicationService.getClientById(id)
-            ?: throw ResourceNotFoundException("Client", id)
-
-        return ok(ClientExpandedResponse.fromDomain(client))
+        val response = clientQueryService.getClient(id.toString())
+        return ok(response)
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a client", description = "Updates an existing client with the provided information")
     fun updateClient(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long,
-        @Valid @RequestBody request: ClientRequest
+        @Valid @RequestBody request: UpdateClientRequest
     ): ResponseEntity<ClientResponse> {
         logger.info("Updating client with ID: $id")
 
-        try {
-            ValidationUtils.validateNotBlank(request.firstName, "First name")
-            ValidationUtils.validateNotBlank(request.lastName, "Last name")
-            ValidationUtils.validateEmail(request.email)
-            ValidationUtils.validatePhone(request.phone)
-            ValidationUtils.validateAtLeastOneNotBlank(mapOf(
-                "Email" to request.email,
-                "Phone" to request.phone
-            ))
+        val response = clientCommandService.updateClient(id.toString(), request)
+        logger.info("Successfully updated client with ID: $id")
 
-            val appRequest = UpdateClientRequest(
-                firstName = request.firstName,
-                lastName = request.lastName,
-                email = request.email,
-                phone = request.phone,
-                address = request.address,
-                company = request.company,
-                taxId = request.taxId,
-                notes = request.notes
-            )
-
-            val updatedClient = clientApplicationService.updateClient(id, appRequest)
-            val response = ClientMapper.toResponse(updatedClient)
-
-            logger.info("Successfully updated client with ID: $id")
-            return ok(response)
-        } catch (e: Exception) {
-            return logAndRethrow("Error updating client with ID: $id", e)
-        }
+        return ok(response)
     }
 
     @DeleteMapping("/{id}")
@@ -211,15 +160,10 @@ class ClientController(
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Deleting client with ID: $id")
 
-        val deleted = clientApplicationService.deleteClient(id)
+        clientCommandService.deleteClient(id.toString())
+        logger.info("Successfully deleted client with ID: $id")
 
-        return if (deleted) {
-            logger.info("Successfully deleted client with ID: $id")
-            ok(createSuccessResponse("Client successfully deleted", mapOf("clientId" to id)))
-        } else {
-            logger.warn("Client with ID: $id not found for deletion")
-            throw ResourceNotFoundException("Client", id)
-        }
+        return ok(mapOf("message" to "Client successfully deleted", "clientId" to id))
     }
 
     @GetMapping("/{clientId}/statistics")
@@ -229,14 +173,13 @@ class ClientController(
     ): ResponseEntity<ClientStatisticsResponse> {
         logger.info("Getting statistics for client: $clientId")
 
-        val clientWithStats = clientApplicationService.getClientById(clientId.toLong())
-            ?: throw ResourceNotFoundException("Client", clientId.toLong())
+        val clientWithStats = clientQueryService.getClient(clientId)
 
         return ok(
             ClientStatisticsResponse(
-                totalVisits = clientWithStats.statistics.visitCount,
-                totalRevenue = clientWithStats.statistics.totalRevenue,
-                vehicleNo = clientWithStats.statistics.vehicleCount
+                totalVisits = clientWithStats.statistics?.visitCount ?: 0,
+                totalRevenue = clientWithStats.statistics?.totalRevenue ?: java.math.BigDecimal.ZERO,
+                vehicleNo = clientWithStats.statistics?.vehicleCount ?: 0
             )
         )
     }
@@ -248,9 +191,32 @@ class ClientController(
     ): ResponseEntity<List<VehicleResponse>> {
         logger.info("Getting vehicles for client: $clientId")
 
-        val clientWithDetails = clientApplicationService.getClientById(clientId.toLong())
-            ?: throw ResourceNotFoundException("Client", clientId.toLong())
+        return ok(emptyList())
+    }
 
-        return ok(clientWithDetails.vehicles.map { VehicleMapper.toResponse(it) })
+    private fun createSuccessResponse(message: String, data: Map<String, Any>): Map<String, Any> {
+        return mapOf(
+            "success" to true,
+            "message" to message,
+            "data" to data
+        )
     }
 }
+
+data class ClientStatisticsResponse(
+    val totalVisits: Long,
+    val totalRevenue: java.math.BigDecimal,
+    val vehicleNo: Long
+)
+
+data class VehicleResponse(
+    val id: String,
+    val make: String,
+    val model: String,
+    val year: Int?,
+    val licensePlate: String,
+    val color: String?,
+    val vin: String?,
+    val mileage: Long?,
+    val displayName: String
+)

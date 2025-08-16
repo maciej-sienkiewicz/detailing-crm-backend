@@ -1,0 +1,38 @@
+package com.carslab.crm.production.modules.vehicles.infrastructure.repository
+
+import com.carslab.crm.production.modules.vehicles.infrastructure.entity.VehicleStatisticsEntity
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.util.*
+
+@Repository
+interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity, Long> {
+
+    @Query("SELECT s FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
+    fun findByVehicleId(@Param("vehicleId") vehicleId: Long): Optional<VehicleStatisticsEntity>
+
+    @Modifying
+    @Query("""
+        UPDATE VehicleStatisticsEntity s 
+        SET s.visitCount = s.visitCount + 1, s.updatedAt = :now 
+        WHERE s.vehicleId = :vehicleId
+    """)
+    fun incrementVisitCount(@Param("vehicleId") vehicleId: Long, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+
+    @Modifying
+    @Query("""
+        UPDATE VehicleStatisticsEntity s 
+        SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
+        WHERE s.vehicleId = :vehicleId
+    """)
+    fun addRevenue(@Param("vehicleId") vehicleId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+
+    @Modifying
+    @Query("DELETE FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")
+    fun deleteByVehicleId(@Param("vehicleId") vehicleId: Long): Int
+}
