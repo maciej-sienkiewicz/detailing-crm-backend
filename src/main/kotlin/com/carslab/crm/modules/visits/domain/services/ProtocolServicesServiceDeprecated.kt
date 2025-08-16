@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class ProtocolServicesService(
+class ProtocolServicesServiceDeprecated(
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val serviceMapper: ProtocolServiceMapper
 ) {
-    private val logger = LoggerFactory.getLogger(ProtocolServicesService::class.java)
+    private val logger = LoggerFactory.getLogger(ProtocolServicesServiceDeprecated::class.java)
 
     fun getCurrentServices(protocolId: ProtocolId): List<ProtocolServiceView> {
         return try {

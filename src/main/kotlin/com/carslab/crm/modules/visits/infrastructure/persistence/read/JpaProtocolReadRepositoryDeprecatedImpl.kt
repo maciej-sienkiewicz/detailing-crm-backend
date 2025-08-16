@@ -9,7 +9,7 @@ import com.carslab.crm.modules.clients.infrastructure.persistence.repository.Cli
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntityDeprecated
 import com.carslab.crm.modules.clients.infrastructure.persistence.entity.ClientEntityDeprecated
 import com.carslab.crm.modules.clients.infrastructure.persistence.entity.VehicleEntityDeprecated
 import org.springframework.data.domain.PageRequest
@@ -22,12 +22,12 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Repository
-class JpaProtocolReadRepositoryImpl(
+class JpaProtocolReadRepositoryDeprecatedImpl(
     private val protocolJpaRepository: ProtocolJpaRepository,
     private val clientJpaRepositoryDeprecated: ClientJpaRepositoryDeprecated,
     private val vehicleJpaRepositoryDeprecated: VehicleJpaRepositoryDeprecated,
     private val protocolServiceJpaRepository: ProtocolServiceJpaRepository
-) : ProtocolReadRepository {
+) : ProtocolReadRepositoryDeprecated {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
 
@@ -95,7 +95,7 @@ class JpaProtocolReadRepositoryImpl(
         val pageable = PageRequest.of(page, size, sort)
 
         // Specyfikacja dla protokołów klienta
-        val specification = Specification<ProtocolEntity> { root, query, cb ->
+        val specification = Specification<ProtocolEntityDeprecated> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
             // Filtr po firmie
@@ -168,7 +168,7 @@ class JpaProtocolReadRepositoryImpl(
         val companyId = getCurrentCompanyId()
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"))
 
-        val specification = Specification<ProtocolEntity> { root, query, cb ->
+        val specification = Specification<ProtocolEntityDeprecated> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
             // Company filter

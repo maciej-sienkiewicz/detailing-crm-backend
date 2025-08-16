@@ -5,7 +5,7 @@ import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.api.model.response.PaginatedResponse
 import java.time.LocalDateTime
 
-interface ProtocolReadRepository {
+interface ProtocolReadRepositoryDeprecated {
     fun findDetailById(protocolId: String): ProtocolDetailReadModel?
 
     fun searchProtocols(

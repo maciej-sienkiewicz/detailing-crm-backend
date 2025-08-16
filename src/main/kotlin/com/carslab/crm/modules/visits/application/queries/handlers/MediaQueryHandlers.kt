@@ -2,7 +2,7 @@
 package com.carslab.crm.modules.visits.application.queries.handlers
 
 import com.carslab.crm.modules.visits.application.queries.models.*
-import com.carslab.crm.modules.visits.domain.services.VisitMediaService
+import com.carslab.crm.modules.visits.domain.services.VisitMediaServiceDeprecated
 import com.carslab.crm.infrastructure.cqrs.QueryHandler
 import com.carslab.crm.domain.model.ProtocolId
 import org.slf4j.LoggerFactory
@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter
 
 @Service
 class GetVisitMediaQueryHandler(
-    private val visitMediaService: VisitMediaService
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated
 ) : QueryHandler<GetVisitMediaQuery, List<MediaReadModel>> {
 
     private val logger = LoggerFactory.getLogger(GetVisitMediaQuery::class.java)
@@ -21,7 +21,7 @@ class GetVisitMediaQueryHandler(
         logger.debug("Getting media for visit: ${query.visitId}")
 
         val visitId = ProtocolId(query.visitId)
-        val mediaItems = visitMediaService.getVisitMedia(visitId)
+        val mediaItems = visitMediaServiceDeprecated.getVisitMedia(visitId)
 
         return mediaItems.map { media ->
             MediaReadModel(
@@ -41,7 +41,7 @@ class GetVisitMediaQueryHandler(
 
 @Service
 class GetMediaByIdQueryHandler(
-    private val visitMediaService: VisitMediaService
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated
 ) : QueryHandler<GetMediaByIdQuery, MediaReadModel?> {
 
     private val logger = LoggerFactory.getLogger(GetMediaByIdQueryHandler::class.java)
@@ -50,7 +50,7 @@ class GetMediaByIdQueryHandler(
     override fun handle(query: GetMediaByIdQuery): MediaReadModel? {
         logger.debug("Getting media by ID: ${query.mediaId}")
 
-        val metadata = visitMediaService.getMediaMetadata(query.mediaId)
+        val metadata = visitMediaServiceDeprecated.getMediaMetadata(query.mediaId)
             ?: return null
 
         return MediaReadModel(
@@ -71,7 +71,7 @@ class GetMediaByIdQueryHandler(
 
 @Service
 class GetMediaFileQueryHandler(
-    private val visitMediaService: VisitMediaService
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated
 ) : QueryHandler<GetMediaFileQuery, MediaFileReadModel?> {
 
     private val logger = LoggerFactory.getLogger(GetMediaFileQueryHandler::class.java)
@@ -79,10 +79,10 @@ class GetMediaFileQueryHandler(
     override fun handle(query: GetMediaFileQuery): MediaFileReadModel? {
         logger.debug("Getting media file data: ${query.mediaId}")
 
-        val fileData = visitMediaService.getMediaData(query.mediaId)
+        val fileData = visitMediaServiceDeprecated.getMediaData(query.mediaId)
             ?: return null
 
-        val metadata = visitMediaService.getMediaMetadata(query.mediaId)
+        val metadata = visitMediaServiceDeprecated.getMediaMetadata(query.mediaId)
             ?: return null
 
         return MediaFileReadModel(

@@ -8,8 +8,8 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
-import com.carslab.crm.modules.visits.infrastructure.persistence.repository.ProtocolDocumentJpaRepository
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolDocumentEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.repository.ProtocolDocumentJpaRepositoryDeprecated
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolDocumentEntityDeprecated
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 @Service
 class ProtocolDocumentStorageService(
     private val universalStorageService: UniversalStorageService,
-    private val protocolDocumentRepository: ProtocolDocumentJpaRepository,
+    private val protocolDocumentRepository: ProtocolDocumentJpaRepositoryDeprecated,
     private val protocolJpaRepository: ProtocolJpaRepository
 ) {
     private val logger = LoggerFactory.getLogger(ProtocolDocumentStorageService::class.java)
@@ -68,7 +68,7 @@ class ProtocolDocumentStorageService(
             )
 
             // Zapisz metadane dokumentu
-            val documentEntity = ProtocolDocumentEntity(
+            val documentEntity = ProtocolDocumentEntityDeprecated(
                 storageId = storageId,
                 companyId = companyId,
                 protocolId = protocolIdLong,

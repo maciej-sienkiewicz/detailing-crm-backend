@@ -2,7 +2,7 @@ package com.carslab.crm.modules.visits.application.commands.handlers
 
 import com.carslab.crm.modules.visits.application.commands.models.CreateProtocolCommand
 import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
-import com.carslab.crm.modules.visits.domain.services.ProtocolDomainService
+import com.carslab.crm.modules.visits.domain.services.ProtocolDomainServiceDeprecated
 import com.carslab.crm.modules.clients.domain.ClientApplicationService
 import com.carslab.crm.modules.clients.domain.VehicleApplicationServiceDeprecated
 import com.carslab.crm.modules.clients.domain.ClientVehicleAssociationService
@@ -29,7 +29,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class EnhancedCreateProtocolCommandHandler(
     private val protocolRepository: ProtocolRepository,
-    private val protocolDomainService: ProtocolDomainService,
+    private val protocolDomainServiceDeprecated: ProtocolDomainServiceDeprecated,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val clientVehicleAssociationService: ClientVehicleAssociationService,
@@ -48,7 +48,7 @@ class EnhancedCreateProtocolCommandHandler(
 
         ensureClientVehicleAssociation(client.id, vehicle.id)
 
-        val protocolModel = protocolDomainService.createProtocol(
+        val protocolModel = protocolDomainServiceDeprecated.createProtocol(
             command.copy(
                 client = command.client.copy(id = client.id.toString()),
                 vehicle = command.vehicle.copy(id = vehicle.id.toString())

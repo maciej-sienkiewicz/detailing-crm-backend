@@ -12,7 +12,7 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntityDeprecated
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
@@ -44,7 +44,7 @@ class JpaCarReceptionRepositoryAdapter(
         clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id  = clientId)
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
-        val protocolEntity = ProtocolEntity(
+        val protocolEntityDeprecated = ProtocolEntityDeprecated(
             title = protocol.title,
             companyId = companyId,
             vehicleId = vehicleId,
@@ -64,7 +64,7 @@ class JpaCarReceptionRepositoryAdapter(
             calendarColorId = protocol.calendarColorId.value
         )
 
-        val savedEntity = protocolJpaRepository.save(protocolEntity)
+        val savedEntity = protocolJpaRepository.save(protocolEntityDeprecated)
         return ProtocolId(savedEntity.id.toString())
     }
 
@@ -85,7 +85,7 @@ class JpaCarReceptionRepositoryAdapter(
             .orElse(null) ?: throw IllegalStateException("Client with ID $clientId not found or access denied")
 
         // Sprawdź, czy protokół istnieje
-        val protocolEntity = if (protocolJpaRepository.existsById(protocol.id.value.toLong())) {
+        val protocolEntityDeprecated = if (protocolJpaRepository.existsById(protocol.id.value.toLong())) {
             val existingEntity = protocolJpaRepository.findByCompanyIdAndId(companyId, protocol.id.value.toLong())
                 .orElse(null) ?: throw IllegalStateException("Protocol not found or access denied")
 
@@ -107,7 +107,7 @@ class JpaCarReceptionRepositoryAdapter(
             existingEntity
         } else {
             // Utwórz nową encję
-            ProtocolEntity(
+            ProtocolEntityDeprecated(
                 id = protocol.id.value.toLong(),
                 companyId = companyId,
                 title = protocol.title,
@@ -129,7 +129,7 @@ class JpaCarReceptionRepositoryAdapter(
             )
         }
 
-        protocolJpaRepository.save(protocolEntity)
+        protocolJpaRepository.save(protocolEntityDeprecated)
 
         // Dla uproszczenia, zwróć oryginalny protokół
         return protocol
@@ -207,7 +207,7 @@ class JpaCarReceptionRepositoryAdapter(
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
 
         // Używamy Specification API do budowania dynamicznego zapytania
-        val specification = Specification<ProtocolEntity> { root, query, cb ->
+        val specification = Specification<ProtocolEntityDeprecated> { root, query, cb ->
             val predicates = mutableListOf<Predicate>()
 
             // Filtr po kliencie (name)

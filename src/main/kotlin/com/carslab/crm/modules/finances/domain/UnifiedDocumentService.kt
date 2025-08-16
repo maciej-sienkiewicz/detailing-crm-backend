@@ -25,7 +25,6 @@ import com.carslab.crm.domain.model.view.finance.PaymentMethod
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.infrastructure.events.EventPublisher
 import com.carslab.crm.infrastructure.events.InvoiceCreatedEvent
-import com.carslab.crm.infrastructure.events.create
 import com.carslab.crm.modules.finances.domain.balance.DocumentBalanceService
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
@@ -38,7 +37,7 @@ import com.carslab.crm.modules.finances.api.requests.InvoiceGenerationFromVisitR
 import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
 import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationService
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
-import com.carslab.crm.modules.visits.domain.CarReceptionService
+import com.carslab.crm.modules.visits.domain.CarReceptionServiceDeprecated
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -58,7 +57,7 @@ class UnifiedDocumentService(
     private val documentBalanceService: DocumentBalanceService,
     private val balanceService: BalanceService,
     private val eventsPublisher: EventPublisher,
-    private val visitService: CarReceptionService,
+    private val visitService: CarReceptionServiceDeprecated,
     private val invoiceAttachmentGenerationService: InvoiceAttachmentGenerationService,
     private val companySettingsApplicationService: CompanySettingsApplicationService,
 ) {

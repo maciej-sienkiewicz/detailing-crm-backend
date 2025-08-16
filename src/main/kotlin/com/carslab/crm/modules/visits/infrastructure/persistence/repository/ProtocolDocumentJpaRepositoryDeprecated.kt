@@ -1,31 +1,31 @@
 // src/main/kotlin/com/carslab/crm/modules/visits/infrastructure/persistence/repository/ProtocolDocumentJpaRepository.kt
 package com.carslab.crm.modules.visits.infrastructure.persistence.repository
 
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolDocumentEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolDocumentEntityDeprecated
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface ProtocolDocumentJpaRepository : JpaRepository<ProtocolDocumentEntity, String> {
+interface ProtocolDocumentJpaRepositoryDeprecated : JpaRepository<ProtocolDocumentEntityDeprecated, String> {
 
     /**
      * Znajdź wszystkie dokumenty dla protokołu w ramach firmy
      */
-    fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<ProtocolDocumentEntity>
+    fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<ProtocolDocumentEntityDeprecated>
     
-    fun findByProtocolIdAndCompanyIdAndDocumentType(protocolId: Long, companyId: Long, documentType: String): List<ProtocolDocumentEntity>
+    fun findByProtocolIdAndCompanyIdAndDocumentType(protocolId: Long, companyId: Long, documentType: String): List<ProtocolDocumentEntityDeprecated>
 
     /**
      * Znajdź dokument po storageId w ramach firmy (bezpieczeństwo)
      */
-    fun findByStorageIdAndCompanyId(storageId: String, companyId: Long): ProtocolDocumentEntity?
+    fun findByStorageIdAndCompanyId(storageId: String, companyId: Long): ProtocolDocumentEntityDeprecated?
 
     /**
      * Znajdź dokumenty po typie w ramach firmy
      */
-    fun findByDocumentTypeAndCompanyId(documentType: String, companyId: Long): List<ProtocolDocumentEntity>
+    fun findByDocumentTypeAndCompanyId(documentType: String, companyId: Long): List<ProtocolDocumentEntityDeprecated>
 
     /**
      * Usuń wszystkie dokumenty protokołu
@@ -40,28 +40,32 @@ interface ProtocolDocumentJpaRepository : JpaRepository<ProtocolDocumentEntity, 
     /**
      * Statystyki dokumentów dla firmy
      */
-    @Query("""
+    @Query(
+        """
         SELECT d.documentType, COUNT(d), SUM(d.fileSize) 
-        FROM ProtocolDocumentEntity d 
+        FROM ProtocolDocumentEntityDeprecated d 
         WHERE d.companyId = :companyId 
         GROUP BY d.documentType
-    """)
+    """
+    )
     fun getDocumentStats(@Param("companyId") companyId: Long): List<Array<Any>>
 
     /**
      * Znajdź dokumenty starsze niż podana data (do czyszczenia)
      */
-    @Query("""
-        SELECT d FROM ProtocolDocumentEntity d 
+    @Query(
+        """
+        SELECT d FROM ProtocolDocumentEntityDeprecated d 
         WHERE d.companyId = :companyId 
         AND d.createdAt < :cutoffDate
         AND NOT EXISTS (
-            SELECT 1 FROM ProtocolEntity p 
+            SELECT 1 FROM ProtocolEntityDeprecated p 
             WHERE p.id = d.protocolId AND p.companyId = d.companyId
         )
-    """)
+    """
+    )
     fun findOrphanedDocuments(
         @Param("companyId") companyId: Long,
         @Param("cutoffDate") cutoffDate: java.time.LocalDateTime
-    ): List<ProtocolDocumentEntity>
+    ): List<ProtocolDocumentEntityDeprecated>
 }

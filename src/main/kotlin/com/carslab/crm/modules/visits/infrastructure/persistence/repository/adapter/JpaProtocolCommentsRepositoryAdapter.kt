@@ -6,7 +6,7 @@ import com.carslab.crm.modules.visits.domain.ports.ProtocolCommentsRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolCommentJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolCommentEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolCommentEntityDeprecated
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
 
@@ -24,7 +24,7 @@ class JpaProtocolCommentsRepositoryAdapter(
         protocolJpaRepository.findByCompanyIdAndId(companyId, comment.protocolId.value.toLong())
             .orElse(null) ?: throw IllegalStateException("Protocol with ID ${comment.protocolId.value} not found or access denied")
 
-        val commentEntity = ProtocolCommentEntity(
+        val commentEntity = ProtocolCommentEntityDeprecated(
             protocolId = protocolId,
             author = comment.author,
             content = comment.content,

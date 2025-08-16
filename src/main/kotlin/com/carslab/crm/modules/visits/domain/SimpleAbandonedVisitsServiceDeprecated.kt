@@ -8,15 +8,14 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Service
 @Transactional
-class SimpleAbandonedVisitsService(
+class SimpleAbandonedVisitsServiceDeprecated(
     private val entityManager: EntityManager
 ) {
 
-    private val logger = LoggerFactory.getLogger(SimpleAbandonedVisitsService::class.java)
+    private val logger = LoggerFactory.getLogger(SimpleAbandonedVisitsServiceDeprecated::class.java)
 
     fun cancelAbandonedVisits(): AbandonedVisitsCleanupResult {
         val yesterday = LocalDate.now().minusDays(1)

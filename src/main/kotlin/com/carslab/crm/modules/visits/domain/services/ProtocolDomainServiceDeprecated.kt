@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class ProtocolDomainService {
+class ProtocolDomainServiceDeprecated {
 
     fun createProtocol(command: CreateProtocolCommand): CreateProtocolRootModel {
         val protocolId = ProtocolId.generate()

@@ -13,8 +13,8 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "protocol_services")
-class ProtocolServiceEntity(
+@Table(name = "protocol_services_deprecated")
+class ProtocolServiceEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -77,8 +77,8 @@ class ProtocolServiceEntity(
     }
 
     companion object {
-        fun fromDomain(domain: ProtocolServiceView, protocolId: Long): ProtocolServiceEntity {
-            val entity = ProtocolServiceEntity(
+        fun fromDomain(domain: ProtocolServiceView, protocolId: Long): ProtocolServiceEntityDeprecated {
+            val entity = ProtocolServiceEntityDeprecated(
                 protocolId = protocolId,
                 companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 name = domain.name,

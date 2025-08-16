@@ -4,9 +4,9 @@ import com.carslab.crm.domain.model.ContactAttemptResult
 import com.carslab.crm.domain.model.ContactAttemptType
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.infrastructure.persistence.entity.*
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolCommentEntity
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolCommentEntityDeprecated
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntityDeprecated
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntityDeprecated
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
@@ -17,16 +17,16 @@ import java.time.LocalDateTime
 import java.util.Optional
 
 @Repository
-interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, Long>, JpaSpecificationExecutor<ProtocolEntity> {
-    fun findByCompanyId(companyId: Long): List<ProtocolEntity>
+interface ProtocolJpaRepository : JpaRepository<ProtocolEntityDeprecated, Long>, JpaSpecificationExecutor<ProtocolEntityDeprecated> {
+    fun findByCompanyId(companyId: Long): List<ProtocolEntityDeprecated>
 
     // Zmiana typu parametru z String na Long
-    fun findByCompanyIdAndId(companyId: Long, id: Long): Optional<ProtocolEntity>
+    fun findByCompanyIdAndId(companyId: Long, id: Long): Optional<ProtocolEntityDeprecated>
 
-    fun findByStatusAndCompanyId(status: ProtocolStatus, companyId: Long): List<ProtocolEntity>
-    fun findByClientIdAndCompanyId(clientId: Long, companyId: Long): List<ProtocolEntity>
+    fun findByStatusAndCompanyId(status: ProtocolStatus, companyId: Long): List<ProtocolEntityDeprecated>
+    fun findByClientIdAndCompanyId(clientId: Long, companyId: Long): List<ProtocolEntityDeprecated>
 
-    @Query("SELECT COUNT(p) FROM ProtocolEntity p WHERE p.status = :status AND p.companyId = :companyId")
+    @Query("SELECT COUNT(p) FROM ProtocolEntityDeprecated p WHERE p.status = :status AND p.companyId = :companyId")
     fun countByStatusAndCompanyId(@Param("status") status: ProtocolStatus, @Param("companyId") companyId: Long): Int
 
     fun countByCompanyId(companyId: Long): Int
@@ -66,32 +66,34 @@ interface ProtocolJpaRepository : JpaRepository<ProtocolEntity, Long>, JpaSpecif
         @Param("companyId") companyId: Long,
         @Param("limit") limit: Int,
         @Param("offset") offset: Int
-    ): List<ProtocolEntity>
+    ): List<ProtocolEntityDeprecated>
 
     // Podobnie modyfikujemy pozostałe metody
-    @Query("SELECT p FROM ProtocolEntity p " +
+    @Query(
+        "SELECT p FROM ProtocolEntityDeprecated p " +
             "JOIN ClientEntityDeprecated c ON p.clientId = c.id " +
             "WHERE (LOWER(c.firstName) LIKE LOWER(CONCAT('%', :name, '%')) OR " +
             "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND p.companyId = :companyId")
-    fun findByClientNameAndCompanyId(@Param("name") name: String, @Param("companyId") companyId: Long): List<ProtocolEntity>
+    fun findByClientNameAndCompanyId(@Param("name") name: String, @Param("companyId") companyId: Long): List<ProtocolEntityDeprecated>
 
-    @Query("SELECT p FROM ProtocolEntity p " +
+    @Query(
+        "SELECT p FROM ProtocolEntityDeprecated p " +
             "JOIN VehicleEntityDeprecated v ON p.vehicleId = v.id " +
             "WHERE LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%')) " +
             "AND p.companyId = :companyId")
-    fun findByLicensePlateContainingAndCompanyId(@Param("licensePlate") licensePlate: String, @Param("companyId") companyId: Long): List<ProtocolEntity>
+    fun findByLicensePlateContainingAndCompanyId(@Param("licensePlate") licensePlate: String, @Param("companyId") companyId: Long): List<ProtocolEntityDeprecated>
 }
 
 @Repository
-interface ProtocolServiceJpaRepository : JpaRepository<ProtocolServiceEntity, Long> {
-    fun findByCompanyId(companyId: Long): List<ProtocolServiceEntity>
-    fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<ProtocolServiceEntity>
+interface ProtocolServiceJpaRepository : JpaRepository<ProtocolServiceEntityDeprecated, Long> {
+    fun findByCompanyId(companyId: Long): List<ProtocolServiceEntityDeprecated>
+    fun findByProtocolIdAndCompanyId(protocolId: Long, companyId: Long): List<ProtocolServiceEntityDeprecated>
 }
 
 @Repository
-interface ProtocolCommentJpaRepository : JpaRepository<ProtocolCommentEntity, Long> {
-    fun findByProtocolId(protocolId: Long): List<ProtocolCommentEntity>
+interface ProtocolCommentJpaRepository : JpaRepository<ProtocolCommentEntityDeprecated, Long> {
+    fun findByProtocolId(protocolId: Long): List<ProtocolCommentEntityDeprecated>
 }
 
 @Repository

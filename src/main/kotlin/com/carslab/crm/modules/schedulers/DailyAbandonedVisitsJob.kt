@@ -1,17 +1,16 @@
 package com.carslab.crm.modules.schedulers
 
-import com.carslab.crm.modules.visits.domain.SimpleAbandonedVisitsService
+import com.carslab.crm.modules.visits.domain.SimpleAbandonedVisitsServiceDeprecated
 import org.quartz.Job
 import org.quartz.JobExecutionContext
 import org.quartz.JobExecutionException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
-import kotlin.time.Duration
 
 @Component
 class DailyAbandonedVisitsJob(
-    private val simpleAbandonedVisitsService: SimpleAbandonedVisitsService,
+    private val simpleAbandonedVisitsServiceDeprecated: SimpleAbandonedVisitsServiceDeprecated,
 ) : Job {
 
     private val logger = LoggerFactory.getLogger(DailyAbandonedVisitsJob::class.java)
@@ -22,7 +21,7 @@ class DailyAbandonedVisitsJob(
 
         try {
             // Execute the main cleanup operation
-            val result = simpleAbandonedVisitsService.cancelAbandonedVisits()
+            val result = simpleAbandonedVisitsServiceDeprecated.cancelAbandonedVisits()
 
             // Log results
             logger.info("✅ Cleanup completed successfully:")

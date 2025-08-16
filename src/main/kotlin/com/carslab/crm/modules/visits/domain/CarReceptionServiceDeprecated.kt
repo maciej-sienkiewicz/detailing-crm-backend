@@ -11,14 +11,14 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class CarReceptionService(
+class CarReceptionServiceDeprecated(
     private val carReceptionRepository: CarReceptionRepository,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
     private val protocolServicesRepository: ProtocolServicesRepository,
     private val imageStorageService: FileImageStorageService,
 ) {
-    private val logger = LoggerFactory.getLogger(CarReceptionService::class.java)
+    private val logger = LoggerFactory.getLogger(CarReceptionServiceDeprecated::class.java)
 
     /**
          * logger.info("This is the new way of creating protocols")

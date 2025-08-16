@@ -8,7 +8,7 @@ import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaReposito
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.ClientJpaRepositoryDeprecated
 import com.carslab.crm.modules.clients.infrastructure.persistence.repository.VehicleJpaRepositoryDeprecated
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolEntityDeprecated
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.modules.clients.domain.model.VehicleId
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
@@ -44,7 +44,7 @@ class JpaProtocolRepositoryAdapter(
             .takeIf { it.isNotEmpty() }
             ?: throw IllegalStateException("Client with ID $clientId does not exist")
         
-        val protocolEntity = ProtocolEntity(
+        val protocolEntityDeprecated = ProtocolEntityDeprecated(
             title = protocol.title,
             companyId = companyId,
             vehicleId = vehicleId,
@@ -64,7 +64,7 @@ class JpaProtocolRepositoryAdapter(
             calendarColorId = protocol.calendarColorId.value,
         )
 
-        val savedEntity = protocolJpaRepository.save(protocolEntity)
+        val savedEntity = protocolJpaRepository.save(protocolEntityDeprecated)
         return ProtocolId(savedEntity.id.toString())
     }
 
@@ -133,7 +133,7 @@ class JpaProtocolRepositoryAdapter(
             }
     }
 
-    private fun convertEntityToDomain(entity: ProtocolEntity): CarReceptionProtocol {
+    private fun convertEntityToDomain(entity: ProtocolEntityDeprecated): CarReceptionProtocol {
         val companyId = getCurrentCompanyId()
 
         val client = clientJpaRepositoryDeprecated.findByIdAndCompanyId(companyId = companyId, id = entity.clientId)

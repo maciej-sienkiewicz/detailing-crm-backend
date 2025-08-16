@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
 class OptimizedVisitSearchRepositoryImpl(
     private val entityManager: EntityManager,
     private val performanceMonitor: VisitSearchPerformanceMonitor
-) : VisitSearchRepository {
+) : VisitSearchRepositoryDeprecated {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
 

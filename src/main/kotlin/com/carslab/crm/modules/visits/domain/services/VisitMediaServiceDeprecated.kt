@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 
 @Service
-class VisitMediaService(
+class VisitMediaServiceDeprecated(
     private val imageStorageService: FileImageStorageService
 ) {
-    private val logger = LoggerFactory.getLogger(VisitMediaService::class.java)
+    private val logger = LoggerFactory.getLogger(VisitMediaServiceDeprecated::class.java)
     
     fun uploadMedia(
         visitId: ProtocolId,

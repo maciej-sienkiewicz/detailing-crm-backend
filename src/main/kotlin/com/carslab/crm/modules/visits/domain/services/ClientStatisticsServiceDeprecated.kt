@@ -9,10 +9,10 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Service
-class ClientStatisticsService(
+class ClientStatisticsServiceDeprecated(
     private val clientStatisticsRepositoryDeprecated: ClientStatisticsRepositoryDeprecated
 ) {
-    private val logger = LoggerFactory.getLogger(ClientStatisticsService::class.java)
+    private val logger = LoggerFactory.getLogger(ClientStatisticsServiceDeprecated::class.java)
 
     fun updateLastVisitDate(clientId: ClientId, visitDate: LocalDateTime = LocalDateTime.now()) {
         try {

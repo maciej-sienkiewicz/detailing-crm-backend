@@ -19,12 +19,12 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ProtocolUpdateDomainService(
     private val protocolRepository: ProtocolRepository,
-    private val protocolServicesService: ProtocolServicesService,
-    private val clientStatisticsService: ClientStatisticsService,
-    private val vehicleStatisticsService: VehicleStatisticsService,
+    private val protocolServicesServiceDeprecated: ProtocolServicesServiceDeprecated,
+    private val clientStatisticsService: ClientStatisticsServiceDeprecated,
+    private val vehicleStatisticsServiceDeprecated: VehicleStatisticsServiceDeprecated,
     private val clientApplicationService: ClientApplicationService,
     private val vehicleApplicationServiceDeprecated: VehicleApplicationServiceDeprecated,
-    private val protocolDomainService: ProtocolDomainService
+    private val protocolDomainServiceDeprecated: ProtocolDomainServiceDeprecated
 ) {
     private val logger = LoggerFactory.getLogger(ProtocolUpdateDomainService::class.java)
 
@@ -37,11 +37,11 @@ class ProtocolUpdateDomainService(
             ?: throw ProtocolNotFoundException(protocolId)
 
         // 2. Aktualizacja podstawowych danych protokołu
-        val updatedProtocol = protocolDomainService.updateProtocol(existingProtocol, command)
+        val updatedProtocol = protocolDomainServiceDeprecated.updateProtocol(existingProtocol, command)
         protocolRepository.save(updatedProtocol)
 
         val servicesUpdateResult = if (command.services.isNotEmpty()) {
-            protocolServicesService.updateProtocolServices(protocolId, command.services)
+            protocolServicesServiceDeprecated.updateProtocolServices(protocolId, command.services)
         } else {
             ServicesUpdateResult.noChanges()
         }
@@ -81,7 +81,7 @@ class ProtocolUpdateDomainService(
                 clientId = ClientId.of(clientId),
                 counter = 1L
             )
-            vehicleStatisticsService.updateLastVisitDate(vehicleId)
+            vehicleStatisticsServiceDeprecated.updateLastVisitDate(vehicleId)
             vehicleApplicationServiceDeprecated.updateVehicleStatistics(
                 id = vehicleId.value,
                 counter = 1L

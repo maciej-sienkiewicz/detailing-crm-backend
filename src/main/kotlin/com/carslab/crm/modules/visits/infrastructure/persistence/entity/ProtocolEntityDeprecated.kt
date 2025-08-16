@@ -15,8 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "protocols")
-class ProtocolEntity(
+@Table(name = "protocols_deprecated")
+class ProtocolEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -77,16 +77,16 @@ class ProtocolEntity(
     var statusUpdatedAt: LocalDateTime = LocalDateTime.now(),
 
     @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var services: MutableList<ProtocolServiceEntity> = mutableListOf(),
+    var services: MutableList<ProtocolServiceEntityDeprecated> = mutableListOf(),
 
     @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var comments: MutableList<ProtocolCommentEntity> = mutableListOf(),
+    var comments: MutableList<ProtocolCommentEntityDeprecated> = mutableListOf(),
 
     @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
     var images: MutableList<VehicleImageEntity> = mutableListOf(),
 
     @OneToMany(mappedBy = "protocolId", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var documents: MutableList<ProtocolDocumentEntity> = mutableListOf()
+    var documents: MutableList<ProtocolDocumentEntityDeprecated> = mutableListOf()
 ) {
     fun toDomainView(): ProtocolView = ProtocolView(
         id = ProtocolId(id.toString()),
@@ -106,8 +106,8 @@ class ProtocolEntity(
     )
 
     companion object {
-        fun fromDomainView(domain: ProtocolView): ProtocolEntity {
-            return ProtocolEntity(
+        fun fromDomainView(domain: ProtocolView): ProtocolEntityDeprecated {
+            return ProtocolEntityDeprecated(
                 title = domain.title,
                 companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 vehicleId = domain.vehicleId.value,

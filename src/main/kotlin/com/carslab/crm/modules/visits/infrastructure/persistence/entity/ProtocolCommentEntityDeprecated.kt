@@ -6,8 +6,8 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "protocol_comments")
-class ProtocolCommentEntity(
+@Table(name = "protocol_comments_deprecated")
+class ProtocolCommentEntityDeprecated(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -43,8 +43,8 @@ class ProtocolCommentEntity(
     }
 
     companion object {
-        fun fromDomain(domain: ProtocolComment): ProtocolCommentEntity {
-            return ProtocolCommentEntity(
+        fun fromDomain(domain: ProtocolComment): ProtocolCommentEntityDeprecated {
+            return ProtocolCommentEntityDeprecated(
                 id = domain.id,
                 protocolId = domain.protocolId.value.toLong(),
                 author = domain.author,

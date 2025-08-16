@@ -2,8 +2,7 @@ package com.carslab.crm.domain.visits.protocols
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
-import com.carslab.crm.modules.visits.domain.CarReceptionService
-import com.carslab.crm.modules.visits.domain.ports.CarReceptionRepository
+import com.carslab.crm.modules.visits.domain.CarReceptionServiceDeprecated
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -28,11 +27,11 @@ data class SignatureData(
 
 @Service
 class PdfService(
-    private val carReceptionService: CarReceptionService,
+    private val carReceptionServiceDeprecated: CarReceptionServiceDeprecated,
 ) {
     
     fun generatePdf(protocolId: Long, signatureData: SignatureData? = null): ByteArray {
-        val protocol: CarReceptionProtocol = carReceptionService.getProtocolById(ProtocolId(protocolId.toString()))
+        val protocol: CarReceptionProtocol = carReceptionServiceDeprecated.getProtocolById(ProtocolId(protocolId.toString()))
             ?: throw IllegalStateException("Nie znaleziono protokołu o ID: $protocolId")
 
         val formData = getFormDataForProtokol(protocol)

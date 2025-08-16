@@ -7,7 +7,7 @@ import com.carslab.crm.modules.visits.domain.ports.ProtocolServicesRepository
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolJpaRepository
 import com.carslab.crm.infrastructure.persistence.repository.ProtocolServiceJpaRepository
-import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntity
+import com.carslab.crm.modules.visits.infrastructure.persistence.entity.ProtocolServiceEntityDeprecated
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Repository
@@ -124,8 +124,8 @@ class JpaProtocolServicesRepositoryAdapter(
     /**
      * Tworzy encję usługi z modelu domenowego
      */
-    private fun createServiceEntity(service: CreateServiceModel, protocolId: Long, companyId: Long): ProtocolServiceEntity {
-        return ProtocolServiceEntity(
+    private fun createServiceEntity(service: CreateServiceModel, protocolId: Long, companyId: Long): ProtocolServiceEntityDeprecated {
+        return ProtocolServiceEntityDeprecated(
             protocolId = protocolId,
             companyId = companyId,
             name = service.name,

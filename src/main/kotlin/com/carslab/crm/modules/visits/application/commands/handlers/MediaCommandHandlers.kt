@@ -2,8 +2,8 @@
 package com.carslab.crm.modules.visits.application.commands.handlers
 
 import com.carslab.crm.modules.visits.application.commands.models.*
-import com.carslab.crm.modules.visits.domain.services.VisitValidationService
-import com.carslab.crm.modules.visits.domain.services.VisitMediaService
+import com.carslab.crm.modules.visits.domain.services.VisitValidationServiceDeprecated
+import com.carslab.crm.modules.visits.domain.services.VisitMediaServiceDeprecated
 import com.carslab.crm.modules.visits.domain.ports.ProtocolCommentsRepository
 import com.carslab.crm.infrastructure.cqrs.CommandHandler
 import com.carslab.crm.infrastructure.security.SecurityContext
@@ -16,8 +16,8 @@ import java.time.Instant
 
 @Service
 class UploadVisitMediaCommandHandler(
-    private val visitValidationService: VisitValidationService,
-    private val visitMediaService: VisitMediaService,
+    private val visitValidationServiceDeprecated: VisitValidationServiceDeprecated,
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated,
     private val visitCommentsRepository: ProtocolCommentsRepository,
     private val securityContext: SecurityContext
 ) : CommandHandler<UploadVisitMediaCommand, String> {
@@ -31,12 +31,12 @@ class UploadVisitMediaCommandHandler(
         logger.info("Uploading media for visit: {} (size: {} bytes)",
             command.visitId, command.file.size)
 
-        val validationResult = visitValidationService.validateVisitAccess(protocolId)
+        val validationResult = visitValidationServiceDeprecated.validateVisitAccess(protocolId)
         validationResult.throwIfInvalid()
 
         validateFile(command.file)
 
-        val mediaId = visitMediaService.uploadMedia(
+        val mediaId = visitMediaServiceDeprecated.uploadMedia(
             visitId = protocolId,
             file = command.file,
             name = command.mediaDetails.name,
@@ -91,8 +91,8 @@ class UploadVisitMediaCommandHandler(
 
 @Service
 class UpdateVisitMediaCommandHandler(
-    private val visitValidationService: VisitValidationService,
-    private val visitMediaService: VisitMediaService,
+    private val visitValidationServiceDeprecated: VisitValidationServiceDeprecated,
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated,
     private val visitCommentsRepository: ProtocolCommentsRepository,
     private val securityContext: SecurityContext
 ) : CommandHandler<UpdateVisitMediaCommand, Unit> {
@@ -106,14 +106,14 @@ class UpdateVisitMediaCommandHandler(
         logger.info("Updating media {} for visit: {}", command.mediaId, command.visitId)
 
         // Fast validation with cache
-        val validationResult = visitValidationService.validateVisitAccess(visitId)
+        val validationResult = visitValidationServiceDeprecated.validateVisitAccess(visitId)
         validationResult.throwIfInvalid()
 
         // Validate input
         validateUpdateRequest(command)
 
         // Update media metadata
-        visitMediaService.updateMediaMetadata(
+        visitMediaServiceDeprecated.updateMediaMetadata(
             visitId = visitId,
             mediaId = command.mediaId,
             name = command.name,
@@ -171,8 +171,8 @@ class UpdateVisitMediaCommandHandler(
 
 @Service
 class DeleteVisitMediaCommandHandler(
-    private val visitValidationService: VisitValidationService,
-    private val visitMediaService: VisitMediaService,
+    private val visitValidationServiceDeprecated: VisitValidationServiceDeprecated,
+    private val visitMediaServiceDeprecated: VisitMediaServiceDeprecated,
     private val visitCommentsRepository: ProtocolCommentsRepository,
     private val securityContext: SecurityContext
 ) : CommandHandler<DeleteVisitMediaCommand, Unit> {
@@ -186,19 +186,19 @@ class DeleteVisitMediaCommandHandler(
         logger.info("Deleting media {} from visit: {}", command.mediaId, command.visitId)
 
         // Fast validation with cache
-        val validationResult = visitValidationService.validateVisitAccess(visitId)
+        val validationResult = visitValidationServiceDeprecated.validateVisitAccess(visitId)
         validationResult.throwIfInvalid()
 
         // Get media name before deletion for comment
         val mediaName = try {
-            visitMediaService.getMediaMetadata(command.mediaId)?.originalName ?: command.mediaId
+            visitMediaServiceDeprecated.getMediaMetadata(command.mediaId)?.originalName ?: command.mediaId
         } catch (e: Exception) {
             logger.warn("Could not get media metadata for {}, using ID", command.mediaId)
             command.mediaId
         }
 
         // Delete media
-        val deleted = visitMediaService.deleteMedia(visitId, command.mediaId)
+        val deleted = visitMediaServiceDeprecated.deleteMedia(visitId, command.mediaId)
 
         if (!deleted) {
             throw IllegalArgumentException("Media not found or could not be deleted: ${command.mediaId}")

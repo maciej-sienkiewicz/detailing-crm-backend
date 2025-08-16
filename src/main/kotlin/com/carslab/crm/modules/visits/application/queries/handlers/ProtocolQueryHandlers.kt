@@ -2,14 +2,14 @@
 package com.carslab.crm.modules.visits.application.queries.handlers
 
 import com.carslab.crm.modules.visits.application.queries.models.*
-import com.carslab.crm.modules.visits.infrastructure.persistence.read.ProtocolReadRepository
+import com.carslab.crm.modules.visits.infrastructure.persistence.read.ProtocolReadRepositoryDeprecated
 import com.carslab.crm.infrastructure.cqrs.QueryHandler
 import com.carslab.crm.api.model.response.PaginatedResponse
 import org.springframework.stereotype.Service
 
 @Service
 class GetProtocolByIdQueryHandler(
-    private val protocolReadRepository: ProtocolReadRepository
+    private val protocolReadRepository: ProtocolReadRepositoryDeprecated
 ) : QueryHandler<GetProtocolByIdQuery, ProtocolDetailReadModel?> {
 
     override fun handle(query: GetProtocolByIdQuery): ProtocolDetailReadModel? {
@@ -19,7 +19,7 @@ class GetProtocolByIdQueryHandler(
 
 @Service
 class SearchProtocolsQueryHandler(
-    private val protocolReadRepository: ProtocolReadRepository
+    private val protocolReadRepository: ProtocolReadRepositoryDeprecated
 ) : QueryHandler<SearchProtocolsQuery, PaginatedResponse<ProtocolListReadModel>> {
 
     override fun handle(query: SearchProtocolsQuery): PaginatedResponse<ProtocolListReadModel> {
@@ -39,7 +39,7 @@ class SearchProtocolsQueryHandler(
 
 @Service
 class GetProtocolCountersQueryHandler(
-    private val protocolReadRepository: ProtocolReadRepository
+    private val protocolReadRepository: ProtocolReadRepositoryDeprecated
 ) : QueryHandler<GetProtocolCountersQuery, ProtocolCountersReadModel> {
 
     override fun handle(query: GetProtocolCountersQuery): ProtocolCountersReadModel {
@@ -49,7 +49,7 @@ class GetProtocolCountersQueryHandler(
 
 @Service
 class GetClientProtocolHistoryQueryHandler(
-    private val protocolReadRepository: ProtocolReadRepository
+    private val protocolReadRepository: ProtocolReadRepositoryDeprecated
 ) : QueryHandler<GetClientProtocolHistoryQuery, PaginatedResponse<ProtocolListReadModel>> {
 
     override fun handle(query: GetClientProtocolHistoryQuery): PaginatedResponse<ProtocolListReadModel> {

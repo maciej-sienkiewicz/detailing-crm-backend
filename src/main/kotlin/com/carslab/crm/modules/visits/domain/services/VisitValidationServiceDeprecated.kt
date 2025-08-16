@@ -9,11 +9,11 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
 @Service
-class VisitValidationService(
+class VisitValidationServiceDeprecated(
     private val visitJpaRepository: ProtocolJpaRepository,
     private val securityContext: SecurityContext
 ) {
-    private val logger = LoggerFactory.getLogger(VisitValidationService::class.java)
+    private val logger = LoggerFactory.getLogger(VisitValidationServiceDeprecated::class.java)
 
     @Cacheable(
         value = ["visit-validation"],

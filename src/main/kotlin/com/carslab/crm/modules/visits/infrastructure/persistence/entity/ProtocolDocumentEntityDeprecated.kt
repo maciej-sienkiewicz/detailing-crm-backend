@@ -8,14 +8,9 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "protocol_documents",
-    indexes = [
-        Index(name = "idx_protocol_documents_company_protocol", columnList = "companyId,protocolId"),
-        Index(name = "idx_protocol_documents_storage_id", columnList = "storageId", unique = true),
-        Index(name = "idx_protocol_documents_document_type", columnList = "documentType")
-    ]
+    name = "protocol_documents_deprecated",
 )
-class ProtocolDocumentEntity(
+class ProtocolDocumentEntityDeprecated(
     @Id
     @Column(nullable = false)
     val storageId: String, // UUID z UniversalStorageService
@@ -65,8 +60,8 @@ class ProtocolDocumentEntity(
         fun fromDomain(
             domain: ProtocolDocumentView,
             companyId: Long
-        ): ProtocolDocumentEntity {
-            return ProtocolDocumentEntity(
+        ): ProtocolDocumentEntityDeprecated {
+            return ProtocolDocumentEntityDeprecated(
                 storageId = domain.storageId,
                 companyId = companyId,
                 protocolId = domain.protocolId.value.toLong(),

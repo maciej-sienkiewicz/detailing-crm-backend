@@ -4,23 +4,22 @@ import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.modules.email.domain.model.ProtocolEmailData
 import com.carslab.crm.modules.email.domain.model.ProtocolServiceData
 import com.carslab.crm.modules.email.domain.ports.ProtocolDataProvider
-import com.carslab.crm.modules.visits.infrastructure.persistence.read.ProtocolReadRepository
-import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.modules.visits.domain.services.VisitValidationService
+import com.carslab.crm.modules.visits.infrastructure.persistence.read.ProtocolReadRepositoryDeprecated
+import com.carslab.crm.modules.visits.domain.services.VisitValidationServiceDeprecated
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class ProtocolDataProviderImpl(
-    private val protocolReadRepository: ProtocolReadRepository,
-    private val visitValidationService: VisitValidationService
+    private val protocolReadRepository: ProtocolReadRepositoryDeprecated,
+    private val visitValidationServiceDeprecated: VisitValidationServiceDeprecated
 ) : ProtocolDataProvider {
 
     private val logger = LoggerFactory.getLogger(ProtocolDataProviderImpl::class.java)
 
     override fun getProtocolData(protocolId: String): ProtocolEmailData? {
         try {
-            val access = visitValidationService.validateVisitAccess(ProtocolId(protocolId))
+            val access = visitValidationServiceDeprecated.validateVisitAccess(ProtocolId(protocolId))
             if(!access.isValid) {
                 logger.warn("Access validation failed for protocolId: $protocolId")
                 throw IllegalArgumentException("Access denied for visitId: $protocolId")
