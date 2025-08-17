@@ -1,9 +1,10 @@
 package com.carslab.crm.production.modules.visits.api
 
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.modules.visits.api.commands.CarReceptionListDto
+import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.dto.*
+import com.carslab.crm.production.modules.visits.application.service.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.application.service.VisitCommandService
 import com.carslab.crm.production.modules.visits.application.service.VisitQueryService
 import com.carslab.crm.production.modules.visits.application.service.VisitListQueryService
@@ -31,7 +32,8 @@ import java.time.LocalDateTime
 class VisitController(
     private val visitCommandService: VisitCommandService,
     private val visitQueryService: VisitQueryService,
-    private val visitListQueryService: VisitListQueryService
+    private val visitListQueryService: VisitListQueryService,
+    private val visitDetailQueryService: VisitDetailQueryService,
 ) {
 
     @PostMapping
@@ -45,8 +47,8 @@ class VisitController(
     @Operation(summary = "Get visit by ID")
     fun getVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
-    ): ResponseEntity<VisitResponse> {
-        val visit = visitQueryService.getVisit(visitId)
+    ): ResponseEntity<CarReceptionDetailDto> {
+        val visit = visitDetailQueryService.getVisitDetail(visitId)
         return ResponseEntity.ok(visit)
     }
 
