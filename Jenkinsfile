@@ -7,12 +7,6 @@ pipeline {
     }
   }
 
-  options {
-    ansiColor('xterm')
-    timestamps()
-    buildDiscarder(logRotator(numToKeepStr: '20'))
-    disableConcurrentBuilds()
-  }
 
   environment {
     GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"'
