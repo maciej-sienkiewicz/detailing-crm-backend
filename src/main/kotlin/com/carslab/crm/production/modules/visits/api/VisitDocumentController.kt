@@ -23,7 +23,7 @@ class VisitDocumentController(
     private val visitDocumentQueryService: VisitDocumentQueryService
 ) {
 
-    @PostMapping("/{visitId}/documents", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping("/{visitId}/document", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Upload document to visit")
     fun uploadDocument(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,

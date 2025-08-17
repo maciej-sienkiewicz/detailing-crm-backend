@@ -10,7 +10,8 @@ import java.time.LocalDateTime
 
 @Service
 class VisitCommentService(
-    private val commentRepository: VisitCommentRepository
+    private val commentRepository: VisitCommentRepository,
+    private val visitActivitySender: VisitActivitySender
 ) {
     fun addComment(command: AddCommentCommand, companyId: Long): VisitComment {
         if (!commentRepository.existsVisitByIdAndCompanyId(command.visitId, companyId)) {
@@ -28,6 +29,7 @@ class VisitCommentService(
         )
 
         return commentRepository.save(comment)
+            .also { visitActivitySender.onCommentAdded(comment) }
     }
 
     fun getCommentsForVisit(visitId: VisitId): List<VisitComment> {

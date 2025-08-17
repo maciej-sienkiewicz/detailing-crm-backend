@@ -23,6 +23,7 @@ import java.time.LocalDateTime
 class VisitDomainService(
     private val visitRepository: VisitRepository,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
+    private val visitActivitySender: VisitActivitySender
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
@@ -46,7 +47,8 @@ class VisitDomainService(
         )
 
         return visitRepository.save(visit)
-            .also { visit -> clientStatisticsCommandService.recordVisit(visit.clientId.value.toString()) }
+            .also { clientStatisticsCommandService.recordVisit(visit.clientId.value.toString()) }
+            .also { visitActivitySender.onVisitCreated(visit) }
     }
 
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {
