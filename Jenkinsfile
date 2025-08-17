@@ -1,49 +1,55 @@
 pipeline {
-    agent any
+  agent {
+    docker {
+      image 'gradle:jdk21-ubi'
+      args '-v $WORKSPACE/.gradle:/home/gradle/.gradle'
+      reuseNode true
+    }
+  }
 
-    tools {
-        jdk 'jdk-17'          // nazwa JDK skonfigurowana w Jenkinsie
-        gradle 'gradle-7'     // nazwa Gradle skonfigurowana w Jenkinsie
+  options {
+    ansiColor('xterm')
+    timestamps()
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
+    stage('Build') {
+      steps {
+        sh '''
+          set -euxo pipefail
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew --no-daemon clean build
+          else
+            gradle --no-daemon clean build
+          fi
+        '''
+      }
+      post {
+        always {
+          // Raporty testów (Gradle -> JUnit XML)
+          junit allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml'
+          // Artefakty (JARy/uberJARy)
+          archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
         }
-
-        stage('Build') {
-            steps {
-                sh "./gradlew clean build"
-            }
-        }
-        
-        stage('Test') {
-            steps {
-                sh "./gradlew test"
-            }
-            post {
-                always {
-                    junit 'build/test-results/test/*.xml'
-                }
-            }
-        }
-
-        stage('Package') {
-            steps {
-                sh "./gradlew bootJar"
-                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-            }
-        }
+      }
     }
+  }
 
-    post {
-        success {
-            echo "✅ Build zakończony sukcesem!"
-        }
-        failure {
-            echo "❌ Build nie powiódł się!"
-        }
+  post {
+    always {
+      cleanWs()
     }
+  }
 }
