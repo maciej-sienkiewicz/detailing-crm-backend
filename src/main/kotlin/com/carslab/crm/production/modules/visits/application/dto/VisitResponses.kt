@@ -83,41 +83,6 @@ data class VisitResponse(
     }
 }
 
-data class CarReceptionListDto(
-    @JsonProperty("id")
-    val id: String,
-
-    @JsonProperty("title")
-    val title: String,
-
-    @JsonProperty("vehicle")
-    val vehicle: VehicleBasicDto,
-
-    @JsonProperty("calendar_color_id")
-    val calendarColorId: String,
-
-    @JsonProperty("period")
-    val period: PeriodDto,
-
-    @JsonProperty("owner")
-    val owner: OwnerBasicDto,
-
-    @JsonProperty("status")
-    val status: ApiProtocolStatus,
-
-    @JsonProperty("total_service_count")
-    val totalServiceCount: Int,
-
-    @JsonProperty("total_amount")
-    val totalAmount: Double,
-
-    @JsonProperty("selected_services")
-    val selectedServices: List<ServiceDto>,
-
-    @JsonProperty("last_update")
-    val lastUpdate: String
-)
-
 data class VisitServiceResponse(
     val id: String,
     val name: String,
@@ -314,3 +279,9 @@ data class VisitTableResponse(
         }
     }
 }
+
+data class MediaUploadResponse(
+    val mediaId: String,
+    val protocolId: String,
+    val message: String = "Media uploaded successfully"
+)

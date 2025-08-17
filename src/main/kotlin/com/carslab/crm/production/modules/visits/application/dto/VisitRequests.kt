@@ -237,7 +237,7 @@ data class UploadDocumentRequest(
 
     @field:NotNull(message = "Document type is required")
     @JsonProperty("document_type")
-    val documentType: DocumentType,
+    val documentType: String,
 
     @field:Size(max = 500, message = "Description cannot exceed 500 characters")
     val description: String? = null

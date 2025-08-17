@@ -1,5 +1,8 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
+import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.production.modules.visits.application.queries.models.GetMediaQuery
 import com.carslab.crm.production.modules.visits.domain.command.UploadMediaCommand
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.enums.MediaType
@@ -12,7 +15,8 @@ import java.time.LocalDateTime
 
 @Service
 class VisitMediaService(
-    private val mediaRepository: VisitMediaRepository
+    private val mediaRepository: VisitMediaRepository,
+    private val storageService: UniversalStorageService
 ) {
     fun uploadMedia(command: UploadMediaCommand, companyId: Long): VisitMedia {
         if (!mediaRepository.existsVisitByIdAndCompanyId(command.visitId, companyId)) {
@@ -20,9 +24,24 @@ class VisitMediaService(
         }
 
         validateFile(command.file)
+        
+        val storageId = storageService.storeFile(
+            UniversalStoreRequest(
+                file = command.file,
+                originalFileName = command.file.originalFilename ?: "image.jpg",
+                contentType = command.file.contentType ?: "image/jpeg",
+                companyId = companyId,
+                entityId = command.visitId.value.toString(),
+                entityType = "visit",
+                category = "visits",
+                subCategory = "media",
+                description = command.metadata.description,
+                tags = command.metadata.tags.mapIndexed { index, tag -> "tag_$index" to tag }.toMap()
+            )
+        )
 
         val media = VisitMedia(
-            id = java.util.UUID.randomUUID().toString(),
+            id = storageId,
             visitId = command.visitId.value,
             name = command.metadata.name,
             description = command.metadata.description,
@@ -41,13 +60,21 @@ class VisitMediaService(
     fun getMediaForVisit(visitId: VisitId): List<VisitMedia> {
         return mediaRepository.findByVisitId(visitId)
     }
-
-    fun getMedia(mediaId: String): VisitMedia? {
-        return mediaRepository.findById(mediaId)
-    }
-
+    
     fun getMediaData(mediaId: String): ByteArray? {
         return mediaRepository.getFileData(mediaId)
+    }
+
+    fun getImageWithMetadata(fileId: String): GetMediaQuery? {
+        val media = mediaRepository.findById(fileId) ?: return null
+        val data = mediaRepository.getFileData(fileId) ?: return null
+
+        return GetMediaQuery(
+            data = data,
+            contentType = media.contentType,
+            originalName = media.name,
+            size = media.size
+        )
     }
 
     fun deleteMedia(mediaId: String): Boolean {

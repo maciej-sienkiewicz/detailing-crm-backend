@@ -22,10 +22,8 @@ class VisitDocumentService(
         }
 
         validateFile(command.file)
-
-        val documentId = java.util.UUID.randomUUID().toString()
-
-        storageService.storeFile(
+        
+        val storageId = storageService.storeFile(
             UniversalStoreRequest(
                 file = command.file,
                 originalFileName = command.file.originalFilename ?: "document.pdf",
@@ -41,7 +39,7 @@ class VisitDocumentService(
         )
 
         val document = VisitDocument(
-            id = documentId,
+            id = storageId,
             visitId = command.visitId,
             name = command.file.originalFilename ?: "document",
             type = command.documentType,

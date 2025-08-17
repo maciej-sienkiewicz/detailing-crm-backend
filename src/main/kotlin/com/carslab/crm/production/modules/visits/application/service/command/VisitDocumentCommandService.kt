@@ -1,9 +1,11 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
 import com.carslab.crm.production.modules.visits.application.dto.UploadDocumentRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitDocumentResponse
 import com.carslab.crm.production.modules.visits.domain.command.UploadDocumentCommand
+import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.VisitDocumentService
 import org.slf4j.LoggerFactory
@@ -18,7 +20,7 @@ class VisitDocumentCommandService(
 ) {
     private val logger = LoggerFactory.getLogger(VisitDocumentCommandService::class.java)
 
-    fun uploadDocument(visitId: String, request: UploadDocumentRequest): VisitDocumentResponse {
+    fun uploadDocument(visitId: String, request: UploadDocumentRequest): ProtocolDocumentDto {
         val companyId = securityContext.getCurrentCompanyId()
         val uploadedBy = securityContext.getCurrentUserName() ?: "System"
 
@@ -27,13 +29,25 @@ class VisitDocumentCommandService(
         val command = UploadDocumentCommand(
             visitId = VisitId.of(visitId),
             file = request.file,
-            documentType = request.documentType,
+            documentType = request.documentType.uppercase().let { DocumentType.valueOf(it) },
             description = request.description
         )
 
         val document = documentService.uploadDocument(command, companyId, uploadedBy)
         logger.info("Document uploaded successfully to visit: {}", visitId)
 
-        return VisitDocumentResponse.from(document)
+        return ProtocolDocumentDto(
+            storageId = document.id,
+            protocolId = document.visitId.value.toString(),
+            originalName = document.name,
+            fileSize = document.size,
+            contentType = document.contentType,
+            documentType = document.type.toString(),
+            documentTypeDisplay = document.type.toString(),
+            description = document.description,
+            createdAt = document.createdAt.toString(),
+            uploadedBy = document.uploadedBy,
+            downloadUrl =  "/api/v1/visits/documents/${document.id}/download",
+        )
     }
 }
