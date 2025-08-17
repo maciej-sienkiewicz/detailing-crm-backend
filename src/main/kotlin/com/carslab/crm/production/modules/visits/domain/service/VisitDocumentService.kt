@@ -8,18 +8,16 @@ import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDocumentRepository
-import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
 class VisitDocumentService(
     private val documentRepository: VisitDocumentRepository,
-    private val visitRepository: VisitRepository,
     private val storageService: UniversalStorageService
 ) {
     fun uploadDocument(command: UploadDocumentCommand, companyId: Long, uploadedBy: String): VisitDocument {
-        if (!visitRepository.existsById(command.visitId, companyId)) {
+        if (!documentRepository.existsVisitByIdAndCompanyId(command.visitId, companyId)) {
             throw EntityNotFoundException("Visit not found: ${command.visitId.value}")
         }
 

@@ -6,82 +6,74 @@ import com.carslab.crm.modules.visits.api.request.ApiDiscountType
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.api.model.ApiProtocolStatus
-import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailRepository
-import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailProjection
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
 import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
-import com.carslab.crm.production.modules.visits.infrastructure.repository.VisitServiceJpaRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.format.DateTimeFormatter
 
 @Service
 @Transactional(readOnly = true)
 class VisitDetailQueryService(
-    private val visitDetailRepository: VisitDetailRepository,
+    private val visitDetailQueryRepository: VisitDetailQueryRepository,
     private val visitMediaService: VisitMediaService,
-    private val visitServiceJpaRepository: VisitServiceJpaRepository,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitDetailQueryService::class.java)
-    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     fun getVisitDetail(visitId: String): CarReceptionDetailDto {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching visit detail: {} for company: {}", visitId, companyId)
 
-        val visitDetail = visitDetailRepository.findVisitDetailWithRelations(VisitId.of(visitId), companyId)
+        val visitDetail = visitDetailQueryRepository.findVisitDetailById(VisitId.of(visitId), companyId)
             ?: throw EntityNotFoundException("Visit not found: $visitId")
 
-        val services = visitServiceJpaRepository.findByVisitId(visitDetail.visitId)
-        val mediaItems = visitMediaService.getMediaForVisit(VisitId.of(visitDetail.visitId))
+        val mediaItems = visitMediaService.getMediaForVisit(VisitId.of(visitId))
 
         logger.debug("Visit detail found: {}", visitDetail.title)
 
-        return mapToCarReceptionDetailDto(visitDetail, services, mediaItems)
+        return mapToCarReceptionDetailDto(visitDetail, mediaItems)
     }
 
     private fun mapToCarReceptionDetailDto(
-        visitDetail: VisitDetailProjection,
-        services: List<com.carslab.crm.production.modules.visits.infrastructure.entity.VisitServiceEntity>,
-        mediaItems: List<VisitMedia>
+        visitDetail: VisitDetailReadModel,
+        mediaItems: List<com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia>
     ): CarReceptionDetailDto {
         return CarReceptionDetailDto(
-            id = visitDetail.visitId.toString(),
+            id = visitDetail.id,
             title = visitDetail.title,
             calendarColorId = visitDetail.calendarColorId,
-            startDate = visitDetail.startDate.format(dateTimeFormatter),
-            endDate = visitDetail.endDate.format(dateTimeFormatter),
-            licensePlate = visitDetail.vehicleLicensePlate,
-            make = visitDetail.vehicleMake,
-            model = visitDetail.vehicleModel,
-            productionYear = visitDetail.vehicleYear ?: 0,
-            mileage = visitDetail.vehicleMileage,
-            vin = visitDetail.vehicleVin,
-            color = visitDetail.vehicleColor,
-            keysProvided = visitDetail.keysProvided,
-            documentsProvided = visitDetail.documentsProvided,
-            ownerId = visitDetail.clientId,
-            ownerName = visitDetail.clientName,
-            companyName = visitDetail.clientCompany,
-            taxId = visitDetail.clientTaxId,
-            email = visitDetail.clientEmail,
-            phone = visitDetail.clientPhone,
-            address = visitDetail.clientAddress,
+            startDate = visitDetail.period.startDate,
+            endDate = visitDetail.period.endDate,
+            licensePlate = visitDetail.vehicle.licensePlate,
+            make = visitDetail.vehicle.make,
+            model = visitDetail.vehicle.model,
+            productionYear = visitDetail.vehicle.productionYear,
+            mileage = visitDetail.vehicle.mileage,
+            vin = visitDetail.vehicle.vin,
+            color = visitDetail.vehicle.color,
+            keysProvided = visitDetail.documents.keysProvided,
+            documentsProvided = visitDetail.documents.documentsProvided,
+            ownerId = visitDetail.client.id?.toLong(),
+            ownerName = visitDetail.client.name,
+            companyName = visitDetail.client.companyName,
+            taxId = visitDetail.client.taxId,
+            email = visitDetail.client.email,
+            phone = visitDetail.client.phone,
+            address = visitDetail.client.address,
             notes = visitDetail.notes,
-            selectedServices = services.map { service ->
+            selectedServices = visitDetail.services.map { service ->
                 ServiceDto(
                     id = service.id,
                     name = service.name,
                     quantity = service.quantity,
                     price = service.basePrice.toDouble(),
                     discountType = service.discountType?.let { mapToApiDiscountType(it) },
-                    discountValue = service.discountValue?.toDouble() ?: 0.0,
+                    discountValue = service.discountValue.toDouble(),
                     finalPrice = service.finalPrice.toDouble(),
                     approvalStatus = mapToServiceApprovalStatus(service.approvalStatus),
                     note = service.note
@@ -89,7 +81,7 @@ class VisitDetailQueryService(
             },
             status = mapToApiProtocolStatus(visitDetail.status),
             referralSource = visitDetail.referralSource?.let { mapToApiReferralSource(it) },
-            otherSourceDetails = null,
+            otherSourceDetails = visitDetail.otherSourceDetails,
             vehicleImages = mediaItems.map { media ->
                 VehicleImageDto(
                     id = media.id,
@@ -103,9 +95,9 @@ class VisitDetailQueryService(
                     tags = media.tags
                 )
             },
-            createdAt = visitDetail.createdAt.format(dateTimeFormatter),
-            updatedAt = visitDetail.updatedAt.format(dateTimeFormatter),
-            statusUpdatedAt = visitDetail.updatedAt.format(dateTimeFormatter),
+            createdAt = visitDetail.audit.createdAt,
+            updatedAt = visitDetail.audit.updatedAt,
+            statusUpdatedAt = visitDetail.audit.statusUpdatedAt,
             appointmentId = visitDetail.appointmentId
         )
     }
@@ -126,22 +118,21 @@ class VisitDetailQueryService(
         }
     }
 
-    private fun mapToApiDiscountType(type: DiscountType): ApiDiscountType {
+    private fun mapToApiDiscountType(type: String): ApiDiscountType {
         return when (type) {
-            DiscountType.PERCENTAGE -> ApiDiscountType.PERCENTAGE
-            DiscountType.AMOUNT -> ApiDiscountType.AMOUNT
-            DiscountType.FIXED_PRICE -> ApiDiscountType.FIXED_PRICE
+            "PERCENTAGE" -> ApiDiscountType.PERCENTAGE
+            "AMOUNT" -> ApiDiscountType.AMOUNT
+            "FIXED_PRICE" -> ApiDiscountType.FIXED_PRICE
+            else -> ApiDiscountType.AMOUNT
         }
     }
 
-    private fun mapToServiceApprovalStatus(status: com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus): ServiceApprovalStatus {
+    private fun mapToServiceApprovalStatus(status: String): ServiceApprovalStatus {
         return when (status) {
-            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.PENDING ->
-                ServiceApprovalStatus.PENDING
-            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.APPROVED ->
-                ServiceApprovalStatus.APPROVED
-            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.REJECTED ->
-                ServiceApprovalStatus.REJECTED
+            "PENDING" -> ServiceApprovalStatus.PENDING
+            "APPROVED" -> ServiceApprovalStatus.APPROVED
+            "REJECTED" -> ServiceApprovalStatus.REJECTED
+            else -> ServiceApprovalStatus.PENDING
         }
     }
 }

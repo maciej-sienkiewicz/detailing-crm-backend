@@ -4,18 +4,16 @@ import com.carslab.crm.production.modules.visits.domain.command.AddCommentComman
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitCommentRepository
-import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
 class VisitCommentService(
-    private val commentRepository: VisitCommentRepository,
-    private val visitRepository: VisitRepository
+    private val commentRepository: VisitCommentRepository
 ) {
     fun addComment(command: AddCommentCommand, companyId: Long): VisitComment {
-        if (!visitRepository.existsById(command.visitId, companyId)) {
+        if (!commentRepository.existsVisitByIdAndCompanyId(command.visitId, companyId)) {
             throw EntityNotFoundException("Visit not found: ${command.visitId.value}")
         }
 

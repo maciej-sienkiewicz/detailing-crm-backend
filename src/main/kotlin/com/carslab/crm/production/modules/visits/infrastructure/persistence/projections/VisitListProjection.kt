@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.infrastructure.persistence.projections
+package com.carslab.crm.production.modules.visits.application.queries.models
 
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import java.math.BigDecimal

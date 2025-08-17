@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class JpaVisitDocumentRepositoryImpl(
     private val documentJpaRepository: VisitDocumentJpaRepository,
+    private val visitJpaRepository: VisitJpaRepository,
     private val storageService: UniversalStorageService
 ) : VisitDocumentRepository {
 
@@ -30,6 +31,10 @@ class JpaVisitDocumentRepositoryImpl(
         return documentJpaRepository.findById(documentId)
             .map { it.toDomain() }
             .orElse(null)
+    }
+
+    override fun existsVisitByIdAndCompanyId(visitId: VisitId, companyId: Long): Boolean {
+        return visitJpaRepository.existsByIdAndCompanyId(visitId.value, companyId)
     }
 
     override fun deleteById(documentId: String): Boolean {

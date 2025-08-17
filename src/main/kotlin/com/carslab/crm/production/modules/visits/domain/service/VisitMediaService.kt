@@ -1,12 +1,10 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.production.modules.visits.domain.command.UploadMediaCommand
-import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.enums.MediaType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitMediaRepository
-import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
@@ -14,11 +12,10 @@ import java.time.LocalDateTime
 
 @Service
 class VisitMediaService(
-    private val mediaRepository: VisitMediaRepository,
-    private val visitRepository: VisitRepository
+    private val mediaRepository: VisitMediaRepository
 ) {
     fun uploadMedia(command: UploadMediaCommand, companyId: Long): VisitMedia {
-        if (!visitRepository.existsById(command.visitId, companyId)) {
+        if (!mediaRepository.existsVisitByIdAndCompanyId(command.visitId, companyId)) {
             throw EntityNotFoundException("Visit not found: ${command.visitId.value}")
         }
 

@@ -1,7 +1,7 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListItem
-import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListService
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitListProjection
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitListService
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListRepository
 import org.springframework.data.domain.Page
@@ -15,29 +15,8 @@ class JpaVisitListRepositoryImpl(
     private val visitListJpaRepository: VisitListJpaRepository
 ) : VisitListRepository {
 
-    override fun findVisitListForCompany(companyId: Long, pageable: Pageable): Page<VisitListItem> {
-        val projections = visitListJpaRepository.findVisitListForCompany(companyId, pageable)
-
-        return projections.map { projection ->
-            VisitListItem(
-                visitId = VisitId.of(projection.visitId),
-                title = projection.title,
-                clientName = projection.clientName,
-                companyName = projection.companyName,
-                vehicleMake = projection.vehicleMake,
-                vehicleModel = projection.vehicleModel,
-                licensePlate = projection.licensePlate,
-                productionYear = projection.productionYear,
-                color = projection.color,
-                startDate = projection.startDate,
-                endDate = projection.endDate,
-                status = projection.status,
-                totalServiceCount = projection.totalServiceCount,
-                totalAmount = projection.totalAmount,
-                calendarColorId = projection.calendarColorId,
-                lastUpdate = projection.lastUpdate
-            )
-        }
+    override fun findVisitListProjectionsForCompany(companyId: Long, pageable: Pageable): Page<VisitListProjection> {
+        return visitListJpaRepository.findVisitListForCompany(companyId, pageable)
     }
 
     override fun findVisitServicesForVisits(companyId: Long, visitIds: List<VisitId>): Map<VisitId, List<VisitListService>> {

@@ -3,17 +3,13 @@ package com.carslab.crm.production.modules.visits.application.service
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
-import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.service.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
-import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
-import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
+import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
-import com.carslab.crm.production.modules.visits.domain.models.value_objects.MediaMetadata
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
@@ -25,11 +21,6 @@ import java.time.LocalDateTime
 @Transactional
 class VisitCommandService(
     private val visitDomainService: VisitDomainService,
-    private val commentService: VisitCommentService,
-    private val mediaService: VisitMediaService,
-    private val documentService: VisitDocumentService,
-    private val clientQueryService: ClientQueryService,
-    private val vehicleQueryService: VehicleQueryService,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommandService::class.java)
@@ -41,7 +32,7 @@ class VisitCommandService(
         validateCreateRequest(request)
 
         val command = CreateVisitCommand(
-           companyId = companyId,
+            companyId = companyId,
             title = request.title,
             clientId = ClientId.of(1),
             vehicleId = VehicleId.of(1),
@@ -117,65 +108,6 @@ class VisitCommandService(
         }
     }
 
-    fun addComment(visitId: String, request: AddCommentRequest): VisitCommentResponse {
-        val companyId = securityContext.getCurrentCompanyId()
-        val author = securityContext.getCurrentUserName() ?: "System"
-
-        logger.info("Adding comment to visit: {} for company: {}", visitId, companyId)
-
-        val command = AddCommentCommand(
-            visitId = VisitId.of(visitId),
-            content = request.content,
-            type = request.type,
-            author = author
-        )
-
-        val comment = commentService.addComment(command, companyId)
-        logger.info("Comment added successfully to visit: {}", visitId)
-
-        return VisitCommentResponse.from(comment)
-    }
-
-    fun uploadMedia(visitId: String, request: UploadMediaRequest): VisitMediaResponse {
-        val companyId = securityContext.getCurrentCompanyId()
-        logger.info("Uploading media to visit: {} for company: {}", visitId, companyId)
-
-        val command = UploadMediaCommand(
-            visitId = VisitId.of(visitId),
-            file = request.file,
-            metadata = MediaMetadata(
-                name = request.name,
-                description = request.description,
-                location = request.location,
-                tags = request.tags
-            )
-        )
-
-        val media = mediaService.uploadMedia(command, companyId)
-        logger.info("Media uploaded successfully to visit: {}", visitId)
-
-        return VisitMediaResponse.from(media)
-    }
-
-    fun uploadDocument(visitId: String, request: UploadDocumentRequest): VisitDocumentResponse {
-        val companyId = securityContext.getCurrentCompanyId()
-        val uploadedBy = securityContext.getCurrentUserName() ?: "System"
-
-        logger.info("Uploading document to visit: {} for company: {}", visitId, companyId)
-
-        val command = UploadDocumentCommand(
-            visitId = VisitId.of(visitId),
-            file = request.file,
-            documentType = request.documentType,
-            description = request.description
-        )
-
-        val document = documentService.uploadDocument(command, companyId, uploadedBy)
-        logger.info("Document uploaded successfully to visit: {}", visitId)
-
-        return VisitDocumentResponse.from(document)
-    }
-
     private fun validateCreateRequest(request: CreateVisitRequest) {
         if (request.title.isBlank()) {
             throw BusinessException("Visit title cannot be blank")
@@ -191,15 +123,6 @@ class VisitCommandService(
         }
     }
 
-    private fun validateClientAndVehicleExist(clientId: Long, vehicleId: Long) {
-        if (!clientQueryService.findByIds(listOf(ClientId.of(clientId))).any()) {
-            throw BusinessException("Client not found: $clientId")
-        }
-        if (!vehicleQueryService.exists(VehicleId.of(vehicleId))) {
-            throw BusinessException("Vehicle not found: $vehicleId")
-        }
-    }
-
     private fun mapToCreateServiceCommand(request: CreateServiceRequest): CreateServiceCommand {
         return CreateServiceCommand(
             name = request.name,
@@ -212,7 +135,7 @@ class VisitCommandService(
             note = request.note
         )
     }
-    
+
     private fun mapToCreateServiceCommand(request: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {
         return CreateServiceCommand(
             name = request.name,

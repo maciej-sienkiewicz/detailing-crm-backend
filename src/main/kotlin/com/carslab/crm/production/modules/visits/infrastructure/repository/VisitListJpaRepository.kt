@@ -1,7 +1,7 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitListProjection
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity
-import com.carslab.crm.production.modules.visits.infrastructure.persistence.projections.VisitListProjection
 import com.carslab.crm.production.modules.visits.infrastructure.persistence.projections.VisitServiceProjection
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

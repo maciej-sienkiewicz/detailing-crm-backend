@@ -10,7 +10,8 @@ import org.springframework.transaction.annotation.Transactional
 @Repository
 @Transactional
 class JpaVisitCommentRepositoryImpl(
-    private val commentJpaRepository: VisitCommentJpaRepository
+    private val commentJpaRepository: VisitCommentJpaRepository,
+    private val visitJpaRepository: VisitJpaRepository
 ) : VisitCommentRepository {
 
     override fun save(comment: VisitComment): VisitComment {
@@ -22,6 +23,10 @@ class JpaVisitCommentRepositoryImpl(
     override fun findByVisitId(visitId: VisitId): List<VisitComment> {
         return commentJpaRepository.findByVisitIdOrderByCreatedAtDesc(visitId.value)
             .map { it.toDomain() }
+    }
+
+    override fun existsVisitByIdAndCompanyId(visitId: VisitId, companyId: Long): Boolean {
+        return visitJpaRepository.existsByIdAndCompanyId(visitId.value, companyId)
     }
 
     override fun deleteById(commentId: String): Boolean {

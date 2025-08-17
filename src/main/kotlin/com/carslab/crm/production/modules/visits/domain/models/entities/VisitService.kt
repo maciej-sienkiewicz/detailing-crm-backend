@@ -23,3 +23,9 @@ data class VisitService(
     fun isPending(): Boolean = approvalStatus == ServiceApprovalStatus.PENDING
     fun isRejected(): Boolean = approvalStatus == ServiceApprovalStatus.REJECTED
 }
+
+data class VisitListService(
+    val id: String,
+    val name: String,
+    val finalPrice: BigDecimal
+)

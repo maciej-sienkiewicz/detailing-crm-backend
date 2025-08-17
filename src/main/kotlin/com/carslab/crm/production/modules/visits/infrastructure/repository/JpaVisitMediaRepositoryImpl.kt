@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class JpaVisitMediaRepositoryImpl(
     private val mediaJpaRepository: VisitMediaJpaRepository,
+    private val visitJpaRepository: VisitJpaRepository,
     private val storageService: UniversalStorageService
 ) : VisitMediaRepository {
 
@@ -30,6 +31,10 @@ class JpaVisitMediaRepositoryImpl(
         return mediaJpaRepository.findById(mediaId)
             .map { it.toDomain() }
             .orElse(null)
+    }
+
+    override fun existsVisitByIdAndCompanyId(visitId: VisitId, companyId: Long): Boolean {
+        return visitJpaRepository.existsByIdAndCompanyId(visitId.value, companyId)
     }
 
     override fun deleteById(mediaId: String): Boolean {
