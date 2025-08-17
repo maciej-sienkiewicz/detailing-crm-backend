@@ -1,9 +1,12 @@
 package com.carslab.crm.production.modules.visits.api
 
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.commands.CarReceptionListDto
+import com.carslab.crm.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.application.service.VisitCommandService
 import com.carslab.crm.production.modules.visits.application.service.VisitQueryService
+import com.carslab.crm.production.modules.visits.application.service.VisitListQueryService
 import com.carslab.crm.production.modules.visits.domain.model.VisitStatus
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -27,7 +30,8 @@ import java.time.LocalDateTime
 @Tag(name = "Visit Management", description = "Endpoints for managing visits")
 class VisitController(
     private val visitCommandService: VisitCommandService,
-    private val visitQueryService: VisitQueryService
+    private val visitQueryService: VisitQueryService,
+    private val visitListQueryService: VisitListQueryService
 ) {
 
     @PostMapping
@@ -82,23 +86,11 @@ class VisitController(
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") sortBy: String,
         @Parameter(description = "Sort direction") @RequestParam(defaultValue = "DESC") sortDirection: String
-    ): ResponseEntity<Page<CarReceptionListDto>> {
+    ): ResponseEntity<PaginatedResponse<VisitListReadModel>> {
         val sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy)
         val pageable = PageRequest.of(page, size, sort)
-        val visits = visitQueryService.getVisitsForCurrentCompany(pageable)
-        return ResponseEntity.ok(visits.map { CarReceptionListDto(
-            id = it.id,
-            title = it.title,
-            vehicle = TODO(),
-            calendarColorId = TODO(),
-            period = TODO(),
-            owner = TODO(),
-            status = TODO(),
-            totalServiceCount = TODO(),
-            totalAmount = TODO(),
-            selectedServices = TODO(),
-            lastUpdate = TODO()
-        ) })
+        val visits = visitListQueryService.getVisitList(pageable)
+        return ResponseEntity.ok(visits)
     }
 
     @GetMapping("/search")

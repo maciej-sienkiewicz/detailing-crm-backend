@@ -1,11 +1,9 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
-import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.visits.domain.repository.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
-import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
@@ -16,9 +14,7 @@ import java.time.LocalDateTime
 
 @Service
 class VisitDomainService(
-    private val visitRepository: VisitRepository,
-    private val vehicleQueryService: VehicleQueryService,
-    private val clientQueryService: ClientQueryService,
+    private val visitRepository: VisitRepository
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
@@ -85,9 +81,6 @@ class VisitDomainService(
     }
 
     fun getVisitsForCompany(companyId: Long, pageable: Pageable): Page<Visit> {
-        val visits = visitRepository.findByCompanyId(companyId, pageable)
-        val fetchedVehicles = vehicleQueryService.getVehicles( visits.map { it.vehicleId }.content.map { it.toString() } )
-        val fetchedClients = clientQueryService.findByIds(visits.map { it.clientId }.content.map { ClientId(it.value) })
         return visitRepository.findByCompanyId(companyId, pageable)
     }
 
