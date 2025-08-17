@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
+import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
@@ -20,7 +21,8 @@ import java.time.LocalDateTime
 
 @Service
 class VisitDomainService(
-    private val visitRepository: VisitRepository
+    private val visitRepository: VisitRepository,
+    private val clientStatisticsCommandService: ClientStatisticsCommandService,
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
@@ -44,6 +46,7 @@ class VisitDomainService(
         )
 
         return visitRepository.save(visit)
+            .also { visit -> clientStatisticsCommandService.recordVisit(visit.clientId.value.toString()) }
     }
 
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {

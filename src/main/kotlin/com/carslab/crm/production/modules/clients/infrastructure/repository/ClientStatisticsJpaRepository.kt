@@ -22,7 +22,7 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
         SET s.visitCount = s.visitCount + 1, s.updatedAt = :now 
         WHERE s.clientId = :clientId
     """)
-    fun incrementVisitCount(@Param("clientId") clientId: Long, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+    fun incrementVisitCount(@Param("clientId") clientId: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
     @Query("""
@@ -30,7 +30,7 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
         SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
         WHERE s.clientId = :clientId
     """)
-    fun addRevenue(@Param("clientId") clientId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+    fun addRevenue(@Param("clientId") clientId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime): Int
 
     @Modifying
     @Query("""
@@ -38,7 +38,15 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
         SET s.vehicleCount = :count, s.updatedAt = :now 
         WHERE s.clientId = :clientId
     """)
-    fun updateVehicleCount(@Param("clientId") clientId: Long, @Param("count") count: Long, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+    fun updateVehicleCount(@Param("clientId") clientId: Long, @Param("count") count: Long, @Param("now") now: LocalDateTime): Int
+
+    @Modifying
+    @Query("""
+        UPDATE ClientStatisticsEntity s 
+        SET s.lastVisitDate = :visitDate, s.updatedAt = :now 
+        WHERE s.clientId = :clientId
+    """)
+    fun setLastVisitDate(@Param("clientId") clientId: Long, @Param("visitDate") visitDate: LocalDateTime, @Param("now") now: LocalDateTime): Int
 
     @Modifying
     @Query("DELETE FROM ClientStatisticsEntity s WHERE s.clientId = :clientId")

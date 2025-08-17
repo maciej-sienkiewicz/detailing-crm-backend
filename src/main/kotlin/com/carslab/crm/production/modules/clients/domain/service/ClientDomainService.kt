@@ -127,4 +127,13 @@ class ClientDomainService(
 
     fun findByIds(clientIds: List<ClientId>, companyId: Long) =
         clientRepository.findByIds(clientIds, companyId)
+    
+    fun recordVisit(clientId: ClientId) {
+        logger.debug("Recording visit for client: {}", clientId.value)
+
+        clientStatisticsRepository.incrementVisitCount(clientId)
+        clientStatisticsRepository.setLastVisitDate(clientId, LocalDateTime.now())
+
+        logger.info("Visit recorded for client: {}", clientId.value)
+    }
 }

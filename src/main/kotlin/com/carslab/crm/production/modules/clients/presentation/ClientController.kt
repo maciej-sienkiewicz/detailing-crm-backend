@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.clients.presentation
 
 import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.production.modules.clients.application.dto.ClientExpandedResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientWithStatisticsResponse
 import com.carslab.crm.production.modules.clients.application.dto.CreateClientRequest
@@ -77,10 +78,10 @@ class ClientController(
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") sortBy: String?,
         @Parameter(description = "Sort order") @RequestParam(defaultValue = "asc") sortOrder: String?
-    ): ResponseEntity<PaginatedResponse<ClientResponse>> {
+    ): ResponseEntity<PaginatedResponse<ClientExpandedResponse>> {
         logger.info("Getting clients with pagination: page=$page, size=$size, name=$name, email=$email, phone=$phone, company=$company")
 
-        val clients = clientQueryService.searchClients(
+        val clients = clientQueryService.searchClientsExpanded(
             name = name,
             email = email,
             phone = phone,
@@ -192,14 +193,6 @@ class ClientController(
         logger.info("Getting vehicles for client: $clientId")
 
         return ok(emptyList())
-    }
-
-    private fun createSuccessResponse(message: String, data: Map<String, Any>): Map<String, Any> {
-        return mapOf(
-            "success" to true,
-            "message" to message,
-            "data" to data
-        )
     }
 }
 

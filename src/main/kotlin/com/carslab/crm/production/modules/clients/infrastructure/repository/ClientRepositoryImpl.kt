@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.clients.infrastructure.repository
 
 import com.carslab.crm.production.modules.clients.domain.model.Client
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.clients.domain.model.ClientWithStatistics
 import com.carslab.crm.production.modules.clients.domain.repository.ClientRepository
 import com.carslab.crm.production.modules.clients.domain.repository.ClientSearchCriteria
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toDomain
@@ -148,6 +149,51 @@ class ClientRepositoryImpl(
         logger.debug("Found {} clients matching criteria for company: {}", clients.size, companyId)
 
         return PageImpl(clients, pageable, totalCount)
+    }
+
+    @Transactional(readOnly = true)
+    override fun searchClientsWithStatistics(
+        companyId: Long,
+        searchCriteria: ClientSearchCriteria,
+        pageable: Pageable
+    ): Page<ClientWithStatistics> {
+        logger.debug("Searching clients with statistics for company: {} with criteria", companyId)
+
+        val offset = pageable.pageNumber * pageable.pageSize
+        val limit = pageable.pageSize
+
+        val rawResults = jpaRepository.searchClientsWithStatisticsNative(
+            companyId = companyId,
+            name = searchCriteria.name,
+            email = searchCriteria.email,
+            phone = searchCriteria.phone,
+            company = searchCriteria.company,
+            hasVehicles = searchCriteria.hasVehicles,
+            minTotalRevenue = searchCriteria.minTotalRevenue,
+            maxTotalRevenue = searchCriteria.maxTotalRevenue,
+            minVisits = searchCriteria.minVisits,
+            maxVisits = searchCriteria.maxVisits,
+            limit = limit,
+            offset = offset
+        )
+
+        val totalCount = jpaRepository.countSearchClientsWithStatistics(
+            companyId = companyId,
+            name = searchCriteria.name,
+            email = searchCriteria.email,
+            phone = searchCriteria.phone,
+            company = searchCriteria.company,
+            hasVehicles = searchCriteria.hasVehicles,
+            minTotalRevenue = searchCriteria.minTotalRevenue,
+            maxTotalRevenue = searchCriteria.maxTotalRevenue,
+            minVisits = searchCriteria.minVisits,
+            maxVisits = searchCriteria.maxVisits
+        )
+
+        val clientsWithStats = rawResults.map { it.toDomain() }
+        logger.debug("Found {} clients with statistics for company: {}", clientsWithStats.size, companyId)
+
+        return PageImpl(clientsWithStats, pageable, totalCount)
     }
 
     override fun findByIds(ids: List<ClientId>, companyId: Long): List<Client> {

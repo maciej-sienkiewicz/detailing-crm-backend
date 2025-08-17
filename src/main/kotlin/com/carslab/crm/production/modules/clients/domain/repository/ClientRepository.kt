@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.clients.domain.repository
 
 import com.carslab.crm.production.modules.clients.domain.model.Client
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.clients.domain.model.ClientWithStatistics
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
@@ -19,6 +20,11 @@ interface ClientRepository {
         searchCriteria: ClientSearchCriteria,
         pageable: Pageable
     ): Page<Client>
+    fun searchClientsWithStatistics(
+        companyId: Long,
+        searchCriteria: ClientSearchCriteria,
+        pageable: Pageable
+    ): Page<ClientWithStatistics>
     fun findByIds(ids: List<ClientId>, companyId: Long): List<Client>
 }
 

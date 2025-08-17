@@ -46,13 +46,10 @@ data class ClientExpandedResponse(
     val abandonedSales: Int,
     @JsonProperty("totalRevenue")
     val totalRevenue: Double,
-    @JsonProperty("contactAttempts")
-    val contactAttempts: Int,
     @JsonProperty("lastVisitDate")
     val lastVisitDate: String? = null,
 
     val notes: String? = null,
-    val vehicles: List<String> = emptyList()
 ) {
     companion object {
         private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -77,8 +74,6 @@ data class ClientExpandedResponse(
                 lastVisitDate = client.statistics.lastVisitDate?.format(dateFormatter),
 
                 notes = client.notes?.takeIf { it.isNotBlank() },
-                contactAttempts = 0,
-                vehicles = client.vehicles.map { it.id.toString() }
             )
         }
     }

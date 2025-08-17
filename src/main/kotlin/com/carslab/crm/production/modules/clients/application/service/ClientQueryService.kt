@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.clients.application.service
 
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.modules.clients.application.dto.ClientExpandedResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientWithStatisticsResponse
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
@@ -78,7 +79,40 @@ class ClientQueryService(
 
         return clients.map { ClientResponse.from(it) }
     }
-    
+
+    fun searchClientsExpanded(
+        name: String?,
+        email: String?,
+        phone: String?,
+        company: String?,
+        hasVehicles: Boolean?,
+        minTotalRevenue: Double?,
+        maxTotalRevenue: Double?,
+        minVisits: Int?,
+        maxVisits: Int?,
+        pageable: Pageable
+    ): Page<ClientExpandedResponse> {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.debug("Searching clients with statistics for company: {} with criteria", companyId)
+
+        val searchCriteria = ClientSearchCriteria(
+            name = name,
+            email = email,
+            phone = phone,
+            company = company,
+            hasVehicles = hasVehicles,
+            minTotalRevenue = minTotalRevenue,
+            maxTotalRevenue = maxTotalRevenue,
+            minVisits = minVisits,
+            maxVisits = maxVisits
+        )
+
+        val clientsWithStats = clientRepository.searchClientsWithStatistics(companyId, searchCriteria, pageable)
+        logger.debug("Found {} clients with statistics for company: {}", clientsWithStats.numberOfElements, companyId)
+
+        return clientsWithStats.map { ClientExpandedResponse.from(it) }
+    }
+
     fun findByIds(clientIds: List<ClientId>): List<ClientResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Finding clients by IDs for company: {} with IDs: {}", companyId, clientIds)
