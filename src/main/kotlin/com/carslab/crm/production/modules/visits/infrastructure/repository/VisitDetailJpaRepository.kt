@@ -1,8 +1,8 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-import com.carslab.crm.production.modules.visits.domain.repository.VisitDetailRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitDetailProjection
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailRepository
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailProjection
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 interface VisitDetailJpaRepository : JpaRepository<com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity, Long> {
 
     @Query("""
-        SELECT new com.carslab.crm.production.modules.visits.domain.repository.VisitDetailProjection(
+        SELECT new com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailProjection(
             v.id,
             v.title,
             v.calendarColorId,

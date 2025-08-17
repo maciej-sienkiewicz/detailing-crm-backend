@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.model
+package com.carslab.crm.production.modules.visits.domain.models.enums
 
 enum class VisitStatus {
     SCHEDULED,

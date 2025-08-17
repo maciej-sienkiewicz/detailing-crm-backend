@@ -5,6 +5,15 @@ import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.visits.domain.repository.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitDocuments
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitPeriod
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.data.domain.Page
@@ -83,11 +92,7 @@ class VisitDomainService(
     fun getVisitsForCompany(companyId: Long, pageable: Pageable): Page<Visit> {
         return visitRepository.findByCompanyId(companyId, pageable)
     }
-
-    fun searchVisits(companyId: Long, criteria: VisitSearchCriteria, pageable: Pageable): Page<Visit> {
-        return visitRepository.searchVisits(companyId, criteria, pageable)
-    }
-
+    
     fun getVisitCountByStatus(companyId: Long, status: VisitStatus): Long {
         return visitRepository.countByStatus(companyId, status)
     }

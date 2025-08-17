@@ -1,6 +1,6 @@
-package com.carslab.crm.production.modules.visits.infrastructure.projection
+package com.carslab.crm.production.modules.visits.infrastructure.persistence.projections
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -21,11 +21,4 @@ interface VisitListProjection {
     val totalAmount: BigDecimal
     val calendarColorId: String
     val lastUpdate: LocalDateTime
-}
-
-interface VisitServiceProjection {
-    val visitId: Long
-    val serviceId: String
-    val serviceName: String
-    val finalPrice: BigDecimal
 }

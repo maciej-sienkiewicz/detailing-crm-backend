@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.model
+package com.carslab.crm.production.modules.visits.domain.models.value_objects
 
 @JvmInline
 value class VisitId(val value: Long) {

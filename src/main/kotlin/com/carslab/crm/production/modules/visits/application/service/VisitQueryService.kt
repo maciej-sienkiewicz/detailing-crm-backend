@@ -2,11 +2,11 @@ package com.carslab.crm.production.modules.visits.application.service
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.visits.application.dto.*
-import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.repository.VisitSearchCriteria
 import com.carslab.crm.production.modules.visits.domain.service.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -43,44 +43,7 @@ class VisitQueryService(
 
         return VisitResponse.from(visit)
     }
-
-    fun searchVisits(
-        clientName: String?,
-        licensePlate: String?,
-        status: VisitStatus?,
-        startDate: java.time.LocalDateTime?,
-        endDate: java.time.LocalDateTime?,
-        make: String?,
-        model: String?,
-        serviceName: String?,
-        title: String?,
-        minPrice: java.math.BigDecimal?,
-        maxPrice: java.math.BigDecimal?,
-        pageable: Pageable
-    ): Page<VisitResponse> {
-        val companyId = securityContext.getCurrentCompanyId()
-        logger.debug("Searching visits for company: {} with criteria", companyId)
-
-        val searchCriteria = VisitSearchCriteria(
-            clientName = clientName,
-            licensePlate = licensePlate,
-            status = status,
-            startDate = startDate,
-            endDate = endDate,
-            make = make,
-            model = model,
-            serviceName = serviceName,
-            title = title,
-            minPrice = minPrice,
-            maxPrice = maxPrice
-        )
-
-        val visits = visitDomainService.searchVisits(companyId, searchCriteria, pageable)
-        logger.debug("Found {} visits matching criteria for company: {}", visits.numberOfElements, companyId)
-
-        return visits.map { VisitResponse.from(it) }
-    }
-
+    
     fun getVisitCounters(): VisitCountersResponse {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching visit counters for company: {}", companyId)

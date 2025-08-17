@@ -1,18 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.model
-
-import java.time.LocalDateTime
-
-data class VisitDocument(
-    val id: String,
-    val visitId: VisitId,
-    val name: String,
-    val type: DocumentType,
-    val size: Long,
-    val contentType: String,
-    val description: String?,
-    val createdAt: LocalDateTime,
-    val uploadedBy: String
-)
+package com.carslab.crm.production.modules.visits.domain.models.enums
 
 enum class DocumentType(val displayName: String) {
     ACCEPTANCE_PROTOCOL("Protokół odbioru"),

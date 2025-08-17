@@ -1,14 +1,14 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.production.modules.visits.domain.command.UploadDocumentCommand
-import com.carslab.crm.production.modules.visits.domain.model.VisitDocument
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-import com.carslab.crm.production.modules.visits.domain.repository.VisitDocumentRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitRepository
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDocumentRepository
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 

@@ -1,6 +1,9 @@
-package com.carslab.crm.production.modules.visits.domain.model
+package com.carslab.crm.production.modules.visits.domain.models.aggregates
 
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.*
+import com.carslab.crm.production.modules.visits.domain.models.entities.*
+import com.carslab.crm.production.modules.visits.domain.models.enums.*
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -29,11 +32,8 @@ data class Visit(
     }
 
     fun totalAmount(): BigDecimal = services.sumOf { it.finalPrice }
-
     fun serviceCount(): Int = services.size
-
     fun hasApprovedServices(): Boolean = services.any { it.isApproved() }
-
     fun hasPendingServices(): Boolean = services.any { it.isPending() }
 
     fun changeStatus(newStatus: VisitStatus): Visit {
@@ -51,18 +51,4 @@ data class Visit(
         val updatedNotes = if (notes.isNullOrBlank()) note else "$notes\n$note"
         return copy(notes = updatedNotes, updatedAt = LocalDateTime.now())
     }
-}
-
-data class VisitDocuments(
-    val keysProvided: Boolean = false,
-    val documentsProvided: Boolean = false
-)
-
-enum class ReferralSource {
-    OTHER,
-    REGULAR_CUSTOMER,
-    SOCIAL_MEDIA,
-    LOCAL_AD,
-    SEARCH_ENGINE,
-    RECOMMENDATION
 }

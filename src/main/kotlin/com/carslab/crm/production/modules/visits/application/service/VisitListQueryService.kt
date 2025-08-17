@@ -3,8 +3,9 @@ package com.carslab.crm.production.modules.visits.application.service
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.application.queries.models.*
-import com.carslab.crm.production.modules.visits.domain.repository.VisitListRepository
-import com.carslab.crm.production.modules.visits.domain.model.VisitListItem
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitListRepository
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListItem
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -45,7 +46,7 @@ class VisitListQueryService(
 
     private fun mapToVisitListReadModel(
         visitItem: VisitListItem,
-        services: List<com.carslab.crm.production.modules.visits.domain.model.VisitListService>
+        services: List<VisitListService>
     ): VisitListReadModel {
         return VisitListReadModel(
             id = visitItem.visitId.toString(),
@@ -80,14 +81,14 @@ class VisitListQueryService(
         )
     }
 
-    private fun mapToStatusString(status: com.carslab.crm.production.modules.visits.domain.model.VisitStatus): String {
+    private fun mapToStatusString(status: com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus): String {
         return when (status) {
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.SCHEDULED -> "SCHEDULED"
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.PENDING_APPROVAL -> "PENDING_APPROVAL"
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.IN_PROGRESS -> "IN_PROGRESS"
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.READY_FOR_PICKUP -> "READY_FOR_PICKUP"
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.COMPLETED -> "COMPLETED"
-            com.carslab.crm.production.modules.visits.domain.model.VisitStatus.CANCELLED -> "CANCELLED"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.SCHEDULED -> "SCHEDULED"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.PENDING_APPROVAL -> "PENDING_APPROVAL"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.IN_PROGRESS -> "IN_PROGRESS"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.READY_FOR_PICKUP -> "READY_FOR_PICKUP"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.COMPLETED -> "COMPLETED"
+            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.CANCELLED -> "CANCELLED"
         }
     }
 }

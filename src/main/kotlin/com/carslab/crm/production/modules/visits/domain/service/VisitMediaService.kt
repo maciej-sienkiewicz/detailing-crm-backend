@@ -2,8 +2,11 @@ package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.production.modules.visits.domain.command.UploadMediaCommand
 import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.repository.VisitMediaRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
+import com.carslab.crm.production.modules.visits.domain.models.enums.MediaType
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitMediaRepository
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service

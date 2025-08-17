@@ -2,9 +2,12 @@ package com.carslab.crm.production.modules.visits.infrastructure.repository
 
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
 import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.repository.VisitRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitSearchCriteria
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitServiceEntity
 import org.springframework.data.domain.Page
@@ -55,13 +58,7 @@ class JpaVisitRepositoryImpl(
     override fun deleteById(visitId: VisitId, companyId: Long): Boolean {
         return visitJpaRepository.deleteByIdAndCompanyId(visitId.value, companyId) > 0
     }
-
-    override fun searchVisits(companyId: Long, criteria: VisitSearchCriteria, pageable: Pageable): Page<Visit> {
-        val specification = buildSearchSpecification(companyId, criteria)
-        return visitJpaRepository.findAll(specification, pageable)
-            .map { it.toDomain() }
-    }
-
+    
     override fun countByStatus(companyId: Long, status: VisitStatus): Long {
         return visitJpaRepository.countByCompanyIdAndStatus(companyId, status)
     }

@@ -1,11 +1,10 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitListItem
-import com.carslab.crm.production.modules.visits.domain.model.VisitListService
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-import com.carslab.crm.production.modules.visits.domain.repository.VisitListRepository
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListItem
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.VisitListService
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitListRepository
 import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional

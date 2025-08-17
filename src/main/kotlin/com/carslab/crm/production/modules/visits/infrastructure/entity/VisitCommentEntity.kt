@@ -1,6 +1,9 @@
 package com.carslab.crm.production.modules.visits.infrastructure.entity
 
 import com.carslab.crm.production.modules.visits.domain.model.*
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
+import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.UUID

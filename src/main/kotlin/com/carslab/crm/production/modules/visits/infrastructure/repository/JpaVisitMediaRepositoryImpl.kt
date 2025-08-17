@@ -1,9 +1,9 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitMedia
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-import com.carslab.crm.production.modules.visits.domain.repository.VisitMediaRepository
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitMediaRepository
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitMediaEntity
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional

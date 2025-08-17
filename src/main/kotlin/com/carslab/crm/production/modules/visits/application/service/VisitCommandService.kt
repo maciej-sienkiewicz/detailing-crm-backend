@@ -9,6 +9,12 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
+import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
+import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
+import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.MediaMetadata
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

@@ -1,6 +1,8 @@
 package com.carslab.crm.production.modules.visits.infrastructure.entity
 
 import com.carslab.crm.production.modules.visits.domain.model.*
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
+import com.carslab.crm.production.modules.visits.domain.models.enums.MediaType
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

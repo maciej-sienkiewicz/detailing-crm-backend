@@ -8,7 +8,7 @@ import com.carslab.crm.production.modules.visits.application.service.VisitDetail
 import com.carslab.crm.production.modules.visits.application.service.VisitCommandService
 import com.carslab.crm.production.modules.visits.application.service.VisitQueryService
 import com.carslab.crm.production.modules.visits.application.service.VisitListQueryService
-import com.carslab.crm.production.modules.visits.domain.model.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -92,31 +92,6 @@ class VisitController(
         val sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy)
         val pageable = PageRequest.of(page, size, sort)
         val visits = visitListQueryService.getVisitList(pageable)
-        return ResponseEntity.ok(visits)
-    }
-
-    @GetMapping("/search")
-    @Operation(summary = "Search visits with filters")
-    fun searchVisits(
-        @Parameter(description = "Client name") @RequestParam(required = false) clientName: String?,
-        @Parameter(description = "License plate") @RequestParam(required = false) licensePlate: String?,
-        @Parameter(description = "Visit status") @RequestParam(required = false) status: VisitStatus?,
-        @Parameter(description = "Start date filter") @RequestParam(required = false) startDate: LocalDateTime?,
-        @Parameter(description = "End date filter") @RequestParam(required = false) endDate: LocalDateTime?,
-        @Parameter(description = "Vehicle make") @RequestParam(required = false) make: String?,
-        @Parameter(description = "Vehicle model") @RequestParam(required = false) model: String?,
-        @Parameter(description = "Service name") @RequestParam(required = false) serviceName: String?,
-        @Parameter(description = "Visit title") @RequestParam(required = false) title: String?,
-        @Parameter(description = "Minimum price") @RequestParam(required = false) minPrice: BigDecimal?,
-        @Parameter(description = "Maximum price") @RequestParam(required = false) maxPrice: BigDecimal?,
-        @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
-        @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<Page<VisitResponse>> {
-        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val visits = visitQueryService.searchVisits(
-            clientName, licensePlate, status, startDate, endDate,
-            make, model, serviceName, title, minPrice, maxPrice, pageable
-        )
         return ResponseEntity.ok(visits)
     }
 

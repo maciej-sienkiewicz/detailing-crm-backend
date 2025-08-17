@@ -1,10 +1,10 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.production.modules.visits.domain.command.AddCommentCommand
-import com.carslab.crm.production.modules.visits.domain.model.VisitComment
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-import com.carslab.crm.production.modules.visits.domain.repository.VisitCommentRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitCommentRepository
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime

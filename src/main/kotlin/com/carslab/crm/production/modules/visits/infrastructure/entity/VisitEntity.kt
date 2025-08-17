@@ -3,6 +3,12 @@ package com.carslab.crm.production.modules.visits.infrastructure.entity
 import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
+import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitDocuments
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitPeriod
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

@@ -1,25 +1,21 @@
-package com.carslab.crm.production.modules.visits.domain.repository
+package com.carslab.crm.production.modules.visits.infrastructure.persistence.projections
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitId
-
-interface VisitDetailRepository {
-    fun findVisitDetailWithRelations(visitId: VisitId, companyId: Long): VisitDetailProjection?
-}
+import java.time.LocalDateTime
 
 data class VisitDetailProjection(
     val visitId: Long,
     val title: String,
     val calendarColorId: String,
-    val startDate: java.time.LocalDateTime,
-    val endDate: java.time.LocalDateTime,
+    val startDate: LocalDateTime,
+    val endDate: LocalDateTime,
     val status: String,
     val notes: String?,
     val referralSource: String?,
     val appointmentId: String?,
     val keysProvided: Boolean,
     val documentsProvided: Boolean,
-    val createdAt: java.time.LocalDateTime,
-    val updatedAt: java.time.LocalDateTime,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
     val clientId: Long,
     val clientName: String,
     val clientEmail: String?,

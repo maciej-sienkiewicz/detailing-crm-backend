@@ -1,6 +1,6 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.domain.model.VisitStatus
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitCommentEntity
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitDocumentEntity
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity

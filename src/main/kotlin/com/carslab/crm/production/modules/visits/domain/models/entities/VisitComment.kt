@@ -1,5 +1,7 @@
-package com.carslab.crm.production.modules.visits.domain.model
+package com.carslab.crm.production.modules.visits.domain.models.entities
 
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import java.time.LocalDateTime
 
 data class VisitComment(
@@ -20,10 +22,4 @@ data class VisitComment(
     fun isInternal(): Boolean = type == CommentType.INTERNAL
     fun isCustomer(): Boolean = type == CommentType.CUSTOMER
     fun isSystem(): Boolean = type == CommentType.SYSTEM
-}
-
-enum class CommentType {
-    INTERNAL,
-    CUSTOMER,
-    SYSTEM
 }

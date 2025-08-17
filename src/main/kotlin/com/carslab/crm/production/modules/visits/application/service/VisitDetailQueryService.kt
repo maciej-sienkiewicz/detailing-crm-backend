@@ -7,8 +7,11 @@ import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.repository.VisitDetailRepository
-import com.carslab.crm.production.modules.visits.domain.repository.VisitDetailProjection
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
+import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailRepository
+import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailProjection
 import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
 import com.carslab.crm.production.modules.visits.infrastructure.repository.VisitServiceJpaRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
@@ -131,13 +134,13 @@ class VisitDetailQueryService(
         }
     }
 
-    private fun mapToServiceApprovalStatus(status: com.carslab.crm.production.modules.visits.domain.model.ServiceApprovalStatus): ServiceApprovalStatus {
+    private fun mapToServiceApprovalStatus(status: com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus): ServiceApprovalStatus {
         return when (status) {
-            com.carslab.crm.production.modules.visits.domain.model.ServiceApprovalStatus.PENDING ->
+            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.PENDING ->
                 ServiceApprovalStatus.PENDING
-            com.carslab.crm.production.modules.visits.domain.model.ServiceApprovalStatus.APPROVED ->
+            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.APPROVED ->
                 ServiceApprovalStatus.APPROVED
-            com.carslab.crm.production.modules.visits.domain.model.ServiceApprovalStatus.REJECTED ->
+            com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus.REJECTED ->
                 ServiceApprovalStatus.REJECTED
         }
     }

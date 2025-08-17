@@ -1,5 +1,7 @@
-package com.carslab.crm.production.modules.visits.domain.model
+package com.carslab.crm.production.modules.visits.domain.models.entities
 
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import java.math.BigDecimal
 
 data class VisitService(
@@ -20,29 +22,4 @@ data class VisitService(
     fun isApproved(): Boolean = approvalStatus == ServiceApprovalStatus.APPROVED
     fun isPending(): Boolean = approvalStatus == ServiceApprovalStatus.PENDING
     fun isRejected(): Boolean = approvalStatus == ServiceApprovalStatus.REJECTED
-}
-
-data class ServiceDiscount(
-    val type: DiscountType,
-    val value: BigDecimal
-) {
-    fun applyTo(amount: BigDecimal): BigDecimal {
-        return when (type) {
-            DiscountType.PERCENTAGE -> amount.multiply(BigDecimal.ONE.subtract(value.divide(BigDecimal.valueOf(100))))
-            DiscountType.AMOUNT -> amount.subtract(value)
-            DiscountType.FIXED_PRICE -> value
-        }
-    }
-}
-
-enum class DiscountType {
-    PERCENTAGE,
-    AMOUNT,
-    FIXED_PRICE
-}
-
-enum class ServiceApprovalStatus {
-    PENDING,
-    APPROVED,
-    REJECTED
 }
