@@ -24,3 +24,8 @@ class UserNotFoundException(
     message: String,
     cause: Throwable? = null
 ) : RuntimeException(message, cause)
+
+class EntityNotFoundException(
+    message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)

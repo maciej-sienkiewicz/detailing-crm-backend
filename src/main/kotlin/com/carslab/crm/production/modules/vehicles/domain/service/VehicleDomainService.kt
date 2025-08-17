@@ -189,4 +189,7 @@ class VehicleDomainService(
 
     fun exists(vehicleId: VehicleId, companyId: Long): Boolean =
         vehicleRepository.existsByIdAndCompanyId(vehicleId, companyId)
+
+    fun getVehiclesByIds(vehiclesIds: List<VehicleId>): List<Vehicle> =
+        vehicleRepository.findAllById(vehiclesIds)
 }

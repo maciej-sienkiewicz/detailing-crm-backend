@@ -30,6 +30,12 @@ class VehicleQueryService(
         return VehicleWithStatisticsResponse.from(enhancedVehicle)
     }
     
+    fun getVehicles(vehicleIds: List<String>): List<Vehicle> {
+        logger.debug("Fetching vehicles: {}", vehicleIds)
+
+        return vehicleDomainService.getVehiclesByIds(vehicleIds.map { VehicleId.of(it.toLong()) })
+    }
+    
     fun exists(vehicleId: VehicleId): Boolean {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Checking existence of vehicle: {} for company: {}", vehicleId, companyId)

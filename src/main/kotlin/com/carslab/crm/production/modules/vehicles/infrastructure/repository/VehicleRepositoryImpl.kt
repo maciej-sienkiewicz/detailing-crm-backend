@@ -152,4 +152,10 @@ class VehicleRepositoryImpl(
         vehicleId: VehicleId,
         companyId: Long
     ): Boolean = jpaRepository.existsByIdAndCompanyIdAndActiveTrue(vehicleId.value, companyId)
+
+    override fun findAllById(vehiclesIds: List<VehicleId>): List<Vehicle> =
+        jpaRepository.findAllById(vehiclesIds.map { it.value })
+            .filter { it.active }
+            .map { it.toDomain() }
+            .toList()
 }
