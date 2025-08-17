@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.api
 
+import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
 import com.carslab.crm.production.modules.visits.application.dto.UploadDocumentRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitDocumentResponse
 import com.carslab.crm.production.modules.visits.application.service.command.VisitDocumentCommandService
@@ -28,7 +29,7 @@ class VisitDocumentController(
     fun uploadDocument(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
         @ModelAttribute request: UploadDocumentRequest
-    ): ResponseEntity<VisitDocumentResponse> {
+    ): ResponseEntity<ProtocolDocumentDto> {
         val document = visitDocumentCommandService.uploadDocument(visitId, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(document)
     }
@@ -37,12 +38,12 @@ class VisitDocumentController(
     @Operation(summary = "Get visit documents")
     fun getVisitDocuments(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
-    ): ResponseEntity<List<VisitDocumentResponse>> {
+    ): ResponseEntity<List<ProtocolDocumentDto>> {
         val documents = visitDocumentQueryService.getVisitDocuments(visitId)
         return ResponseEntity.ok(documents)
     }
 
-    @GetMapping("/documents/{documentId}/download")
+    @GetMapping("/document/{documentId}")
     @Operation(summary = "Download document file")
     fun downloadDocument(
         @Parameter(description = "Document ID") @PathVariable documentId: String

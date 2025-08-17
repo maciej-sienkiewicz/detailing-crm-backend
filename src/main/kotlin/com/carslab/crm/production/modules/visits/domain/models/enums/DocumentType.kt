@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.visits.domain.models.enums
 
 enum class DocumentType(val displayName: String) {
     ACCEPTANCE_PROTOCOL("Protokół odbioru"),
+    TERMS_ACCEPTANCE("Akceptacja regulaminu"),
     MARKETING_CONSENT("Zgoda marketingowa"),
     SERVICE_CONSENT("Zgoda serwisowa"),
     INVOICE("Faktura"),
