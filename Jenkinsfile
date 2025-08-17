@@ -7,10 +7,10 @@ pipeline {
     }
   }
 
-
   environment {
     GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"'
   }
+
   stages {
     stage('Checkout') {
       steps {
@@ -32,9 +32,7 @@ pipeline {
       }
       post {
         always {
-          // Raporty testów (Gradle -> JUnit XML)
           junit allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml'
-          // Artefakty (JARy/uberJARy)
           archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
         }
       }
@@ -43,7 +41,9 @@ pipeline {
 
   post {
     always {
-      cleanWs()
+      script {
+        cleanWs()
+      }
     }
   }
 }
