@@ -38,4 +38,14 @@ class VisitDocumentQueryService(
         logger.debug("Fetching document file: {}", documentId)
         return documentService.getDocumentData(documentId)
     }
+
+    fun deleteDocument(documentId: String) {
+        logger.debug("Deleting document: {}", documentId)
+        val deleted = documentService.deleteDocument(documentId)
+        if (!deleted) {
+            logger.warn("Failed to delete document: {}", documentId)
+            throw IllegalStateException("Document not found or could not be deleted")
+        }
+        logger.info("Document deleted successfully: {}", documentId)
+    }
 }

@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
+import com.carslab.crm.production.modules.visits.application.queries.models.GetMediaQuery
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
 import org.slf4j.LoggerFactory
@@ -24,5 +25,10 @@ class VisitMediaQueryService(
     fun getMediaFile(mediaId: String): ByteArray? {
         logger.debug("Fetching media file: {}", mediaId)
         return mediaService.getMediaData(mediaId)
+    }
+
+    fun getImageWithMetadata(fileId: String): GetMediaQuery? {
+        logger.debug("Fetching image with metadata: {}", fileId)
+        return mediaService.getImageWithMetadata(fileId)
     }
 }

@@ -1,6 +1,6 @@
 package com.carslab.crm.production.modules.visits.api
 
-import com.carslab.crm.production.modules.visits.application.dto.UploadMediaRequest
+import com.carslab.crm.production.modules.visits.application.dto.MediaUploadResponse
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
 import com.carslab.crm.production.modules.visits.application.service.command.VisitMediaCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitMediaQueryService
@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartHttpServletRequest
 
 @RestController
 @RequestMapping("/api/v1/protocols")
@@ -27,8 +28,8 @@ class VisitMediaController(
     @Operation(summary = "Upload media to visit")
     fun uploadMedia(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
-        @ModelAttribute request: UploadMediaRequest
-    ): ResponseEntity<VisitMediaResponse> {
+        request: MultipartHttpServletRequest
+    ): ResponseEntity<MediaUploadResponse> {
         val media = visitMediaCommandService.uploadMedia(visitId, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(media)
     }
@@ -54,6 +55,22 @@ class VisitMediaController(
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_OCTET_STREAM)
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"media_$mediaId\"")
+            .body(resource)
+    }
+
+    @GetMapping("/image/{fileId}")
+    @Operation(summary = "Get image file")
+    fun getImage(
+        @Parameter(description = "File ID") @PathVariable fileId: String
+    ): ResponseEntity<Resource> {
+        val imageData = visitMediaQueryService.getImageWithMetadata(fileId)
+            ?: return ResponseEntity.notFound().build()
+
+        val resource = ByteArrayResource(imageData.data)
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(imageData.contentType))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"${imageData.originalName}\"")
+            .contentLength(imageData.size)
             .body(resource)
     }
 }

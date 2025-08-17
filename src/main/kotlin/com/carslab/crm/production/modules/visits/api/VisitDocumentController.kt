@@ -57,4 +57,15 @@ class VisitDocumentController(
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"document_$documentId.pdf\"")
             .body(resource)
     }
+
+    @DeleteMapping("{visitId}/document/{documentId}")
+    @Operation(summary = "Download document file")
+    fun deleteDocument(
+        @Parameter(description = "Visit ID") @PathVariable visitId: String,
+        @Parameter(description = "Document ID") @PathVariable documentId: String
+    ): ResponseEntity<Void> {
+        visitDocumentQueryService.deleteDocument(documentId)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok().build()
+    }
 }
