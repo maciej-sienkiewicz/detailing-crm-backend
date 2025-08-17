@@ -1,8 +1,11 @@
 package com.carslab.crm.production.modules.visits.api
 
+import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
+import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.application.service.command.VisitCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitCountersQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.*
 class VisitController(
     private val visitCommandService: VisitCommandService,
     private val visitQueryService: VisitQueryService,
+    private val visitDetailQueryService: VisitDetailQueryService,
     private val visitCountersQueryService: VisitCountersQueryService
 ) {
 
@@ -35,8 +39,8 @@ class VisitController(
     @Operation(summary = "Get visit by ID")
     fun getVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
-    ): ResponseEntity<VisitResponse> {
-        val visit = visitQueryService.getVisit(visitId)
+    ): ResponseEntity<CarReceptionDetailDto> {
+        val visit = visitDetailQueryService.getVisitDetail(visitId)
         return ResponseEntity.ok(visit)
     }
 
@@ -44,7 +48,7 @@ class VisitController(
     @Operation(summary = "Update visit")
     fun updateVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
-        @Valid @RequestBody request: UpdateVisitRequest
+        @Valid @RequestBody request: UpdateCarReceptionCommand
     ): ResponseEntity<VisitResponse> {
         val visit = visitCommandService.updateVisit(visitId, request)
         return ResponseEntity.ok(visit)

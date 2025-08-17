@@ -41,7 +41,8 @@ data class UpdateVisitCommand(
     val appointmentId: String? = null,
     val calendarColorId: String,
     val keysProvided: Boolean = false,
-    val documentsProvided: Boolean = false
+    val documentsProvided: Boolean = false,
+    val status: VisitStatus
 )
 
 data class CreateServiceCommand(

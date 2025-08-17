@@ -114,7 +114,7 @@ data class UpdateVisitRequest(
     val notes: String? = null,
 
     @JsonProperty("referral_source")
-    val referralSource: ReferralSource? = null,
+    val referralSource: String? = null,
 
     @JsonProperty("appointment_id")
     val appointmentId: String? = null,
@@ -127,7 +127,9 @@ data class UpdateVisitRequest(
     val keysProvided: Boolean = false,
 
     @JsonProperty("documents_provided")
-    val documentsProvided: Boolean = false
+    val documentsProvided: Boolean = false,
+    
+    val status: String
 )
 
 data class CreateServiceRequest(
@@ -206,7 +208,10 @@ data class AddCommentRequest(
     @field:Size(max = 2000, message = "Content cannot exceed 2000 characters")
     val content: String,
 
-    val type: CommentType = CommentType.INTERNAL
+    val type: String,
+
+    @JsonProperty("protocolId")
+    val visitId: String
 )
 
 data class UploadMediaRequest(

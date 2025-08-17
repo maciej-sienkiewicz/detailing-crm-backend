@@ -2,14 +2,6 @@ package com.carslab.crm.production.modules.visits.application.queries.models
 
 import java.math.BigDecimal
 
-data class GetVisitListQuery(
-    val companyId: Long,
-    val page: Int = 0,
-    val size: Int = 20,
-    val sortBy: String = "updatedAt",
-    val sortDirection: String = "DESC"
-)
-
 data class VisitListReadModel(
     val id: String,
     val title: String,

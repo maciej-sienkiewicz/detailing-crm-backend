@@ -59,7 +59,8 @@ class VisitDomainService(
             referralSource = command.referralSource,
             appointmentId = command.appointmentId,
             calendarColorId = command.calendarColorId,
-            updatedAt = LocalDateTime.now()
+            updatedAt = LocalDateTime.now(),
+            status = command.status,
         )
 
         return visitRepository.save(updatedVisit)

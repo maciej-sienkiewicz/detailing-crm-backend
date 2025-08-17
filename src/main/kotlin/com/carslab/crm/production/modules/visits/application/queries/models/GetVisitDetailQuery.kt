@@ -2,11 +2,6 @@ package com.carslab.crm.production.modules.visits.application.queries.models
 
 import java.math.BigDecimal
 
-data class GetVisitDetailQuery(
-    val visitId: String,
-    val companyId: Long
-)
-
 data class VisitDetailReadModel(
     val id: String,
     val title: String,

@@ -19,16 +19,6 @@ class VisitQueryService(
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitQueryService::class.java)
-
-    fun getVisit(visitId: String): VisitResponse {
-        val companyId = securityContext.getCurrentCompanyId()
-        logger.debug("Fetching visit: {} for company: {}", visitId, companyId)
-
-        val visit = visitDomainService.getVisitForCompany(VisitId.of(visitId), companyId)
-        logger.debug("Visit found: {}", visit.title)
-
-        return VisitResponse.from(visit)
-    }
     
     fun getVisitsForClient(clientId: String, pageable: Pageable): Page<VisitResponse> {
         val companyId = securityContext.getCurrentCompanyId()

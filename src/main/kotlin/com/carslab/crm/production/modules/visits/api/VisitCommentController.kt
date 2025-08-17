@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/v1/protocols/{visitId}/comments")
+@RequestMapping("/api/v1/visits/comments")
 @Tag(name = "Visit Comments", description = "Comment operations for visits")
 class VisitCommentController(
     private val visitCommentCommandService: VisitCommentCommandService,
@@ -23,14 +23,13 @@ class VisitCommentController(
     @PostMapping
     @Operation(summary = "Add comment to visit")
     fun addComment(
-        @Parameter(description = "Visit ID") @PathVariable visitId: String,
         @Valid @RequestBody request: AddCommentRequest
     ): ResponseEntity<VisitCommentResponse> {
-        val comment = visitCommentCommandService.addComment(visitId, request)
+        val comment = visitCommentCommandService.addComment(request)
         return ResponseEntity.status(HttpStatus.CREATED).body(comment)
     }
 
-    @GetMapping
+    @GetMapping("/{visitId}")
     @Operation(summary = "Get visit comments")
     fun getVisitComments(
         @Parameter(description = "Visit ID") @PathVariable visitId: String

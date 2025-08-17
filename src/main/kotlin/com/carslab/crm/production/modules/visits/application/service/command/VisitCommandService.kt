@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
@@ -54,7 +55,7 @@ class VisitCommandService(
         return VisitResponse.from(visit)
     }
 
-    fun updateVisit(visitId: String, request: UpdateVisitRequest): VisitResponse {
+    fun updateVisit(visitId: String, request: UpdateCarReceptionCommand): VisitResponse {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Updating visit: {} for company: {}", visitId, companyId)
 
@@ -62,15 +63,16 @@ class VisitCommandService(
 
         val command = UpdateVisitCommand(
             title = request.title,
-            startDate = request.startDate,
-            endDate = request.endDate,
-            services = request.services.map { mapToUpdateServiceCommand(it) },
+            startDate = LocalDateTime.parse(request.startDate),
+            endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: LocalDateTime.now(),
+            services = request.selectedServices?.map { mapToUpdateServiceCommand(it) } ?: emptyList(),
             notes = request.notes,
-            referralSource = request.referralSource,
+            referralSource = request.referralSource?.toString()?.uppercase()?.let { ReferralSource.valueOf(it) },
             appointmentId = request.appointmentId,
             calendarColorId = request.calendarColorId,
-            keysProvided = request.keysProvided,
-            documentsProvided = request.documentsProvided
+            keysProvided = request.keysProvided ?: false,
+            documentsProvided = request.documentsProvided ?: false,
+            status = VisitStatus.valueOf(request.status.toString().uppercase())
         )
 
         val visit = visitDomainService.updateVisit(VisitId.of(visitId), command, companyId)
@@ -114,12 +116,9 @@ class VisitCommandService(
         }
     }
 
-    private fun validateUpdateRequest(request: UpdateVisitRequest) {
+    private fun validateUpdateRequest(request: UpdateCarReceptionCommand) {
         if (request.title.isBlank()) {
             throw BusinessException("Visit title cannot be blank")
-        }
-        if (request.startDate.isAfter(request.endDate)) {
-            throw BusinessException("Start date cannot be after end date")
         }
     }
 
@@ -149,16 +148,16 @@ class VisitCommandService(
         )
     }
 
-    private fun mapToUpdateServiceCommand(request: UpdateServiceRequest): UpdateServiceCommand {
+    private fun mapToUpdateServiceCommand(request: com.carslab.crm.modules.visits.api.commands.UpdateServiceCommand): UpdateServiceCommand {
         return UpdateServiceCommand(
             id = request.id,
             name = request.name,
-            basePrice = request.basePrice,
+            basePrice = request.price.toBigDecimal(),
             quantity = request.quantity,
-            discountType = request.discountType,
-            discountValue = request.discountValue,
-            finalPrice = request.finalPrice,
-            approvalStatus = request.approvalStatus,
+            discountType = request.discountType.toString().uppercase().let { DiscountType.valueOf(it) },
+            discountValue = request.discountValue?.toBigDecimal(),
+            finalPrice = request.finalPrice?.toBigDecimal(),
+            approvalStatus = request.approvalStatus.toString().uppercase().let { ServiceApprovalStatus.valueOf(it) },
             note = request.note
         )
     }
