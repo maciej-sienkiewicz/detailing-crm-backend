@@ -15,10 +15,8 @@ pipeline {
   }
 
   environment {
-    // Przydatne flaki do CI (opcjonalnie)
     GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx2g -Xms512m"'
   }
-
   stages {
     stage('Checkout') {
       steps {
