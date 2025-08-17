@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.application.service
+package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.visits.application.dto.*
@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 class VisitQueryService(
     private val visitDomainService: VisitDomainService,
-    private val visitCountersQueryService: VisitCountersQueryService,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitQueryService::class.java)
@@ -30,11 +29,7 @@ class VisitQueryService(
 
         return VisitResponse.from(visit)
     }
-
-    fun getVisitCounters(): VisitCountersResponse {
-        return visitCountersQueryService.getVisitCounters()
-    }
-
+    
     fun getVisitsForClient(clientId: String, pageable: Pageable): Page<VisitResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching visits for client: {} and company: {}", clientId, companyId)

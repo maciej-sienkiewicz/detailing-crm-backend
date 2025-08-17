@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.application.service
+package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.production.modules.visits.application.dto.VisitDocumentResponse
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId

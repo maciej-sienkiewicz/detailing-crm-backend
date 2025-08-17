@@ -2,8 +2,8 @@ package com.carslab.crm.production.modules.visits.api
 
 import com.carslab.crm.production.modules.visits.application.dto.UploadMediaRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
-import com.carslab.crm.production.modules.visits.application.service.VisitMediaCommandService
-import com.carslab.crm.production.modules.visits.application.service.VisitMediaQueryService
+import com.carslab.crm.production.modules.visits.application.service.command.VisitMediaCommandService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitMediaQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

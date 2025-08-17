@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.application.service
+package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.infrastructure.security.SecurityContext

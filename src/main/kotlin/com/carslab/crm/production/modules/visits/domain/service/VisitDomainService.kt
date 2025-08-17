@@ -1,11 +1,8 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.production.modules.visits.domain.command.*
-import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.repository.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
-import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus

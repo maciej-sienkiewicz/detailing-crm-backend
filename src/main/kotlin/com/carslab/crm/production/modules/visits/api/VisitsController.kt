@@ -1,7 +1,9 @@
 package com.carslab.crm.production.modules.visits.api
 
 import com.carslab.crm.production.modules.visits.application.dto.*
-import com.carslab.crm.production.modules.visits.application.service.*
+import com.carslab.crm.production.modules.visits.application.service.command.VisitCommandService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitCountersQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

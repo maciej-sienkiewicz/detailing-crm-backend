@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.application.service
+package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.*
@@ -7,7 +7,7 @@ import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
 import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
@@ -15,6 +15,8 @@ import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneId
 
 @Service
 @Transactional(readOnly = true)
@@ -41,7 +43,7 @@ class VisitDetailQueryService(
 
     private fun mapToCarReceptionDetailDto(
         visitDetail: VisitDetailReadModel,
-        mediaItems: List<com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia>
+        mediaItems: List<VisitMedia>
     ): CarReceptionDetailDto {
         return CarReceptionDetailDto(
             id = visitDetail.id,
@@ -89,7 +91,7 @@ class VisitDetailQueryService(
                     size = media.size,
                     type = media.contentType,
                     storageId = media.id,
-                    createdAt = java.time.Instant.from(media.createdAt.atZone(java.time.ZoneId.systemDefault())),
+                    createdAt = Instant.from(media.createdAt.atZone(ZoneId.systemDefault())),
                     description = media.description,
                     location = media.location,
                     tags = media.tags

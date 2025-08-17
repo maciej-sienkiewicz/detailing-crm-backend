@@ -2,8 +2,8 @@ package com.carslab.crm.production.modules.visits.api
 
 import com.carslab.crm.production.modules.visits.application.dto.AddCommentRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitCommentResponse
-import com.carslab.crm.production.modules.visits.application.service.VisitCommentCommandService
-import com.carslab.crm.production.modules.visits.application.service.VisitCommentQueryService
+import com.carslab.crm.production.modules.visits.application.service.command.VisitCommentCommandService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitCommentQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

@@ -3,8 +3,8 @@ package com.carslab.crm.production.modules.visits.api
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.modules.visits.application.queries.models.VisitListReadModel
-import com.carslab.crm.production.modules.visits.application.service.VisitDetailQueryService
-import com.carslab.crm.production.modules.visits.application.service.VisitListQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitListQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
