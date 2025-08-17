@@ -48,4 +48,14 @@ class VisitMediaCommandService(
             media.visitId.toString()
         )
     }
+    
+    fun deleteMedia(mediaId: String) {
+        logger.info("Deleting media with ID: {}", mediaId)
+        val deleted = mediaService.deleteMedia(mediaId)
+        if (!deleted) {
+            logger.warn("Failed to delete media: {}", mediaId)
+            throw IllegalStateException("Media not found or could not be deleted")
+        }
+        logger.info("Media deleted successfully: {}", mediaId)
+    }
 }

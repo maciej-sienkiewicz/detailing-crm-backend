@@ -73,4 +73,14 @@ class VisitMediaController(
             .contentLength(imageData.size)
             .body(resource)
     }
+
+    @DeleteMapping("/{visitId}/image/{mediaId}")
+    @Operation(summary = "Delete image file")
+    fun deleteMedia(
+        @Parameter(description = "Visit ID") @PathVariable visitId: String,
+        @Parameter(description = "Media ID") @PathVariable mediaId: String
+    ): ResponseEntity<Void> {
+        visitMediaCommandService.deleteMedia(mediaId)
+        return ResponseEntity.noContent().build()
+    }
 }
