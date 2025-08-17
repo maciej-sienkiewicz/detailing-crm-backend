@@ -1,0 +1,27 @@
+version: '3.6'
+services:
+  pgadmin-formfiller:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-formfiller
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "81:80"
+    networks:
+      - db-network
+  postgres-formfiller:
+    image: 'postgres:latest'
+    hostname: postgres-formfiller
+    environment:
+      - POSTGRES_DB=formfiller
+      - POSTGRES_PASSWORD=postgresadmin
+      - POSTGRES_USER=postgresadmin
+    ports:
+      - "5432:5432"
+    networks:
+      - db-network
+networks:
+  db-network:
+    name: db-network-name
