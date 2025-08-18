@@ -49,9 +49,10 @@ class VisitController(
     fun updateVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
         @Valid @RequestBody request: UpdateCarReceptionCommand
-    ): ResponseEntity<VisitResponse> {
+    ): ResponseEntity<CarReceptionDetailDto> {
         val visit = visitCommandService.updateVisit(visitId, request)
-        return ResponseEntity.ok(visit)
+        val read = visitDetailQueryService.getVisitDetail(visitId)
+        return ResponseEntity.ok(read)
     }
 
     @PatchMapping("/{visitId}/status")

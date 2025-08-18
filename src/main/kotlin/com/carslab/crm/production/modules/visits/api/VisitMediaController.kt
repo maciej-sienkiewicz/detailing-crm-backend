@@ -34,7 +34,7 @@ class VisitMediaController(
         return ResponseEntity.status(HttpStatus.CREATED).body(media)
     }
 
-    @GetMapping("/{visitId}/media")
+    @GetMapping("/{visitId}/images")
     @Operation(summary = "Get visit media")
     fun getVisitMedia(
         @Parameter(description = "Visit ID") @PathVariable visitId: String

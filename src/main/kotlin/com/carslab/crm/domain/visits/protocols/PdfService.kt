@@ -2,7 +2,10 @@ package com.carslab.crm.domain.visits.protocols
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.modules.visits.domain.CarReceptionServiceDeprecated
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -27,12 +30,11 @@ data class SignatureData(
 
 @Service
 class PdfService(
-    private val carReceptionServiceDeprecated: CarReceptionServiceDeprecated,
+    private val visitQueryService: VisitDetailQueryService,
 ) {
     
     fun generatePdf(protocolId: Long, signatureData: SignatureData? = null): ByteArray {
-        val protocol: CarReceptionProtocol = carReceptionServiceDeprecated.getProtocolById(ProtocolId(protocolId.toString()))
-            ?: throw IllegalStateException("Nie znaleziono protokołu o ID: $protocolId")
+        val protocol = visitQueryService.getVisitDetail(protocolId.toString())
 
         val formData = getFormDataForProtokol(protocol)
         val resource = ClassPathResource("static/z.pdf")
@@ -47,9 +49,6 @@ class PdfService(
 
                 // Wypełnianie standardowych pól tekstowych
                 fillTextFields(acroForm, formData)
-
-                // Wypełnianie pól checkbox/button
-                fillCheckboxFields(acroForm, protocol)
 
                 // Dodanie podpisu jeśli został przekazany
                 signatureData?.let { signature ->
@@ -121,10 +120,6 @@ class PdfService(
                 println("Nie znaleziono pola tekstowego: $fieldName")
             }
         }
-    }
-
-    private fun fillCheckboxFields(acroForm: PDAcroForm, protocol: CarReceptionProtocol) {
-
     }
 
     private fun addSignatureToDocument(
@@ -309,25 +304,25 @@ class PdfService(
         return this.format(formatter)
     }
 
-    private fun getFormDataForProtokol(protocol: CarReceptionProtocol): Map<String, String> {
-        val notes = protocol.protocolServices.joinToString(",") {
+    private fun getFormDataForProtokol(protocol: CarReceptionDetailDto): Map<String, String> {
+        val notes = protocol.selectedServices.joinToString(",") {
             "${it.name} ${addNote(it.note)}"
         }
 
         return mapOf(
-            "brand" to (protocol.vehicle.make),
-            "model" to (protocol.vehicle.model),
-            "licenseplate" to (protocol.vehicle.licensePlate),
-            "mileage" to (protocol.vehicle.mileage?.toString() ?: ""),
+            "brand" to (protocol.make),
+            "model" to (protocol.model),
+            "licenseplate" to (protocol.licensePlate),
+            "mileage" to (protocol.mileage?.toString() ?: ""),
             "services" to notes,
-            "fullname" to (protocol.client.name ?: ""),
-            "companyname" to (protocol.client.companyName ?: ""),
+            "fullname" to (protocol.ownerName),
+            "companyname" to (protocol.companyName ?: ""),
             "Text7" to (""),
-            "phonenumber" to (protocol.client.phone ?: ""),
-            "email" to (protocol.client.email ?: ""),
-            "tax" to (protocol.client.taxId ?: ""),
+            "phonenumber" to (protocol.phone ?: ""),
+            "email" to (protocol.email ?: ""),
+            "tax" to (protocol.taxId ?: ""),
             "remarks" to (protocol.notes?: ""),
-            "date" to (protocol.period.startDate.format() ?: ""),
+            "date" to (protocol.startDate.format()),
         )
     }
 }
