@@ -14,20 +14,12 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT vm.* FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
         ORDER BY vm.created_at DESC
         LIMIT :size OFFSET :offset
     """, nativeQuery = true
     )
-    fun findImagesWithFiltersNative(
+    fun findImagesForCompany(
         @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?,
         @Param("size") size: Int,
         @Param("offset") offset: Int
     ): List<VisitMediaEntity>
@@ -37,18 +29,10 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT COUNT(*) FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
     """, nativeQuery = true
     )
-    fun countImagesWithFilters(
-        @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?
+    fun countImagesForCompany(
+        @Param("companyId") companyId: Long
     ): Long
 
     @Query(
@@ -56,13 +40,9 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT vm.* FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
         AND EXISTS (
             SELECT 1 FROM unnest(string_to_array(COALESCE(vm.tags, ''), ',')) AS tag_elem
-            WHERE TRIM(tag_elem) != '' AND tag_elem = ANY(CAST(:tags AS text[]))
+            WHERE TRIM(tag_elem) != '' AND TRIM(tag_elem) IN (:tags)
         )
         ORDER BY vm.created_at DESC
         LIMIT :size OFFSET :offset
@@ -70,10 +50,6 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
     )
     fun findImagesWithAnyTags(
         @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?,
         @Param("tags") tags: List<String>,
         @Param("size") size: Int,
         @Param("offset") offset: Int
@@ -84,22 +60,14 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT COUNT(*) FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
         AND EXISTS (
             SELECT 1 FROM unnest(string_to_array(COALESCE(vm.tags, ''), ',')) AS tag_elem
-            WHERE TRIM(tag_elem) != '' AND tag_elem = ANY(CAST(:tags AS text[]))
+            WHERE TRIM(tag_elem) != '' AND TRIM(tag_elem) IN (:tags)
         )
     """, nativeQuery = true
     )
     fun countImagesWithAnyTags(
         @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?,
         @Param("tags") tags: List<String>
     ): Long
 
@@ -108,14 +76,10 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT vm.* FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
         AND (
             SELECT COUNT(DISTINCT tag_elem) 
             FROM unnest(string_to_array(COALESCE(vm.tags, ''), ',')) AS tag_elem
-            WHERE TRIM(tag_elem) != '' AND tag_elem = ANY(CAST(:tags AS text[]))
+            WHERE TRIM(tag_elem) != '' AND TRIM(tag_elem) IN (:tags)
         ) = :tagCount
         ORDER BY vm.created_at DESC
         LIMIT :size OFFSET :offset
@@ -123,10 +87,6 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
     )
     fun findImagesWithAllTags(
         @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?,
         @Param("tags") tags: List<String>,
         @Param("tagCount") tagCount: Int,
         @Param("size") size: Int,
@@ -138,23 +98,15 @@ interface VisitGalleryJpaRepository : JpaRepository<VisitMediaEntity, String> {
         SELECT COUNT(*) FROM visit_media vm
         JOIN visits v ON v.id = vm.visit_id
         WHERE v.company_id = :companyId
-        AND (:protocolId IS NULL OR vm.visit_id = :protocolId)
-        AND (:name IS NULL OR UPPER(vm.name) ILIKE UPPER(CONCAT('%', :name, '%')))
-        AND (:startDate IS NULL OR vm.created_at >= :startDate::timestamp)
-        AND (:endDate IS NULL OR vm.created_at <= :endDate::timestamp)
         AND (
             SELECT COUNT(DISTINCT tag_elem) 
             FROM unnest(string_to_array(COALESCE(vm.tags, ''), ',')) AS tag_elem
-            WHERE TRIM(tag_elem) != '' AND tag_elem = ANY(CAST(:tags AS text[]))
+            WHERE TRIM(tag_elem) != '' AND TRIM(tag_elem) IN (:tags)
         ) = :tagCount
     """, nativeQuery = true
     )
     fun countImagesWithAllTags(
         @Param("companyId") companyId: Long,
-        @Param("protocolId") protocolId: Long?,
-        @Param("name") name: String?,
-        @Param("startDate") startDate: String?,
-        @Param("endDate") endDate: String?,
         @Param("tags") tags: List<String>,
         @Param("tagCount") tagCount: Int
     ): Long

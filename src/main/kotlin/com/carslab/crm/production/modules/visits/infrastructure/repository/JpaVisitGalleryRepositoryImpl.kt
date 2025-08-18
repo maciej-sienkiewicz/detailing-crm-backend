@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 @Repository
 @Transactional(readOnly = true)
@@ -27,20 +25,11 @@ class JpaVisitGalleryRepositoryImpl(
         val tagMatchMode = request.getTagMatchModeOrDefault()
         val page = request.getPageOrDefault()
         val size = request.getSizeOrDefault()
-
-        val startDate = parseDate(request.startDate, true)
-        val endDate = parseDate(request.endDate, false)
-        val protocolId = parseProtocolId(request.protocolId)
-
         val offset = page * size
 
         val images = if (tags.isEmpty()) {
-            visitGalleryJpaRepository.findImagesWithFiltersNative(
+            visitGalleryJpaRepository.findImagesForCompany(
                 companyId = companyId,
-                protocolId = protocolId,
-                name = request.name?.takeIf { it.isNotBlank() },
-                startDate = startDate?.toString(),
-                endDate = endDate?.toString(),
                 size = size,
                 offset = offset
             )
@@ -48,10 +37,6 @@ class JpaVisitGalleryRepositoryImpl(
             when (tagMatchMode) {
                 TagMatchMode.ALL -> visitGalleryJpaRepository.findImagesWithAllTags(
                     companyId = companyId,
-                    protocolId = protocolId,
-                    name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate?.toString(),
-                    endDate = endDate?.toString(),
                     tags = tags,
                     tagCount = tags.size,
                     size = size,
@@ -59,10 +44,6 @@ class JpaVisitGalleryRepositoryImpl(
                 )
                 TagMatchMode.ANY -> visitGalleryJpaRepository.findImagesWithAnyTags(
                     companyId = companyId,
-                    protocolId = protocolId,
-                    name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate?.toString(),
-                    endDate = endDate?.toString(),
                     tags = tags,
                     size = size,
                     offset = offset
@@ -71,30 +52,16 @@ class JpaVisitGalleryRepositoryImpl(
         }
 
         val total = if (tags.isEmpty()) {
-            visitGalleryJpaRepository.countImagesWithFilters(
-                companyId = companyId,
-                protocolId = protocolId,
-                name = request.name?.takeIf { it.isNotBlank() },
-                startDate = startDate.toString(),
-                endDate = endDate.toString()
-            )
+            visitGalleryJpaRepository.countImagesForCompany(companyId)
         } else {
             when (tagMatchMode) {
                 TagMatchMode.ALL -> visitGalleryJpaRepository.countImagesWithAllTags(
                     companyId = companyId,
-                    protocolId = protocolId,
-                    name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate?.toString(),
-                    endDate = endDate?.toString(),
                     tags = tags,
                     tagCount = tags.size
                 )
                 TagMatchMode.ANY -> visitGalleryJpaRepository.countImagesWithAnyTags(
                     companyId = companyId,
-                    protocolId = protocolId,
-                    name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate?.toString(),
-                    endDate = endDate?.toString(),
                     tags = tags
                 )
             }
@@ -171,32 +138,5 @@ class JpaVisitGalleryRepositoryImpl(
 
     override fun getAllTags(companyId: Long): List<String> {
         return visitGalleryJpaRepository.getAllTagsNative(companyId)
-    }
-
-    private fun parseDate(dateStr: String?, isStartDate: Boolean): LocalDateTime? {
-        return dateStr?.takeIf { it.isNotBlank() }?.let {
-            try {
-                LocalDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME)
-            } catch (e: Exception) {
-                try {
-                    val timeStr = if (isStartDate) "T00:00:00" else "T23:59:59"
-                    LocalDateTime.parse("${it}${timeStr}")
-                } catch (e2: Exception) {
-                    logger.warn("Could not parse date: $it", e2)
-                    null
-                }
-            }
-        }
-    }
-
-    private fun parseProtocolId(protocolId: String?): Long? {
-        return protocolId?.takeIf { it.isNotBlank() }?.let {
-            try {
-                it.toLong()
-            } catch (e: NumberFormatException) {
-                logger.warn("Could not parse protocol ID as Long: $protocolId")
-                null
-            }
-        }
     }
 }
