@@ -17,7 +17,7 @@ class JpaVisitMediaRepositoryImpl(
 ) : VisitMediaRepository {
 
     override fun save(media: VisitMedia): VisitMedia {
-        val entity = VisitMediaEntity.Companion.fromDomain(media, media.visitId)
+        val entity = VisitMediaEntity.Companion.fromDomain(media)
         val savedEntity = mediaJpaRepository.save(entity)
         return savedEntity.toDomain()
     }
