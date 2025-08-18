@@ -32,9 +32,6 @@ class JpaVisitGalleryRepositoryImpl(
         val endDate = parseDate(request.endDate, false)
         val protocolId = parseProtocolId(request.protocolId)
 
-        val startDateStr = startDate?.toString()
-        val endDateStr = endDate?.toString()
-
         val offset = page * size
 
         val images = if (tags.isEmpty()) {
@@ -42,8 +39,8 @@ class JpaVisitGalleryRepositoryImpl(
                 companyId = companyId,
                 protocolId = protocolId,
                 name = request.name?.takeIf { it.isNotBlank() },
-                startDate = startDateStr,
-                endDate = endDateStr,
+                startDate = startDate?.toString(),
+                endDate = endDate?.toString(),
                 size = size,
                 offset = offset
             )
@@ -53,8 +50,8 @@ class JpaVisitGalleryRepositoryImpl(
                     companyId = companyId,
                     protocolId = protocolId,
                     name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate.toString(),
-                    endDate = endDate.toString(),
+                    startDate = startDate?.toString(),
+                    endDate = endDate?.toString(),
                     tags = tags,
                     tagCount = tags.size,
                     size = size,
@@ -64,8 +61,8 @@ class JpaVisitGalleryRepositoryImpl(
                     companyId = companyId,
                     protocolId = protocolId,
                     name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDate.toString(),
-                    endDate = endDate.toString(),
+                    startDate = startDate?.toString(),
+                    endDate = endDate?.toString(),
                     tags = tags,
                     size = size,
                     offset = offset
@@ -78,8 +75,8 @@ class JpaVisitGalleryRepositoryImpl(
                 companyId = companyId,
                 protocolId = protocolId,
                 name = request.name?.takeIf { it.isNotBlank() },
-                startDate = startDate,
-                endDate = endDate
+                startDate = startDate.toString(),
+                endDate = endDate.toString()
             )
         } else {
             when (tagMatchMode) {
@@ -87,8 +84,8 @@ class JpaVisitGalleryRepositoryImpl(
                     companyId = companyId,
                     protocolId = protocolId,
                     name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDateStr,
-                    endDate = endDateStr,
+                    startDate = startDate?.toString(),
+                    endDate = endDate?.toString(),
                     tags = tags,
                     tagCount = tags.size
                 )
@@ -96,8 +93,8 @@ class JpaVisitGalleryRepositoryImpl(
                     companyId = companyId,
                     protocolId = protocolId,
                     name = request.name?.takeIf { it.isNotBlank() },
-                    startDate = startDateStr,
-                    endDate = endDateStr,
+                    startDate = startDate?.toString(),
+                    endDate = endDate?.toString(),
                     tags = tags
                 )
             }
@@ -115,7 +112,7 @@ class JpaVisitGalleryRepositoryImpl(
                 contentType = image.contentType,
                 description = image.description,
                 location = image.location,
-                tags = image.tags.split(",").filter { it.isNotBlank() },
+                tags = if (image.tags.isBlank()) emptyList() else image.tags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
                 createdAt = image.createdAt,
                 thumbnailUrl = "/api/gallery/images/${image.id}/thumbnail",
                 downloadUrl = "/api/gallery/images/${image.id}/download"

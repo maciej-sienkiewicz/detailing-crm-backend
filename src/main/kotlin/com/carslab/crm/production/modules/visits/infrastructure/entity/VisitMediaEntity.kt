@@ -22,7 +22,7 @@ class VisitMediaEntity(
     @Column(name = "visit_id", nullable = false)
     val visitId: Long,
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 255, columnDefinition = "TEXT")
     val name: String,
 
     @Column(length = 1000)
