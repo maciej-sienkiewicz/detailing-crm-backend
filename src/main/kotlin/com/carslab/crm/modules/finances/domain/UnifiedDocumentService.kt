@@ -762,7 +762,7 @@ class UnifiedDocumentService(
         return UnifiedFinancialDocument(
             id = UnifiedDocumentId.generate(),
             number = "",
-            type = DocumentType.valueOf(request.type.uppercase()),
+            type = DocumentType.valueOf(request.type),
             title = request.title,
             description = request.description,
             issuedDate = request.issuedDate,
@@ -774,7 +774,7 @@ class UnifiedDocumentService(
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
             status = if (request.dueDate != null && LocalDate.now().isAfter(request.dueDate))
-                DocumentStatus.OVERDUE else DocumentStatus.valueOf(request.status.uppercase()),
+                DocumentStatus.OVERDUE else DocumentStatus.valueOf(request.status),
             direction = TransactionDirection.valueOf(request.direction),
             paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
             totalNet = request.totalNet,
@@ -810,7 +810,7 @@ class UnifiedDocumentService(
         return UnifiedFinancialDocument(
             id = existingDocument.id,
             number = existingDocument.number,
-            type = DocumentType.valueOf(request.type.uppercase()),
+            type = DocumentType.valueOf(request.type),
             title = request.title,
             description = request.description,
             issuedDate = request.issuedDate,
@@ -821,7 +821,7 @@ class UnifiedDocumentService(
             buyerName = request.buyerName,
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
-            status = DocumentStatus.valueOf(request.status.uppercase()),
+            status = DocumentStatus.valueOf(request.status),
             direction = TransactionDirection.valueOf(request.direction),
             paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
             totalNet = request.totalNet,
@@ -854,7 +854,48 @@ class UnifiedDocumentService(
     }
 
     private fun validateDocumentRequest(request: Any) {
-        
+        when (request) {
+            is CreateUnifiedDocumentRequest -> {
+                request.dueDate?.let { dueDate ->
+                    if (dueDate.isBefore(request.issuedDate)) {
+                        throw ValidationException("Due date cannot be before issued date")
+                    }
+                }
+
+                if (request.items.isNotEmpty()) {
+                    val calculatedTotalNet = request.items.sumOf { it.totalNet }
+                    val calculatedTotalGross = request.items.sumOf { it.totalGross }
+
+                    if (calculatedTotalNet.compareTo(request.totalNet) != 0) {
+                        throw ValidationException("Total net amount does not match sum of items")
+                    }
+
+                    if (calculatedTotalGross.compareTo(request.totalGross) != 0) {
+                        throw ValidationException("Total gross amount does not match sum of items")
+                    }
+                }
+            }
+            is UpdateUnifiedDocumentRequest -> {
+                request.dueDate?.let { dueDate ->
+                    if (dueDate.isBefore(request.issuedDate)) {
+                        throw ValidationException("Due date cannot be before issued date")
+                    }
+                }
+
+                if (request.items.isNotEmpty()) {
+                    val calculatedTotalNet = request.items.sumOf { it.totalNet }
+                    val calculatedTotalGross = request.items.sumOf { it.totalGross }
+
+                    if (calculatedTotalNet.compareTo(request.totalNet) != 0) {
+                        throw ValidationException("Total net amount does not match sum of items")
+                    }
+
+                    if (calculatedTotalGross.compareTo(request.totalGross) != 0) {
+                        throw ValidationException("Total gross amount does not match sum of items")
+                    }
+                }
+            }
+        }
     }
 }
 
