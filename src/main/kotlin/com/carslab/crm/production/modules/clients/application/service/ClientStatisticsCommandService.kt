@@ -15,4 +15,8 @@ class ClientStatisticsCommandService(
     fun recordVisit(clientId: String) {
         clientDomainService.recordVisit(ClientId(clientId.toLong()))
     }
+    
+    fun incrementVehicleCount(clientId: String) {
+        clientDomainService.incrementVehicleCount(ClientId(clientId.toLong()))
+    }
 }

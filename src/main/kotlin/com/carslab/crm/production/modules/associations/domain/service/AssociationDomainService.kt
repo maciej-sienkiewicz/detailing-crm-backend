@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.associations.domain.service
 import com.carslab.crm.production.modules.associations.domain.model.AssociationType
 import com.carslab.crm.production.modules.associations.domain.model.ClientVehicleAssociation
 import com.carslab.crm.production.modules.associations.domain.repository.ClientVehicleAssociationRepository
+import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.shared.exception.BusinessException
@@ -12,7 +13,8 @@ import java.time.LocalDateTime
 
 @Service
 class AssociationDomainService(
-    private val associationRepository: ClientVehicleAssociationRepository
+    private val associationRepository: ClientVehicleAssociationRepository,
+    private val clientStatisticsCommandService: ClientStatisticsCommandService,
 ) {
     private val logger = LoggerFactory.getLogger(AssociationDomainService::class.java)
 
@@ -28,7 +30,9 @@ class AssociationDomainService(
 
         val existingAssociation = associationRepository.findByClientIdAndVehicleId(clientId, vehicleId)
         if (existingAssociation?.isActive == true) {
-            throw BusinessException("Active association already exists between client and vehicle")
+            logger.debug("Active association already exists between client: {} and vehicle: {}",
+                clientId.value, vehicleId.value)
+            return existingAssociation
         }
 
         val association = ClientVehicleAssociation(
@@ -46,6 +50,7 @@ class AssociationDomainService(
         val saved = associationRepository.save(association)
         logger.info("Association created: {} for company: {}", saved.id?.value, companyId)
         return saved
+            .also { clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString()) }
     }
 
     fun endAssociation(clientId: ClientId, vehicleId: VehicleId, companyId: Long): Boolean {

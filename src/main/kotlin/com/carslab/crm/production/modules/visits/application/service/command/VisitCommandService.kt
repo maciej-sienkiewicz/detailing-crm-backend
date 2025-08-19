@@ -12,6 +12,7 @@ import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSou
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.VisitCreationOrchestrator
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -22,6 +23,7 @@ import java.time.LocalDateTime
 @Transactional
 class VisitCommandService(
     private val visitDomainService: VisitDomainService,
+    private val visitCreationOrchestrator: VisitCreationOrchestrator,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommandService::class.java)
@@ -32,11 +34,13 @@ class VisitCommandService(
 
         validateCreateRequest(request)
 
+        val entities = visitCreationOrchestrator.prepareVisitEntities(request)
+
         val command = CreateVisitCommand(
             companyId = companyId,
             title = request.title,
-            clientId = ClientId.of(1),
-            vehicleId = VehicleId.of(1),
+            clientId = ClientId.of(entities.client.id.toLong()),
+            vehicleId = VehicleId.of(entities.vehicle.id.toLong()),
             startDate = LocalDateTime.parse(request.startDate),
             endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: LocalDateTime.now(),
             status = VisitStatus.SCHEDULED,

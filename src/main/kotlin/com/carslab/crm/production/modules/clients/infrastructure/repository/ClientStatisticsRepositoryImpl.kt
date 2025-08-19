@@ -51,6 +51,19 @@ class ClientStatisticsRepositoryImpl(
             logger.debug("Visit count incremented for client: {}", clientId.value)
         }
     }
+    
+    override fun incrementVehicleCount(clientId: ClientId) {
+        logger.debug("Incrementing vehicle count for client: {}", clientId.value)
+
+        val now = LocalDateTime.now()
+        val rowsUpdated = jpaRepository.incrementVehicleCount(clientId.value, now)
+
+        if (rowsUpdated == 0) {
+            logger.warn("No statistics found to increment vehicle count for client: {}", clientId.value)
+        } else {
+            logger.debug("Vehicle count incremented for client: {}", clientId.value)
+        }
+    }
 
     override fun addRevenue(clientId: ClientId, amount: BigDecimal) {
         logger.debug("Adding revenue {} for client: {}", amount, clientId.value)
@@ -65,11 +78,11 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    override fun updateVehicleCount(clientId: ClientId, count: Long) {
+    override fun incrementVehicleCount(clientId: ClientId, count: Long) {
         logger.debug("Updating vehicle count to {} for client: {}", count, clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.updateVehicleCount(clientId.value, count, now)
+        val rowsUpdated = jpaRepository.incrementVehicleCount(clientId.value, now)
 
         if (rowsUpdated == 0) {
             logger.warn("No statistics found to update vehicle count for client: {}", clientId.value)

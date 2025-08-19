@@ -37,7 +37,7 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
     @Modifying
     @Query("UPDATE ClientEntity c SET c.active = false, c.updatedAt = :now WHERE c.id = :id AND c.companyId = :companyId")
     fun softDeleteByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long, @Param("now") now: LocalDateTime): Int
-
+    
     @Query(nativeQuery = true, value = """
         SELECT 
             c.id as client_id,
@@ -59,7 +59,8 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
             cs.total_revenue as stats_total_revenue,
             cs.vehicle_count as stats_vehicle_count,
             cs.last_visit_date as stats_last_visit_date,
-            cs.updated_at as stats_updated_at
+            cs.updated_at as stats_updated_at,
+            COALESCE(STRING_AGG(DISTINCT CAST(cva.vehicle_id AS VARCHAR), ','), '') as vehicle_ids
         FROM clients c 
         LEFT JOIN client_statistics cs ON c.id = cs.client_id
         LEFT JOIN client_vehicle_associations cva ON c.id = cva.client_id AND cva.end_date IS NULL
@@ -76,6 +77,10 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
         AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
         AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
         AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
+        GROUP BY c.id, c.company_id, c.first_name, c.last_name, c.email, c.phone, c.address, 
+                 c.company, c.tax_id, c.notes, c.created_at, c.updated_at, c.version, c.active,
+                 cs.client_id, cs.visit_count, cs.total_revenue, cs.vehicle_count, 
+                 cs.last_visit_date, cs.updated_at
         ORDER BY c.created_at DESC
         LIMIT :limit OFFSET :offset
     """)

@@ -35,10 +35,10 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
     @Modifying
     @Query("""
         UPDATE ClientStatisticsEntity s 
-        SET s.vehicleCount = :count, s.updatedAt = :now 
+        SET s.vehicleCount = s.vehicleCount + 1, s.updatedAt = :now 
         WHERE s.clientId = :clientId
     """)
-    fun updateVehicleCount(@Param("clientId") clientId: Long, @Param("count") count: Long, @Param("now") now: LocalDateTime): Int
+    fun incrementVehicleCount(@Param("clientId") clientId: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
     @Query("""

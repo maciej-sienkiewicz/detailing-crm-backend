@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientWithStatist
 import com.carslab.crm.production.modules.clients.infrastructure.dto.ClientWithStatisticsRaw
 import java.math.BigDecimal
 
+
 fun ClientWithStatisticsRaw.toDomain(): ClientWithStatistics {
     val client = Client(
         id = ClientId.of(getClientId()),
@@ -37,8 +38,17 @@ fun ClientWithStatisticsRaw.toDomain(): ClientWithStatistics {
         null
     }
 
+    val vehicleIds = getVehicleIds()?.let { vehicleIdsString ->
+        if (vehicleIdsString.isBlank()) {
+            emptyList()
+        } else {
+            vehicleIdsString.split(",").mapNotNull { it.toLongOrNull() }
+        }
+    } ?: emptyList()
+
     return ClientWithStatistics(
         client = client,
-        statistics = statistics
+        statistics = statistics,
+        vehicleIds = vehicleIds
     )
 }

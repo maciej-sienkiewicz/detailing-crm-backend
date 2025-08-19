@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.clients.infrastructure.dto
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
+
 interface ClientWithStatisticsRaw {
     fun getClientId(): Long
     fun getClientCompanyId(): Long
@@ -25,4 +26,6 @@ interface ClientWithStatisticsRaw {
     fun getStatsVehicleCount(): Long?
     fun getStatsLastVisitDate(): LocalDateTime?
     fun getStatsUpdatedAt(): LocalDateTime?
+
+    fun getVehicleIds(): String?
 }

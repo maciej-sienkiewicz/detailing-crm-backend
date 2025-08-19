@@ -136,4 +136,12 @@ class ClientDomainService(
 
         logger.info("Visit recorded for client: {}", clientId.value)
     }
+
+    fun incrementVehicleCount(clientId: ClientId) {
+        logger.debug("Increasing vehicle count for client: {}", clientId.value)
+
+        clientStatisticsRepository.incrementVehicleCount(clientId)
+
+        logger.info("Vehicle count increased for client: {}", clientId.value)
+    }
 }

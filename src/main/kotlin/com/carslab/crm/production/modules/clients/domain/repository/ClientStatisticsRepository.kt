@@ -9,8 +9,9 @@ interface ClientStatisticsRepository {
     fun findByClientId(clientId: ClientId): ClientStatistics?
     fun save(statistics: ClientStatistics): ClientStatistics
     fun incrementVisitCount(clientId: ClientId)
+    fun incrementVehicleCount(clientId: ClientId)
     fun addRevenue(clientId: ClientId, amount: BigDecimal)
-    fun updateVehicleCount(clientId: ClientId, count: Long)
+    fun incrementVehicleCount(clientId: ClientId, count: Long)
     fun setLastVisitDate(clientId: ClientId, visitDate: LocalDateTime)
     fun deleteByClientId(clientId: ClientId): Boolean
 }

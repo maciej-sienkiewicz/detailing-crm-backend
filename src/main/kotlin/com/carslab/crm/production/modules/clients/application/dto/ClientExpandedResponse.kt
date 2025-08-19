@@ -22,12 +22,13 @@ data class ClientExpandedResponse(
     val totalRevenue: Double,
     @JsonProperty("lastVisitDate")
     val lastVisitDate: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val vehicles: List<Long> = emptyList(),
 ) {
     companion object {
         private val DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-        fun from(clientWithStats: ClientWithStatistics): ClientExpandedResponse {
+        fun from(clientWithStats: ClientWithStatistics, ): ClientExpandedResponse {
             return ClientExpandedResponse(
                 id = clientWithStats.client.id.value.toString(),
                 firstName = clientWithStats.client.firstName,
@@ -40,7 +41,8 @@ data class ClientExpandedResponse(
                 totalVisits = clientWithStats.statistics?.visitCount?.toInt() ?: 0,
                 totalRevenue = clientWithStats.statistics?.totalRevenue?.toDouble() ?: 0.0,
                 lastVisitDate = clientWithStats.statistics?.lastVisitDate?.format(DATE_FORMATTER),
-                notes = clientWithStats.client.notes
+                notes = clientWithStats.client.notes,
+                vehicles = clientWithStats.vehicleIds
             )
         }
     }
