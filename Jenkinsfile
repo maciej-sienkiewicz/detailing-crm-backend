@@ -2,26 +2,25 @@ pipeline {
     agent {
         docker {
             image 'gradle:jdk21-ubi'
-            label 'docker' // lub 'Blade_runner' – jeśli nie masz innego labela
+            label 'docker'
             reuseNode true
+            args '-v $HOME/.gradle:/home/gradle/.gradle'
         }
     }
+
 
     stages {
         stage('Build') {
             steps {
-                sh './gradlew build'
+                sh 'chmod +x gradlew || true'
+                sh './gradlew build'          
             }
         }
     }
 
     post {
         always {
-            script {
-                node {
-                    cleanWs()
-                }
-            }
+            cleanWs()
         }
     }
 }
