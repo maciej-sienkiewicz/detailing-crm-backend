@@ -40,6 +40,18 @@ class VisitDetailQueryService(
 
         return mapToCarReceptionDetailDto(visitDetail, mediaItems)
     }
+    
+    fun getSimpleDetails(visitId: String): VisitDetailReadModel {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.debug("Fetching simple visit details: {} for company: {}", visitId, companyId)
+
+        val visitDetail = visitDetailQueryRepository.findVisitDetailById(VisitId.of(visitId), companyId)
+            ?: throw EntityNotFoundException("Visit not found: $visitId")
+
+        logger.debug("Simple visit detail found: {}", visitDetail.title)
+
+        return visitDetail
+    } 
 
     private fun mapToCarReceptionDetailDto(
         visitDetail: VisitDetailReadModel,

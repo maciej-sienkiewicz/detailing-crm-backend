@@ -33,6 +33,13 @@ class VisitDocumentQueryService(
             downloadUrl =  "/api/v1/visits/documents/${document.id}/download",
         ) }
     }
+    
+    fun findByVisitIdAndDocumentType(visitId: String, documentType: String): ByteArray? {
+        logger.debug("Finding documents for visit: {} with type: {}", visitId, documentType)
+        
+        return documentService.findDocumentsByVisitIdAndType(VisitId.of(visitId), documentType)
+            .let { documentService.getDocumentData(it.id) }
+    }
 
     fun getDocumentFile(documentId: String): ByteArray? {
         logger.debug("Fetching document file: {}", documentId)

@@ -6,6 +6,7 @@ import java.time.LocalDateTime
 
 data class VisitSearchCriteria(
     val companyId: Long,
+    val clientId: String? = null,
     val clientName: String? = null,
     val licensePlate: String? = null,
     val status: VisitStatus? = null,

@@ -6,6 +6,7 @@ import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument
+import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDocumentRepository
 import org.springframework.stereotype.Service
@@ -87,5 +88,15 @@ class VisitDocumentService(
         if (file.size > 10 * 1024 * 1024) {
             throw BusinessException("File size cannot exceed 10MB")
         }
+    }
+
+    fun findDocumentsByVisitIdAndType(visitId: VisitId, documentType: String): VisitDocument {
+        val type = try {
+            DocumentType.valueOf(documentType.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw BusinessException("Invalid document type: $documentType")
+        }
+
+        return documentRepository.findByVisitId(visitId).filter { it.type == type }.maxBy { it.createdAt }
     }
 }

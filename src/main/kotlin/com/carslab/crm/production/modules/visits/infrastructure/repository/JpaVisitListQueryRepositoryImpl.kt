@@ -1,9 +1,13 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
 import com.carslab.crm.api.model.response.PaginatedResponse
-import com.carslab.crm.modules.visits.application.queries.models.*
+import com.carslab.crm.production.modules.visits.application.queries.models.ClientBasicReadModel
+import com.carslab.crm.production.modules.visits.application.queries.models.PeriodReadModel
+import com.carslab.crm.production.modules.visits.application.queries.models.VehicleBasicReadModel
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitListProjection
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitServiceReadModel
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListQueryRepository
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListRepository

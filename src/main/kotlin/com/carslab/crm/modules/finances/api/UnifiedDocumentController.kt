@@ -12,11 +12,11 @@ import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
 import com.carslab.crm.modules.finances.api.requests.InvoiceGenerationFromVisitRequest
 import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -42,7 +42,7 @@ class UnifiedDocumentController(
     private val invoiceExtractionService: ParallelInvoiceExtractionService,
     private val securityContext: SecurityContext,
     private val balanceService: BalanceService,
-    private val companySettingsApplicationService: CompanySettingsApplicationService
+    private val companySettingsApplicationService: CompanyDetailsFetchService,
 ) : BaseController() {
 
     @GetMapping

@@ -2,6 +2,7 @@ package com.carslab.crm.infrastructure.events
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
 import java.math.BigDecimal
 
 /**
@@ -41,7 +42,7 @@ data class InvoiceCreatedEvent(
 ) {
     companion object {
         fun create(
-            visit: CarReceptionProtocol?,
+            visit: VisitDetailReadModel?,
             document: UnifiedFinancialDocument,
             userId: String?,
             companyId: Long,
@@ -51,9 +52,9 @@ data class InvoiceCreatedEvent(
             invoiceNumber = document.number,
             clientId = visit?.client?.id?.toString(),
             clientName = visit?.client?.name.toString(),
-            visitId = visit?.id?.value,
+            visitId = visit?.id,
             visitTitle = visit?.title,
-            amount = visit?.protocolServices?.sumOf { it.finalPrice.amount.toBigDecimal() } ?: BigDecimal.ZERO,
+            amount = visit?.services?.sumOf { it.finalPrice } ?: BigDecimal.ZERO,
             currency = "PLN",
             dueDate = document.dueDate.toString(),
             userId = userId,

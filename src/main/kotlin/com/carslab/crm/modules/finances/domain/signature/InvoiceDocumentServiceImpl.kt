@@ -4,13 +4,14 @@ import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.modules.finances.domain.signature.ports.InvoiceDocumentService
 import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureException
-import com.carslab.crm.modules.visits.domain.ports.ProtocolRepository
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.domain.model.view.finance.DocumentItem
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsDomainService
 import com.carslab.crm.finances.domain.ports.UnifiedDocumentRepository
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class InvoiceDocumentServiceImpl(
     private val unifiedDocumentService: UnifiedDocumentService,
-    private val protocolRepository: ProtocolRepository,
-    private val companySettingsService: CompanySettingsDomainService,
+    private val detailsFetchService: VisitDetailQueryService,
+    private val companySettingsService: CompanyDetailsFetchService,
     private val unifiedDocumentRepository: UnifiedDocumentRepository
 ) : InvoiceDocumentService {
 
@@ -41,10 +42,10 @@ class InvoiceDocumentServiceImpl(
     override fun createInvoiceFromVisit(visitId: String, companyId: Long, request: InvoiceSignatureRequest): UnifiedFinancialDocument {
         logger.info("Finding or creating invoice from visit: $visitId")
         
-        val protocol = protocolRepository.findById(ProtocolId(visitId))
-            ?: throw InvoiceSignatureException("Visit not found: $visitId")
+        val protocol = detailsFetchService.getSimpleDetails(visitId)
 
-        if (protocol.status != ProtocolStatus.READY_FOR_PICKUP && protocol.status != ProtocolStatus.COMPLETED) {
+        val status = protocol.status.let { ProtocolStatus.valueOf(it) }
+        if (status != ProtocolStatus.READY_FOR_PICKUP && status != ProtocolStatus.COMPLETED) {
             throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
@@ -52,17 +53,17 @@ class InvoiceDocumentServiceImpl(
     }
     
     private fun createInvoiceFromVisit(
-        protocol: com.carslab.crm.domain.model.CarReceptionProtocol,
+        protocol: VisitDetailReadModel,
         companyId: Long,
         request: InvoiceSignatureRequest
     ): UnifiedFinancialDocument {
-        logger.info("Creating invoice from visit: ${protocol.id.value}")
+        logger.info("Creating invoice from visit: ${protocol.id}")
 
         val companySettings = companySettingsService.getCompanySettings(companyId)
             ?: throw InvoiceSignatureException("Company settings not found for company: $companyId")
 
-        val approvedServices = protocol.protocolServices.filter {
-            it.approvalStatus == com.carslab.crm.domain.model.ApprovalStatus.APPROVED
+        val approvedServices = protocol.services.filter {
+            it.approvalStatus == "APPROVED"
         }
 
         if (approvedServices.isEmpty()) {
@@ -74,10 +75,10 @@ class InvoiceDocumentServiceImpl(
                 name = it.name,
                 description = it.note,
                 quantity = 1.toBigDecimal(),
-                unitPrice = it.finalPrice.amount.toBigDecimal(),
+                unitPrice = it.finalPrice,
                 taxRate = 23.toBigDecimal(),
-                totalNet = (it.finalPrice.amount / 1.23).toBigDecimal(),
-                totalGross = it.finalPrice.amount.toBigDecimal()
+                totalNet = (it.finalPrice / 1.23.toBigDecimal()),
+                totalGross = it.finalPrice,
             )} } else request.overridenItems.map {
             DocumentItem(
                 name = it.name,
@@ -101,9 +102,9 @@ class InvoiceDocumentServiceImpl(
             description = "Automatycznie wygenerowana faktura z wizyty",
             issuedDate = java.time.LocalDate.now(),
             dueDate = java.time.LocalDate.now().plusDays(14),
-            sellerName = companySettings.basicInfo.companyName,
-            sellerTaxId = companySettings.basicInfo.taxId,
-            sellerAddress = companySettings.basicInfo.address ?: "",
+            sellerName = companySettings.basicInfo?.companyName ?: "",
+            sellerTaxId = companySettings.basicInfo?.taxId,
+            sellerAddress = companySettings.basicInfo?.address ?: "",
             buyerName = protocol.client.name,
             buyerTaxId = protocol.client.taxId,
             buyerAddress = protocol.client.address ?: "",
@@ -116,9 +117,9 @@ class InvoiceDocumentServiceImpl(
             paidAmount = java.math.BigDecimal.ZERO,
             currency = "PLN",
             notes = "Faktura wygenerowana automatycznie dla podpisu",
-            protocolId = protocol.id.value,
-            protocolNumber = protocol.id.value,
-            visitId = protocol.id.value,
+            protocolId = protocol.id,
+            protocolNumber = protocol.id,
+            visitId = protocol.id,
             items = items,
             attachment = null,
             audit = com.carslab.crm.domain.model.Audit(
@@ -130,7 +131,7 @@ class InvoiceDocumentServiceImpl(
         return try {
             unifiedDocumentRepository.save(document)
         } catch (e: Exception) {
-            logger.error("Error creating invoice from visit: ${protocol.id.value}", e)
+            logger.error("Error creating invoice from visit: ${protocol.id}", e)
             throw InvoiceSignatureException("Failed to create invoice: ${e.message}", e)
         }
     }

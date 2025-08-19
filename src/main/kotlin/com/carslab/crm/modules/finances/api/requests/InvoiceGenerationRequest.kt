@@ -1,6 +1,5 @@
 package com.carslab.crm.modules.finances.api.requests
 
-import com.carslab.crm.modules.visits.application.commands.models.valueobjects.CreateServiceCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.OverridenInvoiceServiceItem
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.*
@@ -11,7 +10,7 @@ data class InvoiceGenerationFromVisitRequest(
     val visitId: String,
 
     @JsonProperty("overriden_items")
-    val overridenItems: List<CreateServiceCommand> = emptyList(),
+    val overridenItems: List<OverridenInvoiceServiceItem> = emptyList(),
 
     @field:Positive
     @field:Max(365)

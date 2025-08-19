@@ -1,6 +1,8 @@
 package com.carslab.crm.production.modules.visits.application.service.query
 
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.commands.ClientProtocolHistoryDto
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
@@ -19,14 +21,6 @@ class VisitQueryService(
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitQueryService::class.java)
-    
-    fun getVisitsForClient(clientId: String, pageable: Pageable): Page<VisitResponse> {
-        val companyId = securityContext.getCurrentCompanyId()
-        logger.debug("Fetching visits for client: {} and company: {}", clientId, companyId)
-
-        val visits = visitDomainService.getVisitsForClient(ClientId.of(clientId.toLong()), companyId, pageable)
-        return visits.map { VisitResponse.from(it) }
-    }
 
     fun getVisitsForVehicle(vehicleId: String, pageable: Pageable): Page<VisitResponse> {
         val companyId = securityContext.getCurrentCompanyId()

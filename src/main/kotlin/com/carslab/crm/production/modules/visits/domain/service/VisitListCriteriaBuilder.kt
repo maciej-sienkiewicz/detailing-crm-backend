@@ -10,6 +10,7 @@ class VisitListCriteriaBuilder {
     fun buildCriteria(companyId: Long, filter: VisitListFilterRequest): VisitSearchCriteria {
         return VisitSearchCriteria(
             companyId = companyId,
+            clientId = filter.clientId,
             clientName = filter.clientName,
             licensePlate = filter.licensePlate,
             status = filter.status,

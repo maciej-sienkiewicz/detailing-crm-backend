@@ -1,11 +1,15 @@
 package com.carslab.crm.production.modules.visits.api
 
+import com.carslab.crm.api.model.ApiProtocolStatus
+import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
+import com.carslab.crm.modules.visits.api.commands.ClientProtocolHistoryDto
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.application.service.command.VisitCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitCountersQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitListQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -25,7 +29,8 @@ class VisitController(
     private val visitCommandService: VisitCommandService,
     private val visitQueryService: VisitQueryService,
     private val visitDetailQueryService: VisitDetailQueryService,
-    private val visitCountersQueryService: VisitCountersQueryService
+    private val visitCountersQueryService: VisitCountersQueryService,
+    private val visitListQueryService: VisitListQueryService
 ) {
 
     @PostMapping
@@ -81,16 +86,32 @@ class VisitController(
         return ResponseEntity.ok(counters)
     }
 
-    @GetMapping("/clients/{clientId}")
+    @GetMapping("/client/{clientId}")
     @Operation(summary = "Get visits for specific client")
     fun getVisitsForClient(
         @Parameter(description = "Client ID") @PathVariable clientId: String,
         @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "Page size") @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<Page<VisitResponse>> {
+    ): ResponseEntity<PaginatedResponse<ClientProtocolHistoryDto>> {
         val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val visits = visitQueryService.getVisitsForClient(clientId, pageable)
-        return ResponseEntity.ok(visits)
+        val visits = visitListQueryService.getVisitList(VisitListFilterRequest(clientId = clientId), pageable)
+        return ResponseEntity.ok(PaginatedResponse(
+            data = visits.data.map { ClientProtocolHistoryDto(
+                id = it.id,
+                startDate = it.period.startDate,
+                endDate = it.period.endDate,
+                status = ApiProtocolStatus.valueOf(it.status),
+                carMake = it.vehicle.make,
+                carModel = it.vehicle.model,
+                licensePlate = it.vehicle.licensePlate,
+                totalAmount = it.totalAmount.toDouble(),
+                title = it.title
+            ) },
+            page = visits.page,
+            size = visits.size,
+            totalItems = visits.totalItems,
+            totalPages = visits.totalPages
+        ))
     }
 
     @GetMapping("/vehicles/{vehicleId}")

@@ -5,6 +5,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class VisitListFilterRequest(
+    val clientId: String? = null,
     val clientName: String? = null,
     val licensePlate: String? = null,
     val status: VisitStatus? = null,
@@ -19,7 +20,8 @@ data class VisitListFilterRequest(
     val maxPrice: BigDecimal? = null
 ) {
     fun hasAnyFilter(): Boolean {
-        return clientName != null ||
+        return  clientId != null || 
+                clientName != null ||
                 licensePlate != null ||
                 status != null ||
                 startDate != null ||

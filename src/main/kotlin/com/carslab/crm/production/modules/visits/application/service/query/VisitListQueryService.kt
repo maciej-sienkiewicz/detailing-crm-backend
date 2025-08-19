@@ -2,8 +2,8 @@ package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.dto.VisitListFilterRequest
+import com.carslab.crm.production.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListQueryRepository
 import com.carslab.crm.production.modules.visits.domain.service.VisitListCriteriaBuilder
 import org.slf4j.LoggerFactory

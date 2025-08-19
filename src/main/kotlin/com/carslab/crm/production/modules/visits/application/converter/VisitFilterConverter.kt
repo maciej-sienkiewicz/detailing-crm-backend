@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter
 class VisitFilterConverter {
 
     fun convertFromRequestParams(
+        clientId: String?,
         clientName: String?,
         licensePlate: String?,
         status: String?,
@@ -26,6 +27,7 @@ class VisitFilterConverter {
     ): VisitListFilterRequest {
         return VisitListFilterRequest(
             clientName = clientName?.takeIf { it.isNotBlank() },
+            clientId = clientId?.takeIf { it.isNotBlank() },
             licensePlate = licensePlate?.takeIf { it.isNotBlank() },
             status = status?.takeIf { it.isNotBlank() }?.let { parseVisitStatus(it) },
             startDate = startDate?.takeIf { it.isNotBlank() }?.let { parseDateTime(it) },

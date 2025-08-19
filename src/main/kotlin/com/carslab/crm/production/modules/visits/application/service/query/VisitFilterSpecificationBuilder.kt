@@ -52,6 +52,7 @@ class VisitFilterSpecificationBuilder {
             val clientSubquery = cb.createQuery().subquery(Long::class.java)
             val clientRoot = clientSubquery.from(ClientEntity::class.java)
 
+            val clientIdPredicate = cb.equal(root.get<Long>("id"), criteria.clientId)
             val firstNamePredicate = cb.like(cb.lower(clientRoot.get("firstName")), "%${clientName.lowercase()}%")
             val lastNamePredicate = cb.like(cb.lower(clientRoot.get("lastName")), "%${clientName.lowercase()}%")
             val fullNamePredicate = cb.like(
@@ -63,7 +64,7 @@ class VisitFilterSpecificationBuilder {
                 .where(
                     cb.and(
                         cb.equal(clientRoot.get<Long>("companyId"), criteria.companyId),
-                        cb.or(firstNamePredicate, lastNamePredicate, fullNamePredicate)
+                        cb.or(firstNamePredicate, lastNamePredicate, fullNamePredicate, clientIdPredicate)
                     )
                 )
 

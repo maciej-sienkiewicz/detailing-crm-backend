@@ -1,5 +1,6 @@
 package com.carslab.crm.finances.domain
 
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.BuyerInfoDTO
 import com.carslab.crm.api.model.DocumentType
 import com.carslab.crm.api.model.DocumentStatus
@@ -32,12 +33,12 @@ import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
-import com.carslab.crm.modules.company_settings.domain.CompanySettingsApplicationService
 import com.carslab.crm.modules.finances.api.requests.InvoiceGenerationFromVisitRequest
 import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
 import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationService
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
-import com.carslab.crm.modules.visits.domain.CarReceptionServiceDeprecated
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -57,9 +58,9 @@ class UnifiedDocumentService(
     private val documentBalanceService: DocumentBalanceService,
     private val balanceService: BalanceService,
     private val eventsPublisher: EventPublisher,
-    private val visitService: CarReceptionServiceDeprecated,
+    private val visitDetailQueryService: VisitDetailQueryService,
     private val invoiceAttachmentGenerationService: InvoiceAttachmentGenerationService,
-    private val companySettingsApplicationService: CompanySettingsApplicationService,
+    private val companySettingsApplicationService: CompanyDetailsFetchService,
 ) {
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
@@ -125,7 +126,7 @@ class UnifiedDocumentService(
         }
 
         val visitDetails = document.protocolId?.let {
-            visitService.getProtocolById(ProtocolId(it))
+            visitDetailQueryService.getSimpleDetails(it)
         }
 
         eventsPublisher.publish(
@@ -351,16 +352,15 @@ class UnifiedDocumentService(
         val companyId = securityContext.getCurrentCompanyId()
 
         // Pobierz protokół wizyty
-        val protocol = visitService.getProtocolById(ProtocolId(request.visitId))
-            ?: throw ValidationException("Visit not found: ${request.visitId}")
+        val protocol = visitDetailQueryService.getSimpleDetails(request.visitId)
 
-        if (protocol.status != ProtocolStatus.READY_FOR_PICKUP && protocol.status != ProtocolStatus.COMPLETED) {
+        val status = protocol.status.let { ApiProtocolStatus.valueOf(it) }
+        if (status != ApiProtocolStatus.READY_FOR_PICKUP && status != ApiProtocolStatus.COMPLETED) {
             throw ValidationException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
         // Pobierz ustawienia firmy
         val companySettings = companySettingsApplicationService.getCompanySettings(companyId)
-            ?: throw ValidationException("Company settings not found")
 
         // Przygotuj pozycje faktury
         val items = if (request.overridenItems.isNotEmpty()) {
@@ -384,8 +384,8 @@ class UnifiedDocumentService(
             }
         } else {
             // Użyj pozycji z protokołu
-            val approvedServices = protocol.protocolServices.filter {
-                it.approvalStatus == ApprovalStatus.APPROVED
+            val approvedServices = protocol.services.filter {
+                it.approvalStatus == "APPROVED"
             }
 
             if (approvedServices.isEmpty()) {
@@ -393,7 +393,7 @@ class UnifiedDocumentService(
             }
 
             approvedServices.map { service ->
-                val servicePrice = service.finalPrice.amount.toBigDecimal()
+                val servicePrice = service.finalPrice
                 val totalNet = servicePrice.divide(BigDecimal("1.23"), 2, BigDecimal.ROUND_HALF_UP)
 
                 DocumentItem(
@@ -458,8 +458,8 @@ class UnifiedDocumentService(
             paidAmount = paidAmount,
             currency = "PLN",
             notes = request.notes ?: "Faktura wygenerowana automatycznie bez podpisu",
-            protocolId = protocol.id.value,
-            protocolNumber = protocol.id.value,
+            protocolId = protocol.id,
+            protocolNumber = protocol.id,
             visitId = request.visitId,
             items = items,
             attachment = null,
@@ -626,7 +626,7 @@ class UnifiedDocumentService(
         }
 
         val visitDetails = document.protocolId?.let {
-            visitService.getProtocolById(ProtocolId(it))
+            visitDetailQueryService.getSimpleDetails(it)
         }
 
         eventsPublisher.publish(

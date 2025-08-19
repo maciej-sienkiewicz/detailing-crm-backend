@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.visits.domain.repositories
 
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument
+import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 
 interface VisitDocumentRepository {
