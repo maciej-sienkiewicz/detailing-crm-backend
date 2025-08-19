@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'aven:3.8.6-openjdk-17'
+            image 'maven:3.8.6-openjdk-17'
             label 'docker' // lub 'Blade_runner' – jeśli nie masz innego labela
             reuseNode true
         }
