@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        Blade_runner {
+        BladeRunner {
             image 'gradle:jdk21-ubi'
             label 'docker' // lub 'Blade_runner' – jeśli nie masz innego labela
             reuseNode true
