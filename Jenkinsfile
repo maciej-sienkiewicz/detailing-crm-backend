@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'maven:3.8.6-openjdk-17'
+            image 'gradle:jdk21-ubi'
             label 'docker' // lub 'Blade_runner' – jeśli nie masz innego labela
             reuseNode true
         }
