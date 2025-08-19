@@ -84,10 +84,10 @@ class InvoiceDocumentServiceImpl(
                 name = it.name,
                 description = null,
                 quantity = 1.toBigDecimal(),
-                unitPrice = (it.finalPrice ?: it.basePrice).toBigDecimal(),
+                unitPrice = (it.finalPrice ?: it.basePrice),
                 taxRate = 23.toBigDecimal(),
-                totalNet = (it.finalPrice ?: it.basePrice).toBigDecimal() / 1.23.toBigDecimal(),
-                totalGross = (it.finalPrice ?: it.basePrice).toBigDecimal()
+                totalNet = (it.finalPrice ?: it.basePrice) / 1.23.toBigDecimal(),
+                totalGross = (it.finalPrice ?: it.basePrice)
             )
         }
         val totalGross = items.sumOf { it.totalGross }

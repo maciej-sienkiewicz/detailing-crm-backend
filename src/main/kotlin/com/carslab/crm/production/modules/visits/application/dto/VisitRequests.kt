@@ -132,36 +132,6 @@ data class UpdateVisitRequest(
     val status: String
 )
 
-data class CreateServiceRequest(
-    @field:NotBlank(message = "Service name is required")
-    @field:Size(max = 100, message = "Service name cannot exceed 100 characters")
-    val name: String,
-
-    @field:NotNull(message = "Base price is required")
-    @field:DecimalMin(value = "0.0", inclusive = false, message = "Base price must be positive")
-    @JsonProperty("base_price")
-    val basePrice: BigDecimal,
-
-    @field:NotNull(message = "Quantity is required")
-    @field:Min(value = 1, message = "Quantity must be at least 1")
-    val quantity: Long = 1,
-
-    @JsonProperty("discount_type")
-    val discountType: DiscountType? = null,
-
-    @JsonProperty("discount_value")
-    val discountValue: BigDecimal? = null,
-
-    @JsonProperty("final_price")
-    val finalPrice: BigDecimal? = null,
-
-    @JsonProperty("approval_status")
-    val approvalStatus: ServiceApprovalStatus = ServiceApprovalStatus.PENDING,
-
-    @field:Size(max = 500, message = "Note cannot exceed 500 characters")
-    val note: String? = null
-)
-
 data class UpdateServiceRequest(
     @field:NotBlank(message = "Service ID is required")
     val id: String,

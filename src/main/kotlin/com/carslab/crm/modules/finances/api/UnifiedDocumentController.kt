@@ -109,23 +109,6 @@ class UnifiedDocumentController(
         return ok(response)
     }
 
-    @PostMapping("/generate-from-visit")
-    @Operation(summary = "Generate invoice from visit", description = "Generates an invoice from visit without signature")
-    fun generateInvoiceFromVisit(
-        @Parameter(description = "Invoice generation data", required = true)
-        @RequestBody @Valid request: InvoiceGenerationFromVisitRequest
-    ): ResponseEntity<InvoiceGenerationResponse> {
-        logger.info("Generating invoice from visit: {}", request.visitId)
-
-        return try {
-            val response = documentService.generateInvoiceFromVisit(request)
-            ok(response)
-        } catch (e: Exception) {
-            logger.error("Error generating invoice from visit: ${request.visitId}", e)
-            badRequest("Failed to generate invoice: ${e.message}")
-        }
-    }
-
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Create a new document", description = "Creates a new financial document with optional attachment")
     fun createDocument(

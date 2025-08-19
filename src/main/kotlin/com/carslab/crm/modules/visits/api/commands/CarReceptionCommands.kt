@@ -6,6 +6,7 @@ import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.math.BigDecimal
 import java.time.Instant
 
 data class CreateCarReceptionCommand(
@@ -178,7 +179,7 @@ data class CreateServiceCommand(
     val name: String,
 
     @JsonProperty("price")
-    val price: Double,
+    val price: BigDecimal,
 
     @JsonProperty("quantity")
     val quantity: Long = 1L,
@@ -187,10 +188,10 @@ data class CreateServiceCommand(
     val discountType: ApiDiscountType? = null,
 
     @JsonProperty("discount_value")
-    val discountValue: Double? = null,
+    val discountValue: BigDecimal? = null,
 
     @JsonProperty("final_price")
-    val finalPrice: Double? = null,
+    val finalPrice: BigDecimal? = null,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
@@ -214,16 +215,16 @@ data class UpdateServiceCommand(
     val quantity: Long,
 
     @JsonProperty("price")
-    val price: Double,
+    val price: BigDecimal,
 
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
 
     @JsonProperty("discount_value")
-    val discountValue: Double? = null,
+    val discountValue: BigDecimal? = null,
 
     @JsonProperty("final_price")
-    val finalPrice: Double? = null,
+    val finalPrice: BigDecimal? = null,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
@@ -295,7 +296,7 @@ data class CarReceptionListDto(
     val totalServiceCount: Int,
 
     @JsonProperty("total_amount")
-    val totalAmount: Double,
+    val totalAmount: BigDecimal,
 
     @JsonProperty("selected_services")
     val selectedServices: List<ServiceDto>,
@@ -438,8 +439,7 @@ data class ClientProtocolHistoryDto(
     val licensePlate: String,
 
     @JsonProperty("total_amount")
-    val totalAmount: Double,
-    
+    val totalAmount: BigDecimal,
     @JsonProperty("title")
     val title: String? = null,
 )
@@ -455,16 +455,16 @@ data class ServiceDto(
     val quantity: Long,
 
     @JsonProperty("price")
-    val price: Double,
+    val price: BigDecimal,
 
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
 
     @JsonProperty("discount_value")
-    val discountValue: Double = 0.0,
+    val discountValue: BigDecimal = BigDecimal.ZERO,
 
     @JsonProperty("final_price")
-    val finalPrice: Double,
+    val finalPrice: BigDecimal,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = null,

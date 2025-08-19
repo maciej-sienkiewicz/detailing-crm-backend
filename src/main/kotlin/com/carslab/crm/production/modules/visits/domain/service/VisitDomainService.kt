@@ -2,14 +2,15 @@ package com.carslab.crm.production.modules.visits.domain.service
 
 import com.carslab.crm.api.model.DocumentItemDTO
 import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
-import com.carslab.crm.domain.model.view.finance.DocumentItem
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
+import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
 import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
@@ -20,6 +21,7 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Vis
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitPeriod
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
+import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.data.domain.Page
@@ -34,6 +36,8 @@ import java.util.UUID
 class VisitDomainService(
     private val visitRepository: VisitRepository,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
+    private val clientQueryService: ClientQueryService,
+    private val vehicleQueryService: VehicleQueryService,
     private val companyDetailsFetchService: CompanyDetailsFetchService,
     private val visitDetailQueryService: VisitDetailQueryService,
     private val visitActivitySender: VisitActivitySender,
@@ -42,13 +46,13 @@ class VisitDomainService(
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
-
+        
         val visit = Visit(
             id = null,
             companyId = command.companyId,
             title = command.title.trim(),
-            clientId = command.clientId,
-            vehicleId = command.vehicleId,
+            clientId = ClientId(command.client.id.toLong()),
+            vehicleId = VehicleId(command.vehicle.id.toLong()),
             period = VisitPeriod(command.startDate, command.endDate),
             status = command.status,
             services = command.services.map { createVisitService(it) },
@@ -63,13 +67,16 @@ class VisitDomainService(
 
         return visitRepository.save(visit)
             .also { clientStatisticsCommandService.recordVisit(visit.clientId.value.toString()) }
-            .also { visitActivitySender.onVisitCreated(visit) }
+            .also { visitActivitySender.onVisitCreated(visit, command.client, command.vehicle) }
     }
 
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {
         val existingVisit = getVisitForCompany(visitId, companyId)
         validateUpdateCommand(command, existingVisit)
-
+        
+        val client = clientQueryService.getClient(existingVisit.clientId.value.toString())
+        val vehicle = vehicleQueryService.getVehicle(existingVisit.vehicleId.value.toString())
+        
         val updatedVisit = existingVisit.copy(
             title = command.title.trim(),
             period = VisitPeriod(command.startDate, command.endDate),
@@ -84,6 +91,7 @@ class VisitDomainService(
         )
 
         return visitRepository.save(updatedVisit)
+            .also { visitActivitySender.onVisitUpdated(it, existingVisit, client.client, vehicle.vehicle) }
     }
 
     fun changeVisitStatus(command: ChangeVisitStatusCommand): Visit {
@@ -110,7 +118,7 @@ class VisitDomainService(
     fun getVisitsForCompany(companyId: Long, pageable: Pageable): Page<Visit> {
         return visitRepository.findByCompanyId(companyId, pageable)
     }
-    
+
     fun getVisitCountByStatus(companyId: Long, status: VisitStatus): Long {
         return visitRepository.countByStatus(companyId, status)
     }
@@ -152,14 +160,16 @@ class VisitDomainService(
             ServiceDiscount(command.discountType, command.discountValue)
         } else null
 
-        val finalPrice = command.finalPrice ?: discount?.applyTo(
-            command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
-        ) ?: command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
+        val basePrice = command.basePrice
+        val quantity = BigDecimal.valueOf(command.quantity)
+        val totalBase = basePrice.multiply(quantity)
+
+        val finalPrice = command.finalPrice ?: discount?.applyTo(totalBase) ?: totalBase
 
         return VisitService(
             id = UUID.randomUUID().toString(),
             name = command.name,
-            basePrice = command.basePrice,
+            basePrice = basePrice,
             quantity = command.quantity,
             discount = discount,
             finalPrice = finalPrice,
@@ -173,14 +183,16 @@ class VisitDomainService(
             ServiceDiscount(command.discountType, command.discountValue)
         } else null
 
-        val finalPrice = command.finalPrice ?: discount?.applyTo(
-            command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
-        ) ?: command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
+        val basePrice = command.basePrice
+        val quantity = BigDecimal.valueOf(command.quantity)
+        val totalBase = basePrice.multiply(quantity)
+
+        val finalPrice = command.finalPrice ?: discount?.applyTo(totalBase) ?: totalBase
 
         return VisitService(
             id = command.id,
             name = command.name,
-            basePrice = command.basePrice,
+            basePrice = basePrice,
             quantity = command.quantity,
             discount = discount,
             finalPrice = finalPrice,
@@ -193,9 +205,49 @@ class VisitDomainService(
         val companyDetails = companyDetailsFetchService.getCompanySettings(
             companyId = securityContext.getCurrentCompanyId()
         )
-        
+
         val visit = visitDetailQueryService.getVisitDetail(visitId)
-        
+
+        val items = if (!request.overridenItems.isNullOrEmpty()) {
+            request.overridenItems.map { item ->
+                val finalPrice = CalculationUtils.anyToBigDecimal(item.finalPrice ?: item.price)
+                val quantity = CalculationUtils.anyToBigDecimal(item.quantity)
+                val totalGross = finalPrice.multiply(quantity)
+                val totalNet = CalculationUtils.calculateNetAmount(totalGross)
+
+                DocumentItemDTO(
+                    id = null,
+                    name = item.name,
+                    description = null,
+                    quantity = quantity,
+                    unitPrice = finalPrice,
+                    taxRate = BigDecimal("23"),
+                    totalNet = totalNet,
+                    totalGross = totalGross
+                )
+            }
+        } else {
+            visit.selectedServices.map { service ->
+                val finalPrice = CalculationUtils.anyToBigDecimal(service.finalPrice)
+                val totalNet = CalculationUtils.calculateNetAmount(finalPrice)
+
+                DocumentItemDTO(
+                    id = null,
+                    name = service.name,
+                    description = service.note,
+                    quantity = BigDecimal.ONE,
+                    unitPrice = finalPrice,
+                    taxRate = BigDecimal("23"),
+                    totalNet = totalNet,
+                    totalGross = finalPrice
+                )
+            }
+        }
+
+        val totalGross = items.sumOf { it.totalGross }
+        val totalNet = items.sumOf { it.totalNet }
+        val totalTax = CalculationUtils.calculateVatFromGrossNet(totalGross, totalNet)
+
         unifiedDocumentService.createDocument(
             request = CreateUnifiedDocumentRequest(
                 type = request.documentType,
@@ -209,37 +261,21 @@ class VisitDomainService(
                 buyerName = visit.ownerName,
                 buyerTaxId = visit.taxId,
                 buyerAddress = visit.address,
-                items = request.overridenItems?.map { it.toDocumentItemDTO() } ?: visit.selectedServices.map { item ->
-                    DocumentItemDTO(
-                        id = null,
-                        name = item.name,
-                        description = null,
-                        quantity = 1.toBigDecimal(),
-                        unitPrice = item.finalPrice.toBigDecimal(),
-                        taxRate = 23.toBigDecimal(),
-                        totalNet = item.finalPrice.toBigDecimal() / 1.23.toBigDecimal(),
-                        totalGross = item.finalPrice.toBigDecimal()
-                    )
-                },
+                status = "NOT_PAID",
+                direction = "INCOME",
+                paymentMethod = request.paymentMethod,
+                totalNet = totalNet,
+                totalTax = totalTax,
+                totalGross = totalGross,
+                paidAmount = BigDecimal.ZERO,
+                currency = "PLN",
+                items = items,
                 notes = request.additionalNotes ?: "",
                 protocolId = null,
                 protocolNumber = null,
                 visitId = visitId,
             ),
             attachmentFile = null
-        )
-    }
-    
-    private fun com.carslab.crm.modules.visits.api.commands.CreateServiceCommand.toDocumentItemDTO(): DocumentItemDTO {
-        return DocumentItemDTO(
-            id = null,
-            name = this.name,
-            description = null,
-            quantity = 1.toBigDecimal(),
-            unitPrice = this.finalPrice?.toBigDecimal() ?: this.price.toBigDecimal(),
-            taxRate = 23.toBigDecimal(),
-            totalNet = (this.finalPrice ?: this.price).toBigDecimal() / 1.23.toBigDecimal(),
-            totalGross = (this.finalPrice ?: this.price).toBigDecimal()
         )
     }
 }

@@ -2,15 +2,14 @@ package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.*
-import com.carslab.crm.modules.visits.api.request.ApiDiscountType
-import com.carslab.crm.modules.visits.api.request.ApiReferralSource
-import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
 import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
+import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
+import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -40,7 +39,7 @@ class VisitDetailQueryService(
 
         return mapToCarReceptionDetailDto(visitDetail, mediaItems)
     }
-    
+
     fun getSimpleDetails(visitId: String): VisitDetailReadModel {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching simple visit details: {} for company: {}", visitId, companyId)
@@ -51,7 +50,7 @@ class VisitDetailQueryService(
         logger.debug("Simple visit detail found: {}", visitDetail.title)
 
         return visitDetail
-    } 
+    }
 
     private fun mapToCarReceptionDetailDto(
         visitDetail: VisitDetailReadModel,
@@ -85,16 +84,18 @@ class VisitDetailQueryService(
                     id = service.id,
                     name = service.name,
                     quantity = service.quantity,
-                    price = service.basePrice.toDouble(),
-                    discountType = service.discountType?.let { mapToApiDiscountType(it) },
-                    discountValue = service.discountValue.toDouble(),
-                    finalPrice = service.finalPrice.toDouble(),
-                    approvalStatus = mapToServiceApprovalStatus(service.approvalStatus),
+                    price = service.basePrice,
+                    discountType = service.discountType?.let { EnumMappers.mapToApiDiscountType(EnumMappers.mapToDiscountType(it)!!) },
+                    discountValue = service.discountValue,
+                    finalPrice = service.finalPrice,
+                    approvalStatus = EnumMappers.mapToApiServiceApprovalStatus(EnumMappers.mapToServiceApprovalStatus(service.approvalStatus)),
                     note = service.note
                 )
             },
-            status = mapToApiProtocolStatus(visitDetail.status),
-            referralSource = visitDetail.referralSource?.let { mapToApiReferralSource(it) },
+            status = EnumMappers.mapToApiProtocolStatus(EnumMappers.mapToVisitStatus(visitDetail.status)),
+            referralSource = visitDetail.referralSource?.let {
+                EnumMappers.mapToApiReferralSource(EnumMappers.mapToReferralSource(it)!!)
+            },
             otherSourceDetails = visitDetail.otherSourceDetails,
             vehicleImages = mediaItems.map { media ->
                 VehicleImageDto(
@@ -114,39 +115,5 @@ class VisitDetailQueryService(
             statusUpdatedAt = visitDetail.audit.statusUpdatedAt,
             appointmentId = visitDetail.appointmentId
         )
-    }
-
-    private fun mapToApiProtocolStatus(status: String): ApiProtocolStatus {
-        return try {
-            ApiProtocolStatus.valueOf(status)
-        } catch (e: IllegalArgumentException) {
-            ApiProtocolStatus.SCHEDULED
-        }
-    }
-
-    private fun mapToApiReferralSource(source: String): ApiReferralSource {
-        return try {
-            ApiReferralSource.valueOf(source)
-        } catch (e: IllegalArgumentException) {
-            ApiReferralSource.OTHER
-        }
-    }
-
-    private fun mapToApiDiscountType(type: String): ApiDiscountType {
-        return when (type) {
-            "PERCENTAGE" -> ApiDiscountType.PERCENTAGE
-            "AMOUNT" -> ApiDiscountType.AMOUNT
-            "FIXED_PRICE" -> ApiDiscountType.FIXED_PRICE
-            else -> ApiDiscountType.AMOUNT
-        }
-    }
-
-    private fun mapToServiceApprovalStatus(status: String): ServiceApprovalStatus {
-        return when (status) {
-            "PENDING" -> ServiceApprovalStatus.PENDING
-            "APPROVED" -> ServiceApprovalStatus.APPROVED
-            "REJECTED" -> ServiceApprovalStatus.REJECTED
-            else -> ServiceApprovalStatus.PENDING
-        }
     }
 }

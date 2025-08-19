@@ -1,8 +1,7 @@
 package com.carslab.crm.production.modules.visits.domain.command
 
-import com.carslab.crm.production.modules.clients.domain.model.ClientId
-import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
-import com.carslab.crm.production.modules.visits.domain.model.*
+import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
+import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
@@ -17,8 +16,8 @@ import java.time.LocalDateTime
 data class CreateVisitCommand(
     val companyId: Long,
     val title: String,
-    val clientId: ClientId,
-    val vehicleId: VehicleId,
+    val client: ClientResponse,
+    val vehicle: VehicleResponse,
     val startDate: LocalDateTime,
     val endDate: LocalDateTime,
     val status: VisitStatus = VisitStatus.SCHEDULED,

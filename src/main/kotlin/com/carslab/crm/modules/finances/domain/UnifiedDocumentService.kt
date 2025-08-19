@@ -39,6 +39,8 @@ import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationServic
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
+import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -345,154 +347,7 @@ class UnifiedDocumentService(
             }
         }
     }
-
-    @Transactional
-    fun generateInvoiceFromVisit(request: InvoiceGenerationFromVisitRequest): InvoiceGenerationResponse {
-        logger.info("Generating invoice from visit: {}", request.visitId)
-        val companyId = securityContext.getCurrentCompanyId()
-
-        // Pobierz protokół wizyty
-        val protocol = visitDetailQueryService.getSimpleDetails(request.visitId)
-
-        val status = protocol.status.let { ApiProtocolStatus.valueOf(it) }
-        if (status != ApiProtocolStatus.READY_FOR_PICKUP && status != ApiProtocolStatus.COMPLETED) {
-            throw ValidationException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
-        }
-
-        // Pobierz ustawienia firmy
-        val companySettings = companySettingsApplicationService.getCompanySettings(companyId)
-
-        // Przygotuj pozycje faktury
-        val items = if (request.overridenItems.isNotEmpty()) {
-            // Użyj nadpisanych pozycji
-            request.overridenItems.map { item ->
-                val finalPrice = (item.finalPrice ?: item.basePrice).toBigDecimal()
-                val quantity = item.quantity.toBigDecimal()
-                val totalGross = finalPrice.multiply(quantity)
-                val totalNet = totalGross.divide(BigDecimal("1.23"), 2, BigDecimal.ROUND_HALF_UP)
-
-                DocumentItem(
-                    id = UUID.randomUUID().toString(),
-                    name = item.name,
-                    description = null,
-                    quantity = quantity,
-                    unitPrice = finalPrice,
-                    taxRate = BigDecimal("23"),
-                    totalNet = totalNet,
-                    totalGross = totalGross
-                )
-            }
-        } else {
-            // Użyj pozycji z protokołu
-            val approvedServices = protocol.services.filter {
-                it.approvalStatus == "APPROVED"
-            }
-
-            if (approvedServices.isEmpty()) {
-                throw ValidationException("No approved services found for visit")
-            }
-
-            approvedServices.map { service ->
-                val servicePrice = service.finalPrice
-                val totalNet = servicePrice.divide(BigDecimal("1.23"), 2, BigDecimal.ROUND_HALF_UP)
-
-                DocumentItem(
-                    id = UUID.randomUUID().toString(),
-                    name = service.name,
-                    description = service.note,
-                    quantity = BigDecimal.ONE,
-                    unitPrice = servicePrice,
-                    taxRate = BigDecimal("23"),
-                    totalNet = totalNet,
-                    totalGross = servicePrice
-                )
-            }
-        }
-
-        // Oblicz sumy
-        val totalGross = items.sumOf { it.totalGross }
-        val totalNet = items.sumOf { it.totalNet }
-        val totalTax = totalGross - totalNet
-
-        // Określ metodę płatności
-        val paymentMethod = when (request.paymentMethod?.lowercase()) {
-            "cash" -> PaymentMethod.CASH
-            "card" -> PaymentMethod.CARD
-            "bank_transfer" -> PaymentMethod.BANK_TRANSFER
-            else -> PaymentMethod.BANK_TRANSFER
-        }
-
-        // Określ status dokumentu na podstawie metody płatności (jak w istniejącej logice)
-        val documentStatus = when (request.paymentMethod?.lowercase()) {
-            "cash", "card" -> DocumentStatus.PAID
-            else -> DocumentStatus.NOT_PAID
-        }
-
-        // Oblicz kwotę zapłaconą
-        val paidAmount = when (documentStatus) {
-            DocumentStatus.PAID -> totalGross
-            else -> BigDecimal.ZERO
-        }
-
-        // Utwórz dokument
-        val document = UnifiedFinancialDocument(
-            id = UnifiedDocumentId.generate(),
-            number = "",
-            type = DocumentType.INVOICE,
-            title = request.invoiceTitle ?: "Faktura za wizytę: ${protocol.title}",
-            description = "Faktura wygenerowana automatycznie z wizyty",
-            issuedDate = LocalDate.now(),
-            dueDate = LocalDate.now().plusDays(request.paymentDays),
-            sellerName = companySettings.basicInfo?.companyName ?: "",
-            sellerTaxId = companySettings.basicInfo?.taxId ?: "",
-            sellerAddress = companySettings.basicInfo?.address ?: "",
-            buyerName = protocol.client.name,
-            buyerTaxId = protocol.client.taxId,
-            buyerAddress = protocol.client.address ?: "",
-            status = documentStatus,
-            direction = TransactionDirection.INCOME,
-            paymentMethod = paymentMethod,
-            totalNet = totalNet,
-            totalTax = totalTax,
-            totalGross = totalGross,
-            paidAmount = paidAmount,
-            currency = "PLN",
-            notes = request.notes ?: "Faktura wygenerowana automatycznie bez podpisu",
-            protocolId = protocol.id,
-            protocolNumber = protocol.id,
-            visitId = request.visitId,
-            items = items,
-            attachment = null,
-            audit = Audit(
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            )
-        )
-
-        // Zapisz dokument (wykorzysta istniejącą logikę z createDocument)
-        val savedDocument = createDocumentInternal(document, null)
-
-        // Wygeneruj załącznik PDF i zapisz w właściwym katalogu
-        val documentWithAttachment = generateAndStorePermanentInvoicePdf(savedDocument, companyId)
-
-        // Zwróć odpowiedź
-        return InvoiceGenerationResponse(
-            success = true,
-            invoiceId = documentWithAttachment.id.value,
-            invoiceNumber = documentWithAttachment.number,
-            totalAmount = documentWithAttachment.totalGross,
-            issuedDate = documentWithAttachment.issuedDate,
-            dueDate = documentWithAttachment.dueDate ?: documentWithAttachment.issuedDate.plusDays(14),
-            paymentMethod = documentWithAttachment.paymentMethod.name,
-            customerName = documentWithAttachment.buyerName,
-            documentStatus = documentWithAttachment.status.name,
-            downloadUrl = if (documentWithAttachment.attachment != null) "/api/financial-documents/${documentWithAttachment.id.value}/attachment" else null,
-            message = "Invoice generated successfully",
-            createdAt = documentWithAttachment.audit.createdAt,
-            visitId = request.visitId
-        )
-    }
-
+    
     private fun generateAndStorePermanentInvoicePdf(document: UnifiedFinancialDocument, companyId: Long): UnifiedFinancialDocument {
         return try {
             // Generuj tymczasowy PDF
@@ -653,12 +508,15 @@ class UnifiedDocumentService(
             val calculatedTotalNet = document.items.sumOf { it.totalNet }
             val calculatedTotalGross = document.items.sumOf { it.totalGross }
 
-            if (calculatedTotalNet.compareTo(document.totalNet) != 0) {
-                throw ValidationException("Total net amount does not match sum of items")
+            // Użyj bezpiecznego porównywania z tolerancją
+            if (!CalculationUtils.safeCompare(calculatedTotalNet, document.totalNet)) {
+                logger.warn("Total net mismatch: calculated={}, expected={}", calculatedTotalNet, document.totalNet)
+                throw ValidationException("Total net amount does not match sum of items: calculated=$calculatedTotalNet, expected=${document.totalNet}")
             }
 
-            if (calculatedTotalGross.compareTo(document.totalGross) != 0) {
-                throw ValidationException("Total gross amount does not match sum of items")
+            if (!CalculationUtils.safeCompare(calculatedTotalGross, document.totalGross)) {
+                logger.warn("Total gross mismatch: calculated={}, expected={}", calculatedTotalGross, document.totalGross)
+                throw ValidationException("Total gross amount does not match sum of items: calculated=$calculatedTotalGross, expected=${document.totalGross}")
             }
         }
     }
@@ -762,7 +620,7 @@ class UnifiedDocumentService(
         return UnifiedFinancialDocument(
             id = UnifiedDocumentId.generate(),
             number = "",
-            type = DocumentType.valueOf(request.type),
+            type = DocumentType.valueOf(request.type.uppercase()),
             title = request.title,
             description = request.description,
             issuedDate = request.issuedDate,
@@ -774,9 +632,9 @@ class UnifiedDocumentService(
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
             status = if (request.dueDate != null && LocalDate.now().isAfter(request.dueDate))
-                DocumentStatus.OVERDUE else DocumentStatus.valueOf(request.status),
-            direction = TransactionDirection.valueOf(request.direction),
-            paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
+                DocumentStatus.OVERDUE else DocumentStatus.valueOf(request.status.uppercase()),
+            direction = TransactionDirection.valueOf(request.direction.uppercase()),
+            paymentMethod = PaymentMethod.valueOf(request.paymentMethod.uppercase()),
             totalNet = request.totalNet,
             totalTax = request.totalTax,
             totalGross = request.totalGross,
@@ -810,7 +668,7 @@ class UnifiedDocumentService(
         return UnifiedFinancialDocument(
             id = existingDocument.id,
             number = existingDocument.number,
-            type = DocumentType.valueOf(request.type),
+            type = DocumentType.valueOf(request.type.uppercase()),
             title = request.title,
             description = request.description,
             issuedDate = request.issuedDate,
@@ -821,9 +679,9 @@ class UnifiedDocumentService(
             buyerName = request.buyerName,
             buyerTaxId = request.buyerTaxId,
             buyerAddress = request.buyerAddress,
-            status = DocumentStatus.valueOf(request.status),
-            direction = TransactionDirection.valueOf(request.direction),
-            paymentMethod = PaymentMethod.valueOf(request.paymentMethod),
+            status = DocumentStatus.valueOf(request.status.uppercase()),
+            direction = TransactionDirection.valueOf(request.direction.uppercase()),
+            paymentMethod = PaymentMethod.valueOf(request.paymentMethod.uppercase()),
             totalNet = request.totalNet,
             totalTax = request.totalTax,
             totalGross = request.totalGross,
@@ -866,15 +724,27 @@ class UnifiedDocumentService(
                     val calculatedTotalNet = request.items.sumOf { it.totalNet }
                     val calculatedTotalGross = request.items.sumOf { it.totalGross }
 
-                    if (calculatedTotalNet.compareTo(request.totalNet) != 0) {
-                        throw ValidationException("Total net amount does not match sum of items")
+                    // Użyj bezpiecznego porównywania z tolerancją
+                    if (!CalculationUtils.safeCompare(calculatedTotalNet, request.totalNet)) {
+                        logger.warn(
+                            "Total net mismatch: calculated={}, expected={}",
+                            calculatedTotalNet,
+                            request.totalNet
+                        )
+                        throw ValidationException("Total net amount does not match sum of items: calculated=$calculatedTotalNet, expected=${request.totalNet}")
                     }
 
-                    if (calculatedTotalGross.compareTo(request.totalGross) != 0) {
-                        throw ValidationException("Total gross amount does not match sum of items")
+                    if (!CalculationUtils.safeCompare(calculatedTotalGross, request.totalGross)) {
+                        logger.warn(
+                            "Total gross mismatch: calculated={}, expected={}",
+                            calculatedTotalGross,
+                            request.totalGross
+                        )
+                        throw ValidationException("Total gross amount does not match sum of items: calculated=$calculatedTotalGross, expected=${request.totalGross}")
                     }
                 }
             }
+
             is UpdateUnifiedDocumentRequest -> {
                 request.dueDate?.let { dueDate ->
                     if (dueDate.isBefore(request.issuedDate)) {
@@ -886,12 +756,23 @@ class UnifiedDocumentService(
                     val calculatedTotalNet = request.items.sumOf { it.totalNet }
                     val calculatedTotalGross = request.items.sumOf { it.totalGross }
 
-                    if (calculatedTotalNet.compareTo(request.totalNet) != 0) {
-                        throw ValidationException("Total net amount does not match sum of items")
+                    // Użyj bezpiecznego porównywania z tolerancją
+                    if (!CalculationUtils.safeCompare(calculatedTotalNet, request.totalNet)) {
+                        logger.warn(
+                            "Total net mismatch: calculated={}, expected={}",
+                            calculatedTotalNet,
+                            request.totalNet
+                        )
+                        throw ValidationException("Total net amount does not match sum of items: calculated=$calculatedTotalNet, expected=${request.totalNet}")
                     }
 
-                    if (calculatedTotalGross.compareTo(request.totalGross) != 0) {
-                        throw ValidationException("Total gross amount does not match sum of items")
+                    if (!CalculationUtils.safeCompare(calculatedTotalGross, request.totalGross)) {
+                        logger.warn(
+                            "Total gross mismatch: calculated={}, expected={}",
+                            calculatedTotalGross,
+                            request.totalGross
+                        )
+                        throw ValidationException("Total gross amount does not match sum of items: calculated=$calculatedTotalGross, expected=${request.totalGross}")
                     }
                 }
             }

@@ -1,6 +1,7 @@
 // src/main/kotlin/com/carslab/crm/modules/visits/application/commands/models/valueobjects/VehicleCommands.kt
 package com.carslab.crm.modules.visits.application.commands.models.valueobjects
 
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class CreateVehicleCommand(
@@ -79,11 +80,11 @@ data class UpdateServiceCommand(
 
 data class OverridenInvoiceServiceItem(
     val name: String,
-    val basePrice: Double,
+    val basePrice: BigDecimal,
     val quantity: Long,
     val discountType: String? = null,
-    val discountValue: Double? = null,
-    val finalPrice: Double? = null,
+    val discountValue: BigDecimal? = null,
+    val finalPrice: BigDecimal? = null,
 )
 
 data class CreateDocumentsCommand(
