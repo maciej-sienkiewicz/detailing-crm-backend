@@ -4,6 +4,7 @@ import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.modules.visits.api.commands.ClientProtocolHistoryDto
+import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.application.service.command.VisitCommandService
@@ -47,6 +48,16 @@ class VisitController(
     ): ResponseEntity<CarReceptionDetailDto> {
         val visit = visitDetailQueryService.getVisitDetail(visitId)
         return ResponseEntity.ok(visit)
+    }
+
+    @PostMapping("/{id}/release")
+    @Operation(summary = "Release vehicle to client", description = "Completes protocol by releasing vehicle to client with payment details")
+    fun releaseVehicle(
+        @Parameter(description = "Visit ID", required = true) @PathVariable id: String,
+        @Valid @RequestBody request: ReleaseVehicleRequest
+    ): ResponseEntity<CarReceptionDetailDto> {
+        visitCommandService.release(id, request)
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
     }
 
     @PutMapping("/{visitId}")

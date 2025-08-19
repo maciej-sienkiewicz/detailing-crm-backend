@@ -1,9 +1,17 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
+import com.carslab.crm.api.model.DocumentItemDTO
+import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
+import com.carslab.crm.domain.model.view.finance.DocumentItem
+import com.carslab.crm.finances.domain.UnifiedDocumentService
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
@@ -17,13 +25,20 @@ import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Service
 class VisitDomainService(
     private val visitRepository: VisitRepository,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
-    private val visitActivitySender: VisitActivitySender
+    private val companyDetailsFetchService: CompanyDetailsFetchService,
+    private val visitDetailQueryService: VisitDetailQueryService,
+    private val visitActivitySender: VisitActivitySender,
+    private val unifiedDocumentService: UnifiedDocumentService,
+    private val securityContext: SecurityContext
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
@@ -138,11 +153,11 @@ class VisitDomainService(
         } else null
 
         val finalPrice = command.finalPrice ?: discount?.applyTo(
-            command.basePrice.multiply(java.math.BigDecimal.valueOf(command.quantity))
-        ) ?: command.basePrice.multiply(java.math.BigDecimal.valueOf(command.quantity))
+            command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
+        ) ?: command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
 
         return VisitService(
-            id = java.util.UUID.randomUUID().toString(),
+            id = UUID.randomUUID().toString(),
             name = command.name,
             basePrice = command.basePrice,
             quantity = command.quantity,
@@ -159,8 +174,8 @@ class VisitDomainService(
         } else null
 
         val finalPrice = command.finalPrice ?: discount?.applyTo(
-            command.basePrice.multiply(java.math.BigDecimal.valueOf(command.quantity))
-        ) ?: command.basePrice.multiply(java.math.BigDecimal.valueOf(command.quantity))
+            command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
+        ) ?: command.basePrice.multiply(BigDecimal.valueOf(command.quantity))
 
         return VisitService(
             id = command.id,
@@ -171,6 +186,60 @@ class VisitDomainService(
             finalPrice = finalPrice,
             approvalStatus = command.approvalStatus,
             note = command.note
+        )
+    }
+
+    fun releaseVehicle(visitId: String, request: ReleaseVehicleRequest) {
+        val companyDetails = companyDetailsFetchService.getCompanySettings(
+            companyId = securityContext.getCurrentCompanyId()
+        )
+        
+        val visit = visitDetailQueryService.getVisitDetail(visitId)
+        
+        unifiedDocumentService.createDocument(
+            request = CreateUnifiedDocumentRequest(
+                type = request.documentType,
+                title = "Opłata za wizytę - ${visit.title}",
+                description = request.additionalNotes,
+                issuedDate = LocalDate.now(),
+                dueDate = LocalDate.now().plusDays(request.paymentDays),
+                sellerName = companyDetails.basicInfo?.companyName ?: "",
+                sellerTaxId = companyDetails.basicInfo?.taxId ?: "",
+                sellerAddress = companyDetails.basicInfo?.address ?: "",
+                buyerName = visit.ownerName,
+                buyerTaxId = visit.taxId,
+                buyerAddress = visit.address,
+                items = request.overridenItems?.map { it.toDocumentItemDTO() } ?: visit.selectedServices.map { item ->
+                    DocumentItemDTO(
+                        id = null,
+                        name = item.name,
+                        description = null,
+                        quantity = 1.toBigDecimal(),
+                        unitPrice = item.finalPrice.toBigDecimal(),
+                        taxRate = 23.toBigDecimal(),
+                        totalNet = item.finalPrice.toBigDecimal() / 1.23.toBigDecimal(),
+                        totalGross = item.finalPrice.toBigDecimal()
+                    )
+                },
+                notes = request.additionalNotes ?: "",
+                protocolId = null,
+                protocolNumber = null,
+                visitId = visitId,
+            ),
+            attachmentFile = null
+        )
+    }
+    
+    private fun com.carslab.crm.modules.visits.api.commands.CreateServiceCommand.toDocumentItemDTO(): DocumentItemDTO {
+        return DocumentItemDTO(
+            id = null,
+            name = this.name,
+            description = null,
+            quantity = 1.toBigDecimal(),
+            unitPrice = this.finalPrice?.toBigDecimal() ?: this.price.toBigDecimal(),
+            taxRate = 23.toBigDecimal(),
+            totalNet = (this.finalPrice ?: this.price).toBigDecimal() / 1.23.toBigDecimal(),
+            totalGross = (this.finalPrice ?: this.price).toBigDecimal()
         )
     }
 }

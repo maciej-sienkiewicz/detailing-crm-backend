@@ -1,6 +1,9 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
+import com.carslab.crm.api.model.request.CreateUnifiedDocumentRequest
+import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
@@ -17,6 +20,7 @@ import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -113,6 +117,16 @@ class VisitCommandService(
             logger.warn("Visit not found for deletion: {}", visitId)
         }
     }
+    
+    fun release(visitId: String, request: ReleaseVehicleRequest): Boolean {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Releasing vehicle for visit: {} for company: {}", visitId, companyId)
+        
+        visitDomainService.releaseVehicle(visitId, request)
+        logger.info("Vehicle released successfully for visit: {}", visitId)
+
+        return true
+    }
 
     private fun validateCreateRequest(request: CreateVisitRequest) {
         if (request.title.isBlank()) {
@@ -124,19 +138,6 @@ class VisitCommandService(
         if (request.title.isBlank()) {
             throw BusinessException("Visit title cannot be blank")
         }
-    }
-
-    private fun mapToCreateServiceCommand(request: CreateServiceRequest): CreateServiceCommand {
-        return CreateServiceCommand(
-            name = request.name,
-            basePrice = request.basePrice,
-            quantity = request.quantity,
-            discountType = request.discountType,
-            discountValue = request.discountValue,
-            finalPrice = request.finalPrice,
-            approvalStatus = request.approvalStatus,
-            note = request.note
-        )
     }
 
     private fun mapToCreateServiceCommand(request: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {

@@ -2,7 +2,7 @@ package com.carslab.crm.modules.visits.api.commands
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class ReleaseVehicleCommand(
+data class ReleaseVehicleRequest(
 
     @JsonProperty("payment_method")
     val paymentMethod: String,
