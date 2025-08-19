@@ -14,6 +14,7 @@ data class VisitSearchCriteria(
     val make: String? = null,
     val model: String? = null,
     val serviceName: String? = null,
+    val serviceIds: List<String>? = null,
     val title: String? = null,
     val minPrice: BigDecimal? = null,
     val maxPrice: BigDecimal? = null

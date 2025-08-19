@@ -1,17 +1,19 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
+import com.carslab.crm.production.modules.visits.api.FilteredVisitProjection
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitListProjection
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity
 import com.carslab.crm.production.modules.visits.infrastructure.persistence.projections.VisitServiceProjection
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface VisitListJpaRepository : JpaRepository<VisitEntity, Long> {
+interface VisitListJpaRepository : JpaRepository<VisitEntity, Long>, JpaSpecificationExecutor<VisitEntity> {
 
     @Query("""
         SELECT 
@@ -45,6 +47,32 @@ interface VisitListJpaRepository : JpaRepository<VisitEntity, Long> {
         @Param("companyId") companyId: Long,
         pageable: Pageable
     ): Page<VisitListProjection>
+
+    @Query("""
+        SELECT 
+            v.id as visitId,
+            v.title as title,
+            CONCAT(c.firstName, ' ', c.lastName) as clientName,
+            c.company as companyName,
+            vh.make as vehicleMake,
+            vh.model as vehicleModel,
+            vh.licensePlate as licensePlate,
+            vh.year as productionYear,
+            vh.color as color,
+            v.startDate as startDate,
+            v.endDate as endDate,
+            v.status as status,
+            v.calendarColorId as calendarColorId,
+            v.updatedAt as lastUpdate
+        FROM VisitEntity v
+        JOIN ClientEntity c ON c.id = v.clientId AND c.companyId = v.companyId
+        JOIN VehicleEntity vh ON vh.id = v.vehicleId AND vh.companyId = v.companyId
+        WHERE v.id IN :visitIds
+        ORDER BY v.updatedAt DESC
+    """)
+    fun findFilteredVisitProjections(
+        @Param("visitIds") visitIds: List<Long>
+    ): List<FilteredVisitProjection>
 
     @Query("""
         SELECT 
