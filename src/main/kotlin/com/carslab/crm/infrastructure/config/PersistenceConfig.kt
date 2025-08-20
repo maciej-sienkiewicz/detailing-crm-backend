@@ -1,7 +1,6 @@
 package com.carslab.crm.infrastructure.config
 
 import com.carslab.crm.domain.port.*
-import com.carslab.crm.infrastructure.persistence.adapter.*
 import com.carslab.crm.infrastructure.persistence.repository.JpaCalendarColorRepositoryAdapter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -32,9 +31,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.production.modules.visits.infrastructure.repository"
 ])
 class PersistenceConfig {
-    
+
     @Bean
     @Primary
     fun calendarColorRepository(adapter: JpaCalendarColorRepositoryAdapter): CalendarColorRepository = adapter
-    
+
 }
