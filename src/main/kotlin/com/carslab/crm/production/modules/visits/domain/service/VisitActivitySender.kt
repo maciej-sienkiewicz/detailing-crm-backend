@@ -9,6 +9,7 @@ import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
+import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import org.springframework.stereotype.Service
 
 @Service
@@ -16,7 +17,7 @@ class VisitActivitySender(
     private val activityCommandService: ActivityCommandService,
     private val securityContext: SecurityContext
 ) {
-    
+
     fun onVisitCreated(visit: Visit, client: ClientResponse, vehicle: VehicleResponse) {
         activityCommandService.createActivity(CreateActivityRequest(
             category = ActivityCategory.PROTOCOL,
@@ -44,8 +45,8 @@ class VisitActivitySender(
             metadata = mapOf())
         )
     }
-    
-    fun onCommentAdded(comment: VisitComment, visitId: Long, title: String) {
+
+    fun onCommentAdded(comment: VisitComment, visitId: VisitId, title: String) {
         activityCommandService.createActivity(CreateActivityRequest(
             category = ActivityCategory.PROTOCOL,
             message = "Dodano komentarz do wizyty.",
@@ -53,7 +54,7 @@ class VisitActivitySender(
             userName = securityContext.getCurrentUserName() ?: throw IllegalStateException("User not found in security context"),
             description = "Treść komentarza: ${comment.content}",
             primaryEntity = RelatedEntityDto(
-                id = visitId.toString(),
+                id = visitId.value.toString(),
                 type = "VISIT",
                 name = title
             ),
@@ -76,12 +77,12 @@ class VisitActivitySender(
             ),
             relatedEntities = listOf(
                 RelatedEntityDto(
-                    id = visit.clientId.value.toString(),
+                    id = newVisit.clientId.value.toString(),
                     type = "CLIENT",
                     name = client.fullName
                 ),
                 RelatedEntityDto(
-                    id = visit.vehicleId.value.toString(),
+                    id = newVisit.vehicleId.value.toString(),
                     type = "VEHICLE",
                     name = "${vehicle.make} ${vehicle.model} (${vehicle.year})"
                 )
@@ -89,7 +90,7 @@ class VisitActivitySender(
             metadata = mapOf())
         )
     }
-    
+
     private fun detectChanges(
         previous: Visit,
         updated: Visit
