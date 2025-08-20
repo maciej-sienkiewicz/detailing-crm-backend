@@ -1,14 +1,9 @@
 pipeline {
     agent {
         docker {
-            image 'gradle:jdk21-ubi'
+            image 'gradle:8.14.3-jdk24-corretto'
             label 'docker'
             reuseNode true
-            args '''
-        --user 1000:1000
-        -v gradle-cache:/home/gradle/.gradle
-        -v gradle-tmp:/home/gradle/tmp
-      '''
         }
     }
 
