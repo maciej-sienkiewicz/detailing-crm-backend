@@ -9,7 +9,6 @@ pipeline {
 
     environment {
         GRADLE_USER_HOME = '/home/gradle/.gradle'
-        JAVA_TOOL_OPTIONS = '-Djava.io.tmpdir=/home/gradle/tmp'
     }
     stages {
         stage('Build') {
