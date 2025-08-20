@@ -20,20 +20,17 @@ pipeline {
                 sh './gradlew -g "$GRADLE_USER_HOME" build'
             }
         }
-    }
-    stage('Docker Build & Push') {
-        agent {
-            label 'docker'
+
+        stage('Docker Build & Push') {
+            agent {
+                label 'docker'
+            }
+            steps {
+                sh 'docker build -f ./deploy/Dockerfile -t registry:5000/myapp:latest .'
+                sh 'docker push registry:5000/myapp:latest'
+            }
         }
-        steps {
-            sh 'docker build -f ./deploy/Dockerfile -t registry:5000/myapp:latest .'
-            sh 'docker push registry:5000/myapp:latest'
-        }
     }
-
-
-
-
 
 
     post {
