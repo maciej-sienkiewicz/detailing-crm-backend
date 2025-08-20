@@ -28,7 +28,7 @@ pipeline {
             steps {
                 sh 'curl -s http://registry:5000/v2/_catalog'
                 sh 'docker build -f ./deploy/Dockerfile -t registry:5000/myapp:latest .'
-                sh 'docker push registry:5000/myapp:latest'
+                sh 'docker push 172.17.0.1:5000/myapp:latest'
                 sh 'echo "=== Catalog ==="'
                 sh 'curl -s http://registry:5000/v2/_catalog'
             }
