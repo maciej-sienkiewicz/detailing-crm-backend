@@ -21,8 +21,6 @@ pipeline {
             }
         }
     }
-
-
     stage('Docker Build & Push') {
         agent {
             label 'docker'
@@ -32,6 +30,10 @@ pipeline {
             sh 'docker push registry:5000/myapp:latest'
         }
     }
+
+
+
+
 
 
     post {
