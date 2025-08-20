@@ -26,11 +26,11 @@ pipeline {
                 label 'docker'
             }
             steps {
-                sh 'curl -s http://${REGISTRY}/v2/_catalog'
+                sh 'curl -s http://registry/v2/_catalog'
                 sh 'docker build -f ./deploy/Dockerfile -t registry:5000/myapp:latest .'
                 sh 'docker push registry:5000/myapp:latest'
                 sh 'echo "=== Catalog ==="'
-                sh 'curl -s http://${REGISTRY}/v2/_catalog'
+                sh 'curl -s http://registry/v2/_catalog'
             }
         }
     }
