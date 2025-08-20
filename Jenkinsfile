@@ -23,7 +23,6 @@ pipeline {
 
         stage('Docker Build & Push') {
             agent {
-                image 'docker:27-cli'
                 label 'docker'
             }
             steps {
