@@ -7,7 +7,9 @@ import com.carslab.crm.production.modules.stats.domain.model.ServiceId
 import com.carslab.crm.production.modules.stats.domain.model.UncategorizedService
 import com.carslab.crm.production.modules.stats.domain.repository.CategoriesRepository
 import com.carslab.crm.production.modules.stats.domain.repository.StatisticsRepository
+import org.springframework.stereotype.Service
 
+@Service
 class StatsService(
     private val statisticsRepository: StatisticsRepository,
     private val categoriesRepository: CategoriesRepository,
