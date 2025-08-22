@@ -12,6 +12,8 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.application.dto.AddCommentRequest
+import com.carslab.crm.production.modules.visits.application.service.command.VisitCommentCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
@@ -42,7 +44,8 @@ class VisitDomainService(
     private val visitDetailQueryService: VisitDetailQueryService,
     private val visitActivitySender: VisitActivitySender,
     private val unifiedDocumentService: UnifiedDocumentService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val visitCommentCommandService: VisitCommentCommandService,
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         validateCreateCommand(command)
@@ -62,7 +65,8 @@ class VisitDomainService(
             appointmentId = command.appointmentId,
             calendarColorId = command.calendarColorId,
             createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            updatedAt = LocalDateTime.now(),
+            deliveryPerson = command.deliveryPerson,
         )
 
         return visitRepository.save(visit)
@@ -73,10 +77,10 @@ class VisitDomainService(
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {
         val existingVisit = getVisitForCompany(visitId, companyId)
         validateUpdateCommand(command, existingVisit)
-        
+
         val client = clientQueryService.getClient(existingVisit.clientId.value.toString())
         val vehicle = vehicleQueryService.getVehicle(existingVisit.vehicleId.value.toString())
-        
+
         val updatedVisit = existingVisit.copy(
             title = command.title.trim(),
             period = VisitPeriod(command.startDate, command.endDate),
@@ -88,10 +92,22 @@ class VisitDomainService(
             calendarColorId = command.calendarColorId,
             updatedAt = LocalDateTime.now(),
             status = command.status,
+            deliveryPerson = command.deliveryPerson,
         )
 
         return visitRepository.save(updatedVisit)
             .also { visitActivitySender.onVisitUpdated(it, existingVisit, client.client, vehicle.vehicle) }
+            .also {
+                if (command.deliveryPerson != null && existingVisit.deliveryPerson == null) {
+                    visitCommentCommandService.addComment(
+                        AddCommentRequest(
+                            visitId = it.id!!.value.toString(),
+                            type = "SYSTEM",
+                            content = "Pojazd dostarczył/a: ${command.deliveryPerson.name}, tel: ${command.deliveryPerson.phone}"
+                        )
+                    )
+                }
+            }
     }
 
     fun changeVisitStatus(command: ChangeVisitStatusCommand): Visit {
@@ -244,10 +260,14 @@ class VisitDomainService(
             }
         }
 
+        val existingVisit = getVisitForCompany(VisitId(visitId.toLong()), securityContext.getCurrentCompanyId())
+        visitRepository.save(existingVisit.copy(status = VisitStatus.COMPLETED))
+        
         val totalGross = items.sumOf { it.totalGross }
         val totalNet = items.sumOf { it.totalNet }
         val totalTax = CalculationUtils.calculateVatFromGrossNet(totalGross, totalNet)
-
+        
+        
         unifiedDocumentService.createDocument(
             request = CreateUnifiedDocumentRequest(
                 type = request.documentType,

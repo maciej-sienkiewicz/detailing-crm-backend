@@ -4,6 +4,7 @@ import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.modules.visits.api.request.ApiDiscountType
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
@@ -171,7 +172,10 @@ data class UpdateCarReceptionCommand(
     val appointmentId: String? = null,
 
     @JsonProperty("vehicle_images")
-    val vehicleImages: List<UpdateVehicleImageCommand>? = null
+    val vehicleImages: List<UpdateVehicleImageCommand>? = null,
+    
+    @JsonProperty("delivery_person")
+    val deliveryPerson: DeliveryPerson? = null,
 )
 
 data class CreateServiceCommand(

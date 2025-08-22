@@ -57,7 +57,8 @@ class VisitController(
         @Valid @RequestBody request: ReleaseVehicleRequest
     ): ResponseEntity<CarReceptionDetailDto> {
         visitCommandService.release(id, request)
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+        val read = visitDetailQueryService.getVisitDetail(id)
+        return ResponseEntity.ok(read)
     }
 
     @PutMapping("/{visitId}")

@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.visits.infrastructure.entity
 import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
@@ -74,6 +75,15 @@ class VisitEntity(
 
     @Column(nullable = false)
     val updatedAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(nullable = true)
+    val deliveryPersonId: String?,
+    
+    @Column(nullable = true)
+    val deliveryPersonName: String?,
+    
+    @Column(nullable = true)
+    val deliveryPersonPhoneNumber: String?,
 
     @OneToMany(mappedBy = "visitId", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     val services: MutableList<VisitServiceEntity> = mutableListOf()
@@ -94,7 +104,12 @@ class VisitEntity(
             appointmentId = appointmentId,
             calendarColorId = calendarColorId,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            deliveryPerson = deliveryPersonId?.let { DeliveryPerson(
+                id = deliveryPersonId,
+                name = deliveryPersonName!!,
+                phone = deliveryPersonPhoneNumber!!
+            ) }
         )
     }
 
@@ -116,7 +131,10 @@ class VisitEntity(
                 keysProvided = visit.documents.keysProvided,
                 documentsProvided = visit.documents.documentsProvided,
                 createdAt = visit.createdAt,
-                updatedAt = visit.updatedAt
+                updatedAt = visit.updatedAt,
+                deliveryPersonId = visit.deliveryPerson?.id,
+                deliveryPersonName = visit.deliveryPerson?.name,
+                deliveryPersonPhoneNumber = visit.deliveryPerson?.phone,
             )
         }
     }

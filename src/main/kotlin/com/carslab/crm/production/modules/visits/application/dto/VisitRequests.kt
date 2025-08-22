@@ -93,6 +93,15 @@ data class CreateVisitRequest(
 
     @JsonProperty("appointment_id")
     val appointmentId: String? = null,
+    
+    @JsonProperty("delivery_person")
+    val deliveryPerson: DeliveryPerson? = null
+)
+
+data class DeliveryPerson(
+    val id: String? = null,
+    val name: String,
+    val phone: String
 )
 
 data class UpdateVisitRequest(

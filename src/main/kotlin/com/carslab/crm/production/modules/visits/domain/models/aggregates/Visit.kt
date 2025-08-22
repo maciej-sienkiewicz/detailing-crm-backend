@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.*
 import com.carslab.crm.production.modules.visits.domain.models.entities.*
 import com.carslab.crm.production.modules.visits.domain.models.enums.*
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -23,7 +24,9 @@ data class Visit(
     val appointmentId: String?,
     val calendarColorId: String,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val deliveryPerson: DeliveryPerson?
+    
 ) {
     init {
         require(title.isNotBlank()) { "Visit title cannot be blank" }

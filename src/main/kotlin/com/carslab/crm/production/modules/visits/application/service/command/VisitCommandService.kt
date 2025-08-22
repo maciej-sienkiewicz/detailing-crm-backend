@@ -5,8 +5,7 @@ import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
-import com.carslab.crm.production.modules.clients.domain.model.ClientId
-import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
@@ -50,7 +49,14 @@ class VisitCommandService(
             appointmentId = request.appointmentId,
             calendarColorId = request.calendarColorId,
             keysProvided = request.keysProvided ?: false,
-            documentsProvided = request.documentsProvided ?: false
+            documentsProvided = request.documentsProvided ?: false,
+            deliveryPerson = request.deliveryPerson?.let {
+                DeliveryPerson(
+                    id = it.id,
+                    name = it.name,
+                    phone = it.phone
+                )
+            }
         )
 
         val visit = visitDomainService.createVisit(command)
@@ -76,7 +82,8 @@ class VisitCommandService(
             calendarColorId = request.calendarColorId,
             keysProvided = request.keysProvided ?: false,
             documentsProvided = request.documentsProvided ?: false,
-            status = EnumMappers.mapToVisitStatus(request.status.toString())
+            status = EnumMappers.mapToVisitStatus(request.status.toString()),
+            deliveryPerson = request.deliveryPerson
         )
 
         val visit = visitDomainService.updateVisit(VisitId.of(visitId), command, companyId)
