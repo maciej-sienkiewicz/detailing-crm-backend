@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.stats.application.dto
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
@@ -10,5 +11,6 @@ data class CreateCategoryRequest(
 )
 
 data class AddToCategoryRequest(
-    val serviceIds: List<Long>
+    @JsonProperty("service_ids")
+    val serviceIds: List<String>
 )

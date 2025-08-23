@@ -25,7 +25,7 @@ class StatisticsRepositoryImpl(
 
         val services = projections.map { projection ->
             UncategorizedService(
-                id = ServiceId(projection.getServiceId().toLong()),
+                id = ServiceId(projection.getServiceId()),
                 name = projection.getServiceName(),
                 servicesCount = projection.getServicesCount(),
                 totalRevenue = projection.getTotalRevenue()

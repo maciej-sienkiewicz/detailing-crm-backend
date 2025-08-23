@@ -8,5 +8,5 @@ interface CategoriesRepository {
     fun createCategory(categoryName: String, companyId: Long): Category
     fun addToCategory(servicesIds: List<ServiceId>, categoryId: CategoryId)
     fun updateCategoryName(categoryId: CategoryId, newName: String): Category
-    fun getCategories(companyId: CategoryId): List<Category>
+    fun getCategories(companyId: Long): List<Category>
 }

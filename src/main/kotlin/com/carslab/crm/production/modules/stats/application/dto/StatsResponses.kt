@@ -21,7 +21,7 @@ data class CategoryResponse(
 }
 
 data class UncategorizedServiceResponse(
-    val id: Long,
+    val id: String,
     val name: String,
     val servicesCount: Long,
     val totalRevenue: BigDecimal

@@ -25,4 +25,7 @@ class StatsService(
     
     fun getUncategorizedServices(): List<UncategorizedService> =
         statisticsRepository.getUncategorizedServices()
+    
+    fun getCategoriesWithServiceCounts(): List<Category> =
+        categoriesRepository.getCategories(securityContext.getCurrentCompanyId())
 }

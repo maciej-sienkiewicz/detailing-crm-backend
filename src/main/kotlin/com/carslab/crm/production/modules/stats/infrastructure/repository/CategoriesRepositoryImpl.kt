@@ -84,10 +84,10 @@ class CategoriesRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    override fun getCategories(companyId: CategoryId): List<Category> {
-        logger.debug("Fetching categories for company: {}", companyId.id)
+    override fun getCategories(companyId: Long): List<Category> {
+        logger.debug("Fetching categories for company: {}", companyId)
 
-        val projections = categoryJpaRepository.findCategoriesWithCount(companyId.id)
+        val projections = categoryJpaRepository.findCategoriesWithCount(companyId)
 
         val categories = projections.map { projection ->
             Category(

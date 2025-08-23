@@ -22,6 +22,16 @@ class StatsController(
     private val statsQueryService: StatsQueryService
 ) : BaseController() {
 
+    @GetMapping("/categories")
+    @Operation(summary = "Create a new category", description = "Creates a new service category")
+    fun createCategory(): ResponseEntity<List<CategoryResponse>> {
+
+        val response = statsQueryService.getCategoriesWithServiceCounts()
+        logger.info("Successfully created category with ID: {}", response)
+
+        return created(response)
+    }
+
     @PostMapping("/categories")
     @Operation(summary = "Create a new category", description = "Creates a new service category")
     fun createCategory(@Valid @RequestBody request: CreateCategoryRequest): ResponseEntity<CategoryResponse> {

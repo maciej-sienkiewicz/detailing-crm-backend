@@ -28,7 +28,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
     "com.carslab.crm.production.modules.clients.infrastructure.repository",
     "com.carslab.crm.production.modules.vehicles.infrastructure.repository",
     "com.carslab.crm.production.modules.associations.infrastructure.repository",
-    "com.carslab.crm.production.modules.visits.infrastructure.repository"
+    "com.carslab.crm.production.modules.visits.infrastructure.repository",
+    "com.carslab.crm.production.modules.stats.infrastructure.repository"
 ])
 class PersistenceConfig {
 

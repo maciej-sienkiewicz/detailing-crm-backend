@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.stats.infrastructure.repository
 
 import com.carslab.crm.production.modules.stats.infrastructure.entity.ServiceCategoryMappingEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
@@ -15,6 +16,7 @@ interface ServiceCategoryMappingJpaRepository : JpaRepository<ServiceCategoryMap
     @Query("SELECT scm FROM ServiceCategoryMappingEntity scm WHERE scm.serviceId IN :serviceIds")
     fun findByServiceIdIn(@Param("serviceIds") serviceIds: List<String>): List<ServiceCategoryMappingEntity>
 
+    @Modifying
     @Query("DELETE FROM ServiceCategoryMappingEntity scm WHERE scm.serviceId IN :serviceIds")
-    fun deleteByServiceIdIn(@Param("serviceIds") serviceIds: List<String>)
+    fun deleteByServiceIdIn(@Param("serviceIds") serviceIds: List<String>): Int
 }

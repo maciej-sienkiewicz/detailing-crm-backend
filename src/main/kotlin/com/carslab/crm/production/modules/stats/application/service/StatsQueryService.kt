@@ -21,4 +21,13 @@ class StatsQueryService(
         logger.debug("Found {} uncategorized services", services.size)
         return services.map { UncategorizedServiceResponse.from(it) }
     }
+    
+    fun getCategoriesWithServiceCounts(): List<com.carslab.crm.production.modules.stats.application.dto.CategoryResponse> {
+        logger.debug("Fetching categories with service counts")
+
+        val categories = statsService.getCategoriesWithServiceCounts()
+
+        logger.debug("Found {} categories", categories.size)
+        return categories.map { com.carslab.crm.production.modules.stats.application.dto.CategoryResponse.from(it) }
+    }
 }
