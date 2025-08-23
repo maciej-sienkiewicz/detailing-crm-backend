@@ -8,3 +8,21 @@ interface UncategorizedServiceProjection {
     fun getServicesCount(): Long
     fun getTotalRevenue(): BigDecimal
 }
+
+interface CategoryStatsSummaryProjection {
+    fun getCategoryId(): Long
+    fun getCategoryName(): String
+    fun getTotalOrders(): Long
+    fun getTotalRevenue(): BigDecimal
+    fun getServicesCount(): Long
+}
+
+interface TimeSeriesProjection {
+    fun getPeriod(): String
+    fun getOrders(): Long
+    fun getRevenue(): BigDecimal
+}
+
+interface ServiceStatsProjection {
+    fun getServiceName(): String
+}

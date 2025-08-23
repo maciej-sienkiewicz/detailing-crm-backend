@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import kotlin.jvm.optionals.getOrElse
 
 @Repository
 @Transactional
@@ -79,7 +80,7 @@ class CategoriesRepositoryImpl(
         return Category(
             id = CategoryId(saved.id!!),
             name = saved.name,
-            servicesCount = 0 
+            servicesCount = 0
         )
     }
 
@@ -99,5 +100,14 @@ class CategoriesRepositoryImpl(
 
         logger.debug("Found {} categories", categories.size)
         return categories
+    }
+
+    @Transactional(readOnly = true)
+    override fun getCategoryName(categoryId: CategoryId, companyId: Long): String {
+        logger.debug("Fetching category name for category: {} and company: {}", categoryId.id, companyId)
+
+        val entity = categoryJpaRepository.findById(categoryId.id).getOrElse { throw IllegalArgumentException("Category not found: ${categoryId.id}") }
+
+        return entity.name
     }
 }
