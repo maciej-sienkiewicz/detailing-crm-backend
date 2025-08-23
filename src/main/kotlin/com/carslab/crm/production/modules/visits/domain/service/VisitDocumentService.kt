@@ -78,11 +78,14 @@ class VisitDocumentService(
         val allowedTypes = setOf(
             "application/pdf",
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "image/jpeg",
+            "image/jpg",
+            "image/png"
         )
 
         if (file.contentType !in allowedTypes) {
-            throw BusinessException("Only PDF, DOC, and DOCX files are allowed")
+            throw BusinessException("Only PDF, DOC, JPG, JPEG, PNG and DOCX files are allowed")
         }
 
         if (file.size > 10 * 1024 * 1024) {

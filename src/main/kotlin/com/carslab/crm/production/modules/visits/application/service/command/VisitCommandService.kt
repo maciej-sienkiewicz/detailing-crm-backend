@@ -145,6 +145,7 @@ class VisitCommandService(
 
     private fun mapToCreateServiceCommand(request: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {
         return CreateServiceCommand(
+            id = request.id,
             name = request.name,
             basePrice = CalculationUtils.anyToBigDecimal(request.price),
             quantity = request.quantity,

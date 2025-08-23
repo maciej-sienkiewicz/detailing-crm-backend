@@ -179,6 +179,8 @@ data class UpdateCarReceptionCommand(
 )
 
 data class CreateServiceCommand(
+    val id: String,
+    
     @JsonProperty("name")
     val name: String,
 

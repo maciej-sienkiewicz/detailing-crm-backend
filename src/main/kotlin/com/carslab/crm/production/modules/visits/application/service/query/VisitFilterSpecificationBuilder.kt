@@ -125,7 +125,7 @@ class VisitFilterSpecificationBuilder {
             }
 
             criteria.serviceIds?.takeIf { it.isNotEmpty() }?.let { serviceIds ->
-                servicePredicates.add(serviceRoot.get<String>("id").`in`(serviceIds))
+                servicePredicates.add(serviceRoot.get<String>("serviceId").`in`(serviceIds))
             }
 
             if (criteria.minPrice != null || criteria.maxPrice != null) {
