@@ -71,7 +71,7 @@ class VisitFilterSpecificationBuilder {
         }
         
         criteria.clientId?.let { clientId ->
-            predicates.add(cb.equal(root.get<String>("id"), clientId))
+            predicates.add(cb.equal(root.get<Long>("clientId"), clientId.toLong()))
         }
     }
 
