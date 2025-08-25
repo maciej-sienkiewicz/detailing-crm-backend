@@ -402,7 +402,10 @@ data class CarReceptionDetailDto(
     val statusUpdatedAt: String,
 
     @JsonProperty("appointment_id")
-    val appointmentId: String? = null
+    val appointmentId: String? = null,
+    
+    @JsonProperty("delivery_person")
+    val deliveryPerson: DeliveryPerson? = null
 )
 
 data class CarReceptionBasicDto(

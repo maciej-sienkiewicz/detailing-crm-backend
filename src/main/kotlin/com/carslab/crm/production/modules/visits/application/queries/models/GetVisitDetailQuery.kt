@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.application.queries.models
 
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import java.math.BigDecimal
 
 data class VisitDetailReadModel(
@@ -17,7 +18,8 @@ data class VisitDetailReadModel(
     val documents: DocumentsReadModel,
     val mediaItems: List<MediaItemReadModel>,
     val audit: AuditReadModel,
-    val appointmentId: String?
+    val appointmentId: String?,
+    val deliveryPerson: DeliveryPerson?
 )
 
 data class VehicleDetailReadModel(

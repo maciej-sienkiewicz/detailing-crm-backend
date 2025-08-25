@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
 import com.carslab.crm.production.modules.visits.application.queries.models.*
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailProjection
@@ -77,7 +78,14 @@ class JpaVisitDetailQueryRepositoryImpl(
                 updatedAt = projection.updatedAt.format(dateTimeFormatter),
                 statusUpdatedAt = projection.updatedAt.format(dateTimeFormatter)
             ),
-            appointmentId = projection.appointmentId
+            appointmentId = projection.appointmentId,
+            deliveryPerson = projection.deliveryPersonId?.let {
+                DeliveryPerson(
+                    id = projection.deliveryPersonId,
+                    name = projection.deliveryPersonName!!,
+                    phone = projection.deliveryPersonPhoneNumber!!
+                )
+            }
         )
     }
 }
