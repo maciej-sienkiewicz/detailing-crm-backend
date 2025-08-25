@@ -4,6 +4,7 @@ pipeline {
 
     environment {
         GRADLE_USER_HOME = '/home/gradle/.gradle'
+        IMAGE_NAME = '172.17.0.1:5000/detailing-crm-backend'
     }
     stages {
         stage('Build') {
@@ -26,8 +27,24 @@ pipeline {
                 label 'docker'
             }
             steps {
-                sh 'docker build -f ./deploy/Dockerfile -t 172.17.0.1:5000/detailing-crm-backend:latest .'
-                sh 'docker push 172.17.0.1:5000/detailing-crm-backend:latest'
+                script {
+                    def branch = env.BRANCH_NAME ?: 'unknown'
+                    def tag
+
+                    if (branch == 'main') {
+                        tag = 'latest'
+                    } else if (branch == 'develop') {
+                        tag = 'develop'
+                    } else {
+                        error("Build przerwany: branch '${branch}' nie jest obsługiwany (tylko 'main' lub 'develop').")
+                    }
+
+
+                    sh """
+                      docker build -f ./deploy/Dockerfile -t ${IMAGE_NAME}:${tag} .
+                      docker push ${IMAGE_NAME}:${tag}
+                    """
+                }
             }
         }
     }
