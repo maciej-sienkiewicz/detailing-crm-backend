@@ -13,9 +13,11 @@ services:
       DB_USER: ${ENV_DB_USER}
       DB_PASSWORD: ${ENV_DB_PASSWORD}
     networks:
-      - ${ENV_NETWORK}
+      - network
 
 
 networks:
-  ${ENV_NETWORK}:
+  network:
+    name: ${ENV_NETWORK}
     external: true
+
