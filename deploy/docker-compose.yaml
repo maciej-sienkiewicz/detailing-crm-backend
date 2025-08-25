@@ -2,7 +2,7 @@ services:
   detailing-crm-backend-develop:
     image: ${ENV_DETAILING_CRM_BACKEND_IMAGE}
     ports:
-      - '9091:80'
+      - '8080:8080'
 
     restart: always
     environment:
@@ -12,9 +12,9 @@ services:
       DB_USER: ${ENV_DB_USER}
       DB_PASSWORD: ${ENV_DB_PASSWORD}
     networks:
-      - develop-app-network
+      - ${ENV_NETWORK}
 
 
 networks:
-  develop-app-network:
+  ${ENV_NETWORK}:
     external: true
