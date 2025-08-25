@@ -1,6 +1,9 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.domain.service.details
 
-import com.carslab.crm.production.modules.visits.application.dto.*
+import com.carslab.crm.production.modules.visits.application.dto.GalleryDownloadResponse
+import com.carslab.crm.production.modules.visits.application.dto.GalleryFilterRequest
+import com.carslab.crm.production.modules.visits.application.dto.GalleryImageResponse
+import com.carslab.crm.production.modules.visits.application.dto.PaginatedResponse
 import com.carslab.crm.production.modules.visits.domain.model.GalleryStats
 import com.carslab.crm.production.modules.visits.domain.model.TagStat
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitGalleryRepository

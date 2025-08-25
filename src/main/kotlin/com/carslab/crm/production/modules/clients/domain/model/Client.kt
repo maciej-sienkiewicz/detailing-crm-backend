@@ -21,8 +21,7 @@ data class Client(
     val taxId: String?,
     val notes: String?,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
-    val version: Long
+    val updatedAt: LocalDateTime
 ) {
     val fullName: String get() = "$firstName $lastName"
 
@@ -49,8 +48,7 @@ data class Client(
             company = company,
             taxId = taxId,
             notes = notes,
-            updatedAt = LocalDateTime.now(),
-            version = version + 1
+            updatedAt = LocalDateTime.now()
         )
     }
 }

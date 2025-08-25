@@ -2,7 +2,7 @@ package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.visits.application.dto.*
-import com.carslab.crm.production.modules.visits.domain.service.VisitGalleryService
+import com.carslab.crm.production.modules.visits.domain.service.details.VisitGalleryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

@@ -1,15 +1,16 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.domain.service.details
 
-import com.carslab.crm.production.modules.visits.domain.command.UploadDocumentCommand
-import com.carslab.crm.production.shared.exception.BusinessException
-import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.infrastructure.storage.UniversalStoreRequest
+import com.carslab.crm.production.modules.visits.domain.command.UploadDocumentCommand
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument
 import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDocumentRepository
+import com.carslab.crm.production.shared.exception.BusinessException
+import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
 
 @Service
@@ -70,7 +71,7 @@ class VisitDocumentService(
         return documentRepository.deleteById(documentId)
     }
 
-    private fun validateFile(file: org.springframework.web.multipart.MultipartFile) {
+    private fun validateFile(file: MultipartFile) {
         if (file.isEmpty) {
             throw BusinessException("File cannot be empty")
         }

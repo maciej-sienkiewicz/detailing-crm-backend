@@ -22,7 +22,6 @@ fun ClientWithStatisticsRaw.toDomain(): ClientWithStatistics {
         notes = getClientNotes(),
         createdAt = getClientCreatedAt(),
         updatedAt = getClientUpdatedAt(),
-        version = getClientVersion()
     )
 
     val statistics = if (getStatsClientId() != null) {

@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
-import java.util.*
 
 @Repository
 interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAssociationEntity, Long> {
@@ -19,7 +18,13 @@ interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAss
     fun findByVehicleIdAndEndDateIsNull(@Param("vehicleId") vehicleId: Long): List<ClientVehicleAssociationEntity>
 
     @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a.clientId = :clientId AND a.vehicleId = :vehicleId")
-    fun findByClientIdAndVehicleId(@Param("clientId") clientId: Long, @Param("vehicleId") vehicleId: Long): Optional<ClientVehicleAssociationEntity>
+    fun findByClientIdAndVehicleId(@Param("clientId") clientId: Long, @Param("vehicleId") vehicleId: Long): ClientVehicleAssociationEntity?
+
+    @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a.clientId IN :clientIds AND a.endDate IS NULL")
+    fun findByClientIdInAndEndDateIsNull(@Param("clientIds") clientIds: List<Long>): List<ClientVehicleAssociationEntity>
+
+    @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a.vehicleId IN :vehicleIds AND a.endDate IS NULL")
+    fun findByVehicleIdInAndEndDateIsNull(@Param("vehicleIds") vehicleIds: List<Long>): List<ClientVehicleAssociationEntity>
 
     @Modifying
     @Query("""
@@ -30,6 +35,17 @@ interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAss
     fun endAssociation(
         @Param("clientId") clientId: Long,
         @Param("vehicleId") vehicleId: Long,
+        @Param("endDate") endDate: LocalDateTime
+    ): Int
+
+    @Modifying
+    @Query("""
+        UPDATE ClientVehicleAssociationEntity a 
+        SET a.endDate = :endDate 
+        WHERE (a.clientId, a.vehicleId) IN :associations AND a.endDate IS NULL
+    """)
+    fun batchEndAssociations(
+        @Param("associations") associations: List<Pair<Long, Long>>,
         @Param("endDate") endDate: LocalDateTime
     ): Int
 

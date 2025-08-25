@@ -69,7 +69,7 @@ class VehicleQueryService(
         )
 
         return vehicleDomainService.getVehicles(companyId, searchCriteria, pageable)
-            .let { vehicleDomainService.enhanceVehicles(it) }
+            .let { vehicleDomainService.enhanceVehicles(it, companyId) }
             .map { VehicleTableResponse.from(it) }
     }
 }

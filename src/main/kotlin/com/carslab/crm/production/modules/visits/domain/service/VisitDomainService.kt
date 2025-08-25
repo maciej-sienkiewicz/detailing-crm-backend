@@ -23,6 +23,7 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Vis
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitPeriod
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.service.activity.VisitActivitySender
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Service
 class VisitDomainService(

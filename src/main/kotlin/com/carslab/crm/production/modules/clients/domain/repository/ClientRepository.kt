@@ -26,6 +26,7 @@ interface ClientRepository {
         pageable: Pageable
     ): Page<ClientWithStatistics>
     fun findByIds(ids: List<ClientId>, companyId: Long): List<Client>
+    fun findByPhoneOrEmail(phone: String?, email: String?, companyId: Long): Client?
 }
 
 data class ClientSearchCriteria(

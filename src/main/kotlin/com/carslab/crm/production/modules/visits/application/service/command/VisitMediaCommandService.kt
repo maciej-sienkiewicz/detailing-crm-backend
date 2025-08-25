@@ -7,7 +7,7 @@ import com.carslab.crm.production.modules.visits.application.dto.VisitMediaRespo
 import com.carslab.crm.production.modules.visits.domain.command.UploadMediaCommand
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.MediaMetadata
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
+import com.carslab.crm.production.modules.visits.domain.service.details.VisitMediaService
 import com.carslab.crm.production.modules.visits.infrastructure.request.MediaRequestExtractor
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

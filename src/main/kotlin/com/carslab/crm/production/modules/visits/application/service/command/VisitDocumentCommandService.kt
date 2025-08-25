@@ -7,7 +7,7 @@ import com.carslab.crm.production.modules.visits.application.dto.VisitDocumentRe
 import com.carslab.crm.production.modules.visits.domain.command.UploadDocumentCommand
 import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitDocumentService
+import com.carslab.crm.production.modules.visits.domain.service.details.VisitDocumentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

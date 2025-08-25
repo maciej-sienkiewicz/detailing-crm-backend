@@ -41,18 +41,7 @@ class VisitClientResolver(
 
     private fun findExistingClientByContact(email: String?, phone: String?): ClientResponse? {
         return try {
-            clientQueryService.searchClients(
-                name = null,
-                email = email,
-                phone = phone,
-                company = null,
-                hasVehicles = null,
-                minTotalRevenue = null,
-                maxTotalRevenue = null,
-                minVisits = null,
-                maxVisits = null,
-                pageable = PageRequest.of(0, 1)
-            ).content.firstOrNull()
+            clientQueryService.findByPhoneNumberOrEmail(phone, email)
         } catch (e: Exception) {
             logger.warn("Error searching for client by contact", e)
             null

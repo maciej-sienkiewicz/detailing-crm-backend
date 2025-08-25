@@ -4,6 +4,11 @@ import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
+import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
+import com.carslab.crm.production.modules.clients.application.dto.ClientWithStatisticsResponse
+import com.carslab.crm.production.modules.clients.application.dto.UpdateClientRequest
+import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
+import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
 import com.carslab.crm.production.modules.vehicles.domain.model.Vehicle
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
@@ -19,6 +24,7 @@ import com.carslab.crm.production.modules.visits.infrastructure.utils.Calculatio
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
@@ -26,11 +32,14 @@ import java.time.LocalDateTime
 @Transactional
 class VisitCommandService(
     private val visitDomainService: VisitDomainService,
+    private val clientCommandService: ClientCommandService,
     private val visitCreationOrchestrator: VisitCreationOrchestrator,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val clientQueryService: ClientQueryService
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommandService::class.java)
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun createVisit(request: CreateVisitRequest): VisitResponse {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating visit '{}' for company: {}", request.title, companyId)
@@ -57,6 +66,15 @@ class VisitCommandService(
             ownerId = request.ownerId
         )
         val entities = visitCreationOrchestrator.prepareVisitEntities(clientDetails, vehicleDetails)
+        updateClientInfo(entities.client.id, UpdateClientRequest(
+            firstName = request.ownerName.split(" ").first(),
+            lastName = request.ownerName.split(" ").last(),
+            email = request.email ?: "",
+            phone = request.phone ?: "",
+            address = request.address,
+            company = request.companyName,
+            taxId = request.taxId
+        ))
 
         val command = CreateVisitCommand(
             companyId = companyId,
@@ -87,6 +105,35 @@ class VisitCommandService(
 
         return VisitResponse.from(visit)
     }
+    
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun updateClientInfo(clientId: String, request: UpdateClientRequest): ClientResponse {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Updating client info for client: {} in company: {}", clientId, companyId)
+        
+        val existingClient = clientQueryService.getClient(clientId).client
+
+        if (!hasAtLeastOneChange(request, existingClient)) {
+            logger.info("No changes detected for client: {}. Skipping update.", clientId)
+            return existingClient
+        }
+
+        val updatedClient = clientCommandService.updateClient(
+            clientId = clientId,
+            request = request
+        )
+
+        logger.info("Client info updated successfully for client: {}", clientId)
+        return updatedClient
+    }
+    
+    private fun hasAtLeastOneChange(request: UpdateClientRequest, client: ClientResponse): Boolean {
+        return (request.email != client.email) ||
+               (request.phone != client.phone) ||
+               (request.company != client.company) ||
+               (request.taxId != client.taxId) ||
+               (request.address != client.address)
+    }
 
     fun updateVisit(visitId: String, request: UpdateCarReceptionCommand): VisitResponse {
         val companyId = securityContext.getCurrentCompanyId()
@@ -95,12 +142,12 @@ class VisitCommandService(
         validateUpdateRequest(request)
         
         val actualVisit = visitDomainService.getVisitForCompany(VisitId.of(visitId), companyId)
-        val association = if(actualVisit.status == VisitStatus.SCHEDULED && request.status == ApiProtocolStatus.IN_PROGRESS) {
+        val association = if(actualVisit.status == VisitStatus.SCHEDULED && request.status == ApiProtocolStatus.IN_PROGRESS && request.deliveryPerson != null) {
            visitCreationOrchestrator.prepareVisitEntities(
                ClientDetails(
-                   ownerId = request.ownerId,
-                   name = request.ownerName,
-                   phone = request.phone,
+                   ownerId = request.deliveryPerson!!.id?.toLong(),
+                   name = request.deliveryPerson.name,
+                   phone = request.deliveryPerson.phone,
                ),
                VehicleDetails(
                    make = request.make,

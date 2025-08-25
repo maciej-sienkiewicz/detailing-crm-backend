@@ -20,8 +20,7 @@ data class Vehicle(
     val vin: String?,
     val mileage: Long?,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
-    val version: Long
+    val updatedAt: LocalDateTime
 ) {
     val displayName: String get() = "$make $model ($licensePlate)"
 
@@ -46,8 +45,7 @@ data class Vehicle(
             color = color,
             vin = vin,
             mileage = mileage,
-            updatedAt = LocalDateTime.now(),
-            version = version + 1
+            updatedAt = LocalDateTime.now()
         )
     }
 }

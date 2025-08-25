@@ -1,6 +1,5 @@
 package com.carslab.crm.production.modules.associations.infrastructure.repository
 
-import com.carslab.crm.production.modules.associations.domain.model.AssociationId
 import com.carslab.crm.production.modules.associations.domain.model.ClientVehicleAssociation
 import com.carslab.crm.production.modules.associations.domain.repository.ClientVehicleAssociationRepository
 import com.carslab.crm.production.modules.associations.infrastructure.mapper.toDomain
@@ -32,15 +31,6 @@ class ClientVehicleAssociationRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    override fun findById(id: AssociationId): ClientVehicleAssociation? {
-        logger.debug("Finding association by ID: {}", id.value)
-
-        return jpaRepository.findById(id.value)
-            .map { it.toDomain() }
-            .orElse(null)
-    }
-
-    @Transactional(readOnly = true)
     override fun findActiveByClientId(clientId: ClientId): List<ClientVehicleAssociation> {
         logger.debug("Finding active associations for client: {}", clientId.value)
 
@@ -61,26 +51,29 @@ class ClientVehicleAssociationRepositoryImpl(
         logger.debug("Finding association for client: {} and vehicle: {}", clientId.value, vehicleId.value)
 
         return jpaRepository.findByClientIdAndVehicleId(clientId.value, vehicleId.value)
-            .map { it.toDomain() }
-            .orElse(null)
+            ?.toDomain()
     }
 
-    override fun deleteById(id: AssociationId): Boolean {
-        logger.debug("Deleting association with ID: {}", id.value)
+    @Transactional(readOnly = true)
+    override fun findActiveByClientIds(clientIds: List<ClientId>): List<ClientVehicleAssociation> {
+        if (clientIds.isEmpty()) return emptyList()
 
-        return try {
-            if (jpaRepository.existsById(id.value)) {
-                jpaRepository.deleteById(id.value)
-                logger.debug("Association deleted: {}", id.value)
-                true
-            } else {
-                logger.debug("Association not found for deletion: {}", id.value)
-                false
-            }
-        } catch (e: Exception) {
-            logger.error("Error deleting association: {}", id.value, e)
-            false
-        }
+        logger.debug("Batch finding active associations for {} clients", clientIds.size)
+
+        val clientIdValues = clientIds.map { it.value }
+        return jpaRepository.findByClientIdInAndEndDateIsNull(clientIdValues)
+            .map { it.toDomain() }
+    }
+
+    @Transactional(readOnly = true)
+    override fun findActiveByVehicleIds(vehicleIds: List<VehicleId>): List<ClientVehicleAssociation> {
+        if (vehicleIds.isEmpty()) return emptyList()
+
+        logger.debug("Batch finding active associations for {} vehicles", vehicleIds.size)
+
+        val vehicleIdValues = vehicleIds.map { it.value }
+        return jpaRepository.findByVehicleIdInAndEndDateIsNull(vehicleIdValues)
+            .map { it.toDomain() }
     }
 
     override fun endAssociation(clientId: ClientId, vehicleId: VehicleId): Boolean {
@@ -88,6 +81,18 @@ class ClientVehicleAssociationRepositoryImpl(
 
         val updated = jpaRepository.endAssociation(clientId.value, vehicleId.value, LocalDateTime.now())
         return updated > 0
+    }
+
+    override fun batchEndAssociations(associations: List<Pair<ClientId, VehicleId>>): Int {
+        if (associations.isEmpty()) return 0
+
+        logger.debug("Batch ending {} associations", associations.size)
+
+        val associationPairs = associations.map { (clientId, vehicleId) ->
+            Pair(clientId.value, vehicleId.value)
+        }
+
+        return jpaRepository.batchEndAssociations(associationPairs, LocalDateTime.now())
     }
 
     override fun deleteByClientId(clientId: ClientId): Int {

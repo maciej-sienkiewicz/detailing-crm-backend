@@ -9,6 +9,9 @@ import com.carslab.crm.production.modules.clients.domain.repository.ClientReposi
 import com.carslab.crm.production.modules.clients.domain.repository.ClientSearchCriteria
 import com.carslab.crm.production.modules.clients.domain.repository.ClientStatisticsRepository
 import com.carslab.crm.production.modules.clients.domain.service.ClientDomainService
+import com.carslab.crm.production.modules.clients.infrastructure.repository.ClientRepositoryImpl
+import com.carslab.crm.production.shared.dto.CursorPageRequest
+import com.carslab.crm.production.shared.dto.CursorPageResponse
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -113,6 +116,30 @@ class ClientQueryService(
         return clientsWithStats.map { ClientExpandedResponse.from(it) }
     }
 
+    fun searchClientsWithCursor(
+        pageRequest: CursorPageRequest
+    ): CursorPageResponse<ClientResponse> {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.debug("Searching clients with cursor pagination for company: {}", companyId)
+
+        val clientRepoImpl = clientRepository as ClientRepositoryImpl
+        val clients = clientRepoImpl.findWithCursorPagination(
+            companyId = companyId,
+            lastId = pageRequest.getLastId(),
+            limit = pageRequest.limit + 1
+        )
+
+        val responses = clients.take(pageRequest.limit).map { ClientResponse.from(it) }
+
+        logger.debug("Found {} clients with cursor pagination", responses.size)
+
+        return CursorPageResponse.of(
+            data = responses,
+            limit = pageRequest.limit,
+            extractId = { it.id.toLong() }
+        )
+    }
+
     fun findByIds(clientIds: List<ClientId>): List<ClientResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Finding clients by IDs for company: {} with IDs: {}", companyId, clientIds)
@@ -122,5 +149,16 @@ class ClientQueryService(
         logger.debug("Found {} clients by IDs for company: {}", clients.size, companyId)
 
         return clients.map { ClientResponse.from(it) }
+    }
+
+    fun findByPhoneNumberOrEmail(phone: String?, email: String?): ClientResponse? {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.debug("Finding client by phone or email for company: {} with phone: {} and email: {}", companyId, phone, email)
+
+        val client = clientRepository.findByPhoneOrEmail(phone, email, companyId) ?: return null
+
+        logger.debug("Client found by phone or email: {}", client.fullName)
+
+        return ClientResponse.from(client)
     }
 }

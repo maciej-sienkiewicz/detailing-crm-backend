@@ -58,10 +58,6 @@ class ClientEntity(
     @Column(name = "updated_by", length = 100)
     var updatedBy: String? = null,
 
-    @Version
-    @Column(name = "version", nullable = false)
-    var version: Long = 0,
-
     @Column(name = "active", nullable = false)
     var active: Boolean = true
 )

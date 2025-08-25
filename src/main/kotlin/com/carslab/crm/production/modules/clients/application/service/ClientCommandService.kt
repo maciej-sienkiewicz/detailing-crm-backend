@@ -8,7 +8,6 @@ import com.carslab.crm.production.modules.clients.domain.command.CreateClientCom
 import com.carslab.crm.production.modules.clients.domain.command.UpdateClientCommand
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.clients.domain.service.ClientDomainService
-import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class ClientCommandService(
     private val clientDomainService: ClientDomainService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val clientInputValidator: ClientInputValidator
 ) {
     private val logger = LoggerFactory.getLogger(ClientCommandService::class.java)
 
@@ -25,7 +25,7 @@ class ClientCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating client '{}' for company: {}", request.firstName, companyId)
 
-        validateCreateRequest(request)
+        clientInputValidator.validateCreateRequest(request)
 
         val command = CreateClientCommand(
             companyId = companyId,
@@ -43,14 +43,13 @@ class ClientCommandService(
         logger.info("Client created successfully: {}", client.id.value)
 
         return ClientResponse.from(client)
-            .also {  }
     }
 
     fun updateClient(clientId: String, request: UpdateClientRequest): ClientResponse {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Updating client: {} for company: {}", clientId, companyId)
 
-        validateUpdateRequest(request)
+        clientInputValidator.validateUpdateRequest(request)
 
         val command = UpdateClientCommand(
             firstName = request.firstName,
@@ -79,39 +78,5 @@ class ClientCommandService(
         } else {
             logger.warn("Client not found for deletion: {}", clientId)
         }
-    }
-
-    private fun validateCreateRequest(request: CreateClientRequest) {
-        if (request.firstName.isBlank()) {
-            throw BusinessException("First name cannot be blank")
-        }
-        if (request.lastName.isBlank()) {
-            throw BusinessException("Last name cannot be blank")
-        }
-        if (request.email.isNullOrBlank() && request.phone.isNullOrBlank()) {
-            throw BusinessException("Either email or phone must be provided")
-        }
-        if (!request.email.isNullOrBlank() && !isValidEmail(request.email)) {
-            throw BusinessException("Invalid email format")
-        }
-    }
-
-    private fun validateUpdateRequest(request: UpdateClientRequest) {
-        if (request.firstName.isBlank()) {
-            throw BusinessException("First name cannot be blank")
-        }
-        if (request.lastName.isBlank()) {
-            throw BusinessException("Last name cannot be blank")
-        }
-        if (request.email.isBlank() && request.phone.isBlank()) {
-            throw BusinessException("Either email or phone must be provided")
-        }
-        if (request.email.isNotBlank() && !isValidEmail(request.email)) {
-            throw BusinessException("Invalid email format")
-        }
-    }
-
-    private fun isValidEmail(email: String): Boolean {
-        return email.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"))
     }
 }

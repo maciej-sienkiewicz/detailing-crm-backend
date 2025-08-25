@@ -10,7 +10,6 @@ import com.carslab.crm.production.modules.vehicles.domain.command.CreateVehicleC
 import com.carslab.crm.production.modules.vehicles.domain.command.UpdateVehicleCommand
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.vehicles.domain.service.VehicleDomainService
-import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +19,8 @@ import org.springframework.transaction.annotation.Transactional
 class VehicleCommandService(
     private val vehicleDomainService: VehicleDomainService,
     private val associationDomainService: AssociationDomainService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val vehicleInputValidator: VehicleInputValidator
 ) {
     private val logger = LoggerFactory.getLogger(VehicleCommandService::class.java)
 
@@ -28,7 +28,7 @@ class VehicleCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating vehicle '{}' for company: {}", request.make, companyId)
 
-        validateCreateRequest(request)
+        vehicleInputValidator.validateCreateRequest(request)
 
         val command = CreateVehicleCommand(
             companyId = companyId,
@@ -61,7 +61,7 @@ class VehicleCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Updating vehicle: {} for company: {}", vehicleId, companyId)
 
-        validateUpdateRequest(request)
+        vehicleInputValidator.validateUpdateRequest(request)
 
         val command = UpdateVehicleCommand(
             make = request.make,
@@ -89,33 +89,6 @@ class VehicleCommandService(
             logger.info("Vehicle deleted successfully: {}", vehicleId)
         } else {
             logger.warn("Vehicle not found for deletion: {}", vehicleId)
-        }
-    }
-
-    private fun validateCreateRequest(request: CreateVehicleRequest) {
-        if (request.make.isBlank()) {
-            throw BusinessException("Make cannot be blank")
-        }
-        if (request.model.isBlank()) {
-            throw BusinessException("Model cannot be blank")
-        }
-        if (request.licensePlate.isBlank()) {
-            throw BusinessException("License plate cannot be blank")
-        }
-        if (request.ownerIds.isEmpty()) {
-            throw BusinessException("Vehicle must have at least one owner")
-        }
-    }
-
-    private fun validateUpdateRequest(request: UpdateVehicleRequest) {
-        if (request.make.isBlank()) {
-            throw BusinessException("Make cannot be blank")
-        }
-        if (request.model.isBlank()) {
-            throw BusinessException("Model cannot be blank")
-        }
-        if (request.licensePlate.isBlank()) {
-            throw BusinessException("License plate cannot be blank")
         }
     }
 }

@@ -6,7 +6,7 @@ import com.carslab.crm.production.modules.visits.application.dto.VisitCommentRes
 import com.carslab.crm.production.modules.visits.domain.command.AddCommentCommand
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitCommentService
+import com.carslab.crm.production.modules.visits.domain.service.details.VisitCommentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
