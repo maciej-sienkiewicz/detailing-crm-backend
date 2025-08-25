@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service
 @Service
 class ClientDomainService(
     private val clientRepository: ClientRepository,
-    private val clientFactory: ClientFactory,
     private val clientUniquenessValidator: ClientUniquenessValidator,
     private val clientStatisticsInitializer: ClientStatisticsInitializer,
     private val clientAccessValidator: ClientAccessValidator,
@@ -26,7 +25,7 @@ class ClientDomainService(
 
         clientUniquenessValidator.validateForCreation(command.email, command.phone, command.companyId)
 
-        val client = clientFactory.create(command)
+        val client = Client.from(command)
         val savedClient = clientRepository.save(client)
 
         clientStatisticsInitializer.initialize(savedClient.id)

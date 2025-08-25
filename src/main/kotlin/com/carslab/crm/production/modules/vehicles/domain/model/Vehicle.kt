@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.vehicles.domain.model
 
+import com.carslab.crm.production.modules.vehicles.domain.command.CreateVehicleCommand
 import java.time.LocalDateTime
 
 @JvmInline
@@ -22,6 +23,25 @@ data class Vehicle(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 ) {
+    companion object {
+        fun from(command: CreateVehicleCommand): Vehicle {
+            return Vehicle(
+                id = VehicleId(0),
+                companyId = command.companyId,
+                make = command.make.trim(),
+                model = command.model.trim(),
+                year = command.year,
+                licensePlate = command.licensePlate.trim(),
+                color = command.color?.trim(),
+                vin = command.vin?.trim(),
+                mileage = command.mileage,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        }
+    }
+    
+    
     val displayName: String get() = "$make $model ($licensePlate)"
 
     fun canBeAccessedBy(companyId: Long): Boolean {

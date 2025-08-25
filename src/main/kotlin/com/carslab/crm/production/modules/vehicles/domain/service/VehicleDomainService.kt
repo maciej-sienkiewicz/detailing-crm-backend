@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service
 class VehicleDomainService(
     private val vehicleRepository: VehicleRepository,
     private val vehicleStatisticsRepository: VehicleStatisticsRepository,
-    private val vehicleFactory: VehicleFactory,
     private val vehicleUniquenessValidator: VehicleUniquenessValidator,
     private val vehicleStatisticsInitializer: VehicleStatisticsInitializer,
     private val vehicleAccessValidator: VehicleAccessValidator,
@@ -28,7 +27,7 @@ class VehicleDomainService(
 
         vehicleUniquenessValidator.validateForCreation(command.licensePlate, command.vin, command.companyId)
 
-        val vehicle = vehicleFactory.create(command)
+        val vehicle = Vehicle.from(command)
         val savedVehicle = vehicleRepository.save(vehicle)
 
         vehicleStatisticsInitializer.initialize(savedVehicle.id)

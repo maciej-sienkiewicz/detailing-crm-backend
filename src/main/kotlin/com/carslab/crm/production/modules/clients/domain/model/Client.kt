@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.clients.domain.model
 
+import com.carslab.crm.production.modules.clients.domain.command.CreateClientCommand
 import java.time.LocalDateTime
 
 @JvmInline
@@ -23,6 +24,26 @@ data class Client(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 ) {
+    
+    companion object {
+        fun from(command: CreateClientCommand): Client {
+            return Client(
+                id = ClientId(0),
+                companyId = command.companyId,
+                firstName = command.firstName.trim(),
+                lastName = command.lastName.trim(),
+                email = command.email.trim(),
+                phone = command.phone.trim(),
+                address = command.address?.trim(),
+                company = command.company?.trim(),
+                taxId = command.taxId?.trim(),
+                notes = command.notes?.trim(),
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        }
+    }
+    
     val fullName: String get() = "$firstName $lastName"
 
     fun canBeAccessedBy(companyId: Long): Boolean {
