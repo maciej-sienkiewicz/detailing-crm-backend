@@ -36,7 +36,6 @@ class AssociationDomainService(
         }
 
         val association = ClientVehicleAssociation(
-            id = null,
             clientId = clientId,
             vehicleId = vehicleId,
             companyId = companyId,
@@ -48,7 +47,7 @@ class AssociationDomainService(
         )
 
         val saved = associationRepository.save(association)
-        logger.info("Association created: {} for company: {}", saved.id?.value, companyId)
+        logger.info("Association created for company: {}", companyId)
         return saved
             .also { clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString()) }
     }

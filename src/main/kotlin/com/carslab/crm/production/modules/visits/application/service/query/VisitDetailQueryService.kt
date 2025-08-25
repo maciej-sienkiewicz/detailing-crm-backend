@@ -4,6 +4,7 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.*
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
@@ -113,7 +114,14 @@ class VisitDetailQueryService(
             createdAt = visitDetail.audit.createdAt,
             updatedAt = visitDetail.audit.updatedAt,
             statusUpdatedAt = visitDetail.audit.statusUpdatedAt,
-            appointmentId = visitDetail.appointmentId
+            appointmentId = visitDetail.appointmentId,
+            deliveryPerson = visitDetail.deliveryPerson?.id?.let { 
+                DeliveryPerson(
+                    id = visitDetail.deliveryPerson.id,
+                    name = visitDetail.deliveryPerson.name,
+                    phone = visitDetail.deliveryPerson.phone,
+                )
+            }
         )
     }
 }

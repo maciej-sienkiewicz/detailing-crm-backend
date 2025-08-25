@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.dto.CreateClientRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
+import com.carslab.crm.production.modules.clients.domain.model.Client
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
@@ -16,8 +17,8 @@ class VisitClientResolver(
 ) {
     private val logger = LoggerFactory.getLogger(VisitClientResolver::class.java)
 
-    fun resolveClient(request: CreateVisitRequest): ClientResponse {
-        request.ownerId?.let { ownerId ->
+    fun resolveClient(clientDetails: ClientDetails): ClientResponse {
+        clientDetails.ownerId?.let { ownerId ->
             try {
                 val existingClient = clientQueryService.getClient(ownerId.toString())
                 logger.debug("Found existing client by ID: $ownerId")
@@ -27,15 +28,15 @@ class VisitClientResolver(
             }
         }
 
-        if (!request.email.isNullOrBlank() || !request.phone.isNullOrBlank()) {
-            findExistingClientByContact(request.email, request.phone)?.let { existingClient ->
+        if (!clientDetails.email.isNullOrBlank() || !clientDetails.phone.isNullOrBlank()) {
+            findExistingClientByContact(clientDetails.email, clientDetails.phone)?.let { existingClient ->
                 logger.debug("Found existing client by contact: ${existingClient.email}")
                 return existingClient
             }
         }
 
-        logger.info("Creating new client: ${request.ownerName}")
-        return createClient(request)
+        logger.info("Creating new client: ${clientDetails.name}")
+        return createClient(clientDetails)
     }
 
     private fun findExistingClientByContact(email: String?, phone: String?): ClientResponse? {
@@ -58,24 +59,34 @@ class VisitClientResolver(
         }
     }
 
-    private fun createClient(request: CreateVisitRequest): ClientResponse {
-        val nameParts = request.ownerName.split(" ", limit = 2)
+    private fun createClient(clientDetails: ClientDetails): ClientResponse {
+        val nameParts = clientDetails.name.split(" ", limit = 2)
         val createRequest = CreateClientRequest(
             firstName = nameParts.getOrNull(0) ?: "",
             lastName = nameParts.getOrNull(1) ?: "",
-            email = request.email ?: "",
-            phone = request.phone ?: "",
-            company = request.companyName,
-            taxId = request.taxId,
-            address = request.address
+            email = clientDetails.email ?: "",
+            phone = clientDetails.phone ?: "",
+            company = clientDetails.companyName,
+            taxId = clientDetails.taxId,
+            address = clientDetails.address
         )
 
         return try {
             clientCommandService.createClient(createRequest)
         } catch (e: Exception) {
             logger.warn("Failed to create client, checking if it was created by another thread")
-            findExistingClientByContact(request.email, request.phone)
-                ?: throw IllegalStateException("Could not create or find client: ${request.ownerName}", e)
+            findExistingClientByContact(clientDetails.email, clientDetails.phone)
+                ?: throw IllegalStateException("Could not create or find client: ${clientDetails.name}", e)
         }
     }
 }
+
+data class ClientDetails(
+    val ownerId: Long? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val name: String,
+    val companyName: String? = null,
+    val taxId: String? = null,
+    val address: String? = null
+)

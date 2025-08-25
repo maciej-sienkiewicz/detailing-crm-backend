@@ -71,7 +71,7 @@ class VisitFilterSpecificationBuilder {
         }
         
         criteria.clientId?.let { clientId ->
-            predicates.add(cb.equal(root.get<String>("id"), clientId))
+            predicates.add(cb.equal(root.get<Long>("clientId"), clientId.toLong()))
         }
     }
 
@@ -125,7 +125,7 @@ class VisitFilterSpecificationBuilder {
             }
 
             criteria.serviceIds?.takeIf { it.isNotEmpty() }?.let { serviceIds ->
-                servicePredicates.add(serviceRoot.get<String>("id").`in`(serviceIds))
+                servicePredicates.add(serviceRoot.get<String>("serviceId").`in`(serviceIds))
             }
 
             if (criteria.minPrice != null || criteria.maxPrice != null) {

@@ -26,7 +26,6 @@ data class CreateAssociationRequest(
 )
 
 data class AssociationResponse(
-    val id: String?,
     @JsonProperty("client_id")
     val clientId: String,
     @JsonProperty("vehicle_id")
@@ -47,7 +46,6 @@ data class AssociationResponse(
     companion object {
         fun from(association: ClientVehicleAssociation): AssociationResponse {
             return AssociationResponse(
-                id = association.id?.value?.toString(),
                 clientId = association.clientId.value.toString(),
                 vehicleId = association.vehicleId.value.toString(),
                 associationType = association.associationType,

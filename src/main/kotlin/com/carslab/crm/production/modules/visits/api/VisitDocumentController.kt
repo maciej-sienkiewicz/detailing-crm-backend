@@ -58,6 +58,21 @@ class VisitDocumentController(
             .body(resource)
     }
 
+    @GetMapping("/document/{documentId}/preview")
+    @Operation(summary = "Preview document file")
+    fun previewDocument(
+        @Parameter(description = "Document ID") @PathVariable documentId: String
+    ): ResponseEntity<Resource> {
+        val documentData = visitDocumentQueryService.getDocumentFile(documentId)
+            ?: return ResponseEntity.notFound().build()
+
+        val resource = ByteArrayResource(documentData)
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"document_$documentId.dcox\"")
+            .body(resource)
+    }
+    
     @DeleteMapping("{visitId}/document/{documentId}")
     @Operation(summary = "Download document file")
     fun deleteDocument(

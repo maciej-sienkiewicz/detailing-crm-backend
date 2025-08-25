@@ -121,7 +121,7 @@ class VehicleRepositoryImpl(
             make = searchCriteria.make,
             model = searchCriteria.model,
             licensePlate = searchCriteria.licensePlate,
-            vin = searchCriteria.vin,
+            vin = null,
             year = searchCriteria.year,
             ownerName = searchCriteria.ownerName,
             minVisits = searchCriteria.minVisits,

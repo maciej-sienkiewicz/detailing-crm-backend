@@ -19,6 +19,9 @@ import java.math.BigDecimal
 class VisitServiceEntity(
     @Id
     val id: String,
+    
+    @Column(nullable = false)
+    val serviceId: String,
 
     @Column(nullable = false)
     val visitId: Long,
@@ -73,6 +76,7 @@ class VisitServiceEntity(
         fun fromDomain(service: VisitService, visitId: Long): VisitServiceEntity {
             return VisitServiceEntity(
                 id = service.id,
+                serviceId = service.id,
                 visitId = visitId,
                 name = service.name,
                 basePrice = service.basePrice,

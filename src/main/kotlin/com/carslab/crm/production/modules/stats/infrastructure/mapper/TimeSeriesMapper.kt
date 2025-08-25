@@ -8,6 +8,16 @@ import java.time.format.DateTimeFormatter
 
 object TimeSeriesMapper {
 
+    fun getDateTruncUnit(granularity: TimeGranularity): String {
+        return when (granularity) {
+            TimeGranularity.DAILY -> "day"
+            TimeGranularity.WEEKLY -> "week"
+            TimeGranularity.MONTHLY -> "month"
+            TimeGranularity.QUARTERLY -> "quarter"
+            TimeGranularity.YEARLY -> "year"
+        }
+    }
+
     fun getDateTruncExpression(granularity: TimeGranularity): String {
         return when (granularity) {
             TimeGranularity.DAILY -> "DATE_TRUNC('day', v.start_date)"

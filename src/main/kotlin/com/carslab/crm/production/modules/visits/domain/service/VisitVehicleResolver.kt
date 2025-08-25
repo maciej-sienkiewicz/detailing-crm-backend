@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.vehicles.application.dto.CreateVehicle
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
+import com.carslab.crm.production.modules.vehicles.domain.model.Vehicle
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
@@ -16,16 +17,16 @@ class VisitVehicleResolver(
 ) {
     private val logger = LoggerFactory.getLogger(VisitVehicleResolver::class.java)
 
-    fun resolveVehicle(request: CreateVisitRequest, ownerId: Long): VehicleResponse {
-        if (!request.vin.isNullOrBlank() || !request.licensePlate.isNullOrBlank()) {
-            findExistingVehicle(request.vin, request.licensePlate)?.let { existingVehicle ->
+    fun resolveVehicle(vehicleDetails: VehicleDetails): VehicleResponse {
+        if (!vehicleDetails.vin.isNullOrBlank() || vehicleDetails.licensePlate.isNotBlank()) {
+            findExistingVehicle(vehicleDetails.vin, vehicleDetails.licensePlate)?.let { existingVehicle ->
                 logger.debug("Found existing vehicle: ${existingVehicle.licensePlate}")
                 return existingVehicle
             }
         }
 
-        logger.info("Creating new vehicle: ${request.make} ${request.model}")
-        return createVehicle(request, ownerId)
+        logger.info("Creating new vehicle: ${vehicleDetails.make} ${vehicleDetails.model}")
+        return createVehicle(vehicleDetails)
     }
 
     private fun findExistingVehicle(vin: String?, licensePlate: String?): VehicleResponse? {
@@ -61,16 +62,16 @@ class VisitVehicleResolver(
         }
     }
 
-    private fun createVehicle(request: CreateVisitRequest, ownerId: Long): VehicleResponse {
+    private fun createVehicle(request: VehicleDetails): VehicleResponse {
         val createRequest = CreateVehicleRequest(
             make = request.make,
             model = request.model,
             year = request.productionYear,
-            licensePlate = request.licensePlate ?: "",
+            licensePlate = request.licensePlate,
             color = request.color,
             vin = request.vin,
             mileage = request.mileage,
-            ownerIds = listOf(ownerId)
+            ownerIds = request.ownerId?.let { listOf(it) } ?: emptyList()
         )
 
         return try {
@@ -82,3 +83,14 @@ class VisitVehicleResolver(
         }
     }
 }
+
+data class VehicleDetails(
+    val make: String,
+    val model: String,
+    val licensePlate: String,
+    val productionYear: Int? = null,
+    val vin: String? = null,
+    val color: String? = null,
+    val mileage: Long? = null,
+    val ownerId: Long? = null
+)

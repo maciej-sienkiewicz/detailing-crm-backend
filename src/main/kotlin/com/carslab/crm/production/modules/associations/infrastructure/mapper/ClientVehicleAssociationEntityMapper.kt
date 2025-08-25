@@ -8,7 +8,6 @@ import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 
 fun ClientVehicleAssociation.toEntity(): ClientVehicleAssociationEntity {
     return ClientVehicleAssociationEntity(
-        id = this.id?.value,
         clientId = this.clientId.value,
         vehicleId = this.vehicleId.value,
         companyId = this.companyId,
@@ -22,7 +21,6 @@ fun ClientVehicleAssociation.toEntity(): ClientVehicleAssociationEntity {
 
 fun ClientVehicleAssociationEntity.toDomain(): ClientVehicleAssociation {
     return ClientVehicleAssociation(
-        id = this.id?.let { AssociationId.of(it) },
         clientId = ClientId.of(this.clientId),
         vehicleId = VehicleId.of(this.vehicleId),
         companyId = this.companyId,

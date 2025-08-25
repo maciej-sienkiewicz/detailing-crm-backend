@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter
 class JpaVisitListQueryRepositoryImpl(
     private val visitListRepository: VisitListRepository,
     private val visitListJpaRepository: VisitListJpaRepository,
-    private val visitFilterSpecificationBuilder: VisitFilterSpecificationBuilder
+    private val visitFilterSpecificationBuilder: VisitFilterSpecificationBuilder,
 ) : VisitListQueryRepository {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

@@ -1,14 +1,18 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
+import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
+import com.carslab.crm.production.modules.vehicles.domain.model.Vehicle
 import com.carslab.crm.production.modules.visits.application.dto.*
 import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.ClientDetails
+import com.carslab.crm.production.modules.visits.domain.service.VehicleDetails
 import com.carslab.crm.production.modules.visits.domain.service.VisitCreationOrchestrator
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
@@ -33,7 +37,26 @@ class VisitCommandService(
 
         validateCreateRequest(request)
 
-        val entities = visitCreationOrchestrator.prepareVisitEntities(request)
+        val clientDetails = ClientDetails(
+            ownerId = request.ownerId,
+            email = request.email,
+            phone = request.phone,
+            name = request.ownerName,
+            companyName = request.companyName,
+            taxId = request.taxId,
+            address = request.address
+        )
+        val vehicleDetails = VehicleDetails(
+            make = request.make,
+            model = request.model,
+            licensePlate = request.licensePlate!!,
+            productionYear = request.productionYear,
+            vin = request.vin,
+            color = request.color,
+            mileage = request.mileage,
+            ownerId = request.ownerId
+        )
+        val entities = visitCreationOrchestrator.prepareVisitEntities(clientDetails, vehicleDetails)
 
         val command = CreateVisitCommand(
             companyId = companyId,
@@ -70,7 +93,23 @@ class VisitCommandService(
         logger.info("Updating visit: {} for company: {}", visitId, companyId)
 
         validateUpdateRequest(request)
-
+        
+        val actualVisit = visitDomainService.getVisitForCompany(VisitId.of(visitId), companyId)
+        val association = if(actualVisit.status == VisitStatus.SCHEDULED && request.status == ApiProtocolStatus.IN_PROGRESS) {
+           visitCreationOrchestrator.prepareVisitEntities(
+               ClientDetails(
+                   ownerId = request.ownerId,
+                   name = request.ownerName,
+                   phone = request.phone,
+               ),
+               VehicleDetails(
+                   make = request.make,
+                   model = request.model,
+                   licensePlate = request.licensePlate,
+               )
+           )
+        } else null
+        
         val command = UpdateVisitCommand(
             title = request.title,
             startDate = LocalDateTime.parse(request.startDate),
@@ -83,9 +122,10 @@ class VisitCommandService(
             keysProvided = request.keysProvided ?: false,
             documentsProvided = request.documentsProvided ?: false,
             status = EnumMappers.mapToVisitStatus(request.status.toString()),
-            deliveryPerson = request.deliveryPerson
+            deliveryPerson = request.deliveryPerson?.copy(id = association?.client?.id)
         )
 
+        
         val visit = visitDomainService.updateVisit(VisitId.of(visitId), command, companyId)
         logger.info("Visit updated successfully: {}", visitId)
 
@@ -145,6 +185,7 @@ class VisitCommandService(
 
     private fun mapToCreateServiceCommand(request: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {
         return CreateServiceCommand(
+            id = request.id,
             name = request.name,
             basePrice = CalculationUtils.anyToBigDecimal(request.price),
             quantity = request.quantity,

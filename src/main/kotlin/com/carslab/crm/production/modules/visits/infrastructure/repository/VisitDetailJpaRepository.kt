@@ -41,7 +41,10 @@ interface VisitDetailJpaRepository : JpaRepository<com.carslab.crm.production.mo
             vh.year,
             vh.mileage,
             vh.vin,
-            vh.color
+            vh.color,
+            v.deliveryPersonId,
+            v.deliveryPersonName,
+            v.deliveryPersonPhoneNumber
         )
         FROM VisitEntity v
         JOIN ClientEntity c ON c.id = v.clientId AND c.companyId = v.companyId

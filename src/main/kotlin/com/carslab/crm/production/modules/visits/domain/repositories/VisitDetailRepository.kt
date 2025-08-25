@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.repositories
 
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import java.time.LocalDateTime
 
@@ -35,5 +36,8 @@ data class VisitDetailProjection(
     val vehicleYear: Int?,
     val vehicleMileage: Long?,
     val vehicleVin: String?,
-    val vehicleColor: String?
+    val vehicleColor: String?,
+    val deliveryPersonId: String?,
+    val deliveryPersonName: String?,
+    val deliveryPersonPhoneNumber: String?
 )

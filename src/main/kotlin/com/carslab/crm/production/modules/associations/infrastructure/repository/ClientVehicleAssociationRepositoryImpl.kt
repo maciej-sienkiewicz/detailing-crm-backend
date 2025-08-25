@@ -27,7 +27,7 @@ class ClientVehicleAssociationRepositoryImpl(
         val entity = association.toEntity()
         val savedEntity = jpaRepository.save(entity)
 
-        logger.debug("Association saved with ID: {}", savedEntity.id)
+        logger.debug("Association saved")
         return savedEntity.toDomain()
     }
 

@@ -35,7 +35,7 @@ class AssociationCommandService(
             isPrimary = request.isPrimary ?: false
         )
 
-        logger.info("Association created successfully: {}", association.id?.value)
+        logger.info("Association created successfully")
         return AssociationResponse.from(association)
     }
 

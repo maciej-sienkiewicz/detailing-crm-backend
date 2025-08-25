@@ -183,7 +183,7 @@ class VisitDomainService(
         val finalPrice = command.finalPrice ?: discount?.applyTo(totalBase) ?: totalBase
 
         return VisitService(
-            id = UUID.randomUUID().toString(),
+            id = command.id,
             name = command.name,
             basePrice = basePrice,
             quantity = command.quantity,
