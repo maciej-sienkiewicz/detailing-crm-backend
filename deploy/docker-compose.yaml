@@ -3,7 +3,7 @@ services:
     image: ${ENV_DETAILING_CRM_BACKEND_IMAGE}
     container_name: ${DETAILING_CRM_BACKEND_CONTAINER_NAME}
     ports:
-      - '8080:8080'
+      - '9999:8080'
 
     restart: always
     environment:
