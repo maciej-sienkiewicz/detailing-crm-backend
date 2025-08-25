@@ -31,9 +31,9 @@ pipeline {
                     def branch = env.GIT_BRANCH ?: 'unknown'
                     def tag
 
-                    if (branch == 'main') {
+                    if (branch == 'origin/main') {
                         tag = 'latest'
-                    } else if (branch == 'develop') {
+                    } else if (branch == 'origin/develop') {
                         tag = 'develop'
                     } else {
                         error("Build przerwany: branch '${branch}' nie jest obsługiwany (tylko 'main' lub 'develop').")
