@@ -28,7 +28,7 @@ pipeline {
             }
             steps {
                 script {
-                    def branch = env.BRANCH_NAME ?: 'unknown'
+                    def branch = env.GIT_BRANCH ?: 'unknown'
                     def tag
 
                     if (branch == 'main') {
