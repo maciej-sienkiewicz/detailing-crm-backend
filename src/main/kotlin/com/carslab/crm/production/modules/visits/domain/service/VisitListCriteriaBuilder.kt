@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.application.service.query.builder
 
 import com.carslab.crm.production.modules.visits.application.dto.VisitListFilterRequest
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
