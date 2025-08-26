@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Service
@@ -108,5 +109,13 @@ class VehicleDomainService(
         vehicleStatisticsRepository.incrementVisitCount(vehicleId)
 
         logger.info("Visit recorded for vehicle: {}", vehicleId.value)
+    }
+    
+    fun addRevenue(vehicleId: VehicleId, amount: BigDecimal) {
+        logger.debug("Adding revenue for vehicle: {}", vehicleId.value)
+
+        vehicleStatisticsRepository.addRevenue(vehicleId, amount)
+
+        logger.info("Added revenue for vehicle: {}", vehicleId.value)
     }
 }

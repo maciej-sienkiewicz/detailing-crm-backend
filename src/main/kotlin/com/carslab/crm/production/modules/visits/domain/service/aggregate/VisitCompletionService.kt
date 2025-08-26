@@ -2,6 +2,10 @@ package com.carslab.crm.production.modules.visits.domain.service.aggregate
 
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
+import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
+import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleStatisticsCommandService
+import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
@@ -18,6 +22,8 @@ class VisitCompletionService(
     private val visitRepository: VisitRepository,
     private val businessPolicy: VisitBusinessPolicy,
     private val financialDocumentService: FinancialDocumentService,
+    private val clientStatisticsCommandService: ClientStatisticsCommandService,
+    private val vehicleStatisticsCommandService: VehicleStatisticsCommandService
 ) {
     private val logger = LoggerFactory.getLogger(VisitCompletionService::class.java)
 
@@ -31,7 +37,8 @@ class VisitCompletionService(
 
         completeVisit(visit, companyId)
         createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals)
-
+        updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount())
+        
         return true
     }
 
@@ -170,4 +177,13 @@ class VisitCompletionService(
         val totalNet: BigDecimal,
         val totalTax: BigDecimal
     )
+    
+    private fun updateRevenueStatistics(clientId: ClientId, vehicleId: VehicleId, companyId: Long, totalAmount: BigDecimal) {
+        try {
+            clientStatisticsCommandService.updateTotalRevenue(clientId, totalAmount)
+            vehicleStatisticsCommandService.addRevenue(vehicleId, totalAmount)
+        } catch (e: Exception) {
+            logger.error("Failed to update revenue statistics for client: $clientId or vehicle: $vehicleId", e)
+        }
+    }
 }

@@ -1,6 +1,10 @@
 package com.carslab.crm.production.modules.visits.domain.service.aggregate
 
+import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
+import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleStatisticsCommandService
+import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.domain.command.CreateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
@@ -16,6 +20,7 @@ class VisitCreationService(
     private val visitFactory: VisitFactory,
     private val commandValidator: VisitCommandValidator,
     private val clientStatisticsService: ClientStatisticsCommandService,
+    private val vehicleStatisticsCommandService: VehicleStatisticsCommandService,
     private val activitySender: VisitActivitySender
 ) {
     private val logger = LoggerFactory.getLogger(VisitCreationService::class.java)
@@ -33,6 +38,7 @@ class VisitCreationService(
 
     private fun executePostCreationActions(visit: Visit, command: CreateVisitCommand) {
         recordClientStatistics(command.client.id)
+        recordVehicleStatistics(command.vehicle.id)
         publishVisitCreatedEvent(visit, command.client, command.vehicle)
     }
 
@@ -44,10 +50,18 @@ class VisitCreationService(
         }
     }
 
+    private fun recordVehicleStatistics(vehicleId: String) {
+        try {
+            vehicleStatisticsCommandService.recordVisit(VehicleId(vehicleId.toLong()))
+        } catch (e: Exception) {
+            logger.error("Failed to record client statistics for client: $vehicleId", e)
+        }
+    }
+
     private fun publishVisitCreatedEvent(
         visit: Visit,
-        client: com.carslab.crm.production.modules.clients.application.dto.ClientResponse,
-        vehicle: com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
+        client: ClientResponse,
+        vehicle: VehicleResponse
     ) {
         try {
             activitySender.onVisitCreated(visit, client, vehicle)

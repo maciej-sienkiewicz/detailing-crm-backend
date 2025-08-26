@@ -59,9 +59,6 @@ class VisitCommandValidator {
                     if (service.basePrice < BigDecimal.ZERO) {
                         throw BusinessException("Service price cannot be negative")
                     }
-                    if (service.quantity <= 0) {
-                        throw BusinessException("Service quantity must be positive")
-                    }
                 }
                 is UpdateServiceCommand -> {
                     if (service.name.isBlank()) {
@@ -69,9 +66,6 @@ class VisitCommandValidator {
                     }
                     if (service.basePrice < BigDecimal.ZERO) {
                         throw BusinessException("Service price cannot be negative")
-                    }
-                    if (service.quantity <= 0) {
-                        throw BusinessException("Service quantity must be positive")
                     }
                 }
             }
