@@ -7,9 +7,10 @@ import com.carslab.crm.production.modules.visits.application.service.command.Vis
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
-import com.carslab.crm.production.modules.visits.domain.service.VisitCreationOrchestrator
-import com.carslab.crm.production.modules.visits.domain.service.ClientDetails
-import com.carslab.crm.production.modules.visits.domain.service.VehicleDetails
+import com.carslab.crm.production.modules.visits.domain.orchestration.VisitCreationOrchestrator
+import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
+import com.carslab.crm.production.modules.visits.domain.orchestration.ClientDetails
+import com.carslab.crm.production.modules.visits.domain.orchestration.VehicleDetails
 import org.springframework.stereotype.Component
 
 @Component
@@ -40,7 +41,7 @@ class DeliveryPersonHandler(
     private fun createDeliveryPersonAssociation(
         request: UpdateCarReceptionCommand,
         deliveryPerson: DeliveryPerson
-    ): com.carslab.crm.production.modules.visits.domain.service.VisitEntities? {
+    ): VisitEntities? {
         return try {
             val clientDetails = ClientDetails(
                 ownerId = deliveryPerson.id?.toLong(),

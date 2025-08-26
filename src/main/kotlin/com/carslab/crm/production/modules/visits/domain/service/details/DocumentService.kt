@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
 
 @Service
-class VisitDocumentService(
+class DocumentService(
     private val documentRepository: VisitDocumentRepository,
     private val storageService: UniversalStorageService
 ) {

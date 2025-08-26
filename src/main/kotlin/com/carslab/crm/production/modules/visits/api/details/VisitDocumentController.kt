@@ -1,8 +1,7 @@
-package com.carslab.crm.production.modules.visits.api
+package com.carslab.crm.production.modules.visits.api.details
 
 import com.carslab.crm.modules.visits.api.response.ProtocolDocumentDto
 import com.carslab.crm.production.modules.visits.application.dto.UploadDocumentRequest
-import com.carslab.crm.production.modules.visits.application.dto.VisitDocumentResponse
 import com.carslab.crm.production.modules.visits.application.service.command.VisitDocumentCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDocumentQueryService
 import io.swagger.v3.oas.annotations.Operation

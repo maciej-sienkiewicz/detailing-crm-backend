@@ -1,13 +1,9 @@
 package com.carslab.crm.production.modules.visits.application.service.query
 
-import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.infrastructure.security.SecurityContext
-import com.carslab.crm.modules.visits.api.commands.ClientProtocolHistoryDto
 import com.carslab.crm.production.modules.visits.application.dto.*
-import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
-import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
-import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.AggregateService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -17,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional(readOnly = true)
 class VisitQueryService(
-    private val visitDomainService: VisitDomainService,
+    private val visitDomainService: AggregateService,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitQueryService::class.java)
@@ -26,7 +22,7 @@ class VisitQueryService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching visits for vehicle: {} and company: {}", vehicleId, companyId)
 
-        val visits = visitDomainService.getVisitsForVehicle(VehicleId.of(vehicleId.toLong()), companyId, pageable)
+        val visits = visitDomainService.getByVehicleId(VehicleId.of(vehicleId.toLong()), companyId, pageable)
         return visits.map { VisitResponse.from(it) }
     }
 }

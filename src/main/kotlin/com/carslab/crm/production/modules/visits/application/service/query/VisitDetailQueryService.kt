@@ -2,15 +2,13 @@ package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.*
-import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
-import com.carslab.crm.production.modules.visits.domain.service.details.VisitMediaService
+import com.carslab.crm.production.modules.visits.domain.service.details.MediaService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
-import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -22,7 +20,7 @@ import java.time.ZoneId
 @Transactional(readOnly = true)
 class VisitDetailQueryService(
     private val visitDetailQueryRepository: VisitDetailQueryRepository,
-    private val visitMediaService: VisitMediaService,
+    private val mediaService: MediaService,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitDetailQueryService::class.java)
@@ -34,7 +32,7 @@ class VisitDetailQueryService(
         val visitDetail = visitDetailQueryRepository.findVisitDetailById(VisitId.of(visitId), companyId)
             ?: throw EntityNotFoundException("Visit not found: $visitId")
 
-        val mediaItems = visitMediaService.getMediaForVisit(VisitId.of(visitId))
+        val mediaItems = mediaService.getMediaForVisit(VisitId.of(visitId))
 
         logger.debug("Visit detail found: {}", visitDetail.title)
 

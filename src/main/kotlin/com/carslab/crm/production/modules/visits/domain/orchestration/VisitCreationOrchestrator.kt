@@ -1,20 +1,18 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.domain.orchestration
 
 import com.carslab.crm.production.modules.associations.application.dto.CreateAssociationRequest
 import com.carslab.crm.production.modules.associations.application.service.AssociationCommandService
 import com.carslab.crm.production.modules.associations.domain.model.AssociationType
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
-import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
-import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class VisitCreationOrchestrator(
-    private val visitClientResolver: VisitClientResolver,
-    private val visitVehicleResolver: VisitVehicleResolver,
+    private val clientResolver: ClientResolver,
+    private val vehicleResolver: VehicleResolver,
     private val associationCommandService: AssociationCommandService,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
 ) {
@@ -23,8 +21,8 @@ class VisitCreationOrchestrator(
     fun prepareVisitEntities(clientDetails: ClientDetails, vehicleDetails: VehicleDetails): VisitEntities {
         logger.info("Preparing entities for visit: ${vehicleDetails.make} ${vehicleDetails.model}")
 
-        val client = visitClientResolver.resolveClient(clientDetails)
-        val vehicle = visitVehicleResolver.resolveVehicle(vehicleDetails.copy(ownerId = client.id.toLong() ))
+        val client = clientResolver.resolveClient(clientDetails)
+        val vehicle = vehicleResolver.resolveVehicle(vehicleDetails.copy(ownerId = client.id.toLong() ))
 
         ensureClientVehicleAssociation(client, vehicle)
 

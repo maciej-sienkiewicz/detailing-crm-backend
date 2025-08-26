@@ -1,11 +1,14 @@
-package com.carslab.crm.production.modules.visits.domain.service.validator
+package com.carslab.crm.production.modules.visits.domain.validator
 
+import com.carslab.crm.production.modules.visits.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.CreateVisitCommand
+import com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 
 @Component
 class VisitCommandValidator {
@@ -49,22 +52,22 @@ class VisitCommandValidator {
     private fun validateServices(services: List<Any>) {
         services.forEach { service ->
             when (service) {
-                is com.carslab.crm.production.modules.visits.domain.command.CreateServiceCommand -> {
+                is CreateServiceCommand -> {
                     if (service.name.isBlank()) {
                         throw BusinessException("Service name cannot be blank")
                     }
-                    if (service.basePrice < java.math.BigDecimal.ZERO) {
+                    if (service.basePrice < BigDecimal.ZERO) {
                         throw BusinessException("Service price cannot be negative")
                     }
                     if (service.quantity <= 0) {
                         throw BusinessException("Service quantity must be positive")
                     }
                 }
-                is com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand -> {
+                is UpdateServiceCommand -> {
                     if (service.name.isBlank()) {
                         throw BusinessException("Service name cannot be blank")
                     }
-                    if (service.basePrice < java.math.BigDecimal.ZERO) {
+                    if (service.basePrice < BigDecimal.ZERO) {
                         throw BusinessException("Service price cannot be negative")
                     }
                     if (service.quantity <= 0) {

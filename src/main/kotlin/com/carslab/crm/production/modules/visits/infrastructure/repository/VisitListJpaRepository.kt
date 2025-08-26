@@ -1,7 +1,7 @@
 package com.carslab.crm.production.modules.visits.infrastructure.repository
 
-import com.carslab.crm.production.modules.visits.api.FilteredVisitProjection
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitListProjection
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity
 import com.carslab.crm.production.modules.visits.infrastructure.persistence.projections.VisitServiceProjection
 import org.springframework.data.domain.Page
@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.time.LocalDateTime
 
 @Repository
 interface VisitListJpaRepository : JpaRepository<VisitEntity, Long>, JpaSpecificationExecutor<VisitEntity> {
@@ -89,4 +90,21 @@ interface VisitListJpaRepository : JpaRepository<VisitEntity, Long>, JpaSpecific
         @Param("companyId") companyId: Long,
         @Param("visitIds") visitIds: List<Long>
     ): List<VisitServiceProjection>
+}
+
+interface FilteredVisitProjection {
+    val visitId: Long
+    val title: String
+    val clientName: String
+    val companyName: String?
+    val vehicleMake: String
+    val vehicleModel: String
+    val licensePlate: String
+    val productionYear: Int?
+    val color: String?
+    val startDate: LocalDateTime
+    val endDate: LocalDateTime
+    val status: VisitStatus
+    val calendarColorId: String
+    val lastUpdate: LocalDateTime
 }

@@ -2,25 +2,22 @@ package com.carslab.crm.production.modules.visits.application.service.command.ha
 
 import com.carslab.crm.production.modules.clients.application.dto.UpdateClientRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
-import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import com.carslab.crm.production.modules.visits.application.service.command.mapper.VisitCommandMapper
-import com.carslab.crm.production.modules.visits.domain.service.VisitCreationOrchestrator
-import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
-import com.carslab.crm.production.modules.visits.domain.service.activity.VisitActivitySender
+import com.carslab.crm.production.modules.visits.domain.service.AggregateService
+import com.carslab.crm.production.modules.visits.domain.orchestration.VisitCreationOrchestrator
+import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 @Component
 class VisitCreateHandler(
-    private val visitDomainService: VisitDomainService,
+    private val aggregateService: AggregateService,
     private val visitCreationOrchestrator: VisitCreationOrchestrator,
     private val clientCommandService: ClientCommandService,
-    private val clientStatisticsCommandService: ClientStatisticsCommandService,
-    private val commandMapper: VisitCommandMapper,
-    private val activitySender: VisitActivitySender
+    private val commandMapper: VisitCommandMapper
 ) {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -29,15 +26,12 @@ class VisitCreateHandler(
         updateClientInformation(entities.client.id, request)
 
         val command = commandMapper.mapCreateCommand(request, companyId, entities)
-        val visit = visitDomainService.createVisit(command)
-
-        recordClientStatistics(entities.client.id)
-        sendActivity(visit, entities)
+        val visit = aggregateService.createVisit(command)
 
         return VisitResponse.from(visit)
     }
 
-    private fun prepareEntities(request: CreateVisitRequest): com.carslab.crm.production.modules.visits.domain.service.VisitEntities {
+    private fun prepareEntities(request: CreateVisitRequest): VisitEntities {
         val clientDetails = commandMapper.mapClientDetails(request)
         val vehicleDetails = commandMapper.mapVehicleDetails(request)
 
@@ -61,16 +55,5 @@ class VisitCreateHandler(
             company = request.companyName,
             taxId = request.taxId
         )
-    }
-
-    private fun recordClientStatistics(clientId: String) {
-        clientStatisticsCommandService.recordVisit(clientId)
-    }
-
-    private fun sendActivity(
-        visit: com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit,
-        entities: com.carslab.crm.production.modules.visits.domain.service.VisitEntities
-    ) {
-        activitySender.onVisitCreated(visit, entities.client, entities.vehicle)
     }
 }

@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.service.activity
+package com.carslab.crm.production.modules.visits.domain.activity
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.activities.application.dto.CreateActivityRequest

@@ -1,17 +1,17 @@
 package com.carslab.crm.production.modules.visits.domain.service.details
 
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.domain.activity.VisitActivitySender
 import com.carslab.crm.production.modules.visits.domain.command.AddCommentCommand
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitCommentRepository
-import com.carslab.crm.production.modules.visits.domain.service.activity.VisitActivitySender
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class VisitCommentService(
+class CommentService(
     private val commentRepository: VisitCommentRepository,
     private val visitDetailQueryService: VisitDetailQueryService,
     private val visitActivitySender: VisitActivitySender

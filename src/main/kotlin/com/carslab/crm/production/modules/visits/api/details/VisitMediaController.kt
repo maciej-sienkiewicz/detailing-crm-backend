@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.api
+package com.carslab.crm.production.modules.visits.api.details
 
 import com.carslab.crm.production.modules.visits.application.dto.MediaUploadResponse
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse

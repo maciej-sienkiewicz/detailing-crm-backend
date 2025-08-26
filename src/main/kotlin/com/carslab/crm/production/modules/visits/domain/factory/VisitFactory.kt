@@ -1,14 +1,12 @@
-package com.carslab.crm.production.modules.visits.domain.service.factory
+package com.carslab.crm.production.modules.visits.domain.factory
 
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.domain.command.CreateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
-import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitDocuments
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitPeriod
-import com.carslab.crm.production.modules.visits.domain.service.factory.VisitServiceFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 

@@ -1,21 +1,18 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.domain.orchestration
 
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.dto.CreateClientRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
-import com.carslab.crm.production.modules.clients.domain.model.Client
-import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
-class VisitClientResolver(
+class ClientResolver(
     private val clientQueryService: ClientQueryService,
     private val clientCommandService: ClientCommandService
 ) {
-    private val logger = LoggerFactory.getLogger(VisitClientResolver::class.java)
+    private val logger = LoggerFactory.getLogger(ClientResolver::class.java)
 
     fun resolveClient(clientDetails: ClientDetails): ClientResponse {
         clientDetails.ownerId?.let { ownerId ->

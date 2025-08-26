@@ -1,8 +1,9 @@
-package com.carslab.crm.production.modules.visits.domain.service.factory
+package com.carslab.crm.production.modules.visits.domain.factory
 
 import com.carslab.crm.production.modules.visits.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
+import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
@@ -43,7 +44,7 @@ class VisitServiceFactory {
     }
 
     private fun createDiscount(
-        discountType: com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType?,
+        discountType: DiscountType?,
         discountValue: BigDecimal?
     ): ServiceDiscount? {
         return if (discountType != null && discountValue != null) {

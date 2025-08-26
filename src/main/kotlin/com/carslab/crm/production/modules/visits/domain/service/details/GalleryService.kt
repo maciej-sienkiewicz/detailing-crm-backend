@@ -4,13 +4,13 @@ import com.carslab.crm.production.modules.visits.application.dto.GalleryDownload
 import com.carslab.crm.production.modules.visits.application.dto.GalleryFilterRequest
 import com.carslab.crm.production.modules.visits.application.dto.GalleryImageResponse
 import com.carslab.crm.production.modules.visits.application.dto.PaginatedResponse
-import com.carslab.crm.production.modules.visits.domain.model.GalleryStats
-import com.carslab.crm.production.modules.visits.domain.model.TagStat
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.GalleryStats
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.TagStat
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitGalleryRepository
 import org.springframework.stereotype.Service
 
 @Service
-class VisitGalleryService(
+class GalleryService(
     private val visitGalleryRepository: VisitGalleryRepository
 ) {
 

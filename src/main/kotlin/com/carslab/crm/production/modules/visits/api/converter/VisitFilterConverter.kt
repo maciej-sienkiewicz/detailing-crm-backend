@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.application.converter
+package com.carslab.crm.production.modules.visits.api.converter
 
 import com.carslab.crm.production.modules.visits.application.dto.VisitListFilterRequest
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus

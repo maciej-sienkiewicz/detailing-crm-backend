@@ -1,21 +1,19 @@
-package com.carslab.crm.production.modules.visits.domain.service
+package com.carslab.crm.production.modules.visits.domain.orchestration
 
 import com.carslab.crm.production.modules.vehicles.application.dto.CreateVehicleRequest
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
-import com.carslab.crm.production.modules.vehicles.domain.model.Vehicle
-import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 
 @Service
-class VisitVehicleResolver(
+class VehicleResolver(
     private val vehicleQueryService: VehicleQueryService,
     private val vehicleCommandService: VehicleCommandService
 ) {
-    private val logger = LoggerFactory.getLogger(VisitVehicleResolver::class.java)
+    private val logger = LoggerFactory.getLogger(VehicleResolver::class.java)
 
     fun resolveVehicle(vehicleDetails: VehicleDetails): VehicleResponse {
         if (!vehicleDetails.vin.isNullOrBlank() || vehicleDetails.licensePlate.isNotBlank()) {

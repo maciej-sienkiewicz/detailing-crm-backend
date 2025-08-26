@@ -4,12 +4,12 @@ import com.carslab.crm.production.modules.visits.application.dto.ChangeStatusReq
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import com.carslab.crm.production.modules.visits.domain.command.ChangeVisitStatusCommand
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitDomainService
+import com.carslab.crm.production.modules.visits.domain.service.AggregateService
 import org.springframework.stereotype.Component
 
 @Component
 class VisitStatusChangeHandler(
-    private val visitDomainService: VisitDomainService
+    private val visitDomainService: AggregateService
 ) {
 
     fun handle(visitId: VisitId, request: ChangeStatusRequest, companyId: Long): VisitResponse {

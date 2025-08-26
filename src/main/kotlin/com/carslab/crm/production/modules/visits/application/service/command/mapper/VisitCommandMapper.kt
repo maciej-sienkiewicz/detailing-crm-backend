@@ -7,9 +7,9 @@ import com.carslab.crm.production.modules.visits.domain.command.CreateVisitComma
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
-import com.carslab.crm.production.modules.visits.domain.service.ClientDetails
-import com.carslab.crm.production.modules.visits.domain.service.VehicleDetails
-import com.carslab.crm.production.modules.visits.domain.service.VisitEntities
+import com.carslab.crm.production.modules.visits.domain.orchestration.ClientDetails
+import com.carslab.crm.production.modules.visits.domain.orchestration.VehicleDetails
+import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import org.springframework.stereotype.Component

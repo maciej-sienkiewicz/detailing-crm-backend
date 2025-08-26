@@ -2,10 +2,9 @@ package com.carslab.crm.production.modules.visits.infrastructure.repository
 
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.production.modules.visits.application.dto.*
-import com.carslab.crm.production.modules.visits.domain.model.GalleryStats
-import com.carslab.crm.production.modules.visits.domain.model.TagStat
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.GalleryStats
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.TagStat
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitGalleryRepository
-import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitMediaEntity
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.stereotype.Repository

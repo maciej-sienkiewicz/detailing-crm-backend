@@ -12,7 +12,7 @@ import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.stereotype.Service
 
 @Service
-class VisitMediaService(
+class MediaService(
     private val mediaRepository: VisitMediaRepository,
     private val mediaStorageService: MediaStorageService,
     private val mediaFileValidator: MediaFileValidator,

@@ -1,4 +1,4 @@
-package com.carslab.crm.production.modules.visits.domain.service.policy
+package com.carslab.crm.production.modules.visits.domain.policy
 
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
@@ -27,16 +27,18 @@ class VisitBusinessPolicy {
     fun canModifyServices(visit: Visit): Boolean {
         return visit.status != VisitStatus.COMPLETED
     }
-
-    fun canAddMedia(visit: Visit): Boolean {
-        return visit.status != VisitStatus.CANCELLED
-    }
-
-    fun canAddComments(visit: Visit): Boolean {
-        return true
-    }
-
+    
     fun canReleaseVehicle(visit: Visit): Boolean {
         return visit.status == VisitStatus.READY_FOR_PICKUP
+    }
+
+    fun validateReleaseConditions(visit: Visit) {
+        if (!canReleaseVehicle(visit)) {
+            throw BusinessException("Cannot release vehicle for visit with status: ${visit.status}")
+        }
+
+        if (visit.services.isEmpty()) {
+            throw BusinessException("Cannot release vehicle - no services provided")
+        }
     }
 }

@@ -2,7 +2,7 @@ package com.carslab.crm.production.modules.visits.api
 
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
-import com.carslab.crm.production.modules.visits.application.converter.VisitFilterConverter
+import com.carslab.crm.production.modules.visits.api.converter.VisitFilterConverter
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitListQueryService
