@@ -54,7 +54,7 @@ class JpaVisitDetailQueryRepositoryImpl(
             status = projection.status,
             services = services.map { service ->
                 ServiceDetailReadModel(
-                    id = service.id,
+                    id = service.id?.toString() ?: "",
                     name = service.name,
                     basePrice = service.basePrice,
                     quantity = service.quantity,

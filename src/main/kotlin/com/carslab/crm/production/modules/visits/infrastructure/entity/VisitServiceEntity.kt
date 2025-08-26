@@ -1,6 +1,5 @@
 package com.carslab.crm.production.modules.visits.infrastructure.entity
 
-import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
@@ -13,13 +12,15 @@ import java.math.BigDecimal
     name = "visit_services",
     indexes = [
         Index(name = "idx_visit_services_visit_id", columnList = "visitId"),
+        Index(name = "idx_visit_services_service_id", columnList = "serviceId"),
         Index(name = "idx_visit_services_name", columnList = "name")
     ]
 )
 class VisitServiceEntity(
     @Id
-    val id: String,
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+
     @Column(nullable = false)
     val serviceId: String,
 
@@ -61,7 +62,7 @@ class VisitServiceEntity(
         } else null
 
         return VisitService(
-            id = id,
+            id = serviceId, // ← ID oryginalnej usługi
             name = name,
             basePrice = basePrice,
             quantity = quantity,
@@ -75,7 +76,7 @@ class VisitServiceEntity(
     companion object {
         fun fromDomain(service: VisitService, visitId: Long): VisitServiceEntity {
             return VisitServiceEntity(
-                id = service.id,
+                id = null,
                 serviceId = service.id,
                 visitId = visitId,
                 name = service.name,
