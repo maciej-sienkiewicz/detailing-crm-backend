@@ -1,6 +1,8 @@
 package com.carslab.crm.production.modules.visits.domain.service
 
-import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
+import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
+import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.visits.domain.command.ChangeVisitStatusCommand
 import com.carslab.crm.production.modules.visits.domain.command.CreateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
@@ -8,11 +10,11 @@ import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.service.activity.VisitActivitySender
 import com.carslab.crm.production.modules.visits.domain.service.factory.VisitFactory
 import com.carslab.crm.production.modules.visits.domain.service.policy.VisitBusinessPolicy
 import com.carslab.crm.production.modules.visits.domain.service.validator.VisitCommandValidator
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 
 @Service
@@ -20,14 +22,40 @@ class VisitDomainService(
     private val visitRepository: VisitRepository,
     private val visitFactory: VisitFactory,
     private val commandValidator: VisitCommandValidator,
-    private val businessPolicy: VisitBusinessPolicy
+    private val businessPolicy: VisitBusinessPolicy,
+    private val clientStatisticsService: ClientStatisticsCommandService,
+    private val activitySender: VisitActivitySender
 ) {
     fun createVisit(command: CreateVisitCommand): Visit {
         commandValidator.validateCreateCommand(command)
 
         val visit = visitFactory.createVisit(command)
+        val savedVisit = visitRepository.save(visit)
 
-        return visitRepository.save(visit)
+        recordClientStatistics(command.client.id)
+        publishVisitCreatedEvent(savedVisit, command.client, command.vehicle)
+
+        return savedVisit
+    }
+
+    private fun recordClientStatistics(clientId: String) {
+        try {
+            clientStatisticsService.recordVisit(clientId)
+        } catch (e: Exception) {
+            // Log but don't fail the main operation
+        }
+    }
+
+    private fun publishVisitCreatedEvent(
+        visit: Visit,
+        client: ClientResponse,
+        vehicle: VehicleResponse
+    ) {
+        try {
+            activitySender.onVisitCreated(visit, client, vehicle)
+        } catch (e: Exception) {
+            // Log but don't fail the main operation
+        }
     }
 
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {
@@ -65,7 +93,4 @@ class VisitDomainService(
     fun getVisitCountByStatus(companyId: Long, status: VisitStatus): Long {
         return visitRepository.countByStatus(companyId, status)
     }
-    
-    fun getVisitsForVehicle(vehicleId: VehicleId, companyId: Long, pageable: Pageable) =
-        visitRepository.findByVehicleId(vehicleId, companyId, pageable)
 }
