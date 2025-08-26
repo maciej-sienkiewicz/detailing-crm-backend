@@ -60,50 +60,49 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
     ): Page<ClientEntity>
 
     @Query(nativeQuery = true, value = """
-        SELECT c.id as client_id,
-            c.company_id as client_company_id,
-            c.first_name as client_first_name,
-            c.last_name as client_last_name,
-            c.email as client_email,
-            c.phone as client_phone,
-            c.address as client_address,
-            c.company as client_company,
-            c.tax_id as client_tax_id,
-            c.notes as client_notes,
-            c.created_at as client_created_at,
-            c.updated_at as client_updated_at,
-            c.active as client_active,
-            cs.client_id as stats_client_id,
-            cs.visit_count as stats_visit_count,
-            cs.total_revenue as stats_total_revenue,
-            cs.vehicle_count as stats_vehicle_count,
-            cs.last_visit_date as stats_last_visit_date,
-            cs.updated_at as stats_updated_at
-        FROM clients c 
-        LEFT JOIN client_statistics cs ON c.id = cs.client_id
-        WHERE c.company_id = :companyId AND c.active = true
-        AND (:name IS NULL OR 
-             LOWER(c.first_name || ' ' || c.last_name) LIKE LOWER('%' || :name || '%'))
-        AND (:email IS NULL OR LOWER(c.email) LIKE LOWER('%' || :email || '%'))
-        AND (:phone IS NULL OR c.phone LIKE '%' || :phone || '%')
-        AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER('%' || :company || '%'))
-        AND (:hasVehicles IS NULL OR 
-             (:hasVehicles = true AND EXISTS (SELECT 1 FROM client_vehicle_associations cva WHERE cva.client_id = c.id AND cva.end_date IS NULL)) OR 
-             (:hasVehicles = false AND NOT EXISTS (SELECT 1 FROM client_vehicle_associations cva WHERE cva.client_id = c.id AND cva.end_date IS NULL)))
-        AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
-        AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
-        AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
-        AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
-        ORDER BY c.created_at DESC
-        LIMIT :limit OFFSET :offset
-    """)
+    SELECT c.id as client_id,
+        c.company_id as client_company_id,
+        c.first_name as client_first_name,
+        c.last_name as client_last_name,
+        c.email as client_email,
+        c.phone as client_phone,
+        c.address as client_address,
+        c.company as client_company,
+        c.tax_id as client_tax_id,
+        c.notes as client_notes,
+        c.created_at as client_created_at,
+        c.updated_at as client_updated_at,
+        c.active as client_active,
+        cs.client_id as stats_client_id,
+        cs.visit_count as stats_visit_count,
+        cs.total_revenue as stats_total_revenue,
+        cs.vehicle_count as stats_vehicle_count,
+        cs.last_visit_date as stats_last_visit_date,
+        cs.updated_at as stats_updated_at
+    FROM clients c 
+    LEFT JOIN client_statistics cs ON c.id = cs.client_id
+    WHERE c.company_id = :companyId AND c.active = true
+    AND (:name IS NULL OR 
+         LOWER(c.first_name || ' ' || c.last_name) LIKE LOWER('%' || :name || '%'))
+    AND (:email IS NULL OR LOWER(c.email) LIKE LOWER('%' || :email || '%'))
+    AND (:phone IS NULL OR c.phone LIKE '%' || :phone || '%')
+    AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER('%' || :company || '%'))
+    AND (:minVehicles IS NULL OR 
+         COALESCE(cs.vehicle_count, 0) >= :minVehicles)
+    AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
+    AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
+    AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
+    AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
+    ORDER BY c.created_at DESC
+    LIMIT :limit OFFSET :offset
+""")
     fun searchClientsWithStatisticsOptimized(
         @Param("companyId") companyId: Long,
         @Param("name") name: String?,
         @Param("email") email: String?,
         @Param("phone") phone: String?,
         @Param("company") company: String?,
-        @Param("hasVehicles") hasVehicles: Boolean?,
+        @Param("minVehicles") minVehicles: Int?,
         @Param("minTotalRevenue") minTotalRevenue: Double?,
         @Param("maxTotalRevenue") maxTotalRevenue: Double?,
         @Param("minVisits") minVisits: Int?,
@@ -122,9 +121,8 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
         AND (:email IS NULL OR LOWER(c.email) LIKE LOWER('%' || :email || '%'))
         AND (:phone IS NULL OR c.phone LIKE '%' || :phone || '%')
         AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER('%' || :company || '%'))
-        AND (:hasVehicles IS NULL OR 
-             (:hasVehicles = true AND EXISTS (SELECT 1 FROM client_vehicle_associations cva WHERE cva.client_id = c.id AND cva.end_date IS NULL)) OR 
-             (:hasVehicles = false AND NOT EXISTS (SELECT 1 FROM client_vehicle_associations cva WHERE cva.client_id = c.id AND cva.end_date IS NULL)))
+            AND (:minVehicles IS NULL OR 
+         COALESCE(cs.vehicle_count, 0) >= :minVehicles)
         AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
         AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
         AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
@@ -136,7 +134,7 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
         @Param("email") email: String?,
         @Param("phone") phone: String?,
         @Param("company") company: String?,
-        @Param("hasVehicles") hasVehicles: Boolean?,
+        @Param("minVehicles") minVehicles: Int?,
         @Param("minTotalRevenue") minTotalRevenue: Double?,
         @Param("maxTotalRevenue") maxTotalRevenue: Double?,
         @Param("minVisits") minVisits: Int?,
