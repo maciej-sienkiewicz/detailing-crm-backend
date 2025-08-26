@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.vehicles.domain.repository
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleStatistics
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 interface VehicleStatisticsRepository {
     fun findByVehicleId(vehicleId: VehicleId): VehicleStatistics?

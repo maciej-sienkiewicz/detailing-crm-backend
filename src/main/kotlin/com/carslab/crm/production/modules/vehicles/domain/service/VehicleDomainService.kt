@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 @Service
 class VehicleDomainService(
@@ -99,5 +100,13 @@ class VehicleDomainService(
 
     fun getVehiclesByIds(vehiclesIds: List<VehicleId>): List<Vehicle> {
         return vehicleRepository.findAllById(vehiclesIds)
+    }
+
+    fun registerVisit(vehicleId: VehicleId) {
+        logger.debug("Recording visit for vehicle: {}", vehicleId.value)
+
+        vehicleStatisticsRepository.incrementVisitCount(vehicleId)
+
+        logger.info("Visit recorded for vehicle: {}", vehicleId.value)
     }
 }

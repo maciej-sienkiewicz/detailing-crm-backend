@@ -11,7 +11,9 @@ import com.carslab.crm.production.modules.visits.domain.command.*
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleStatisticsCommandService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.vehicles.domain.service.VehicleDomainService
 import com.carslab.crm.production.modules.visits.application.dto.AddCommentRequest
 import com.carslab.crm.production.modules.visits.application.service.command.VisitCommentCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
@@ -38,6 +40,7 @@ import java.time.LocalDateTime
 class VisitDomainService(
     private val visitRepository: VisitRepository,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
+    private val vehicleStatisticsCommandService: VehicleStatisticsCommandService,
     private val clientQueryService: ClientQueryService,
     private val vehicleQueryService: VehicleQueryService,
     private val companyDetailsFetchService: CompanyDetailsFetchService,
@@ -71,6 +74,7 @@ class VisitDomainService(
 
         return visitRepository.save(visit)
             .also { clientStatisticsCommandService.recordVisit(visit.clientId.value.toString()) }
+            .also { vehicleStatisticsCommandService.recordVisit(visit.vehicleId) }
             .also { visitActivitySender.onVisitCreated(visit, command.client, command.vehicle) }
     }
 

@@ -28,6 +28,17 @@ interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity
     fun incrementVisitCount(@Param("vehicleId") vehicleId: Long, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
 
     @Modifying
+    @Query(""")
+        INSERT INTO vehicle_statistics (vehicle_id, visit_count, total_revenue, created_at, updated_at) 
+        VALUES (:vehicleId, 1, 0.00, :now, :now)
+        ON CONFLICT (vehicle_id) DO UPDATE SET 
+            visit_count = vehicle_statistics.visit_count + 1,
+            last_visit_date = :visitDate,
+            updated_at = :now
+    """, nativeQuery = true)
+    fun upsertVisitCount(@Param("vehicleId") vehicleId: Long, @Param("visitDate") visitDate: LocalDateTime, @Param("now") now: LocalDateTime): Int
+    
+    @Modifying
     @Query("""
         UPDATE VehicleStatisticsEntity s 
         SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
