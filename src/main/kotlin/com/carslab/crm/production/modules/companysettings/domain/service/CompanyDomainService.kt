@@ -1,6 +1,8 @@
 package com.carslab.crm.production.modules.companysettings.domain.service
 
+import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.domain.command.CreateCompanyCommand
+import com.carslab.crm.production.modules.companysettings.domain.command.UploadLogoCommand
 import com.carslab.crm.production.modules.companysettings.domain.model.BankSettings
 import com.carslab.crm.production.modules.companysettings.domain.model.Company
 import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
@@ -12,7 +14,8 @@ import java.time.LocalDateTime
 
 @Service
 class CompanyDomainService(
-    private val repository: CompanyRepository
+    private val repository: CompanyRepository,
+    private val logoStorageService: LogoStorageService
 ) {
 
     fun createCompany(command: CreateCompanyCommand): Company {
@@ -27,6 +30,7 @@ class CompanyDomainService(
             address = command.address,
             phone = command.phone,
             website = command.website,
+            logoId = null,
             bankSettings = BankSettings(
                 bankAccountNumber = command.bankAccountNumber,
                 bankName = command.bankName,
@@ -40,9 +44,27 @@ class CompanyDomainService(
 
         return repository.save(company)
     }
-    
+
     fun getCompanyById(companyId: Long): Company {
         return repository.findById(companyId)
             ?: throw CompanyNotFoundException("Company with ID $companyId not found")
+    }
+
+    fun uploadLogo(command: UploadLogoCommand): Company {
+        val company = getCompanyById(command.companyId)
+
+        company.logoId?.let { oldLogoId ->
+            logoStorageService.deleteLogo(oldLogoId)
+        }
+
+        val logoMetadata = logoStorageService.storeLogo(command.companyId, command.logoFile)
+
+        // Update company with new logo ID
+        val updatedCompany = company.copy(
+            logoId = logoMetadata.fileId,
+            updatedAt = LocalDateTime.now()
+        )
+
+        return repository.save(updatedCompany)
     }
 }

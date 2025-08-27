@@ -16,6 +16,7 @@ data class Company(
     val address: String? = null,
     val phone: String? = null,
     val website: String? = null,
+    val logoId: String? = null,
     val bankSettings: BankSettings,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,

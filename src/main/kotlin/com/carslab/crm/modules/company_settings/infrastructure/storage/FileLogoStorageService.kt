@@ -49,7 +49,7 @@ class FileLogoStorageService(
 
             Files.copy(logoFile.inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING)
 
-            val logoUrl = "$baseUrl/api/company-settings/logo/$fileId"
+            val logoUrl = "$baseUrl/api/company/logo/$fileId"
 
             return LogoMetadata(
                 fileId = fileId,
@@ -80,7 +80,7 @@ class FileLogoStorageService(
 
     override fun getLogoUrl(logoFileId: String): String? {
         return if (logoExists(logoFileId)) {
-            "$baseUrl/api/company-settings/logo/$logoFileId"
+            "$baseUrl/api/company/logo/$logoFileId"
         } else null
     }
 

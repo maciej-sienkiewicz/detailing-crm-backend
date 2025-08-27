@@ -1,5 +1,7 @@
 package com.carslab.crm.production.modules.companysettings.application.service
 
+import com.carslab.crm.modules.company_settings.domain.LogoStorageService
+import com.carslab.crm.modules.company_settings.infrastructure.storage.FileLogoStorageService
 import com.carslab.crm.production.modules.companysettings.application.dto.CompanyResponse
 import com.carslab.crm.production.modules.companysettings.application.dto.CreateCompanyRequest
 import com.carslab.crm.production.modules.companysettings.domain.command.CreateCompanyCommand
@@ -11,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional
 class CompanyInitializationService(
-    private val companyDomainService: CompanyDomainService
+    private val companyDomainService: CompanyDomainService,
+    private val logoStorageService: FileLogoStorageService,
 ) {
     private val logger = LoggerFactory.getLogger(CompanyInitializationService::class.java)
  
@@ -33,6 +36,6 @@ class CompanyInitializationService(
         val company = companyDomainService.createCompany(createCompanyCommand)
         logger.info("Created company with ID: ${company.id.value}")
 
-        return CompanyResponse.Companion.from(company)
+        return CompanyResponse.Companion.from(company, logoStorageService)
     }
 }

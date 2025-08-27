@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.companysettings.application.dto
 
+import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.domain.model.BankSettings
 import com.carslab.crm.production.modules.companysettings.domain.model.Company
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -22,14 +23,16 @@ data class CompanyResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
-        fun from(company: Company): CompanyResponse = CompanyResponse(
+        fun from(company: Company, logoStorageService: LogoStorageService): CompanyResponse = CompanyResponse(
             id = company.id.value,
             basicInfo = CompanyBasicInfoResponse(
                 companyName = company.name,
                 taxId = company.taxId,
                 address = company.address,
                 phone = company.phone,
-                website = company.website
+                website = company.website,
+                logoId = company.logoId,
+                logoUrl = company.logoId?.let { logoStorageService.getLogoUrl(it) }
             ),
             bankSettings = BankSettingsResponse.from(company.bankSettings),
             createdAt = company.createdAt,
@@ -58,7 +61,7 @@ data class CompanySettingsResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
-        fun from(company: Company): CompanySettingsResponse = CompanySettingsResponse(
+        fun from(company: Company, logoStorageService: LogoStorageService): CompanySettingsResponse = CompanySettingsResponse(
             id = company.id.value,
             companyId = company.id.value,
             basicInfo = CompanyBasicInfoResponse(
@@ -66,7 +69,9 @@ data class CompanySettingsResponse(
                 taxId = company.taxId,
                 address = company.address,
                 phone = company.phone,
-                website = company.website
+                website = company.website,
+                logoId = company.logoId,
+                logoUrl = company.logoId?.let { logoStorageService.getLogoUrl(it) }
             ),
             bankSettings = BankSettingsResponse.from(company.bankSettings),
             createdAt = company.createdAt,
@@ -89,7 +94,13 @@ data class CompanyBasicInfoResponse(
     val phone: String?,
 
     @JsonProperty("website")
-    val website: String?
+    val website: String?,
+
+    @JsonProperty("logo_id")
+    val logoId: String?,
+
+    @JsonProperty("logo_url")
+    val logoUrl: String?
 )
 
 data class BankSettingsResponse(
