@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.associations.infrastructure.repositor
 
 import com.carslab.crm.production.modules.associations.domain.model.ClientVehicleAssociation
 import com.carslab.crm.production.modules.associations.domain.repository.ClientVehicleAssociationRepository
+import com.carslab.crm.production.modules.associations.infrastructure.entity.ClientVehicleAssociationId
 import com.carslab.crm.production.modules.associations.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.associations.infrastructure.mapper.toEntity
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
@@ -87,12 +88,37 @@ class ClientVehicleAssociationRepositoryImpl(
         if (associations.isEmpty()) return 0
 
         logger.debug("Batch ending {} associations", associations.size)
-
-        val associationPairs = associations.map { (clientId, vehicleId) ->
-            Pair(clientId.value, vehicleId.value)
+       
+        val associationIds = associations.map { (clientId, vehicleId) ->
+            ClientVehicleAssociationId(clientId = clientId.value, vehicleId = vehicleId.value)
         }
 
-        return jpaRepository.batchEndAssociations(associationPairs, LocalDateTime.now())
+        val entitiesToEnd = jpaRepository.findActiveByIds(associationIds)
+        
+        if (entitiesToEnd.isEmpty()) {
+            logger.debug("No active associations found for the given pairs.")
+            return 0
+        }
+
+        val now = LocalDateTime.now()
+        entitiesToEnd.forEach { it.endDate = now }
+
+        jpaRepository.saveAll(entitiesToEnd)
+
+        logger.debug("{} associations ended successfully", entitiesToEnd.size)
+        return entitiesToEnd.size
+    }
+
+    override fun saveAll(associations: List<ClientVehicleAssociation>): List<ClientVehicleAssociation> {
+        if (associations.isEmpty()) return emptyList()
+
+        logger.debug("Batch saving {} associations", associations.size)
+
+        val entities = associations.map { it.toEntity() }
+        val savedEntities = jpaRepository.saveAll(entities)
+
+        logger.debug("Batch save completed")
+        return savedEntities.map { it.toDomain() }
     }
 
     override fun deleteByClientId(clientId: ClientId): Int {

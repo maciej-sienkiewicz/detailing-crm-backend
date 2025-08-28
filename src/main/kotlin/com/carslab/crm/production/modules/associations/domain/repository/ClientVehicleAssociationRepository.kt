@@ -16,4 +16,5 @@ interface ClientVehicleAssociationRepository {
     fun findActiveByClientIds(clientIds: List<ClientId>): List<ClientVehicleAssociation>
     fun findActiveByVehicleIds(vehicleIds: List<VehicleId>): List<ClientVehicleAssociation>
     fun batchEndAssociations(associations: List<Pair<ClientId, VehicleId>>): Int
+    fun saveAll(associations: List<ClientVehicleAssociation>): List<ClientVehicleAssociation>
 }

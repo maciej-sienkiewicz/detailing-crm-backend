@@ -91,6 +91,19 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
+    override fun decrementVehicleCount(clientId: ClientId) {
+        logger.debug("Atomically decrementing vehicle count for client: {}", clientId.value)
+
+        val now = LocalDateTime.now()
+        val rowsUpdated = jpaRepository.decrementVehicleCount(clientId.value, now)
+
+        if (rowsUpdated > 0) {
+            logger.debug("Vehicle count decremented for client: {}", clientId.value)
+        } else {
+            logger.warn("Failed to decrement vehicle count for client: {}", clientId.value)
+        }
+    }
+
     override fun setLastVisitDate(clientId: ClientId, visitDate: LocalDateTime) {
         logger.debug("Setting last visit date atomically through upsertVisitCount for client: {}", clientId.value)
     }

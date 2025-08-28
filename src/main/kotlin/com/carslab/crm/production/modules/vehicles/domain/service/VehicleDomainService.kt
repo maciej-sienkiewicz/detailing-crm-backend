@@ -1,5 +1,8 @@
 package com.carslab.crm.production.modules.vehicles.domain.service
 
+import com.carslab.crm.production.modules.associations.application.service.AssociationCommandService
+import com.carslab.crm.production.modules.associations.application.service.AssociationQueryService
+import com.carslab.crm.production.modules.vehicles.application.service.handler.UpdateVehicleOwnersHandler
 import com.carslab.crm.production.modules.vehicles.domain.command.CreateVehicleCommand
 import com.carslab.crm.production.modules.vehicles.domain.command.UpdateVehicleCommand
 import com.carslab.crm.production.modules.vehicles.domain.model.*
@@ -20,7 +23,8 @@ class VehicleDomainService(
     private val vehicleUniquenessValidator: VehicleUniquenessValidator,
     private val vehicleStatisticsInitializer: VehicleStatisticsInitializer,
     private val vehicleAccessValidator: VehicleAccessValidator,
-    private val enhancedVehicleBuilder: EnhancedVehicleBuilder
+    private val enhancedVehicleBuilder: EnhancedVehicleBuilder,
+    private val updateVehicleOwnersHandler: UpdateVehicleOwnersHandler
 ) {
     private val logger = LoggerFactory.getLogger(VehicleDomainService::class.java)
 
@@ -57,6 +61,8 @@ class VehicleDomainService(
             mileage = command.mileage
         )
 
+        updateVehicleOwnersHandler.handle(vehicleId, command.ownerIds)
+        
         val saved = vehicleRepository.save(updatedVehicle)
         logger.info("Vehicle updated: {} for company: {}", vehicleId.value, companyId)
         return saved

@@ -79,4 +79,17 @@ class AssociationCommandService(
             throw BusinessException("Invalid vehicle ID")
         }
     }
+
+    fun updateVehicleOwners(vehicleId: VehicleId, requestedOwners: List<ClientId>) {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Updating owners for vehicle: {} in company: {}", vehicleId.value, companyId)
+
+        associationDomainService.updateVehicleOwners(
+            vehicleId = vehicleId,
+            newOwnerIds = requestedOwners,
+            companyId = companyId
+        )
+
+        logger.info("Vehicle owners updated successfully")
+    }
 }
