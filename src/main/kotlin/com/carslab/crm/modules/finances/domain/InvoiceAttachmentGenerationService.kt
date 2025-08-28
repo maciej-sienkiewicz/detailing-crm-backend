@@ -1,4 +1,4 @@
-// Enhanced InvoiceAttachmentGenerationService with seller signature support
+// Enhanced InvoiceAttachmentGenerationService with seller signature support and proper logo handling
 package com.carslab.crm.modules.finances.domain
 
 import com.carslab.crm.domain.model.view.finance.DocumentAttachment
@@ -19,6 +19,7 @@ import com.carslab.crm.production.modules.invoice_templates.application.service.
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.nio.file.Files
 import java.time.LocalDateTime
 import java.util.UUID
 import java.util.Base64
@@ -106,7 +107,7 @@ class InvoiceAttachmentGenerationService(
 
             val companySettings = companyDetailsFetchService.getCompanySettings(companyId)
 
-            val logoData = getLogoData()
+            val logoData = getLogoData(companySettings.basicInfo.logoId)
 
             val additionalData = mutableMapOf<String, Any>()
 
@@ -272,7 +273,30 @@ class InvoiceAttachmentGenerationService(
         )
     }
 
-    private fun getLogoData(): ByteArray? {
-        return null
+    /**
+     * Retrieves company logo data directly by logoId
+     */
+    private fun getLogoData(logoId: String?): ByteArray? {
+        return try {
+            if (logoId == null) {
+                logger.debug("No logo ID provided")
+                return null
+            }
+
+            logger.debug("Retrieving logo data for logoId: $logoId")
+
+            val logoPath = logoStorageService.getLogoPath(logoId)
+            if (logoPath != null && Files.exists(logoPath)) {
+                val logoBytes = Files.readAllBytes(logoPath)
+                logger.debug("Successfully loaded logo data, size: ${logoBytes.size} bytes")
+                logoBytes
+            } else {
+                logger.warn("Logo file not found for logoId: $logoId, path: $logoPath")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error loading logo data for logoId: $logoId", e)
+            null
+        }
     }
 }

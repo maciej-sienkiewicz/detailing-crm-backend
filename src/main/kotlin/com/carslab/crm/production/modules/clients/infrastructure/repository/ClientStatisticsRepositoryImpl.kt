@@ -40,41 +40,41 @@ class ClientStatisticsRepositoryImpl(
     }
 
     override fun incrementVisitCount(clientId: ClientId) {
-        logger.debug("Incrementing visit count for client: {}", clientId.value)
+        logger.debug("Atomically incrementing visit count for client: {}", clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.incrementVisitCount(clientId.value, now)
+        val rowsUpdated = jpaRepository.upsertVisitCount(clientId.value, now, now)
 
-        if (rowsUpdated == 0) {
-            logger.warn("No statistics found to increment visit count for client: {}", clientId.value)
-        } else {
+        if (rowsUpdated > 0) {
             logger.debug("Visit count incremented for client: {}", clientId.value)
+        } else {
+            logger.warn("Failed to increment visit count for client: {}", clientId.value)
         }
     }
-    
+
     override fun incrementVehicleCount(clientId: ClientId) {
-        logger.debug("Incrementing vehicle count for client: {}", clientId.value)
+        logger.debug("Atomically incrementing vehicle count for client: {}", clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.incrementVehicleCount(clientId.value, now)
+        val rowsUpdated = jpaRepository.upsertVehicleCount(clientId.value, now)
 
-        if (rowsUpdated == 0) {
-            logger.warn("No statistics found to increment vehicle count for client: {}", clientId.value)
-        } else {
+        if (rowsUpdated > 0) {
             logger.debug("Vehicle count incremented for client: {}", clientId.value)
+        } else {
+            logger.warn("Failed to increment vehicle count for client: {}", clientId.value)
         }
     }
 
     override fun addRevenue(clientId: ClientId, amount: BigDecimal) {
-        logger.debug("Adding revenue {} for client: {}", amount, clientId.value)
+        logger.debug("Atomically adding revenue {} for client: {}", amount, clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.addRevenue(clientId.value, amount, now)
+        val rowsUpdated = jpaRepository.upsertRevenue(clientId.value, amount, now)
 
-        if (rowsUpdated == 0) {
-            logger.warn("No statistics found to add revenue for client: {}", clientId.value)
-        } else {
+        if (rowsUpdated > 0) {
             logger.debug("Revenue added for client: {}, amount: {}", clientId.value, amount)
+        } else {
+            logger.warn("Failed to add revenue for client: {}", clientId.value)
         }
     }
 
@@ -82,26 +82,30 @@ class ClientStatisticsRepositoryImpl(
         logger.debug("Updating vehicle count to {} for client: {}", count, clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.incrementVehicleCount(clientId.value, now)
+        val rowsUpdated = jpaRepository.updateVehicleCount(clientId.value, count, now)
 
-        if (rowsUpdated == 0) {
-            logger.warn("No statistics found to update vehicle count for client: {}", clientId.value)
-        } else {
+        if (rowsUpdated > 0) {
             logger.debug("Vehicle count updated for client: {}, count: {}", clientId.value, count)
+        } else {
+            logger.warn("Failed to update vehicle count for client: {}", clientId.value)
+        }
+    }
+
+    override fun decrementVehicleCount(clientId: ClientId) {
+        logger.debug("Atomically decrementing vehicle count for client: {}", clientId.value)
+
+        val now = LocalDateTime.now()
+        val rowsUpdated = jpaRepository.decrementVehicleCount(clientId.value, now)
+
+        if (rowsUpdated > 0) {
+            logger.debug("Vehicle count decremented for client: {}", clientId.value)
+        } else {
+            logger.warn("Failed to decrement vehicle count for client: {}", clientId.value)
         }
     }
 
     override fun setLastVisitDate(clientId: ClientId, visitDate: LocalDateTime) {
-        logger.debug("Setting last visit date to {} for client: {}", visitDate, clientId.value)
-
-        val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.setLastVisitDate(clientId.value, visitDate, now)
-
-        if (rowsUpdated == 0) {
-            logger.warn("No statistics found to set last visit date for client: {}", clientId.value)
-        } else {
-            logger.debug("Last visit date set for client: {}, date: {}", clientId.value, visitDate)
-        }
+        logger.debug("Setting last visit date atomically through upsertVisitCount for client: {}", clientId.value)
     }
 
     override fun deleteByClientId(clientId: ClientId): Boolean {
@@ -117,5 +121,28 @@ class ClientStatisticsRepositoryImpl(
         }
 
         return success
+    }
+
+    fun batchDelete(clientIds: List<ClientId>) {
+        if (clientIds.isEmpty()) return
+
+        logger.debug("Batch deleting statistics for {} clients", clientIds.size)
+
+        val clientIdValues = clientIds.map { it.value }
+        val deleted = jpaRepository.deleteByClientIds(clientIdValues)
+
+        logger.debug("Batch deleted {} statistics records", deleted)
+    }
+
+    @Transactional(readOnly = true)
+    fun findByClientIds(clientIds: List<ClientId>): Map<ClientId, ClientStatistics> {
+        if (clientIds.isEmpty()) return emptyMap()
+
+        logger.debug("Batch finding statistics for {} clients", clientIds.size)
+
+        val clientIdValues = clientIds.map { it.value }
+        return jpaRepository.findByClientIds(clientIdValues)
+            .map { it.toDomain() }
+            .associateBy { it.clientId }
     }
 }

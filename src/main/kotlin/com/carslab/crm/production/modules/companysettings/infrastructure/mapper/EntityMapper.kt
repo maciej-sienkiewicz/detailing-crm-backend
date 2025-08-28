@@ -13,6 +13,7 @@ fun Company.toEntity(): CompanyEntity {
         address = this.address,
         phone = this.phone,
         website = this.website,
+        logoId = this.logoId,
         bankAccountNumber = this.bankSettings.bankAccountNumber,
         bankName = this.bankSettings.bankName,
         swiftCode = this.bankSettings.swiftCode,
@@ -31,6 +32,7 @@ fun CompanyEntity.toDomain(): Company {
         address = this.address,
         phone = this.phone,
         website = this.website,
+        logoId = this.logoId,
         bankSettings = BankSettings(
             bankAccountNumber = this.bankAccountNumber,
             bankName = this.bankName,

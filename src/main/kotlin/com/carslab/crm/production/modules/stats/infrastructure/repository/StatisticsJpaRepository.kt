@@ -16,7 +16,7 @@ interface StatisticsJpaRepository : JpaRepository<ServiceEntity, String> {
             s.id as serviceId,
             s.name as serviceName,
             COUNT(vs.id) as servicesCount,
-            COALESCE(SUM(vs.final_price * vs.quantity), 0) as totalRevenue
+            COALESCE(SUM(vs.final_price), 0) as totalRevenue
         FROM services s
         LEFT JOIN visit_services vs ON s.name = vs.name
         LEFT JOIN visits v ON vs.visit_id = v.id AND v.company_id = :companyId
@@ -33,7 +33,7 @@ interface StatisticsJpaRepository : JpaRepository<ServiceEntity, String> {
             s.id as serviceId,
             s.name as serviceName,
             COUNT(vs.id) as servicesCount,
-            COALESCE(SUM(vs.final_price * vs.quantity), 0) as totalRevenue
+            COALESCE(SUM(vs.final_price), 0) as totalRevenue
         FROM services s
         INNER JOIN service_category_mappings scm ON s.id = scm.service_id
         LEFT JOIN visit_services vs ON s.name = vs.name
@@ -53,7 +53,7 @@ interface StatisticsJpaRepository : JpaRepository<ServiceEntity, String> {
             c.id as categoryId,
             c.name as categoryName,
             COUNT(vs.id) as totalOrders,
-            COALESCE(SUM(vs.final_price * vs.quantity), 0) as totalRevenue,
+            COALESCE(SUM(vs.final_price), 0) as totalRevenue,
             COUNT(DISTINCT s.id) as servicesCount
         FROM service_categories c
         LEFT JOIN service_category_mappings scm ON c.id = scm.category_id
@@ -72,7 +72,7 @@ interface StatisticsJpaRepository : JpaRepository<ServiceEntity, String> {
         SELECT 
             TO_CHAR(DATE_TRUNC(:granularity, v.start_date), :dateFormat) as period,
             COUNT(vs.id) as orders,
-            COALESCE(SUM(vs.final_price * vs.quantity), 0) as revenue
+            COALESCE(SUM(vs.final_price), 0) as revenue
         FROM service_categories c
         LEFT JOIN service_category_mappings scm ON c.id = scm.category_id
         LEFT JOIN services s ON scm.service_id = s.id
@@ -108,7 +108,7 @@ interface StatisticsJpaRepository : JpaRepository<ServiceEntity, String> {
         SELECT 
             TO_CHAR(DATE_TRUNC(:granularity, v.start_date), :dateFormat) as period,
             COUNT(vs.id) as orders,
-            COALESCE(SUM(vs.final_price * vs.quantity), 0) as revenue
+            COALESCE(SUM(vs.final_price), 0) as revenue
         FROM services s
         LEFT JOIN visit_services vs ON s.name = vs.name
         LEFT JOIN visits v ON vs.visit_id = v.id 

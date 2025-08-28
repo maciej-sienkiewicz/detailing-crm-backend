@@ -29,7 +29,6 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
 	implementation("com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0")
 	implementation("com.google.api-client:google-api-client:2.0.0")
@@ -77,7 +76,6 @@ dependencies {
 
 	// Rate limiting
 	implementation("com.github.vladimir-bukhtoyarov:bucket4j-core:7.6.0")
-	implementation("com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0")
 
 	implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
 

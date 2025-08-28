@@ -9,12 +9,14 @@ import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.shared.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
 
 @Service
 class AssociationDomainService(
     private val associationRepository: ClientVehicleAssociationRepository,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
+    private val associationCreator: AssociationCreator,
+    private val associationAccessValidator: AssociationAccessValidator,
+    private val primaryOwnerManager: PrimaryOwnerManager
 ) {
     private val logger = LoggerFactory.getLogger(AssociationDomainService::class.java)
 
@@ -35,34 +37,42 @@ class AssociationDomainService(
             return existingAssociation
         }
 
-        val association = ClientVehicleAssociation(
-            id = null,
-            clientId = clientId,
-            vehicleId = vehicleId,
-            companyId = companyId,
-            associationType = associationType,
-            isPrimary = isPrimary,
-            startDate = LocalDateTime.now(),
-            endDate = null,
-            createdAt = LocalDateTime.now()
-        )
-
+        val association = associationCreator.create(clientId, vehicleId, companyId, associationType, isPrimary)
         val saved = associationRepository.save(association)
-        logger.info("Association created: {} for company: {}", saved.id?.value, companyId)
+
+        clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString())
+
+        logger.info("Association created for company: {}", companyId)
         return saved
-            .also { clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString()) }
+    }
+
+    fun createAssociations(
+        associations: List<Triple<ClientId, VehicleId, Boolean>>,
+        companyId: Long,
+        associationType: AssociationType = AssociationType.OWNER
+    ): List<ClientVehicleAssociation> {
+        if (associations.isEmpty()) return emptyList()
+
+        logger.debug("Batch creating {} associations for company: {}", associations.size, companyId)
+
+        val savedAssociations = associations.map { (clientId, vehicleId, isPrimary) ->
+            val association = associationCreator.create(clientId, vehicleId, companyId, associationType, isPrimary)
+            associationRepository.save(association)
+        }
+
+        associations.forEach { (clientId, _, _) ->
+            clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString())
+        }
+
+        logger.info("Batch created {} associations for company: {}", savedAssociations.size, companyId)
+        return savedAssociations
     }
 
     fun endAssociation(clientId: ClientId, vehicleId: VehicleId, companyId: Long): Boolean {
         logger.debug("Ending association between client: {} and vehicle: {} for company: {}",
             clientId.value, vehicleId.value, companyId)
 
-        val association = associationRepository.findByClientIdAndVehicleId(clientId, vehicleId)
-            ?: throw BusinessException("Association not found")
-
-        if (!association.canBeAccessedBy(companyId)) {
-            throw BusinessException("Access denied to association")
-        }
+        val association = associationAccessValidator.getAssociationForCompany(clientId, vehicleId, companyId)
 
         if (!association.isActive) {
             throw BusinessException("Association is already ended")
@@ -72,6 +82,27 @@ class AssociationDomainService(
         if (ended) {
             logger.info("Association ended between client: {} and vehicle: {} for company: {}",
                 clientId.value, vehicleId.value, companyId)
+        }
+
+        return ended
+    }
+
+    fun endAssociations(
+        associations: List<Pair<ClientId, VehicleId>>,
+        companyId: Long
+    ): Int {
+        if (associations.isEmpty()) return 0
+
+        logger.debug("Batch ending {} associations for company: {}", associations.size, companyId)
+
+        associations.forEach { (clientId, vehicleId) ->
+            associationAccessValidator.getAssociationForCompany(clientId, vehicleId, companyId)
+        }
+
+        val ended = associationRepository.batchEndAssociations(associations)
+
+        if (ended > 0) {
+            logger.info("Batch ended {} associations for company: {}", ended, companyId)
         }
 
         return ended
@@ -88,55 +119,60 @@ class AssociationDomainService(
     }
 
     fun getVehicleOwnersMap(vehicleIds: List<VehicleId>): Map<VehicleId, List<ClientId>> {
-        logger.debug("Getting owners for {} vehicles", vehicleIds.size)
+        logger.debug("Batch getting owners for {} vehicles", vehicleIds.size)
 
         if (vehicleIds.isEmpty()) {
             return emptyMap()
         }
 
-        val allAssociations = vehicleIds.flatMap { vehicleId ->
-            associationRepository.findActiveByVehicleId(vehicleId)
-        }
+        val allAssociations = associationRepository.findActiveByVehicleIds(vehicleIds)
 
-        return allAssociations.groupBy { it.vehicleId }
+        val result = allAssociations.groupBy { it.vehicleId }
             .mapValues { (_, associations) -> associations.map { it.clientId } }
+
+        logger.debug("Resolved owners for {} vehicles using single batch query", result.size)
+        return result
     }
 
     fun getClientVehiclesMap(clientIds: List<ClientId>): Map<ClientId, List<VehicleId>> {
-        logger.debug("Getting vehicles for {} clients", clientIds.size)
+        logger.debug("Batch getting vehicles for {} clients", clientIds.size)
 
         if (clientIds.isEmpty()) {
             return emptyMap()
         }
 
-        val allAssociations = clientIds.flatMap { clientId ->
-            associationRepository.findActiveByClientId(clientId)
-        }
+        val allAssociations = associationRepository.findActiveByClientIds(clientIds)
 
-        return allAssociations.groupBy { it.clientId }
+        val result = allAssociations.groupBy { it.clientId }
             .mapValues { (_, associations) -> associations.map { it.vehicleId } }
+
+        logger.debug("Resolved vehicles for {} clients using single batch query", result.size)
+        return result
     }
 
     fun makePrimaryOwner(clientId: ClientId, vehicleId: VehicleId, companyId: Long) {
-        logger.debug("Making client: {} primary owner of vehicle: {} for company: {}",
-            clientId.value, vehicleId.value, companyId)
+        primaryOwnerManager.makePrimaryOwner(clientId, vehicleId, companyId)
+    }
+
+    fun updateVehicleOwners(vehicleId: VehicleId, newOwnerIds: List<ClientId>, companyId: Long) {
+        logger.debug("Updating owners for vehicle: {} in company: {}", vehicleId.value, companyId)
 
         val currentAssociations = associationRepository.findActiveByVehicleId(vehicleId)
+        val currentOwnerIds = currentAssociations.map { it.clientId }
 
-        currentAssociations.forEach { association ->
-            if (!association.canBeAccessedBy(companyId)) {
-                throw BusinessException("Access denied to association")
-            }
+        val toAdd = newOwnerIds.filterNot { it in currentOwnerIds }
+        val toRemove = currentOwnerIds.filterNot { it in newOwnerIds }
 
-            val updated = if (association.clientId == clientId) {
-                association.makePrimary()
-            } else {
-                association.makeSecondary()
-            }
-
-            associationRepository.save(updated)
+        val additions = toAdd.map { clientId ->
+            associationCreator.create(clientId, vehicleId, companyId, AssociationType.OWNER, isPrimary = false)
         }
 
-        logger.info("Primary owner updated for vehicle: {} in company: {}", vehicleId.value, companyId)
+        associationRepository.saveAll(additions)
+        associationRepository.batchEndAssociations(toRemove.map { it to vehicleId })
+
+        toAdd.forEach { clientStatisticsCommandService.incrementVehicleCount(it.value.toString()) }
+        toRemove.forEach { clientStatisticsCommandService.decrementVehicleCount(it) }
+
+        logger.info("Updated owners for vehicle: {} in company: {}", vehicleId.value, companyId)
     }
 }

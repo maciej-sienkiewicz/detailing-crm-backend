@@ -20,13 +20,10 @@ data class EnhancedVehicle(
     val displayName: String get() = vehicle.displayName
     val createdAt: LocalDateTime get() = vehicle.createdAt
     val updatedAt: LocalDateTime get() = vehicle.updatedAt
-    val version: Long get() = vehicle.version
 
     val visitCount: Long get() = statistics?.visitCount ?: 0L
     val totalRevenue: BigDecimal get() = statistics?.totalRevenue ?: BigDecimal.ZERO
     val lastVisitDate: LocalDateTime? get() = statistics?.lastVisitDate
-
-    fun canBeAccessedBy(companyId: Long): Boolean = vehicle.canBeAccessedBy(companyId)
 }
 
 data class VehicleOwner(

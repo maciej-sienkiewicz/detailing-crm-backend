@@ -19,13 +19,13 @@ import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
-import com.carslab.crm.modules.company_settings.api.responses.CompanySettingsResponse
 import com.carslab.crm.modules.company_settings.domain.model.BankSettings
 import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
 import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
 import com.carslab.crm.modules.company_settings.domain.model.CompanySettingsId
 import com.carslab.crm.modules.company_settings.domain.model.LogoSettings
 import com.carslab.crm.modules.company_settings.domain.model.shared.AuditInfo
+import com.carslab.crm.production.modules.companysettings.application.dto.CompanySettingsResponse
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateHeaderResponse
 import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
@@ -229,8 +229,8 @@ class InvoiceTemplateService(
     private fun getCompanySettings(companyId: Long): CompanySettingsResponse =
         companyDetailsFetchService.getCompanySettings(companyId)
 
-    private fun getLogoData(companySettings: CompanySettings): ByteArray? {
-        return companySettings.logoSettings.logoFileId?.let { logoFileId ->
+    private fun getLogoData(companySettings: CompanySettingsResponse): ByteArray? {
+        return companySettings.basicInfo.logoId?.let { logoFileId ->
             try {
                 logoStorageService.getLogoPath(logoFileId)?.let { path ->
                     Files.readAllBytes(path)
@@ -407,7 +407,7 @@ class InvoiceTemplateService(
         return InvoiceGenerationData(
             document = mockDocument,
             companySettings = CompanySettings.createCompanySettings(companySettings),
-            logoData = ByteArray(0),
+            logoData = getLogoData(companySettings),
         )
     }
 }

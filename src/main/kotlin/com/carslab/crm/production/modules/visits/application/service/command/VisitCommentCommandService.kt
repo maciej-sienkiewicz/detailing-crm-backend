@@ -6,7 +6,7 @@ import com.carslab.crm.production.modules.visits.application.dto.VisitCommentRes
 import com.carslab.crm.production.modules.visits.domain.command.AddCommentCommand
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitCommentService
+import com.carslab.crm.production.modules.visits.domain.service.details.CommentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional
 class VisitCommentCommandService(
-    private val commentService: VisitCommentService,
+    private val commentService: CommentService,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommentCommandService::class.java)

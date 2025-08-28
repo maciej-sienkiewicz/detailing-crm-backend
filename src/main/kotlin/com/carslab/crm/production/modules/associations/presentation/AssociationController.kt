@@ -27,7 +27,7 @@ class AssociationController(
             request.clientId, request.vehicleId)
 
         val response = associationCommandService.createAssociation(request)
-        logger.info("Successfully created association with ID: {}", response.id)
+        logger.info("Successfully created association")
 
         return created(response)
     }

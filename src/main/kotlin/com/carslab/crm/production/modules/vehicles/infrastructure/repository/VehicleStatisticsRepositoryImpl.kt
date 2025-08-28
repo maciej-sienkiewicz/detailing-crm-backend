@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.vehicles.infrastructure.repository
 
+import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleStatistics
 import com.carslab.crm.production.modules.vehicles.domain.repository.VehicleStatisticsRepository
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Repository
 @Transactional
@@ -49,9 +51,16 @@ class VehicleStatisticsRepositoryImpl(
     }
 
     override fun incrementVisitCount(vehicleId: VehicleId) {
-        logger.debug("Incrementing visit count for vehicle: {}", vehicleId.value)
+        logger.debug("Atomically incrementing visit count for client: {}", vehicleId.value)
 
-        jpaRepository.incrementVisitCount(vehicleId.value)
+        val now = LocalDateTime.now()
+        val rowsUpdated = jpaRepository.upsertVisitCount(vehicleId.value, now, now)
+
+        if (rowsUpdated > 0) {
+            logger.debug("Visit count incremented for client: {}", vehicleId.value)
+        } else {
+            logger.warn("Failed to increment visit count for client: {}", vehicleId.value)
+        }
     }
 
     override fun addRevenue(vehicleId: VehicleId, amount: BigDecimal) {

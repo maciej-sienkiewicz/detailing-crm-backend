@@ -16,7 +16,6 @@ enum class AssociationType {
 }
 
 data class ClientVehicleAssociation(
-    val id: AssociationId?,
     val clientId: ClientId,
     val vehicleId: VehicleId,
     val companyId: Long,

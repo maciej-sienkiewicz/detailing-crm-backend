@@ -81,7 +81,8 @@ class StatisticsRepositoryImpl(
         logger.debug("Fetching category time series for category: {} from {} to {} with granularity: {}",
             categoryId.id, startDate, endDate, granularity)
 
-        val granularityStr = granularity.name.lowercase()
+        // Używamy poprawnej metody do mapowania granularity
+        val granularityStr = TimeSeriesMapper.getDateTruncUnit(granularity)
         val dateFormat = TimeSeriesMapper.getDateFormatString(granularity)
 
         val projections = statisticsJpaRepository.findCategoryStatsTimeSeries(
@@ -114,7 +115,8 @@ class StatisticsRepositoryImpl(
         val serviceNameProjection = statisticsJpaRepository.findServiceName(serviceId, companyId)
             ?: throw IllegalArgumentException("Service not found: $serviceId")
 
-        val granularityStr = granularity.name.lowercase()
+        // Używamy poprawnej metody do mapowania granularity
+        val granularityStr = TimeSeriesMapper.getDateTruncUnit(granularity)
         val dateFormat = TimeSeriesMapper.getDateFormatString(granularity)
 
         val projections = statisticsJpaRepository.findServiceStatsTimeSeries(

@@ -29,37 +29,7 @@ class SecurityConfig(
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder(12)
 
-    @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "https://localhost:*",
-                "https://*.crm.com"
-            )
 
-            allowedMethods = listOf(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
-            )
-
-            allowedHeaders = listOf("*")
-
-            exposedHeaders = listOf(
-                "Authorization",
-                "Content-Type",
-                "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials"
-            )
-
-            allowCredentials = true
-            maxAge = 3600L
-        }
-
-        return UrlBasedCorsConfigurationSource().apply {
-            registerCorsConfiguration("/**", configuration)
-        }
-    }
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
@@ -67,7 +37,6 @@ class SecurityConfig(
 
         return http
             .csrf { it.disable() }
-            .cors { it.configurationSource(corsConfigurationSource()) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
 
             .authorizeHttpRequests { auth ->

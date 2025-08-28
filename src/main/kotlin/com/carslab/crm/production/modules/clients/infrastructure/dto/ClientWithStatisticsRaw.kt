@@ -17,7 +17,6 @@ interface ClientWithStatisticsRaw {
     fun getClientNotes(): String?
     fun getClientCreatedAt(): LocalDateTime
     fun getClientUpdatedAt(): LocalDateTime
-    fun getClientVersion(): Long
     fun getClientActive(): Boolean
 
     fun getStatsClientId(): Long?

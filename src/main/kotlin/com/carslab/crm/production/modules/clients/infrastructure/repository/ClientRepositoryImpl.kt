@@ -18,7 +18,8 @@ import java.time.LocalDateTime
 @Repository
 @Transactional
 class ClientRepositoryImpl(
-    private val jpaRepository: ClientJpaRepository
+    private val jpaRepository: ClientJpaRepository,
+    private val batchAssociationLoader: BatchAssociationLoader
 ) : ClientRepository {
 
     private val logger = LoggerFactory.getLogger(ClientRepositoryImpl::class.java)
@@ -114,41 +115,17 @@ class ClientRepositoryImpl(
     ): Page<Client> {
         logger.debug("Searching clients for company: {} with criteria", companyId)
 
-        val offset = pageable.pageNumber * pageable.pageSize
-        val limit = pageable.pageSize
-
-        val entities = jpaRepository.searchClients(
+        val clients = jpaRepository.searchClientsSimple(
             companyId = companyId,
             name = searchCriteria.name,
             email = searchCriteria.email,
             phone = searchCriteria.phone,
             company = searchCriteria.company,
-            hasVehicles = searchCriteria.hasVehicles,
-            minTotalRevenue = searchCriteria.minTotalRevenue,
-            maxTotalRevenue = searchCriteria.maxTotalRevenue,
-            minVisits = searchCriteria.minVisits,
-            maxVisits = searchCriteria.maxVisits,
-            limit = limit,
-            offset = offset
+            pageable = pageable
         )
 
-        val totalCount = jpaRepository.countSearchClients(
-            companyId = companyId,
-            name = searchCriteria.name,
-            email = searchCriteria.email,
-            phone = searchCriteria.phone,
-            company = searchCriteria.company,
-            hasVehicles = searchCriteria.hasVehicles,
-            minTotalRevenue = searchCriteria.minTotalRevenue,
-            maxTotalRevenue = searchCriteria.maxTotalRevenue,
-            minVisits = searchCriteria.minVisits,
-            maxVisits = searchCriteria.maxVisits
-        )
-
-        val clients = entities.map { it.toDomain() }
-        logger.debug("Found {} clients matching criteria for company: {}", clients.size, companyId)
-
-        return PageImpl(clients, pageable, totalCount)
+        logger.debug("Found {} clients matching criteria for company: {}", clients.numberOfElements, companyId)
+        return clients.map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
@@ -162,13 +139,13 @@ class ClientRepositoryImpl(
         val offset = pageable.pageNumber * pageable.pageSize
         val limit = pageable.pageSize
 
-        val rawResults = jpaRepository.searchClientsWithStatisticsNative(
+        val rawResults = jpaRepository.searchClientsWithStatisticsOptimized(
             companyId = companyId,
             name = searchCriteria.name,
             email = searchCriteria.email,
             phone = searchCriteria.phone,
             company = searchCriteria.company,
-            hasVehicles = searchCriteria.hasVehicles,
+            minVehicles = searchCriteria.minVehicles,
             minTotalRevenue = searchCriteria.minTotalRevenue,
             maxTotalRevenue = searchCriteria.maxTotalRevenue,
             minVisits = searchCriteria.minVisits,
@@ -177,13 +154,13 @@ class ClientRepositoryImpl(
             offset = offset
         )
 
-        val totalCount = jpaRepository.countSearchClientsWithStatistics(
+        val totalCount = jpaRepository.countSearchClientsOptimized(
             companyId = companyId,
             name = searchCriteria.name,
             email = searchCriteria.email,
             phone = searchCriteria.phone,
             company = searchCriteria.company,
-            hasVehicles = searchCriteria.hasVehicles,
+            minVehicles = searchCriteria.minVehicles,
             minTotalRevenue = searchCriteria.minTotalRevenue,
             maxTotalRevenue = searchCriteria.maxTotalRevenue,
             minVisits = searchCriteria.minVisits,
@@ -191,9 +168,10 @@ class ClientRepositoryImpl(
         )
 
         val clientsWithStats = rawResults.map { it.toDomain() }
-        logger.debug("Found {} clients with statistics for company: {}", clientsWithStats.size, companyId)
+        val enrichedClients = batchAssociationLoader.enrichWithVehicleAssociations(clientsWithStats, companyId)
 
-        return PageImpl(clientsWithStats, pageable, totalCount)
+        logger.debug("Found {} clients with statistics for company: {}", enrichedClients.size, companyId)
+        return PageImpl(enrichedClients, pageable, totalCount)
     }
 
     override fun findByIds(ids: List<ClientId>, companyId: Long): List<Client> {
@@ -207,5 +185,49 @@ class ClientRepositoryImpl(
 
         logger.debug("Found {} clients out of {} requested", clients.size, ids.size)
         return clients
+    }
+
+    override fun findByPhoneOrEmail(
+        phone: String?,
+        email: String?,
+        companyId: Long
+    ): Client? {
+        if (phone.isNullOrBlank() && email.isNullOrBlank()) return null
+
+        logger.debug("Finding client by phone or email for company: {} with phone: {} and email: {}", companyId, phone, email)
+
+        val result = jpaRepository.findByPhoneOrEmailAndCompanyIdAndActiveTrue(phone, email, companyId)
+            .map { it.toDomain() }
+            .orElse(null)
+
+        if (result == null) {
+            logger.debug("Client not found by phone or email for company: {}", companyId)
+        } else {
+            logger.debug("Client found by phone or email: {}", result.fullName)
+        }
+
+        return result
+    }
+
+    fun findWithCursorPagination(companyId: Long, lastId: Long, limit: Int): List<Client> {
+        logger.debug("Finding clients with cursor pagination: company={}, lastId={}, limit={}", companyId, lastId, limit)
+
+        val projections = jpaRepository.findClientsAfterCursor(companyId, lastId, limit)
+        return projections.map { projection ->
+            Client(
+                id = ClientId(projection.getId()),
+                companyId = companyId,
+                firstName = projection.getFirstName(),
+                lastName = projection.getLastName(),
+                email = projection.getEmail(),
+                phone = projection.getPhone(),
+                address = null,
+                company = null,
+                taxId = null,
+                notes = null,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        }
     }
 }

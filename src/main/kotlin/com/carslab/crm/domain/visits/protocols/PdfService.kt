@@ -4,7 +4,6 @@ import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
-import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream

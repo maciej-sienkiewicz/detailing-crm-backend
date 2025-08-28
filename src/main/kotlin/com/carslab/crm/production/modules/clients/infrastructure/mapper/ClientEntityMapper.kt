@@ -19,8 +19,7 @@ fun Client.toEntity(): ClientEntity {
         taxId = this.taxId,
         notes = this.notes,
         createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        version = this.version
+        updatedAt = this.updatedAt
     )
 }
 
@@ -37,8 +36,7 @@ fun ClientEntity.toDomain(): Client {
         taxId = this.taxId,
         notes = this.notes,
         createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        version = this.version
+        updatedAt = this.updatedAt
     )
 }
 

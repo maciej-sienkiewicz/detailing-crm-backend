@@ -4,6 +4,11 @@ import com.carslab.crm.production.modules.associations.domain.model.AssociationT
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+data class ClientVehicleAssociationId(
+    val clientId: Long = 0,
+    val vehicleId: Long = 0
+)
+
 @Entity
 @Table(
     name = "client_vehicle_associations",
@@ -15,11 +20,8 @@ import java.time.LocalDateTime
         Index(name = "idx_association_client_vehicle", columnList = "client_id,vehicle_id")
     ]
 )
+@IdClass(ClientVehicleAssociationId::class)
 class ClientVehicleAssociationEntity(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
-
     @Column(name = "end_date")
     var endDate: LocalDateTime? = null,
 
@@ -30,9 +32,11 @@ class ClientVehicleAssociationEntity(
     var createdBy: String? = null,
 
     @Column(name = "client_id", nullable = false)
+    @Id
     val clientId: Long,
 
     @Column(name = "vehicle_id", nullable = false)
+    @Id
     val vehicleId: Long,
 
     @Column(name = "company_id", nullable = false)

@@ -18,8 +18,7 @@ fun Vehicle.toEntity(): VehicleEntity {
         vin = this.vin,
         mileage = this.mileage,
         createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        version = this.version
+        updatedAt = this.updatedAt
     )
 }
 
@@ -35,8 +34,7 @@ fun VehicleEntity.toDomain(): Vehicle {
         vin = this.vin,
         mileage = this.mileage,
         createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        version = this.version
+        updatedAt = this.updatedAt
     )
 }
 

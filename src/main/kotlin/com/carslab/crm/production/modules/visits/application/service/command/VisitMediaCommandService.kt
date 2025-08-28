@@ -2,12 +2,10 @@ package com.carslab.crm.production.modules.visits.application.service.command
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.visits.application.dto.MediaUploadResponse
-import com.carslab.crm.production.modules.visits.application.dto.UploadMediaRequest
-import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
 import com.carslab.crm.production.modules.visits.domain.command.UploadMediaCommand
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.MediaMetadata
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitMediaService
+import com.carslab.crm.production.modules.visits.domain.service.details.MediaService
 import com.carslab.crm.production.modules.visits.infrastructure.request.MediaRequestExtractor
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -17,7 +15,7 @@ import org.springframework.web.multipart.MultipartHttpServletRequest
 @Service
 @Transactional
 class VisitMediaCommandService(
-    private val mediaService: VisitMediaService,
+    private val mediaService: MediaService,
     private val securityContext: SecurityContext,
     private val mediaRequestExtractor: MediaRequestExtractor
 ) {

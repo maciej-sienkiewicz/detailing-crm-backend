@@ -30,6 +30,9 @@ class CompanyEntity(
     @Column(name = "website", length = 255)
     var website: String? = null,
 
+    @Column(name = "logo_id", length = 255)
+    var logoId: String? = null,
+
     @Column(name = "bank_account_number", length = 50)
     var bankAccountNumber: String? = null,
 

@@ -11,7 +11,6 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "idx_invoice_templates_company_id", columnList = "company_id"),
         Index(name = "idx_invoice_templates_type", columnList = "template_type"),
-        Index(name = "idx_invoice_templates_default", columnList = "company_id,is_default,is_active")
     ]
 )
 class InvoiceTemplateEntityDeprecated(

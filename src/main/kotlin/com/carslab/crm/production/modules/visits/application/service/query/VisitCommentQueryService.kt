@@ -2,7 +2,7 @@ package com.carslab.crm.production.modules.visits.application.service.query
 
 import com.carslab.crm.production.modules.visits.application.dto.VisitCommentResponse
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import com.carslab.crm.production.modules.visits.domain.service.VisitCommentService
+import com.carslab.crm.production.modules.visits.domain.service.details.CommentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional(readOnly = true)
 class VisitCommentQueryService(
-    private val commentService: VisitCommentService
+    private val commentService: CommentService
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommentQueryService::class.java)
 

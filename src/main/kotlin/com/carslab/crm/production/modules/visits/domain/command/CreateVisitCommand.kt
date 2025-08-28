@@ -53,6 +53,7 @@ data class UpdateVisitCommand(
 )
 
 data class CreateServiceCommand(
+    val id: String,
     val name: String,
     val basePrice: BigDecimal,
     val quantity: Long = 1,
