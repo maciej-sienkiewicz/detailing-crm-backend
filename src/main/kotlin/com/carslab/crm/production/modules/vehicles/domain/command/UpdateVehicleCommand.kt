@@ -1,5 +1,7 @@
 package com.carslab.crm.production.modules.vehicles.domain.command
 
+import com.carslab.crm.production.modules.clients.domain.model.ClientId
+
 data class UpdateVehicleCommand(
     val make: String,
     val model: String,
@@ -8,5 +10,5 @@ data class UpdateVehicleCommand(
     val color: String?,
     val vin: String?,
     val mileage: Long?,
-    val ownerIds: List<Long>
+    val ownerIds: List<ClientId>
 )

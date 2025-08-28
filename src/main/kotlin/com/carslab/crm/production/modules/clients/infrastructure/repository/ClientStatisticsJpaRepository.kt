@@ -72,6 +72,14 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
         @Param("newCount") newCount: Long,
         @Param("now") now: LocalDateTime
     ): Int
+    
+    @Modifying
+    @Query("""
+        UPDATE ClientStatisticsEntity s
+        SET s.vehicleCount = GREATEST(s.vehicleCount - 1, 0), s.updatedAt = :now 
+        WHERE s.clientId = :clientId AND s.vehicleCount > 0
+    """)
+    fun decrementVehicleCount(@Param("clientId") clientId: Long, @Param("now") now: LocalDateTime): Int
 
     @Modifying
     @Query("DELETE FROM ClientStatisticsEntity s WHERE s.clientId = :clientId")

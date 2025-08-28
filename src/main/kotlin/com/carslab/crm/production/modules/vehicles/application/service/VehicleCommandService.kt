@@ -71,7 +71,7 @@ class VehicleCommandService(
             color = request.color,
             vin = request.vin,
             mileage = request.mileage,
-            ownerIds = request.ownerIds
+            ownerIds = request.ownerIds.map { ClientId(it) }
         )
 
         val vehicle = vehicleDomainService.updateVehicle(VehicleId.of(vehicleId.toLong()), command, companyId)

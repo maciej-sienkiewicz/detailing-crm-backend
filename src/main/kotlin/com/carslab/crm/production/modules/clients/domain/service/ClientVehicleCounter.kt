@@ -18,4 +18,12 @@ class ClientVehicleCounter(
 
         logger.info("Vehicle count increased for client: {}", clientId.value)
     }
+    
+    fun decrementVehicleCount(clientId: ClientId) {
+        logger.debug("Decreasing vehicle count for client: {}", clientId.value)
+
+        clientStatisticsRepository.decrementVehicleCount(clientId)
+
+        logger.info("Vehicle count decreased for client: {}", clientId.value)
+    }
 }

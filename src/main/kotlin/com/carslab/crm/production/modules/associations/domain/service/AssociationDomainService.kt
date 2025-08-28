@@ -153,4 +153,26 @@ class AssociationDomainService(
     fun makePrimaryOwner(clientId: ClientId, vehicleId: VehicleId, companyId: Long) {
         primaryOwnerManager.makePrimaryOwner(clientId, vehicleId, companyId)
     }
+
+    fun updateVehicleOwners(vehicleId: VehicleId, newOwnerIds: List<ClientId>, companyId: Long) {
+        logger.debug("Updating owners for vehicle: {} in company: {}", vehicleId.value, companyId)
+
+        val currentAssociations = associationRepository.findActiveByVehicleId(vehicleId)
+        val currentOwnerIds = currentAssociations.map { it.clientId }
+
+        val toAdd = newOwnerIds.filterNot { it in currentOwnerIds }
+        val toRemove = currentOwnerIds.filterNot { it in newOwnerIds }
+
+        val additions = toAdd.map { clientId ->
+            associationCreator.create(clientId, vehicleId, companyId, AssociationType.OWNER, isPrimary = false)
+        }
+
+        associationRepository.saveAll(additions)
+        associationRepository.batchEndAssociations(toRemove.map { it to vehicleId })
+
+        toAdd.forEach { clientStatisticsCommandService.incrementVehicleCount(it.value.toString()) }
+        toRemove.forEach { clientStatisticsCommandService.decrementVehicleCount(it) }
+
+        logger.info("Updated owners for vehicle: {} in company: {}", vehicleId.value, companyId)
+    }
 }

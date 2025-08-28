@@ -26,4 +26,8 @@ class ClientStatisticsCommandService(
     fun updateTotalRevenue(clientId: ClientId, amount: BigDecimal) {
         clientRevenueUpdater.addRevenue(clientId, amount)
     }
+
+    fun decrementVehicleCount(clientId: ClientId) {
+        clientVehicleCounter.decrementVehicleCount(clientId)
+    }
 }

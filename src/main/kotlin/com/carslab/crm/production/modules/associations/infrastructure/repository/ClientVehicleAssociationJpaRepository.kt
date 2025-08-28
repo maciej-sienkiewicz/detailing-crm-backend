@@ -1,15 +1,17 @@
 package com.carslab.crm.production.modules.associations.infrastructure.repository
 
 import com.carslab.crm.production.modules.associations.infrastructure.entity.ClientVehicleAssociationEntity
+import com.carslab.crm.production.modules.associations.infrastructure.entity.ClientVehicleAssociationId
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import java.io.Serializable
 import java.time.LocalDateTime
 
 @Repository
-interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAssociationEntity, Long> {
+interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAssociationEntity, ClientVehicleAssociationId> {
 
     @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a.clientId = :clientId AND a.endDate IS NULL")
     fun findByClientIdAndEndDateIsNull(@Param("clientId") clientId: Long): List<ClientVehicleAssociationEntity>
@@ -25,6 +27,9 @@ interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAss
 
     @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a.vehicleId IN :vehicleIds AND a.endDate IS NULL")
     fun findByVehicleIdInAndEndDateIsNull(@Param("vehicleIds") vehicleIds: List<Long>): List<ClientVehicleAssociationEntity>
+
+    @Query("SELECT a FROM ClientVehicleAssociationEntity a WHERE a IN :ids AND a.endDate IS NULL")
+    fun findActiveByIds(@Param("ids") ids: List<ClientVehicleAssociationId>): List<ClientVehicleAssociationEntity>
 
     @Modifying
     @Query("""
