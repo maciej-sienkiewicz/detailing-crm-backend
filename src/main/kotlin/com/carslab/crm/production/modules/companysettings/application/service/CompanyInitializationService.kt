@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.companysettings.application.service
 
+import com.carslab.crm.infrastructure.backup.googledrive.config.GoogleDriveConfigurationService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.modules.company_settings.infrastructure.storage.FileLogoStorageService
 import com.carslab.crm.production.modules.companysettings.application.dto.CompanyResponse
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 class CompanyInitializationService(
     private val companyDomainService: CompanyDomainService,
     private val logoStorageService: FileLogoStorageService,
+    private val googleDriveConfigurationService: GoogleDriveConfigurationService,
 ) {
     private val logger = LoggerFactory.getLogger(CompanyInitializationService::class.java)
  
@@ -36,6 +38,6 @@ class CompanyInitializationService(
         val company = companyDomainService.createCompany(createCompanyCommand)
         logger.info("Created company with ID: ${company.id.value}")
 
-        return CompanyResponse.Companion.from(company, logoStorageService)
+        return CompanyResponse.Companion.from(company, logoStorageService, googleDriveConfigurationService)
     }
 }

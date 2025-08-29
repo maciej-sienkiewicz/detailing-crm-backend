@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.companysettings.application.service
 
+import com.carslab.crm.infrastructure.backup.googledrive.config.GoogleDriveConfigurationService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.application.dto.CompanySettingsResponse
 import com.carslab.crm.production.modules.companysettings.domain.command.UploadLogoCommand
@@ -13,7 +14,8 @@ import org.springframework.web.multipart.MultipartFile
 @Transactional
 class CompanyLogoService(
     private val companyDomainService: CompanyDomainService,
-    private val logoStorageService: LogoStorageService
+    private val logoStorageService: LogoStorageService,
+    private val googleDriveConfigurationService: GoogleDriveConfigurationService,
 ) {
     private val logger = LoggerFactory.getLogger(CompanyLogoService::class.java)
 
@@ -31,7 +33,7 @@ class CompanyLogoService(
 
         logger.info("Successfully uploaded logo for company ID: $companyId, logoId: ${updatedCompany.logoId}")
 
-        return CompanySettingsResponse.from(updatedCompany, logoStorageService)
+        return CompanySettingsResponse.from(updatedCompany, logoStorageService, googleDriveConfigurationService)
     }
 
     private fun validateLogoFile(logoFile: MultipartFile) {
