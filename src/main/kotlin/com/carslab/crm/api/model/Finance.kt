@@ -9,26 +9,6 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-data class ExtractedInvoiceDataDTO(
-    @JsonProperty("general_info")
-    val generalInfo: GeneralInfoDTO,
-
-    @JsonProperty("seller")
-    val seller: SellerInfoDTO,
-
-    @JsonProperty("buyer")
-    val buyer: BuyerInfoDTO,
-
-    @JsonProperty("items")
-    val items: List<ExtractedItemDTO>,
-
-    @JsonProperty("summary")
-    val summary: SummaryDTO,
-
-    @JsonProperty("notes")
-    val notes: String? = null
-)
-
 data class GeneralInfoDTO(
     @JsonProperty("title")
     val title: String? = null,

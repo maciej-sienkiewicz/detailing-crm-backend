@@ -1,7 +1,6 @@
 package com.carslab.crm.modules.company_settings.domain.model
 
 import com.carslab.crm.modules.company_settings.domain.model.shared.AuditInfo
-import com.carslab.crm.domain.model.events.CompanySettingsEvent
 import com.carslab.crm.production.modules.companysettings.application.dto.CompanySettingsResponse
 import com.fasterxml.jackson.annotation.JsonProperty
 
