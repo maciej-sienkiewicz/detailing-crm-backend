@@ -33,6 +33,7 @@ class CompanyEntity(
     @Column(name = "logo_id", length = 255)
     var logoId: String? = null,
 
+    // Bank settings
     @Column(name = "bank_account_number", length = 50)
     var bankAccountNumber: String? = null,
 
@@ -45,6 +46,57 @@ class CompanyEntity(
     @Column(name = "account_holder_name", length = 200)
     var accountHolderName: String? = null,
 
+    // Mail configuration
+    @Column(name = "smtp_server", length = 255)
+    var smtpServer: String? = null,
+
+    @Column(name = "smtp_port")
+    var smtpPort: Int? = null,
+
+    @Column(name = "email", length = 255)
+    var email: String? = null,
+
+    @Column(name = "email_password", length = 255)
+    var emailPassword: String? = null,
+
+    @Column(name = "use_tls", nullable = false)
+    var useTls: Boolean = false,
+
+    @Column(name = "use_ssl", nullable = false)
+    var useSsl: Boolean = false,
+
+    @Column(name = "from_name", length = 255)
+    var fromName: String? = null,
+
+    @Column(name = "mail_enabled", nullable = false)
+    var mailEnabled: Boolean = false,
+
+    // Google Drive settings
+    @Column(name = "google_client_id", length = 500)
+    var googleClientId: String? = null,
+
+    @Column(name = "google_client_secret", length = 1000)
+    var googleClientSecret: String? = null,
+
+    @Column(name = "google_refresh_token", length = 1000)
+    var googleRefreshToken: String? = null,
+
+    @Column(name = "google_default_folder_id", length = 500)
+    var googleDefaultFolderId: String? = null,
+
+    @Column(name = "google_default_folder_name", length = 255)
+    var googleDefaultFolderName: String? = null,
+
+    @Column(name = "google_drive_enabled", nullable = false)
+    var googleDriveEnabled: Boolean = false,
+
+    @Column(name = "google_auto_upload_invoices", nullable = false)
+    var googleAutoUploadInvoices: Boolean = false,
+
+    @Column(name = "google_auto_create_folders", nullable = false)
+    var googleAutoCreateFolders: Boolean = false,
+
+    // Meta fields
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

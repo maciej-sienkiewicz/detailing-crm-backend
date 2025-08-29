@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.companysettings.application.service
 
+import com.carslab.crm.infrastructure.backup.googledrive.config.GoogleDriveConfigurationService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.application.dto.CompanySettingsResponse
 import com.carslab.crm.production.modules.companysettings.domain.service.CompanyDomainService
@@ -11,7 +12,8 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class CompanyDetailsFetchService(
     private val companyDomainService: CompanyDomainService,
-    private val logoStorageService: LogoStorageService
+    private val logoStorageService: LogoStorageService,
+    private val googleDriveConfigurationService: GoogleDriveConfigurationService,
 ) {
 
     private val logger = LoggerFactory.getLogger(CompanyDetailsFetchService::class.java)
@@ -21,6 +23,6 @@ class CompanyDetailsFetchService(
         logger.info("Fetching company settings for company ID: $companyId")
         val companyDetails = companyDomainService.getCompanyById(companyId)
         logger.info("Fetched company settings for company ID: ${companyDetails.id.value}")
-        return CompanySettingsResponse.from(companyDetails, logoStorageService)
+        return CompanySettingsResponse.from(companyDetails, logoStorageService, googleDriveConfigurationService)
     }
 }
