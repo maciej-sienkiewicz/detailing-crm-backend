@@ -46,28 +46,6 @@ class AssociationDomainService(
         return saved
     }
 
-    fun createAssociations(
-        associations: List<Triple<ClientId, VehicleId, Boolean>>,
-        companyId: Long,
-        associationType: AssociationType = AssociationType.OWNER
-    ): List<ClientVehicleAssociation> {
-        if (associations.isEmpty()) return emptyList()
-
-        logger.debug("Batch creating {} associations for company: {}", associations.size, companyId)
-
-        val savedAssociations = associations.map { (clientId, vehicleId, isPrimary) ->
-            val association = associationCreator.create(clientId, vehicleId, companyId, associationType, isPrimary)
-            associationRepository.save(association)
-        }
-
-        associations.forEach { (clientId, _, _) ->
-            clientStatisticsCommandService.incrementVehicleCount(clientId.value.toString())
-        }
-
-        logger.info("Batch created {} associations for company: {}", savedAssociations.size, companyId)
-        return savedAssociations
-    }
-
     fun endAssociation(clientId: ClientId, vehicleId: VehicleId, companyId: Long): Boolean {
         logger.debug("Ending association between client: {} and vehicle: {} for company: {}",
             clientId.value, vehicleId.value, companyId)

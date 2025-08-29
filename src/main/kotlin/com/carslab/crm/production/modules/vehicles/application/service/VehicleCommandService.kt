@@ -1,6 +1,9 @@
 package com.carslab.crm.production.modules.vehicles.application.service
 
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.modules.associations.application.dto.CreateAssociationRequest
+import com.carslab.crm.production.modules.associations.application.service.AssociationCommandService
+import com.carslab.crm.production.modules.associations.domain.model.AssociationType
 import com.carslab.crm.production.modules.associations.domain.service.AssociationDomainService
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.application.dto.CreateVehicleRequest
@@ -18,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class VehicleCommandService(
     private val vehicleDomainService: VehicleDomainService,
-    private val associationDomainService: AssociationDomainService,
+    private val associationCommandService: AssociationCommandService,
     private val securityContext: SecurityContext,
     private val vehicleInputValidator: VehicleInputValidator
 ) {
@@ -44,12 +47,14 @@ class VehicleCommandService(
 
         val vehicle = vehicleDomainService.createVehicle(command)
 
-        request.ownerIds.forEachIndexed { index, ownerId ->
-            associationDomainService.createAssociation(
-                clientId = ClientId.of(ownerId),
-                vehicleId = vehicle.id,
-                companyId = companyId,
-                isPrimary = index == 0 && request.ownerIds.size == 1
+        request.ownerIds.forEachIndexed { _, ownerId ->
+            associationCommandService.createAssociation(
+                CreateAssociationRequest(
+                    clientId = ownerId,
+                    vehicleId = vehicle.id.value,
+                    associationType = AssociationType.OWNER,
+                    isPrimary = true,
+                )
             )
         }
 

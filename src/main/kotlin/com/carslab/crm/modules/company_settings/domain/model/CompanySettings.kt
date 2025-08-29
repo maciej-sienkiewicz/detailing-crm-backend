@@ -22,20 +22,20 @@ data class CompanySettings(
     companion object {
         fun createCompanySettings(company: CompanySettingsResponse): CompanySettings {
             return CompanySettings(
-                id = CompanySettingsId.of(company.id ?: 0),
-                companyId = company.companyId ?: 0,
+                id = CompanySettingsId.of(company.id),
+                companyId = company.companyId,
                 basicInfo = CompanyBasicInfo(
-                    companyName = company.basicInfo?.companyName ?: "",
-                    taxId = company.basicInfo?.taxId ?: "",
-                    address = company.basicInfo?.address,
-                    phone = company.basicInfo?.phone,
-                    website = company.basicInfo?.website
+                    companyName = company.basicInfo.companyName,
+                    taxId = company.basicInfo.taxId,
+                    address = company.basicInfo.address,
+                    phone = company.basicInfo.phone,
+                    website = company.basicInfo.website
                 ),
                 bankSettings = BankSettings(
-                    bankAccountNumber = company.bankSettings?.bankAccountNumber,
-                    bankName = company.bankSettings?.bankName,
-                    swiftCode = company.bankSettings?.swiftCode,
-                    accountHolderName = company.bankSettings?.accountHolderName
+                    bankAccountNumber = company.bankSettings.bankAccountNumber,
+                    bankName = company.bankSettings.bankName,
+                    swiftCode = company.bankSettings.swiftCode,
+                    accountHolderName = company.bankSettings.accountHolderName
                 ),
                 logoSettings = LogoSettings(
                     logoFileId = null, // Assuming no logo for basic details
@@ -45,8 +45,8 @@ data class CompanySettings(
                     logoUrl = null
                 ),
                 audit = AuditInfo(
-                    createdAt = company.createdAt!!,
-                    updatedAt = company.updatedAt!!
+                    createdAt = company.createdAt,
+                    updatedAt = company.updatedAt
                 )
             )
         }
@@ -76,9 +76,7 @@ data class LogoSettings(
     val logoContentType: String? = null,
     val logoSize: Long? = null,
     val logoUrl: String? = null
-) {
-    fun hasLogo(): Boolean = !logoFileId.isNullOrBlank()
-}
+)
 
 data class CreateCompanySettings(
     val companyId: Long,
