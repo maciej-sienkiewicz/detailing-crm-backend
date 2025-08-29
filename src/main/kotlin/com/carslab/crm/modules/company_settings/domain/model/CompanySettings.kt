@@ -18,40 +18,6 @@ data class CompanySettings(
     val logoSettings: LogoSettings,
     val audit: AuditInfo = AuditInfo()
 ) {
-    fun apply(event: CompanySettingsEvent): CompanySettings {
-        return when (event) {
-            is CompanySettingsEvent.BasicInfoUpdated -> copy(
-                basicInfo = basicInfo.copy(
-                    companyName = event.companyName,
-                    taxId = event.taxId,
-                    address = event.address,
-                    phone = event.phone,
-                    website = event.website
-                ),
-                audit = audit.updated()
-            )
-
-            is CompanySettingsEvent.BankSettingsUpdated -> copy(
-                bankSettings = bankSettings.copy(
-                    bankAccountNumber = event.bankAccountNumber,
-                    bankName = event.bankName,
-                    swiftCode = event.swiftCode,
-                    accountHolderName = event.accountHolderName
-                ),
-                audit = audit.updated()
-            )
-
-            is CompanySettingsEvent.LogoUpdated -> copy(
-                logoSettings = logoSettings.copy(
-                    logoFileId = event.logoFileId,
-                    logoFileName = event.logoFileName,
-                    logoContentType = event.logoContentType,
-                    logoSize = event.logoSize
-                ),
-                audit = audit.updated()
-            )
-        }
-    }
 
     companion object {
         fun createCompanySettings(company: CompanySettingsResponse): CompanySettings {
