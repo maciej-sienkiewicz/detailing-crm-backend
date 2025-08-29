@@ -1,11 +1,5 @@
 package com.carslab.crm.production.modules.visits.application.dto
 
-import com.carslab.crm.api.model.ApiProtocolStatus
-import com.carslab.crm.modules.visits.api.commands.OwnerBasicDto
-import com.carslab.crm.modules.visits.api.commands.PeriodDto
-import com.carslab.crm.modules.visits.api.commands.ServiceDto
-import com.carslab.crm.modules.visits.api.commands.VehicleBasicDto
-import com.carslab.crm.production.modules.visits.domain.model.*
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDocument

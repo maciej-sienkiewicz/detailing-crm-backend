@@ -3,11 +3,7 @@ package com.carslab.crm.production.modules.visits.application.dto
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
-import com.carslab.crm.production.modules.visits.domain.model.*
-import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
-import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
-import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.fasterxml.jackson.annotation.JsonProperty
