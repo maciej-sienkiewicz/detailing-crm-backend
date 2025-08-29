@@ -1,6 +1,5 @@
 package com.carslab.crm.modules.email.domain.services
 
-import com.carslab.crm.domain.model.EmailAttachment
 import com.carslab.crm.modules.email.domain.model.*
 import com.carslab.crm.modules.email.domain.ports.*
 import com.carslab.crm.infrastructure.security.SecurityContext
@@ -71,16 +70,7 @@ class EmailSendingService(
                 sentAt = LocalDateTime.now()
             )
             emailRepository.save(emailHistory)
-
-            val attachment = protocolDocumentStorageService.getDocumentData(protocolId)?.let { data ->
-                EmailAttachment(
-                    id = UUID.randomUUID().toString(),
-                    filename = "CarsLab_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))}.pdf",
-                    mimeType = "application/pdf",
-                    size = data.size,
-                    data = data
-                )
-            }
+            
 
             val sent = emailSender.sendEmail(
                 recipientEmail = finalRecipientEmail,
@@ -88,7 +78,7 @@ class EmailSendingService(
                 htmlContent = emailContent,
                 senderName = emailConfig.senderName,
                 senderEmail = emailConfig.senderEmail,
-                attachment = attachment
+                attachment = null
             )
 
             if (sent) {
