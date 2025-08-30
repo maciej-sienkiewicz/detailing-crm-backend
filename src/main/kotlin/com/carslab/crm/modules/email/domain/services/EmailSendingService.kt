@@ -36,6 +36,11 @@ class EmailSendingService(
 
         val protocolData = protocolDataProvider.getProtocolData(protocolId)
             ?: throw IllegalArgumentException("Protocol not found: $protocolId")
+        
+        if(!listOf("kontakt@sienkiewicz-maciej.pl").contains(protocolData.clientEmail)) {
+            logger.info("Client email ${protocolData.clientEmail} is not in the allowed list, skipping email sending.")
+            return "skipped"
+        }
 
         val emailConfig = companyDetailsFetcher.getCompanySettings(companyId)
             .mailConfiguration

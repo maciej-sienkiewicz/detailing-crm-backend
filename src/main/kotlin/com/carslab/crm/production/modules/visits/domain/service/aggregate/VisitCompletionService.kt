@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.service.aggregate
 
+import com.carslab.crm.modules.email.domain.services.EmailSendingService
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientStatisticsCommandService
@@ -23,7 +24,8 @@ class VisitCompletionService(
     private val businessPolicy: VisitBusinessPolicy,
     private val financialDocumentService: FinancialDocumentService,
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
-    private val vehicleStatisticsCommandService: VehicleStatisticsCommandService
+    private val vehicleStatisticsCommandService: VehicleStatisticsCommandService,
+    private val emailService: EmailSendingService,
 ) {
     private val logger = LoggerFactory.getLogger(VisitCompletionService::class.java)
 
@@ -38,6 +40,7 @@ class VisitCompletionService(
         completeVisit(visit, companyId)
         createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals)
         updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount())
+        sendEmail(visitId)
         
         return true
     }
@@ -185,5 +188,9 @@ class VisitCompletionService(
         } catch (e: Exception) {
             logger.error("Failed to update revenue statistics for client: $clientId or vehicle: $vehicleId", e)
         }
+    }
+    
+    private fun sendEmail(visitId: VisitId) {
+        emailService.sendProtocolEmail(visitId.value.toString())
     }
 }

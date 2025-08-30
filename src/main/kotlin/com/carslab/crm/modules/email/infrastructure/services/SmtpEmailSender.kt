@@ -4,6 +4,7 @@ import com.carslab.crm.modules.email.domain.ports.EmailSender
 import com.carslab.crm.modules.email.domain.ports.EmailConfigurationRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import jakarta.mail.AuthenticationFailedException
 import org.slf4j.LoggerFactory
 import org.springframework.mail.javamail.JavaMailSenderImpl
@@ -15,9 +16,9 @@ import jakarta.mail.internet.MimeMessage
 
 @Service
 class SmtpEmailSender(
-    private val emailConfigurationRepository: EmailConfigurationRepository,
     private val encryptionService: EncryptionService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val companyDetailsFetchService: CompanyDetailsFetchService,
 ) : EmailSender {
 
     private val logger = LoggerFactory.getLogger(SmtpEmailSender::class.java)
@@ -32,21 +33,21 @@ class SmtpEmailSender(
     ): Boolean {
         return try {
             val companyId = securityContext.getCurrentCompanyId()
-            val emailConfig = emailConfigurationRepository.findByCompanyId(companyId)
-                ?: throw IllegalStateException("Email configuration not found for company: $companyId")
+            val emailConfig = companyDetailsFetchService.getCompanySettings(companyId)
+                .mailConfiguration
 
-            if (!emailConfig.isEnabled) {
+            if (!emailConfig.enabled) {
                 throw IllegalStateException("Email configuration is disabled for company: $companyId")
             }
 
-            val decryptedPassword = encryptionService.decrypt(emailConfig.encryptedPassword)
+            val decryptedPassword = encryptionService.decrypt(emailConfig.emailPassword ?: "")
 
             val mailSender = createMailSender(
-                emailConfig.senderEmail,
+                emailConfig.email ?: "",
                 decryptedPassword,
-                emailConfig.smtpHost,
-                emailConfig.smtpPort,
-                emailConfig.useSSL
+                emailConfig.smtpServer ?: "",
+                emailConfig.smtpPort ?: 0,
+                emailConfig.useSsl
             )
 
             val message: MimeMessage = mailSender.createMimeMessage()
@@ -57,8 +58,8 @@ class SmtpEmailSender(
             helper.setSubject(subject)
             helper.setText(htmlContent, true)
 
-            val fromEmail = senderEmail ?: emailConfig.senderEmail
-            val fromName = senderName ?: emailConfig.senderName
+            val fromEmail = senderEmail ?: emailConfig.email ?: ""
+            val fromName = senderName ?: emailConfig.fromName ?: ""
             helper.setFrom(fromEmail, fromName)
 
             if (attachment != null) {
