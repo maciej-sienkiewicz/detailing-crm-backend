@@ -87,24 +87,6 @@ class ProtocolDocumentStorageService(
         )
     }
 
-    /**
-     * Pobiera dane dokumentu
-     */
-    fun getDocumentData(visitId: String): ByteArray? {
-        val companyId = getCurrentCompanyId()
-        
-        val files = visitDocumentQueryService.getVisitDocuments(visitId)
-
-        // Sprawdź uprawnienia
-        if (files.isEmpty()) {
-            throw RuntimeException("Document not found or access denied: $visitId")
-        }
-
-        return universalStorageService.retrieveFile(files.first().storageId)
-    }
-
-    
-
     private fun getCurrentCompanyId(): Long {
         return (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
     }

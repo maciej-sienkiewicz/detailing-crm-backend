@@ -2,7 +2,11 @@ package com.carslab.crm.domain.visits.protocols
 
 import com.carslab.crm.domain.model.CarReceptionProtocol
 import com.carslab.crm.domain.model.ProtocolId
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
+import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
+import com.carslab.crm.production.modules.templates.domain.models.enums.TemplateType
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
@@ -11,7 +15,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField
-import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
@@ -29,16 +32,22 @@ data class SignatureData(
 @Service
 class PdfService(
     private val visitQueryService: VisitDetailQueryService,
+    private val templateQueryService: TemplateQueryService,
+    private val universalStorageService: UniversalStorageService,
+    private val securityContext: SecurityContext
 ) {
     
     fun generatePdf(protocolId: Long, signatureData: SignatureData? = null): ByteArray {
+        val companyId =  securityContext.getCurrentCompanyId()
+        val template = templateQueryService.findActiveTemplateByTemplateType(TemplateType.SERVICE_AGREEMENT, companyId) ?: throw IllegalStateException("No active tempalte found")
+        val resource = universalStorageService.retrieveFile(template.id) ?: throw IllegalStateException("Cannot load template file")
+        
         val protocol = visitQueryService.getVisitDetail(protocolId.toString())
 
         val formData = getFormDataForProtokol(protocol)
-        val resource = ClassPathResource("static/z.pdf")
 
         ByteArrayOutputStream().use { outputStream ->
-            PDDocument.load(resource.inputStream).use { document ->
+            PDDocument.load(resource).use { document ->
                 val acroForm: PDAcroForm? = document.documentCatalog.acroForm
 
                 if (acroForm == null) {

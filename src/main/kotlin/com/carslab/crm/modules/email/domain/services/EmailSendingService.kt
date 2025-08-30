@@ -4,6 +4,8 @@ import com.carslab.crm.modules.email.domain.model.*
 import com.carslab.crm.modules.email.domain.ports.*
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.infrastructure.storage.ProtocolDocumentStorageService
+import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.companysettings.domain.repository.CompanyRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -15,7 +17,7 @@ class EmailSendingService(
     private val emailRepository: EmailRepository,
     private val emailSender: EmailSender,
     private val protocolDataProvider: ProtocolDataProvider,
-    private val emailConfigurationRepository: EmailConfigurationRepository,
+    private val companyDetailsFetcher: CompanyDetailsFetchService,
     private val securityContext: SecurityContext,
     private val emailTemplateService: EmailTemplateService,
     private val protocolDocumentStorageService: ProtocolDocumentStorageService
@@ -35,10 +37,10 @@ class EmailSendingService(
         val protocolData = protocolDataProvider.getProtocolData(protocolId)
             ?: throw IllegalArgumentException("Protocol not found: $protocolId")
 
-        val emailConfig = emailConfigurationRepository.findByCompanyId(companyId)
-            ?: throw IllegalStateException("Email configuration not found for company: $companyId")
+        val emailConfig = companyDetailsFetcher.getCompanySettings(companyId)
+            .mailConfiguration
 
-        if (!emailConfig.isEnabled) {
+        if (!emailConfig.enabled) {
             throw IllegalStateException("Email configuration is disabled for company: $companyId")
         }
 
@@ -52,8 +54,8 @@ class EmailSendingService(
         try {
             val emailContent = emailTemplateService.generateProtocolEmail(
                 protocolData = protocolData,
-                companyName = emailConfig.senderName,
-                companyEmail = emailConfig.senderEmail,
+                companyName = emailConfig.fromName ?: throw IllegalStateException("Sender name not configured"),
+                companyEmail = emailConfig.email ?: throw IllegalStateException("Sender email not configured"),
                 additionalVariables = additionalVariables
             )
 
@@ -76,8 +78,8 @@ class EmailSendingService(
                 recipientEmail = finalRecipientEmail,
                 subject = subject,
                 htmlContent = emailContent,
-                senderName = emailConfig.senderName,
-                senderEmail = emailConfig.senderEmail,
+                senderName = emailConfig.fromName,
+                senderEmail = emailConfig.email,
                 attachment = null
             )
 
