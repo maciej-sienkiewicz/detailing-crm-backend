@@ -22,7 +22,6 @@ class WebSocketConfig(
         logger.info("Registering WebSocket handlers...")
 
         registry.addHandler(signatureWebSocketHandler, "/ws/tablet/{deviceId}", "/ws/workstation/{workstationId}")
-            .setAllowedOriginPatterns("*")
             .addInterceptors(WebSocketHandshakeInterceptor())
 
         logger.info("WebSocket handlers registered successfully")
