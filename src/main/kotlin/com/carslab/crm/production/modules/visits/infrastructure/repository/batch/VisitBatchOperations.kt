@@ -12,9 +12,10 @@ class VisitBatchOperations(
 ) {
 
     @Transactional
-    fun replaceServices(visitId: Long, services: List<VisitService>) {
+    fun replaceServices(visitId: Long, services: List<VisitService>): List<VisitServiceEntity> {
         deleteExistingServices(visitId)
         insertNewServices(visitId, services)
+        return serviceJpaRepository.findByVisitId(visitId)
     }
 
     private fun deleteExistingServices(visitId: Long) {

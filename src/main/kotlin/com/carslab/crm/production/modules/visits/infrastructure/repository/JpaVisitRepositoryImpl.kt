@@ -25,9 +25,9 @@ class JpaVisitRepositoryImpl(
         val savedEntity = visitJpaRepository.save(entity)
 
         val visitId = savedEntity.id!!
-        batchOperations.replaceServices(visitId, visit.services)
+        val services = batchOperations.replaceServices(visitId, visit.services)
 
-        return savedEntity.toDomain()
+        return savedEntity.toDomain(services)
     }
 
     @Transactional(readOnly = true)

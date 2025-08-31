@@ -1,5 +1,7 @@
 package com.carslab.crm.production.modules.companysettings.domain.service
 
+import com.carslab.crm.api.model.commands.CreateCalendarColorCommand
+import com.carslab.crm.domain.settings.CalendarColorFacade
 import com.carslab.crm.infrastructure.backup.googledrive.config.GoogleDriveConfigurationService
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.domain.command.*
@@ -14,7 +16,8 @@ import java.time.LocalDateTime
 class CompanyDomainService(
     private val repository: CompanyRepository,
     private val logoStorageService: LogoStorageService,
-    private val googleDriveConfigurationService: GoogleDriveConfigurationService
+    private val googleDriveConfigurationService: GoogleDriveConfigurationService,
+    private val colorFacade: CalendarColorFacade
 ) {
 
     fun createCompany(command: CreateCompanyCommand): Company {
@@ -44,6 +47,12 @@ class CompanyDomainService(
         )
 
         return repository.save(company)
+            .also { colorFacade.createCalendarColor(
+                CreateCalendarColorCommand(
+                    name = "Domyślny kolor",
+                    color = "#1a365d"
+                )
+            ) }
     }
 
     fun getCompanyById(companyId: Long): Company {

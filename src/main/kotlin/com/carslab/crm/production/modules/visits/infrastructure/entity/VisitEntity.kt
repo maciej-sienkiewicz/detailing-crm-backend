@@ -87,7 +87,7 @@ class VisitEntity(
     @OneToMany(mappedBy = "visitId", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     val services: MutableList<VisitServiceEntity> = mutableListOf()
 ) {
-    fun toDomain(): Visit {
+    fun toDomain(updatedServices: List<VisitServiceEntity>): Visit {
         return Visit(
             id = id?.let { VisitId.of(it) },
             companyId = companyId,
@@ -96,7 +96,7 @@ class VisitEntity(
             vehicleId = VehicleId.of(vehicleId),
             period = VisitPeriod(startDate, endDate),
             status = status,
-            services = services.map { it.toDomain() },
+            services = updatedServices.map { it.toDomain() },
             documents = VisitDocuments(keysProvided, documentsProvided),
             notes = notes,
             referralSource = referralSource,
@@ -104,12 +104,41 @@ class VisitEntity(
             calendarColorId = calendarColorId,
             createdAt = createdAt,
             updatedAt = updatedAt,
-            deliveryPerson = deliveryPersonId?.let { DeliveryPerson(
-                id = deliveryPersonId,
-                name = deliveryPersonName!!,
-                phone = deliveryPersonPhoneNumber!!
-            ) }
+            deliveryPerson = deliveryPersonId?.let {
+                DeliveryPerson(
+                    id = deliveryPersonId,
+                    name = deliveryPersonName!!,
+                    phone = deliveryPersonPhoneNumber!!
+                )
+            }
         )
+    }
+
+        fun toDomain(): Visit {
+            return Visit(
+                id = id?.let { VisitId.of(it) },
+                companyId = companyId,
+                title = title,
+                clientId = ClientId.of(clientId),
+                vehicleId = VehicleId.of(vehicleId),
+                period = VisitPeriod(startDate, endDate),
+                status = status,
+                services = services.map { it.toDomain() },
+                documents = VisitDocuments(keysProvided, documentsProvided),
+                notes = notes,
+                referralSource = referralSource,
+                appointmentId = appointmentId,
+                calendarColorId = calendarColorId,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+                deliveryPerson = deliveryPersonId?.let {
+                    DeliveryPerson(
+                        id = deliveryPersonId,
+                        name = deliveryPersonName!!,
+                        phone = deliveryPersonPhoneNumber!!
+                    )
+                }
+            )
     }
 
     companion object {

@@ -9,8 +9,8 @@ import java.time.LocalDateTime
 @Table(
     name = "invoice_templates_deprecated",
     indexes = [
-        Index(name = "idx_invoice_templates_company_id", columnList = "company_id"),
-        Index(name = "idx_invoice_templates_type", columnList = "template_type"),
+        Index(name = "idx_invoice_templates_company_id_deprecated", columnList = "company_id"),
+        Index(name = "idx_invoice_templates_type_deprecated", columnList = "template_type"),
     ]
 )
 class InvoiceTemplateEntityDeprecated(

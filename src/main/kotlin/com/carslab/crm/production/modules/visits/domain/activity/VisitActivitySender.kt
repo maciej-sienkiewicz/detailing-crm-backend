@@ -9,6 +9,7 @@ import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import org.springframework.stereotype.Service
 
@@ -115,7 +116,7 @@ class VisitActivitySender(
                 append("Notatki: '${previous.notes}' -> '${updated.notes}'\n")
             }
             if (previous.status != updated.status) {
-                append("Status: '${previous.status}' -> '${updated.status}'\n")
+                append("Status: '${humanFriendlyStatus(previous.status)}' -> '${humanFriendlyStatus(updated.status)}'\n")
             }
             if (servicesChanged(previous, updated)) {
                 append("Liczba usług: ${previous.services.size} -> ${updated.services.size}\n")
@@ -135,6 +136,18 @@ class VisitActivitySender(
             oldService.finalPrice != newService.finalPrice ||
             oldService.approvalStatus != newService.approvalStatus ||
             oldService.note != newService.note
+        }
+    }
+    
+    private fun humanFriendlyStatus(status: VisitStatus): String {
+        return when (status) {
+            VisitStatus.SCHEDULED -> "Zaplanowana"
+            VisitStatus.IN_PROGRESS -> "W trakcie"
+            VisitStatus.READY_FOR_PICKUP -> "Gotowa do odbioru"
+            VisitStatus.COMPLETED -> "Zakończona"
+            VisitStatus.CANCELLED -> "Anulowana"
+            VisitStatus.PENDING_APPROVAL -> "Oczekuje na zatwierdzenie"
+            
         }
     }
 }

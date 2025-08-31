@@ -62,9 +62,9 @@ class ClientActivitySender(
             if (previous.lastName != updated.lastName) append("Nazwisko: ${previous.lastName} -> ${updated.lastName}\n")
             if (previous.email != updated.email) append("Email: ${previous.email} -> ${updated.email}\n")
             if (previous.phone != updated.phone) append("Telefon: ${previous.phone} -> ${updated.phone}\n")
-            if (previous.address != updated.address) append("Adres: ${previous.address} -> ${updated.address}\n")
-            if (previous.company != updated.company) append("Firma: ${previous.company} -> ${updated.company}\n")
-            if (previous.taxId != updated.taxId) append("NIP: ${previous.taxId} -> ${updated.taxId}\n")
+            if ((previous.address ?: "") != (updated.address ?: "")) append("Adres: ${previous.address} -> ${updated.address}\n")
+            if ((previous.company ?: "") != (updated.company ?: "")) append("Firma: ${previous.company} -> ${updated.company}\n")
+            if ((previous.taxId ?: "") != (updated.taxId ?: "")) append("NIP: ${previous.taxId} -> ${updated.taxId}\n")
             if (previous.notes != updated.notes) append("Notatki: ${previous.notes} -> ${updated.notes}\n")
         }.ifEmpty { null }
     }
