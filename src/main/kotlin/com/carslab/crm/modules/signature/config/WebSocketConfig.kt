@@ -22,13 +22,6 @@ class WebSocketConfig(
         logger.info("Registering WebSocket handlers...")
 
         registry.addHandler(signatureWebSocketHandler, "/ws/tablet/{deviceId}", "/ws/workstation/{workstationId}")
-            .setAllowedOriginPatterns(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "https://localhost:*",
-                "https://*.crm.com",
-                "*" // Dla testów lokalnych
-            )
             .addInterceptors(WebSocketHandshakeInterceptor())
 
         logger.info("WebSocket handlers registered successfully")
@@ -48,12 +41,7 @@ class WebSocketHandshakeInterceptor : HandshakeInterceptor {
     ): Boolean {
         val uri = request.uri.toString()
         logger.info("WebSocket handshake attempt: $uri")
-
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Authorization, X-Device-Token, Content-Type")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        response.headers.add("Access-Control-Allow-Credentials", "true")
-
+        
         return true
     }
 
