@@ -25,8 +25,9 @@ class VisitBatchOperations(
     private fun insertNewServices(visitId: Long, services: List<VisitService>) {
         if (services.isEmpty()) return
 
+        val servicesByIds = serviceJpaRepository.findByVisitId(visitId).associate { it.id to it}
         val serviceEntities = services.map { service ->
-            VisitServiceEntity.fromDomain(service, visitId)
+            VisitServiceEntity.fromDomain(service, visitId, servicesByIds)
         }
 
         serviceJpaRepository.saveAll(serviceEntities)

@@ -12,7 +12,7 @@ interface CalendarColorRepository {
     /**
      * Save a calendar color
      */
-    fun save(calendarColor: CalendarColorCreate): CalendarColorView
+    fun save(calendarColor: CalendarColorCreate, companyId: Long?): CalendarColorView
 
     /**
      * Find a calendar color by ID

@@ -50,8 +50,9 @@ class CompanyDomainService(
             .also { colorFacade.createCalendarColor(
                 CreateCalendarColorCommand(
                     name = "Domyślny kolor",
-                    color = "#1a365d"
-                )
+                    color = "#1a365d",
+                ),
+                companyId = it.id.value
             ) }
     }
 

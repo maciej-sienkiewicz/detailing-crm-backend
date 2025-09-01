@@ -62,7 +62,7 @@ class VisitServiceEntity(
         } else null
 
         return VisitService(
-            id = serviceId, // ← ID oryginalnej usługi
+            id = serviceId,
             name = name,
             basePrice = basePrice,
             quantity = quantity,
@@ -74,7 +74,7 @@ class VisitServiceEntity(
     }
 
     companion object {
-        fun fromDomain(service: VisitService, visitId: Long): VisitServiceEntity {
+        fun fromDomain(service: VisitService, visitId: Long, servicesByIds: Map<Long?, VisitServiceEntity>): VisitServiceEntity {
             return VisitServiceEntity(
                 id = null,
                 serviceId = service.id,

@@ -15,8 +15,8 @@ class JpaCalendarColorRepositoryAdapter(
     private val calendarColorJpaRepository: CalendarColorJpaRepository
 ) : CalendarColorRepository {
 
-    override fun save(calendarColor: CalendarColorCreate): CalendarColorView {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun save(calendarColor: CalendarColorCreate, companyId: Long?): CalendarColorView {
+        val companyId = companyId ?: (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         val entity = CalendarColorEntity(
             name = calendarColor.name,

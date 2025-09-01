@@ -17,10 +17,10 @@ class CalendarColorService(
 ) {
     private val logger = LoggerFactory.getLogger(CalendarColorService::class.java)
 
-    fun createCalendarColor(name: String, color: String): CalendarColorView {
+    fun createCalendarColor(name: String, color: String, companyId: Long?): CalendarColorView {
         logger.info("Creating new calendar color with name: $name")
         val calendarColor = CalendarColorCreate.create(name, color)
-        return calendarColorRepository.save(calendarColor)
+        return calendarColorRepository.save(calendarColor, companyId)
     }
 
     fun getAllCalendarColors(): List<CalendarColorView> {
@@ -66,8 +66,8 @@ class CalendarColorFacade(
 ) {
     private val logger = LoggerFactory.getLogger(CalendarColorFacade::class.java)
 
-    fun createCalendarColor(command: CreateCalendarColorCommand): CalendarColorResponse {
-        val createdColor = calendarColorService.createCalendarColor(command.name, command.color)
+    fun createCalendarColor(command: CreateCalendarColorCommand, companyId: Long? = null): CalendarColorResponse {
+        val createdColor = calendarColorService.createCalendarColor(command.name, command.color, companyId)
         return toResponse(createdColor)
     }
 
