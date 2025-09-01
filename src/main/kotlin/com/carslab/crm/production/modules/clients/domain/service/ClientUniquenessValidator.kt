@@ -9,14 +9,18 @@ import org.springframework.stereotype.Component
 class ClientUniquenessValidator(
     private val clientRepository: ClientRepository
 ) {
-    fun validateForCreation(email: String, phone: String, companyId: Long) {
-        if (clientRepository.existsByEmail(email, companyId)) {
+    fun validateForCreation(email: String?, phone: String?, companyId: Long) {
+        if (!isNullOrEmpty(email) && clientRepository.existsByEmail(email!!, companyId)) {
             throw BusinessException("Client with email $email already exists")
         }
 
-        if (clientRepository.existsByPhone(phone, companyId)) {
+        if (!isNullOrEmpty(phone) && clientRepository.existsByPhone(phone!!, companyId)) {
             throw BusinessException("Client with phone $phone already exists")
         }
+    }
+    
+    private fun isNullOrEmpty(value: String?): Boolean {
+        return value == null || value.trim().isEmpty()
     }
 
     fun validateForUpdate(
