@@ -72,6 +72,26 @@ class VisitController(
         return ResponseEntity.ok(read)
     }
 
+    @PostMapping("/{visitId}/services")
+    @Operation(summary = "Add services to visit", description = "Adds new services to an existing visit with PENDING approval status")
+    fun addServicesToVisit(
+        @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
+        @Valid @RequestBody request: AddServicesToVisitRequest
+    ): ResponseEntity<VisitResponse> {
+        val visit = visitCommandService.addServicesToVisit(visitId, request)
+        return ResponseEntity.ok(visit)
+    }
+
+    @DeleteMapping("/{visitId}/services")
+    @Operation(summary = "Remove service from visit", description = "Removes a service from an existing visit")
+    fun removeServiceFromVisit(
+        @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
+        @Valid @RequestBody request: RemoveServiceFromVisitRequest
+    ): ResponseEntity<VisitResponse> {
+        val visit = visitCommandService.removeServiceFromVisit(visitId, request)
+        return ResponseEntity.ok(visit)
+    }
+
     @PatchMapping("/{visitId}/status")
     @Operation(summary = "Change visit status")
     fun changeVisitStatus(

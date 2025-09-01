@@ -3,9 +3,13 @@ package com.carslab.crm.production.modules.visits.application.service.command
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
+import com.carslab.crm.production.modules.visits.application.dto.AddServicesToVisitRequest
 import com.carslab.crm.production.modules.visits.application.dto.ChangeStatusRequest
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
+import com.carslab.crm.production.modules.visits.application.dto.RemoveServiceFromVisitRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
+import com.carslab.crm.production.modules.visits.application.service.command.handler.AddServicesToVisitHandler
+import com.carslab.crm.production.modules.visits.application.service.command.handler.RemoveServiceFromVisitHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitCreateHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitUpdateHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitStatusChangeHandler
@@ -24,6 +28,8 @@ class VisitCommandService(
     private val statusChangeHandler: VisitStatusChangeHandler,
     private val deleteHandler: VisitDeleteHandler,
     private val releaseHandler: VisitReleaseHandler,
+    private val addServicesHandler: AddServicesToVisitHandler,
+    private val removeServiceHandler: RemoveServiceFromVisitHandler,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommandService::class.java)
@@ -78,6 +84,26 @@ class VisitCommandService(
         val result = releaseHandler.handle(visitId, request, companyId)
 
         logger.info("Vehicle released successfully for visit: {}", visitId)
+        return result
+    }
+
+    fun addServicesToVisit(visitId: String, request: AddServicesToVisitRequest): VisitResponse {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Adding services to visit: {} for company: {}", visitId, companyId)
+
+        val result = addServicesHandler.handle(VisitId.of(visitId), request, companyId)
+
+        logger.info("Services added successfully to visit: {}", visitId)
+        return result
+    }
+
+    fun removeServiceFromVisit(visitId: String, request: RemoveServiceFromVisitRequest): VisitResponse {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Removing service from visit: {} for company: {}", visitId, companyId)
+
+        val result = removeServiceHandler.handle(VisitId.of(visitId), request, companyId)
+
+        logger.info("Service removed successfully from visit: {}", visitId)
         return result
     }
 }

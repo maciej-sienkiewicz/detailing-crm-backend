@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.visits.domain.command.ChangeVisitStatu
 import com.carslab.crm.production.modules.visits.domain.command.CreateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
@@ -44,17 +45,23 @@ class AggregateService(
     fun releaseVehicle(visitId: VisitId, request: ReleaseVehicleRequest, companyId: Long): Boolean {
         return completionService.releaseVehicle(visitId, request, companyId)
     }
-    
+
     fun findById(visitId: VisitId, companyId: Long): Visit {
         return visitRepository.findById(visitId, companyId)
             ?: throw EntityNotFoundException("Visit not found: ${visitId.value}")
     }
-    
+
     fun getVisitCountByStatus(companyId: Long, status: VisitStatus): Long {
         return visitRepository.countByStatus(companyId, status)
     }
-    
+
     fun getByVehicleId(vehicleId: VehicleId, companyId: Long, page: Pageable): Page<Visit> {
         return visitRepository.findByVehicleId(vehicleId, companyId, page)
+    }
+
+    fun updateVisitServices(visitId: VisitId, services: List<VisitService>, companyId: Long): Visit {
+        val visit = findById(visitId, companyId)
+        val updatedVisit = visit.updateServices(services)
+        return visitRepository.save(updatedVisit)
     }
 }
