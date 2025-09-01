@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.service.aggregate
 
+import com.carslab.crm.modules.email.domain.services.EmailSendingService
 import com.carslab.crm.production.modules.visits.domain.command.ChangeVisitStatusCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
@@ -17,6 +18,7 @@ class VisitModificationService(
     private val visitFactory: VisitFactory,
     private val commandValidator: VisitCommandValidator,
     private val businessPolicy: VisitBusinessPolicy,
+    private val emailSender: EmailSendingService,
 ) {
 
     fun updateVisit(visitId: VisitId, command: UpdateVisitCommand, companyId: Long): Visit {

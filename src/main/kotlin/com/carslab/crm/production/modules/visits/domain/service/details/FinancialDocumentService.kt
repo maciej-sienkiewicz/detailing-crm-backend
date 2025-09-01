@@ -47,7 +47,7 @@ class FinancialDocumentService(
                 buyerName = visit.ownerName,
                 buyerTaxId = visit.taxId,
                 buyerAddress = visit.address,
-                status = "NOT_PAID",
+                status = command.status.toString(),
                 direction = "INCOME",
                 paymentMethod = command.paymentMethod,
                 totalNet = command.totals.totalNet,

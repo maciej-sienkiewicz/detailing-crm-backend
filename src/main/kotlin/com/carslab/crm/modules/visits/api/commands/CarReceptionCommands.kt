@@ -176,6 +176,12 @@ data class UpdateCarReceptionCommand(
     
     @JsonProperty("delivery_person")
     val deliveryPerson: DeliveryPerson? = null,
+    
+    @JsonProperty("send_protocol_with_email")
+    val sendProtocolWithEmail: Boolean? = false,
+    
+    @JsonProperty("generate_without_signature")
+    val generateWithoutSignature: Boolean? = false,
 )
 
 data class CreateServiceCommand(

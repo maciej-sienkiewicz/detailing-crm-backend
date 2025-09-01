@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.service.aggregate
 
+import com.carslab.crm.api.model.DocumentStatus
 import com.carslab.crm.modules.email.domain.services.EmailSendingService
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
@@ -131,7 +132,12 @@ class VisitCompletionService(
                     totalGross = totals.totalGross,
                     totalNet = totals.totalNet,
                     totalTax = totals.totalTax
-                )
+                ),
+                status = when(request.paymentMethod.uppercase()) {
+                    "CASH" -> DocumentStatus.PAID
+                    "CARD" -> DocumentStatus.PAID
+                    else -> DocumentStatus.NOT_PAID
+                }
             )
 
             financialDocumentService.createVisitDocument(command)
@@ -164,7 +170,8 @@ class VisitCompletionService(
         val paymentMethod: String,
         val additionalNotes: String?,
         val items: List<FinancialDocumentItem>,
-        val totals: FinancialDocumentTotals
+        val totals: FinancialDocumentTotals,
+        val status: DocumentStatus,
     )
 
     data class FinancialDocumentItem(

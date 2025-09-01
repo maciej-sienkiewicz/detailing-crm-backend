@@ -50,6 +50,7 @@ data class UpdateVisitCommand(
     val documentsProvided: Boolean = false,
     val status: VisitStatus,
     val deliveryPerson: DeliveryPerson? = null,
+    val sendWithEmail: Boolean? = null,
 )
 
 data class CreateServiceCommand(

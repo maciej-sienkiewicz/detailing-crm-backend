@@ -1,5 +1,7 @@
 package com.carslab.crm.modules.employees.application.commands.handlers
 
+import com.carslab.crm.domain.model.CreateUserCommand
+import com.carslab.crm.infrastructure.auth.UserService
 import com.carslab.crm.modules.employees.application.commands.models.*
 import com.carslab.crm.modules.employees.domain.model.*
 import com.carslab.crm.modules.employees.domain.services.*
@@ -14,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class CreateEmployeeCommandHandler(
     private val employeeService: EmployeeService,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val userService: UserService
 ) : CommandHandler<CreateEmployeeCommand, String> {
 
     private val logger = LoggerFactory.getLogger(CreateEmployeeCommandHandler::class.java)
@@ -47,6 +50,15 @@ class CreateEmployeeCommandHandler(
             )
 
             val employee = employeeService.createEmployee(createEmployee, userId, userName)
+            userService.invite(
+                CreateUserCommand(
+                    username = command.email,
+                    password = "haslo123",
+                    email = command.email,
+                    firstName = command.fullName.split(" ").firstOrNull() ?: "",
+                    lastName = command.fullName.split(" ").lastOrNull() ?: "",
+                )
+            )
 
             logger.info("Successfully processed create employee command, employeeId: ${employee.id.value}")
             return employee.id.value

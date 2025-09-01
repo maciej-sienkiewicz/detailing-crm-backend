@@ -96,8 +96,28 @@ class VisitActivitySender(
                     RelatedEntityDto(
                         id = newVisit.vehicleId.value.toString(),
                         type = "VEHICLE",
-                        name = "${vehicle.make} ${vehicle.model} (${vehicle.year})"
+                        name = "${vehicle.make} ${vehicle.model}${vehicle.year?.let { "(${it})" }}"
                     )
+                ),
+                metadata = mapOf()
+            )
+        )
+    }
+    
+    fun onVisitCompleted(visit: Visit) {
+        activityCommandService.createActivity(
+            CreateActivityRequest(
+                category = ActivityCategory.PROTOCOL,
+                message = "Wizyta zakończona: \"${visit.title}\"",
+                userId = securityContext.getCurrentUserId()
+                    ?: throw IllegalStateException("User not found in security context"),
+                userName = securityContext.getCurrentUserName()
+                    ?: throw IllegalStateException("User not found in security context"),
+                description = "Suma brutto: ${visit.totalAmount()} PLN",
+                primaryEntity = RelatedEntityDto(
+                    id = visit.id.toString(),
+                    type = "VISIT",
+                    name = visit.title
                 ),
                 metadata = mapOf()
             )

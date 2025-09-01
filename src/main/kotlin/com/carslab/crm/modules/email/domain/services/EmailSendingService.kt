@@ -1,11 +1,14 @@
 package com.carslab.crm.modules.email.domain.services
 
+import com.carslab.crm.domain.model.view.protocol.ProtocolDocumentType
 import com.carslab.crm.modules.email.domain.model.*
 import com.carslab.crm.modules.email.domain.ports.*
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.modules.visits.infrastructure.storage.ProtocolDocumentStorageService
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.companysettings.domain.repository.CompanyRepository
+import com.carslab.crm.production.modules.visits.application.service.query.VisitDocumentQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -20,7 +23,8 @@ class EmailSendingService(
     private val companyDetailsFetcher: CompanyDetailsFetchService,
     private val securityContext: SecurityContext,
     private val emailTemplateService: EmailTemplateService,
-    private val protocolDocumentStorageService: ProtocolDocumentStorageService
+    private val documentService: UniversalStorageService,
+    private val visitDocumentQueryService: VisitDocumentQueryService,
 ) {
     private val logger = LoggerFactory.getLogger(EmailSendingService::class.java)
 
@@ -37,7 +41,7 @@ class EmailSendingService(
         val protocolData = protocolDataProvider.getProtocolData(protocolId)
             ?: throw IllegalArgumentException("Protocol not found: $protocolId")
         
-        if(!listOf("kontakt@sienkiewicz-maciej.pl").contains(protocolData.clientEmail)) {
+        if(!listOf("crm1@sienkiewicz-maciej.pl", "crm2@sienkiewicz-maciej.pl", "crm3@sienkiewicz-maciej.pl").contains(protocolData.clientEmail)) {
             logger.info("Client email ${protocolData.clientEmail} is not in the allowed list, skipping email sending.")
             return "skipped"
         }
@@ -77,15 +81,33 @@ class EmailSendingService(
                 sentAt = LocalDateTime.now()
             )
             emailRepository.save(emailHistory)
-            
 
+
+            val protocolDetails = visitDocumentQueryService.getVisitDocuments(protocolId)
+                .filter { it.documentType == ProtocolDocumentType.ACCEPTANCE_PROTOCOL.toString() }
+                .maxBy { it.createdAt }
+            
+            val protocol: ByteArray? = if(protocolDetails != null) {
+                logger.info("Found protocol document: ${protocolDetails.protocolId} for protocol: $protocolId")
+                visitDocumentQueryService.findByVisitIdAndDocumentType(
+                    protocolId, ProtocolDocumentType.ACCEPTANCE_PROTOCOL.toString()
+                )
+            } else {
+                logger.warn("No protocol document found for protocol: $protocolId")
+                null
+            }
+            
             val sent = emailSender.sendEmail(
                 recipientEmail = finalRecipientEmail,
                 subject = subject,
                 htmlContent = emailContent,
                 senderName = emailConfig.fromName,
                 senderEmail = emailConfig.email,
-                attachment = null
+                attachment = if (protocol != null) EmailAttachment(
+                    filename = protocolDetails.originalName,
+                    content = protocol,
+                    contentType = "application/pdf"
+                ) else null
             )
 
             if (sent) {

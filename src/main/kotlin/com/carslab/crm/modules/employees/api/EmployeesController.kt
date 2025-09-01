@@ -114,7 +114,7 @@ class EmployeesController(
     @Operation(summary = "Create new employee")
     fun createEmployee(
         @Valid @RequestBody payload: EmployeeCreatePayloadDto
-    ): ResponseEntity<Map<String, Any>> {
+    ): ResponseEntity<ExtendedEmployeeDto> {
 
         logger.info("Creating employee: ${payload.fullName}")
 
@@ -142,8 +142,23 @@ class EmployeesController(
 
             val employeeId = commandBus.execute(command)
 
+            val query = GetEmployeeByIdQuery(employeeId)
+            val createdEmployee = queryBus.execute(query)
+
             logger.info("Successfully created employee: $employeeId")
-            return created(createSuccessResponse("Employee created successfully", mapOf("id" to employeeId)))
+
+            return if (createdEmployee != null) {
+                created(ExtendedEmployeeDto.from(createdEmployee))
+            } else {
+                // Fallback - zwróć podstawowe informacje jeśli nie można pobrać pełnych danych
+                ResponseEntity.status(201).body(
+                    mapOf(
+                        "success" to true,
+                        "message" to "Employee created successfully",
+                        "id" to employeeId
+                    ) as ExtendedEmployeeDto
+                )
+            }
         } catch (e: Exception) {
             return logAndRethrow("Error creating employee", e)
         }
@@ -154,7 +169,7 @@ class EmployeesController(
     fun updateEmployee(
         @PathVariable id: String,
         @Valid @RequestBody payload: EmployeeUpdatePayloadDto
-    ): ResponseEntity<Map<String, Any>> {
+    ): ResponseEntity<ExtendedEmployeeDto> {
 
         logger.info("Updating employee: $id")
 
@@ -183,8 +198,17 @@ class EmployeesController(
 
             val employeeId = commandBus.execute(command)
 
+            // 🔧 FIX: Pobierz pełne dane zaktualizowanego pracownika
+            val query = GetEmployeeByIdQuery(employeeId)
+            val updatedEmployee = queryBus.execute(query)
+
             logger.info("Successfully updated employee: $employeeId")
-            return ok(createSuccessResponse("Employee updated successfully", mapOf("id" to employeeId)))
+
+            return if (updatedEmployee != null) {
+                ok(ExtendedEmployeeDto.from(updatedEmployee))
+            } else {
+                ResponseEntity.notFound().build()
+            }
         } catch (e: Exception) {
             return logAndRethrow("Error updating employee $id", e)
         }

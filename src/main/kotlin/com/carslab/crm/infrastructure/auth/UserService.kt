@@ -10,6 +10,7 @@ import com.carslab.crm.infrastructure.persistence.entity.User
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.persistence.repository.RoleRepository
 import com.carslab.crm.infrastructure.persistence.repository.UserRepository
+import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.companysettings.application.dto.CreateCompanyRequest
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyInitializationService
 import com.carslab.crm.security.JwtService
@@ -28,6 +29,7 @@ class UserService(
     private val jwtService: JwtService,
     private val cashBalancesRepository: CashBalancesRepository,
     private val companyInitializationService: CompanyInitializationService,
+    private val securityContext: SecurityContext,
 ) {
 
     fun authenticate(username: String, password: String): LoginResponse {
@@ -106,6 +108,35 @@ class UserService(
                 lastUpdate = Instant.now().toString()
             ))
         }
+
+        return UserResponse.fromEntity(savedUserEntity)
+    }
+
+    @Transactional
+    fun invite(createUserCommand: CreateUserCommand): UserResponse {
+        if (userRepository.existsByUsername(createUserCommand.username)) {
+            throw BusinessException("Username '${createUserCommand.username}' is already taken")
+        }
+
+        if (userRepository.existsByEmail(createUserCommand.email)) {
+            throw BusinessException("Email '${createUserCommand.email}' is already in use")
+        }
+
+        // Utwórz obiekt domeny
+        val user = User(
+            username = createUserCommand.username,
+            passwordHash = passwordEncoder.encode(createUserCommand.password),
+            email = createUserCommand.email,
+            firstName = createUserCommand.firstName,
+            lastName = createUserCommand.lastName,
+            companyId = securityContext.getCurrentCompanyId(),
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
+
+        // Konwertuj do encji i zapisz
+        val userEntity = UserEntity.fromDomain(user)
+        val savedUserEntity = userRepository.save(userEntity)
 
         return UserResponse.fromEntity(savedUserEntity)
     }

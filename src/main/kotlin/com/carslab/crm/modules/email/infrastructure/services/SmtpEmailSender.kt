@@ -4,6 +4,7 @@ import com.carslab.crm.modules.email.domain.ports.EmailSender
 import com.carslab.crm.modules.email.domain.ports.EmailConfigurationRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
+import com.carslab.crm.modules.email.domain.ports.EmailAttachment
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import jakarta.mail.AuthenticationFailedException
 import org.slf4j.LoggerFactory
@@ -29,7 +30,7 @@ class SmtpEmailSender(
         htmlContent: String,
         senderName: String?,
         senderEmail: String?,
-        attachment: String?
+        attachment: EmailAttachment?
     ): Boolean {
         return try {
             val companyId = securityContext.getCurrentCompanyId()
@@ -64,7 +65,12 @@ class SmtpEmailSender(
 
             if (attachment != null) {
                 try {
-                    
+                    helper.addAttachment(
+                        attachment.filename,
+                        ByteArrayResource(attachment.content),
+                        attachment.contentType
+                    )
+                    logger.debug("Added attachment: ${attachment.filename})")
                 } catch (e: Exception) {
                     logger.error("Failed to add attachment", e)
                 }

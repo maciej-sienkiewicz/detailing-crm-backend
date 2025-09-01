@@ -7,6 +7,12 @@ interface EmailSender {
         htmlContent: String,
         senderName: String?,
         senderEmail: String?,
-        attachment: String?
+        attachment: EmailAttachment?
     ): Boolean
 }
+
+data class EmailAttachment(
+    val filename: String,
+    val content: ByteArray,
+    val contentType: String
+)

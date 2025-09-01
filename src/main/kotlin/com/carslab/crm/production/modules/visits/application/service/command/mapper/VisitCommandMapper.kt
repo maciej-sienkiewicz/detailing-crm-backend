@@ -52,7 +52,8 @@ class VisitCommandMapper {
             keysProvided = request.keysProvided ?: false,
             documentsProvided = request.documentsProvided ?: false,
             status = EnumMappers.mapToVisitStatus(request.status.toString()),
-            deliveryPerson = request.deliveryPerson?.let { mapApiDeliveryPerson(it) }
+            deliveryPerson = request.deliveryPerson?.let { mapApiDeliveryPerson(it) },
+            sendWithEmail = request.sendProtocolWithEmail
         )
     }
 
