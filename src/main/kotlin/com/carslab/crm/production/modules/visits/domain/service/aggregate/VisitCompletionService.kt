@@ -60,19 +60,11 @@ class VisitCompletionService(
         request: ReleaseVehicleRequest,
         visitId: VisitId
     ) {
-        commentCommandService
-            .addComment(AddCommentRequest(
-                content = "Wybrano sposób płatności: ${humanFriendyPaymentMethod(request.paymentMethod)}",
+        commentCommandService.addComment(AddCommentRequest(
+                content = "Płatność: ${humanFriendyPaymentMethod(request.paymentMethod)}. Dokument: ${humanFriendyDocumentType(request.documentType)}",
                 type = "SYSTEM",
                 visitId = visitId.value.toString()
             ))
-        commentCommandService
-            .addComment(AddCommentRequest(
-                content = "Wybrano dokument: ${humanFriendyDocumentType(request.documentType)}",
-                type = "SYSTEM",
-                visitId = visitId.value.toString()
-            ))
-        
     }
     
     private fun humanFriendyPaymentMethod(method: String): String {
