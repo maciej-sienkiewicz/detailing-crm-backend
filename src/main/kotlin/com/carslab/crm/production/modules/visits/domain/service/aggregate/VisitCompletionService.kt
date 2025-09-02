@@ -8,12 +8,18 @@ import com.carslab.crm.production.modules.clients.application.service.ClientStat
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleStatisticsCommandService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
+import com.carslab.crm.production.modules.visits.application.dto.AddCommentRequest
+import com.carslab.crm.production.modules.visits.application.service.command.VisitCommentCommandService
+import com.carslab.crm.production.modules.visits.domain.activity.VisitActivitySender
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
+import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.policy.VisitBusinessPolicy
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
 import com.carslab.crm.production.modules.visits.domain.service.details.FinancialDocumentService
+import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
+import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -27,6 +33,8 @@ class VisitCompletionService(
     private val clientStatisticsCommandService: ClientStatisticsCommandService,
     private val vehicleStatisticsCommandService: VehicleStatisticsCommandService,
     private val emailService: EmailSendingService,
+    private val activitySender: VisitActivitySender,
+    private val commentCommandService: VisitCommentCommandService,
 ) {
     private val logger = LoggerFactory.getLogger(VisitCompletionService::class.java)
 
@@ -39,11 +47,50 @@ class VisitCompletionService(
         val documentTotals = calculateDocumentTotals(documentItems)
 
         completeVisit(visit, companyId)
+        activitySender.onVisitCompleted(visit)
         createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals)
         updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount())
         sendEmail(visitId)
+        addCommentsToVisit(request, visit.id!!)
         
         return true
+    }
+
+    private fun addCommentsToVisit(
+        request: ReleaseVehicleRequest,
+        visitId: VisitId
+    ) {
+        commentCommandService
+            .addComment(AddCommentRequest(
+                content = "Wybrano sposób płatności: ${humanFriendyPaymentMethod(request.paymentMethod)}",
+                type = "SYSTEM",
+                visitId = visitId.value.toString()
+            ))
+        commentCommandService
+            .addComment(AddCommentRequest(
+                content = "Wybrano dokument: ${humanFriendyDocumentType(request.documentType)}",
+                type = "SYSTEM",
+                visitId = visitId.value.toString()
+            ))
+        
+    }
+    
+    private fun humanFriendyPaymentMethod(method: String): String {
+        return when(method.uppercase()) {
+            "CASH" -> "Gotówka"
+            "CARD" -> "Karta"
+            "TRANSFER" -> "Przelew"
+            else -> method
+        }
+    }
+    
+    private fun humanFriendyDocumentType(type: String): String {
+        return when(type.uppercase()) {
+            "INVOICE" -> "Faktura"
+            "RECEIPT" -> "Paragon"
+            "PROFORMA" -> "Proforma"
+            else -> type
+        }
     }
 
     private fun completeVisit(visit: Visit, companyId: Long) {
@@ -52,7 +99,7 @@ class VisitCompletionService(
     }
 
     private fun createDocumentItems(
-        services: List<com.carslab.crm.production.modules.visits.domain.models.entities.VisitService>,
+        services: List<VisitService>,
         request: ReleaseVehicleRequest
     ): List<DocumentItem> {
         return if (!request.overridenItems.isNullOrEmpty()) {
@@ -64,10 +111,10 @@ class VisitCompletionService(
 
     private fun createOverriddenItems(overriddenItems: List<CreateServiceCommand>): List<DocumentItem> {
         return overriddenItems.map { item ->
-            val finalPrice = com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils.anyToBigDecimal(item.finalPrice ?: item.price)
-            val quantity = com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils.anyToBigDecimal(item.quantity)
+            val finalPrice = CalculationUtils.anyToBigDecimal(item.finalPrice ?: item.price)
+            val quantity = CalculationUtils.anyToBigDecimal(item.quantity)
             val totalGross = finalPrice.multiply(quantity)
-            val totalNet = com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils.calculateNetAmount(totalGross)
+            val totalNet = CalculationUtils.calculateNetAmount(totalGross)
 
             DocumentItem(
                 name = item.name,
@@ -79,10 +126,10 @@ class VisitCompletionService(
         }
     }
 
-    private fun createServiceItems(services: List<com.carslab.crm.production.modules.visits.domain.models.entities.VisitService>): List<DocumentItem> {
+    private fun createServiceItems(services: List<VisitService>): List<DocumentItem> {
         return services.map { service ->
             val finalPrice = service.finalPrice
-            val totalNet = com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils.calculateNetAmount(finalPrice)
+            val totalNet = CalculationUtils.calculateNetAmount(finalPrice)
 
             DocumentItem(
                 name = service.name,
@@ -97,7 +144,7 @@ class VisitCompletionService(
     private fun calculateDocumentTotals(items: List<DocumentItem>): DocumentTotals {
         val totalGross = items.sumOf { it.totalGross }
         val totalNet = items.sumOf { it.totalNet }
-        val totalTax = com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils.calculateVatFromGrossNet(totalGross, totalNet)
+        val totalTax = CalculationUtils.calculateVatFromGrossNet(totalGross, totalNet)
 
         return DocumentTotals(totalGross, totalNet, totalTax)
     }
@@ -143,7 +190,7 @@ class VisitCompletionService(
             financialDocumentService.createVisitDocument(command)
         } catch (e: Exception) {
             logger.error("Failed to create financial document for visit: ${visitId.value}", e)
-            throw com.carslab.crm.production.shared.exception.BusinessException("Failed to create financial document")
+            throw BusinessException("Failed to create financial document")
         }
     }
 

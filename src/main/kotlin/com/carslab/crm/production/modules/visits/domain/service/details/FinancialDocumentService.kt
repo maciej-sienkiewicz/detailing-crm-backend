@@ -73,42 +73,44 @@ class FinancialDocumentService(
             ),
             attachmentFile = null
         )
-        val generated = invoiceTemplateService.generateInvoiceForDocument(
-            securityContext.getCurrentCompanyId(),
-            document.id.value,
-        )
-        val file = universalStorageService.storeFile(
-            request = UniversalStoreRequest(
-                file = object : MultipartFile {
-                    override fun getName(): String = "invoice.pdf"
-                    override fun getOriginalFilename(): String = "invoice-${document.number}.pdf"
-                    override fun getContentType(): String = "application/pdf"
-                    override fun isEmpty(): Boolean = generated.isEmpty()
-                    override fun getSize(): Long = generated.size.toLong()
-                    override fun getBytes(): ByteArray = generated
-                    override fun getInputStream(): java.io.InputStream = generated.inputStream()
-                    override fun transferTo(dest: java.io.File): Unit =
-                        throw UnsupportedOperationException("Transfer not supported")
-                },
-                originalFileName = "${document.number}.pdf",
-                contentType = "application/pdf",
-                companyId = command.companyId,
-                entityId = UUID.randomUUID().toString(),
-                entityType = "document",
-                category = "finances",
-                subCategory = "invoices/${document.direction.name.lowercase()}",
-                description = "",
+        if(command.documentType.uppercase() == "INVOICE") {
+            val generated = invoiceTemplateService.generateInvoiceForDocument(
+                securityContext.getCurrentCompanyId(),
+                document.id.value,
             )
-        )
-        unifiedDocumentService.updateDocumentWithAttachment(
-            document.copy(
-                attachment = DocumentAttachment(
-                    name = "${document.number}.pdf",
-                    size = generated.size.toLong(),
-                    type = "application/pdf",
-                    storageId = file,
+            val file = universalStorageService.storeFile(
+                request = UniversalStoreRequest(
+                    file = object : MultipartFile {
+                        override fun getName(): String = "invoice.pdf"
+                        override fun getOriginalFilename(): String = "invoice-${document.number}.pdf"
+                        override fun getContentType(): String = "application/pdf"
+                        override fun isEmpty(): Boolean = generated.isEmpty()
+                        override fun getSize(): Long = generated.size.toLong()
+                        override fun getBytes(): ByteArray = generated
+                        override fun getInputStream(): java.io.InputStream = generated.inputStream()
+                        override fun transferTo(dest: java.io.File): Unit =
+                            throw UnsupportedOperationException("Transfer not supported")
+                    },
+                    originalFileName = "${document.number}.pdf",
+                    contentType = "application/pdf",
+                    companyId = command.companyId,
+                    entityId = UUID.randomUUID().toString(),
+                    entityType = "document",
+                    category = "finances",
+                    subCategory = "invoices/${document.direction.name.lowercase()}",
+                    description = "",
                 )
             )
-        )
+            unifiedDocumentService.updateDocumentWithAttachment(
+                document.copy(
+                    attachment = DocumentAttachment(
+                        name = "${document.number}.pdf",
+                        size = generated.size.toLong(),
+                        type = "application/pdf",
+                        storageId = file,
+                    )
+                )
+            )
+        }
     }
 }
