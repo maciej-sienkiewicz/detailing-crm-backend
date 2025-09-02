@@ -6,7 +6,7 @@ import java.math.BigDecimal
 
 interface BalanceUpdateStrategy {
     fun canHandle(paymentMethod: PaymentMethod): Boolean
-    fun updateBalance(context: BalanceUpdateContext)
+    fun updateBalance(context: BalanceUpdateContext, updateReason: String)
 }
 
 data class BalanceUpdateContext(

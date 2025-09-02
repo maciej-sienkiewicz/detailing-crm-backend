@@ -48,7 +48,7 @@ class DocumentBalanceServiceImpl(
     private fun applyBalanceForStatus(
         document: UnifiedFinancialDocument,
         status: DocumentStatus,
-        companyId: Long
+        companyId: Long,
     ) {
         if (!shouldAffectBalance(status)) return
 
@@ -64,10 +64,21 @@ class DocumentBalanceServiceImpl(
                 balanceType = balanceType,
                 amount = amount,
                 operation = operation,
-                documentId = document.id.value
+                documentId = document.id.value,
+                updateReason = "Dokument o tytule: ${document.title} zmienił status na ${humanFriendlyStatus(status)}"
             )
         } catch (e: Exception) {
             logger.error("Failed to apply balance for document ${document.id.value}: ${e.message}", e)
+        }
+    }
+    
+    private fun humanFriendlyStatus(status: DocumentStatus): String {
+        return when (status) {
+            DocumentStatus.NOT_PAID -> "Wysłany"
+            DocumentStatus.PAID -> "Opłacony"
+            DocumentStatus.CANCELLED -> "Anulowany"
+            DocumentStatus.PARTIALLY_PAID -> "Częściowo opłacony"
+            DocumentStatus.OVERDUE -> "Przeterminowany"
         }
     }
 
@@ -90,7 +101,8 @@ class DocumentBalanceServiceImpl(
                 balanceType = balanceType,
                 amount = amount,
                 operation = operation,
-                documentId = document.id.value
+                documentId = document.id.value,
+                updateReason = "Dokument o tytule: ${document.title} zmienił status na $status"
             )
         } catch (e: Exception) {
             logger.error("Failed to reverse balance for document ${document.id.value}: ${e.message}", e)

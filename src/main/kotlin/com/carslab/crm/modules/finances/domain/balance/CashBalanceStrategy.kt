@@ -15,7 +15,7 @@ class CashBalanceStrategy(
         return paymentMethod == PaymentMethod.CASH
     }
 
-    override fun updateBalance(context: BalanceUpdateContext) {
+    override fun updateBalance(context: BalanceUpdateContext, updateReason: String) {
         val operation = when (context.direction) {
             TransactionDirection.INCOME -> BalanceOperationType.ADD
             TransactionDirection.EXPENSE -> BalanceOperationType.SUBTRACT
@@ -26,7 +26,8 @@ class CashBalanceStrategy(
             balanceType = BalanceType.CASH,
             amount = context.amount,
             operation = operation,
-            documentId = context.documentId
+            documentId = context.documentId,
+            updateReason = updateReason
         )
     }
 }

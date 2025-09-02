@@ -15,7 +15,7 @@ class BankBalanceStrategy(
         return paymentMethod in listOf(PaymentMethod.BANK_TRANSFER, PaymentMethod.CARD)
     }
 
-    override fun updateBalance(context: BalanceUpdateContext) {
+    override fun updateBalance(context: BalanceUpdateContext, updateReason: String) {
         val operation = when (context.direction) {
             TransactionDirection.INCOME -> BalanceOperationType.ADD
             TransactionDirection.EXPENSE -> BalanceOperationType.SUBTRACT
@@ -26,7 +26,8 @@ class BankBalanceStrategy(
             balanceType = BalanceType.BANK,
             amount = context.amount,
             operation = operation,
-            documentId = context.documentId
+            documentId = context.documentId,
+            updateReason = updateReason
         )
     }
 }

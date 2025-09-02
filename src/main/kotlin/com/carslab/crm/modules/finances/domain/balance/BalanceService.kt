@@ -1,10 +1,12 @@
 package com.carslab.crm.modules.finances.domain.balance
 
+import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.finances.domain.exception.BalanceUpdateException
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationEntity
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationType
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceType
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
+import com.carslab.crm.modules.finances.infrastructure.repository.BalanceHistoryRepository
 import com.carslab.crm.modules.finances.infrastructure.repository.BalanceOperationRepository
 import com.carslab.crm.modules.finances.infrastructure.repository.CompanyBalanceRepository
 import org.slf4j.LoggerFactory
@@ -18,7 +20,9 @@ import java.time.LocalDateTime
 @Transactional
 class BalanceService(
     private val companyBalanceRepository: CompanyBalanceRepository,
-    private val balanceOperationRepository: BalanceOperationRepository
+    private val balanceOperationRepository: BalanceOperationRepository,
+    private val balanceHistoryService: BalanceHistoryService,
+    private val securityContext: SecurityContext,
 ) {
 
     private val logger = LoggerFactory.getLogger(BalanceService::class.java)
@@ -29,7 +33,8 @@ class BalanceService(
         amount: BigDecimal,
         operation: BalanceOperationType,
         documentId: String,
-        retryCount: Int = 0
+        retryCount: Int = 0,
+        updateReason: String
     ) {
         try {
             val balance = getOrCreateBalance(companyId)
@@ -58,13 +63,27 @@ class BalanceService(
                 amount, previousBalance, newBalance
             )
 
+            
+            balanceHistoryService.recordBalanceChange(
+                companyId = companyId,
+                balanceType = balanceType,
+                balanceBefore = previousBalance,
+                balanceAfter = newBalance,
+                operationType = operation,
+                description = updateReason,
+                userId = securityContext.getCurrentUserId().toString(),
+                documentId = documentId,
+                operationId = null,
+                ipAddress = null,
+                metadata = null,
+            )
             logger.info("Balance updated: company={}, type={}, {}→{}",
                 companyId, balanceType, previousBalance, newBalance)
 
         } catch (e: OptimisticLockingFailureException) {
             if (retryCount < 3) {
                 logger.warn("Optimistic lock failure, retrying... attempt {}", retryCount + 1)
-                updateBalance(companyId, balanceType, amount, operation, documentId, retryCount + 1)
+                updateBalance(companyId, balanceType, amount, operation, documentId, retryCount + 1, updateReason)
             } else {
                 throw BalanceUpdateException("Failed to update balance after retries", e)
             }
