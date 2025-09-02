@@ -3,6 +3,7 @@ package com.carslab.crm.modules.signature.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.shared.exception.TemplateNotFoundException
 import com.carslab.crm.signature.api.dto.*
 import com.carslab.crm.signature.service.ProtocolSignatureService
 import com.carslab.crm.signature.service.SignatureException
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.Size
+import org.springframework.http.HttpStatus
 import java.time.Instant
 import java.util.*
 
@@ -94,6 +96,20 @@ class ProtocolSignatureController(
             logger.error("Error cancelling protocol signature session", e)
             throw SignatureException("Failed to cancel session", e)
         }
+    }
+
+    @ExceptionHandler(TemplateNotFoundException::class)
+    fun handleTemplateNotFoundException(e: TemplateNotFoundException): ResponseEntity<Map<String, Any>> {
+        logger.error("Template not found", e)
+
+        val errorResponse: Map<String, Any> = mapOf(
+            "success" to false,
+            "error" to "TEMPLATE_NOT_FOUND",
+            "message" to (e.message ?: "Template not found"),
+            "timestamp" to Instant.now()
+        )
+
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(errorResponse)
     }
 }
 

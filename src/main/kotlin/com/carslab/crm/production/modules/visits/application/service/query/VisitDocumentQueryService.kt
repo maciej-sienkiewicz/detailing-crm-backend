@@ -34,7 +34,7 @@ class VisitDocumentQueryService(
     }
     
     fun findByVisitIdAndDocumentType(visitId: String, documentType: String): ByteArray? {
-        logger.debug("Finding documents for visit: {} with type: {}", visitId, documentType)
+        logger.info("Finding documents for visit: {} with type: {}", visitId, documentType)
         
         return documentService.findDocumentsByVisitIdAndType(VisitId.of(visitId), documentType)
             .let { documentService.getDocumentData(it.id) }

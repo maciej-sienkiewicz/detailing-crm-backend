@@ -43,6 +43,11 @@ class ClientDomainService(
         if (command.email != existingClient.email || command.phone != existingClient.phone) {
             clientUniquenessValidator.validateForUpdate(command.email, command.phone, companyId, clientId)
         }
+        
+        if(clientDataChanged(existingClient, command).not()) {
+            logger.info("No changes detected for client: {}. Update operation skipped.", clientId.value)
+            return existingClient
+        }
 
         val updatedClient = existingClient.update(
             firstName = command.firstName.trim(),
@@ -60,6 +65,20 @@ class ClientDomainService(
 
         logger.info("Client updated: {} for company: {}", clientId.value, companyId)
         return saved
+    }
+
+    private fun clientDataChanged(
+        existingClient: Client,
+        command: UpdateClientCommand
+    ): Boolean {
+        return existingClient.firstName != command.firstName.trim() ||
+               existingClient.lastName != command.lastName.trim() ||
+               existingClient.email != command.email.trim() ||
+               existingClient.phone != command.phone.trim() ||
+               (existingClient.address ?: "") != (command.address?.trim() ?: "") ||
+               (existingClient.company ?: "") != (command.company?.trim() ?: "") ||
+               (existingClient.taxId ?: "") != (command.taxId?.trim() ?: "") ||
+               (existingClient.notes ?: "") != (command.notes?.trim() ?: "")
     }
 
     fun getClientForCompany(clientId: ClientId, companyId: Long): Client {

@@ -8,6 +8,7 @@ import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
 import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
 import com.carslab.crm.production.modules.templates.domain.models.enums.TemplateType
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.shared.exception.TemplateNotFoundException
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -39,7 +40,9 @@ class PdfService(
     
     fun generatePdf(protocolId: Long, signatureData: SignatureData? = null): ByteArray {
         val companyId =  securityContext.getCurrentCompanyId()
-        val template = templateQueryService.findActiveTemplateByTemplateType(TemplateType.SERVICE_AGREEMENT, companyId) ?: throw IllegalStateException("No active tempalte found")
+        val template = templateQueryService.findActiveTemplateByTemplateType(TemplateType.SERVICE_AGREEMENT, companyId) ?: throw TemplateNotFoundException(
+            "Nie znaleziono aktywnego szablonu dla protokołu przyjęcia pojazdu. Uzupełnij szablon w ustawieniach."
+        )
         val resource = universalStorageService.retrieveFile(template.id) ?: throw IllegalStateException("Cannot load template file")
         
         val protocol = visitQueryService.getVisitDetail(protocolId.toString())

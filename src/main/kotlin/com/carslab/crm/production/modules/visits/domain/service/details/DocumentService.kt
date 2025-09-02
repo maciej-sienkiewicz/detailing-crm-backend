@@ -9,6 +9,7 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Vis
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDocumentRepository
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
+import com.carslab.crm.production.shared.exception.TemplateNotFoundException
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
@@ -98,7 +99,7 @@ class DocumentService(
         val type = try {
             DocumentType.valueOf(documentType.uppercase())
         } catch (e: IllegalArgumentException) {
-            throw BusinessException("Invalid document type: $documentType")
+            throw TemplateNotFoundException("Nie znaleziono aktywnego szablonu dla protokołu przyjęcia pojazdu. Uzupełnij szablon w ustawieniach.")
         }
 
         return documentRepository.findByVisitId(visitId).filter { it.type == type }.maxBy { it.createdAt }
