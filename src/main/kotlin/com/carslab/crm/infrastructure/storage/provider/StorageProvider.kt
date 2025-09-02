@@ -57,10 +57,7 @@ data class StoreFileRequest(
     val file: MultipartFile? = null,
     val inputStream: InputStream? = null,
     val fileName: String,
-    val contentType: String,
     val metadata: Map<String, String> = emptyMap(),
-    val storageClass: StorageClass = StorageClass.STANDARD,
-    val encryption: Boolean = true,
     val tags: Map<String, String> = emptyMap()
 )
 

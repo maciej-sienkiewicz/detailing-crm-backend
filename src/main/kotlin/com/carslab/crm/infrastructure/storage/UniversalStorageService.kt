@@ -43,15 +43,12 @@ class UniversalStorageService(
             val storeRequest = StoreFileRequest(
                 file = request.file,
                 fileName = storageKey,
-                contentType = request.file?.contentType ?: request.contentType,
                 metadata = mapOf(
                     "entityId" to request.entityId,
                     "entityType" to request.entityType,
                     "companyId" to request.companyId.toString(),
                     "originalName" to request.originalFileName
-                ) + (request.customMetadata ?: emptyMap()),
-                storageClass = request.storageClass,
-                encryption = request.encryption,
+                ),
                 tags = request.tags ?: emptyMap()
             )
 
@@ -61,7 +58,7 @@ class UniversalStorageService(
             val metadata = FileMetadataEntity(
                 storageId = storageId,
                 originalName = request.originalFileName,
-                filePath = storageKey, // W przypadku S3 to będzie key
+                filePath = storageKey,
                 fileSize = response.size,
                 contentType = request.file?.contentType ?: request.contentType,
                 companyId = request.companyId,
@@ -141,8 +138,5 @@ data class UniversalStoreRequest(
     val subCategory: String? = null,
     val description: String? = null,
     val date: LocalDate = LocalDate.now(),
-    val storageClass: StorageClass = StorageClass.STANDARD,
-    val encryption: Boolean = true,
-    val customMetadata: Map<String, String>? = null,
     val tags: Map<String, String>? = null
 )

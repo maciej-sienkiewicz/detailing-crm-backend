@@ -15,11 +15,11 @@ import java.util.*
 class ThymeleafTemplateRenderingService : TemplateRenderingService {
     private val logger = LoggerFactory.getLogger(ThymeleafTemplateRenderingService::class.java)
 
-    override fun renderTemplate(template: InvoiceTemplateResponse, data: InvoiceGenerationData): String {
+    override fun renderTemplate(template: String, data: InvoiceGenerationData): String {
         try {
             val variables = prepareVariables(data)
 
-            var htmlContent = template.htmlContent
+            var htmlContent = template
 
             // Simple string replacement approach - no complex regex
             variables.forEach { (key, value) ->
@@ -36,7 +36,6 @@ class ThymeleafTemplateRenderingService : TemplateRenderingService {
             return htmlContent
 
         } catch (e: Exception) {
-            logger.error("Error rendering template: {}", template.header.name, e)
             throw RuntimeException("Failed to render invoice template", e)
         }
     }

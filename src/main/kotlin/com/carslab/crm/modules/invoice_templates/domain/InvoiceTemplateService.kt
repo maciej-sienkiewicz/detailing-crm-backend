@@ -19,6 +19,7 @@ import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.modules.company_settings.domain.model.BankSettings
 import com.carslab.crm.modules.company_settings.domain.model.CompanyBasicInfo
 import com.carslab.crm.modules.company_settings.domain.model.CompanySettings
@@ -31,6 +32,7 @@ import com.carslab.crm.production.modules.invoice_templates.application.dto.Invo
 import com.carslab.crm.production.modules.invoice_templates.application.dto.InvoiceTemplateResponse
 import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceGenerationService
 import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceTemplateQueryService
+import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -51,7 +53,9 @@ class InvoiceTemplateService(
     private val documentService: UnifiedDocumentService,
     private val companyDetailsFetchService: CompanyDetailsFetchService,
     private val templateQueryService: InvoiceTemplateQueryService,
+    private val templateService: TemplateQueryService, 
     private val templateGenerationService: InvoiceGenerationService,
+    private val universalStorageService: UniversalStorageService,
 ) {
     private val logger = LoggerFactory.getLogger(InvoiceTemplateService::class.java)
 
@@ -67,9 +71,11 @@ class InvoiceTemplateService(
         validateCompanyId(companyId)
 
         val document = documentService.getDocumentById(documentId)
-        val template = getTemplateForGeneration(templateId)
+        val template: ByteArray = getTemplateForGeneration(companyId)
         val companySettings = getCompanySettings(companyId)
-        val logoData = null
+        val logoData = companySettings.basicInfo.logoId
+            ?.let { logoStorageService.getLogoPath(it) }
+            ?.let { Files.readAllBytes(it) }
 
         val generationData = InvoiceGenerationData(
             document = document,
@@ -81,20 +87,17 @@ class InvoiceTemplateService(
     }
 
     fun generatePdfFromTemplate(
-        template: InvoiceTemplateResponse,
+        template: ByteArray,
         generationData: InvoiceGenerationData
     ): ByteArray {
-        logger.debug("Generating PDF from template: ${template.header.id}")
-
         return try {
-            val renderedHtml = templateRenderingService.renderTemplate(template, generationData)
+            val renderedHtml = templateRenderingService.renderTemplate(template.let { String(it, Charsets.UTF_8) }, generationData)
             val pdfBytes = pdfGenerationService.generatePdf(renderedHtml)
 
             logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")
             pdfBytes
 
         } catch (e: Exception) {
-            logger.error("Failed to generate PDF from template: ${template.header.id}", e)
             throw RuntimeException("PDF generation failed: ${e.message}", e)
         }
     }
@@ -201,10 +204,11 @@ class InvoiceTemplateService(
         return savedTemplate
     }
 
-    @Transactional(readOnly = true)
-    private fun getTemplateForGeneration(templateId: InvoiceTemplateId?): InvoiceTemplateResponse {
-        return templateQueryService
-            .getTemplate(templateId?.value ?: throw ValidationException("Template ID cannot be null"))
+    private fun getTemplateForGeneration(companyId: Long): ByteArray {
+        return templateService
+            .findActiveTemplateByTemplateType(com.carslab.crm.production.modules.templates.domain.models.enums.TemplateType.INVOICE, companyId)
+            ?.let { universalStorageService.retrieveFile(it.id) }
+            ?: throw java.lang.IllegalStateException("Active template file not found for company $companyId")
     }
 
     @Transactional(readOnly = true)

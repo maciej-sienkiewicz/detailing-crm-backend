@@ -219,7 +219,7 @@ class InvoiceAttachmentGenerationService(
         logger.debug("Generating PDF from template: ${template.header.id} for document: ${data.document.id.value}")
 
         return try {
-            val renderedHtml = templateRenderingService.renderTemplate(template, data)
+            val renderedHtml = templateRenderingService.renderTemplate(template.htmlContent, data)
             val pdfBytes = pdfGenerationService.generatePdf(renderedHtml)
 
             logger.debug("Successfully generated PDF, size: ${pdfBytes.size} bytes")

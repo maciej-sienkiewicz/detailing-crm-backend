@@ -17,8 +17,8 @@ enum class TemplateType(val displayName: String) {
 
     fun getRequiredContentType(): String? {
         return when (this) {
-            SERVICE_AGREEMENT, MARKETING_CONSENT, VEHICLE_PICKUP, INVOICE -> "application/pdf"
-            MAIL_ON_VISIT_STARTED, MAIL_ON_VISIT_COMPLETED -> "text/html"
+            SERVICE_AGREEMENT, MARKETING_CONSENT, VEHICLE_PICKUP -> "application/pdf"
+            MAIL_ON_VISIT_STARTED, MAIL_ON_VISIT_COMPLETED, INVOICE  -> "text/html"
         }
     }
 }
