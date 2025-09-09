@@ -106,8 +106,4 @@ class ClientDomainService(
     fun recordVisit(clientId: ClientId) {
         clientVisitRecorder.recordVisit(clientId)
     }
-
-    fun incrementVehicleCount(clientId: ClientId) {
-        clientVehicleCounter.incrementVehicleCount(clientId)
-    }
 }

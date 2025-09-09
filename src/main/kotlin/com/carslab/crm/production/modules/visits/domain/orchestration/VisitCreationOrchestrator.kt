@@ -40,7 +40,6 @@ class VisitCreationOrchestrator(
                     isPrimary = true
                 )
             )
-                .also { clientStatisticsCommandService.incrementVehicleCount(client.id) }
             logger.debug("Created association between client: {} and vehicle: {}", client.id, vehicle.id)
         } catch (e: Exception) {
             logger.debug("Association between client: {} and vehicle: {} might already exist", client.id, vehicle.id)

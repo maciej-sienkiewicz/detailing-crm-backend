@@ -37,9 +37,18 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
     @Query("UPDATE ClientEntity c SET c.active = false, c.updatedAt = :now WHERE c.id = :id AND c.companyId = :companyId")
     fun softDeleteByIdAndCompanyId(@Param("id") id: Long, @Param("companyId") companyId: Long, @Param("now") now: LocalDateTime): Int
 
-    @Query("SELECT c FROM ClientEntity c WHERE (c.phone = :phone OR c.email = :email) AND c.companyId = :companyId AND c.active = true")
+    @Query("""
+    SELECT c FROM ClientEntity c 
+    WHERE c.companyId = :companyId 
+    AND c.active = true 
+    AND (
+        (:phone IS NOT NULL AND :phone != '' AND c.phone = :phone) 
+        OR 
+        (:email IS NOT NULL AND :email != '' AND c.email = :email)
+    )
+""")
     fun findByPhoneOrEmailAndCompanyIdAndActiveTrue(phone: String?, email: String?, companyId: Long): Optional<ClientEntity>
-
+    
     @Query("""
         SELECT c FROM ClientEntity c 
         WHERE c.companyId = :companyId AND c.active = true

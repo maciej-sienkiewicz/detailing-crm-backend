@@ -78,19 +78,6 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    override fun incrementVehicleCount(clientId: ClientId, count: Long) {
-        logger.debug("Updating vehicle count to {} for client: {}", count, clientId.value)
-
-        val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.updateVehicleCount(clientId.value, count, now)
-
-        if (rowsUpdated > 0) {
-            logger.debug("Vehicle count updated for client: {}, count: {}", clientId.value, count)
-        } else {
-            logger.warn("Failed to update vehicle count for client: {}", clientId.value)
-        }
-    }
-
     override fun decrementVehicleCount(clientId: ClientId) {
         logger.debug("Atomically decrementing vehicle count for client: {}", clientId.value)
 

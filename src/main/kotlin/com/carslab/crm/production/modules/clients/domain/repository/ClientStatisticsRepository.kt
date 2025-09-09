@@ -11,7 +11,6 @@ interface ClientStatisticsRepository {
     fun incrementVisitCount(clientId: ClientId)
     fun incrementVehicleCount(clientId: ClientId)
     fun addRevenue(clientId: ClientId, amount: BigDecimal)
-    fun incrementVehicleCount(clientId: ClientId, count: Long)
     fun decrementVehicleCount(clientId: ClientId)
     fun setLastVisitDate(clientId: ClientId, visitDate: LocalDateTime)
     fun deleteByClientId(clientId: ClientId): Boolean
