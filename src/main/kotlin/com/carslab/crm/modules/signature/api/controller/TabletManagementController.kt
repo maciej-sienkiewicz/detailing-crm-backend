@@ -173,6 +173,10 @@ class TabletManagementController(
             ResponseEntity.status(500).body(createErrorResponse("Failed to generate pairing code: ${e.message}"))
         }
     }
+    
+    @PostMapping("/code/status")
+    fun isCodeActive(@RequestBody request: CodeRequest): ResponseEntity<Boolean> =
+        ok( pairingService.isCodeActive(request.code))
 
     private fun createErrorResponse(message: String): Map<String, Any> {
         return mapOf(
@@ -182,3 +186,5 @@ class TabletManagementController(
         )
     }
 }
+
+data class CodeRequest(val code: String)

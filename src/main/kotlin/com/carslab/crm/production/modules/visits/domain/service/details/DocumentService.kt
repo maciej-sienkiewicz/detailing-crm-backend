@@ -95,13 +95,13 @@ class DocumentService(
         }
     }
 
-    fun findDocumentsByVisitIdAndType(visitId: VisitId, documentType: String): VisitDocument {
+    fun findDocumentsByVisitIdAndType(visitId: VisitId, documentType: String): VisitDocument? {
         val type = try {
             DocumentType.valueOf(documentType.uppercase())
         } catch (e: IllegalArgumentException) {
             throw TemplateNotFoundException("Nie znaleziono aktywnego szablonu dla protokołu przyjęcia pojazdu. Uzupełnij szablon w ustawieniach.")
         }
 
-        return documentRepository.findByVisitId(visitId).filter { it.type == type }.maxBy { it.createdAt }
+        return documentRepository.findByVisitId(visitId).filter { it.type == type }.maxByOrNull { it.createdAt }
     }
 }

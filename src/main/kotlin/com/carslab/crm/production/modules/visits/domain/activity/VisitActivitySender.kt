@@ -43,7 +43,7 @@ class VisitActivitySender(
                     RelatedEntityDto(
                         id = visit.vehicleId.value.toString(),
                         type = "VEHICLE",
-                        name = "${vehicle.make} ${vehicle.model} (${vehicle.year})"
+                        name = "${vehicle.make} ${vehicle.model}${vehicle.year?.let { " ($it)" } ?: ""}"
                     )
                 ),
                 metadata = mapOf()

@@ -86,6 +86,9 @@ class TabletPairingService(
             websocketUrl = "$wsBaseUrl/ws/tablet/${savedTablet.id}"
         )
     }
+    
+    fun isCodeActive(code: String): Boolean =
+        pairingCodeRepository.findByCodeAndExpiresAtAfter(code, Instant.now()) != null
 
     private fun generatePairingCode(): String {
         return String.format("%06d", secureRandom.nextInt(1000000))
