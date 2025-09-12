@@ -91,7 +91,13 @@ data class CreateVisitRequest(
     val appointmentId: String? = null,
     
     @JsonProperty("delivery_person")
-    val deliveryPerson: DeliveryPerson? = null
+    val deliveryPerson: DeliveryPerson? = null,
+
+    @JsonProperty("is_recurring")
+    val isRecurring: Boolean = false,
+
+    @JsonProperty("recurrence_pattern")
+    val recurrencePattern: com.carslab.crm.production.modules.visits.application.dto.RecurrencePatternRequest? = null
 )
 
 data class DeliveryPerson(
