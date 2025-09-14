@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.events.domain.services
 
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.production.modules.events.application.dto.ConvertToVisitRequest
 import com.carslab.crm.production.modules.events.domain.models.aggregates.EventOccurrence
 import com.carslab.crm.production.modules.events.domain.repositories.RecurringEventRepository
@@ -46,7 +47,7 @@ class EventToVisitConversionService(
                 discountType = null,
                 discountValue = null,
                 finalPrice = null,
-                approvalStatus = null,
+                approvalStatus = ServiceApprovalStatus.APPROVED,
                 note = null
             )
         }
@@ -60,7 +61,7 @@ class EventToVisitConversionService(
                 discountType = null,
                 discountValue = null,
                 finalPrice = null,
-                approvalStatus = null,
+                approvalStatus = ServiceApprovalStatus.APPROVED,
                 note = null
             )
         }
@@ -86,7 +87,7 @@ class EventToVisitConversionService(
             address = null,
             email = null,
             phone = null,
-            notes = buildVisitNotes(recurringEvent, occurrence, conversionRequest),
+            notes = occurrence.notes,
             selectedServices = defaultServices + additionalServices,
             status = com.carslab.crm.api.model.ApiProtocolStatus.SCHEDULED,
             referralSource = null,
