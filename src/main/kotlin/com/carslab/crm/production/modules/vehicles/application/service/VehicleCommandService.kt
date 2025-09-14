@@ -13,9 +13,11 @@ import com.carslab.crm.production.modules.vehicles.domain.command.CreateVehicleC
 import com.carslab.crm.production.modules.vehicles.domain.command.UpdateVehicleCommand
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.vehicles.domain.service.VehicleDomainService
+import com.carslab.crm.production.modules.visits.infrastructure.request.MediaRequestExtractor
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartHttpServletRequest
 
 @Service
 @Transactional
@@ -23,7 +25,8 @@ class VehicleCommandService(
     private val vehicleDomainService: VehicleDomainService,
     private val associationCommandService: AssociationCommandService,
     private val securityContext: SecurityContext,
-    private val vehicleInputValidator: VehicleInputValidator
+    private val vehicleInputValidator: VehicleInputValidator,
+    private val mediaRequestExtractor: MediaRequestExtractor
 ) {
     private val logger = LoggerFactory.getLogger(VehicleCommandService::class.java)
 
@@ -95,5 +98,19 @@ class VehicleCommandService(
         } else {
             logger.warn("Vehicle not found for deletion: {}", vehicleId)
         }
+    }
+    
+    fun uploadImage(vehicleId: String, request: MultipartHttpServletRequest) {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Uploading image to vehicle: {} for company: {}", vehicleId, companyId)
+
+        val mediaRequest = mediaRequestExtractor.extractMediaRequest(request)
+        
+        vehicleDomainService.uploadVehicleImage(
+            vehicleId = VehicleId.of(vehicleId.toLong()),
+            file = mediaRequest.file,
+            companyId = companyId
+        )
+        
     }
 }

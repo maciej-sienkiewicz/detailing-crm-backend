@@ -8,18 +8,24 @@ import com.carslab.crm.production.modules.vehicles.application.dto.VehicleTableR
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleWithStatisticsResponse
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
+import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
+import com.carslab.crm.production.modules.visits.application.service.query.VisitMediaQueryService
+import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import com.carslab.crm.production.shared.presentation.BaseController
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartHttpServletRequest
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -30,7 +36,9 @@ import java.util.*
 @Tag(name = "Vehicles", description = "Vehicle management endpoints")
 class VehicleController(
     private val vehicleCommandService: VehicleCommandService,
-    private val vehicleQueryService: VehicleQueryService
+    private val vehicleQueryService: VehicleQueryService,
+    private val visitQueryService: VisitQueryService,
+    private val visitMediaQueryService: VisitMediaQueryService,
 ) : BaseController() {
 
     @PostMapping
@@ -277,6 +285,48 @@ class VehicleController(
         return ok(response)
     }
 
+    @GetMapping("/{id}/images/thumbnails")
+    @Operation(summary = "Get vehicle image thumbnails", description = "Retrieves a paginated list of image thumbnails for a specific vehicle")
+    fun getVehicleImageThumbnails(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String,
+        @PageableDefault(size = 3, sort = ["uploadedAt"], direction = Sort.Direction.DESC) pageable: Pageable
+    ): ResponseEntity<Page<VehicleImageResponse>> {
+        logger.info("Getting image thumbnails for vehicle ID: $id with page request: $pageable")
+
+        // 1. Pobierz całą stronę wizyt, aby zachować informacje o paginacji
+        val visitsPage = visitQueryService.getVisitsForVehicle(id, Pageable.ofSize(1000))
+
+        // 2. Pobierz wszystkie media dla wizyt z bieżącej strony
+        val visitMediaList: List<VisitMediaResponse> = visitsPage.content.flatMap { visit ->
+            visitMediaQueryService.getVisitMedia(visit.id)
+        }
+
+        // 3. Zmapuj listę obiektów VisitMediaResponse na VehicleImageResponse
+        val imageResponses = visitMediaList.map { media ->
+            VehicleImageResponse(
+                id = media.id,
+                url = media.downloadUrl,
+                // Zakładamy, że URL miniaturki jest taki sam jak URL pełnego obrazu.
+                // Jeśli masz osobny URL dla miniaturki, zmień to mapowanie.
+                thumbnailUrl = media.downloadUrl,
+                filename = media.name,
+                uploadedAt = media.createdAt
+            )
+        }
+
+        // 4. Utwórz obiekt Page z przetworzoną listą i oryginalnymi danymi paginacji
+        // UWAGA: Paginacja jest oparta na WIZYTACH, a nie na OBRAZKACH.
+        // Oznacza to, że całkowita liczba stron/elementów odnosi się do liczby wizyt.
+        val imagePage: Page<VehicleImageResponse> = PageImpl(
+            imageResponses,           // Zawartość bieżącej strony (obrazki)
+            pageable,                 // Informacje o żądanej stronie
+            visitsPage.totalElements  // Całkowita liczba wizyt (nie obrazków)
+        )
+
+        logger.info("Successfully retrieved ${imagePage.numberOfElements} image thumbnails for vehicle ID: $id")
+        return ok(imagePage)
+    }
+
     private fun createSuccessResponse(message: String, data: Map<String, Any>): Map<String, Any> {
         return mapOf(
             "success" to true,
@@ -333,4 +383,14 @@ data class ServiceHistoryRequest(
     val description: String,
     val price: BigDecimal,
     val date: LocalDate
+)
+
+data class VehicleImageResponse(
+    val id: String,
+    val url: String,
+    @JsonProperty("thumbnail_url")
+    val thumbnailUrl: String,
+    val filename: String,
+    @JsonProperty("uploaded_at")
+    val uploadedAt: LocalDateTime
 )

@@ -16,4 +16,5 @@ interface RecurringEventRepository {
     fun deleteById(id: RecurringEventId, companyId: Long): Boolean
     fun countByCompanyId(companyId: Long): Long
     fun countByCompanyIdAndType(companyId: Long, type: EventType): Long
+    fun findAllByIds(ids: List<Long>): List<RecurringEvent>
 }

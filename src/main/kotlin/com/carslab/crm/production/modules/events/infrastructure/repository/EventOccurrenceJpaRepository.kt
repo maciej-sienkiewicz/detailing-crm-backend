@@ -89,4 +89,18 @@ interface EventOccurrenceJpaRepository : JpaRepository<EventOccurrenceEntity, Lo
         @Param("status") status: OccurrenceStatus,
         pageable: Pageable
     ): Page<EventOccurrenceEntity>
+
+    @Query("""
+        SELECT o FROM EventOccurrenceEntity o
+        JOIN RecurringEventEntity r ON o.recurringEventId = r.id
+        WHERE r.companyId = :companyId
+        AND o.scheduledDate >= :startDate 
+        AND o.scheduledDate <= :endDate
+        ORDER BY o.scheduledDate ASC
+    """)
+    fun findByCompanyIdAndDateRangeWithoutPagination(
+        @Param("companyId") companyId: Long,
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
+    ): List<EventOccurrenceEntity>
 }

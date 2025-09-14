@@ -25,6 +25,14 @@ interface EventOccurrenceRepository {
         endDate: LocalDateTime,
         pageable: Pageable
     ): Page<EventOccurrence>
+
+    // NEW: Method without pagination for optimized calendar queries
+    fun findByCompanyIdAndDateRangeWithoutPagination(
+        companyId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<EventOccurrence>
+
     fun findByStatus(status: OccurrenceStatus, pageable: Pageable): Page<EventOccurrence>
     fun findByVisitId(visitId: VisitId): EventOccurrence?
     fun deleteById(id: EventOccurrenceId): Boolean

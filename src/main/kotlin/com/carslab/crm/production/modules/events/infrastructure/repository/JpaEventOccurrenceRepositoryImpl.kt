@@ -119,4 +119,15 @@ class JpaEventOccurrenceRepositoryImpl(
             recurringEventId.value, scheduledDate
         )
     }
+
+    @Transactional(readOnly = true)
+    override fun findByCompanyIdAndDateRangeWithoutPagination(
+        companyId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<EventOccurrence> {
+        return eventOccurrenceJpaRepository.findByCompanyIdAndDateRangeWithoutPagination(
+            companyId, startDate, endDate
+        ).map { it.toDomain() }
+    }
 }

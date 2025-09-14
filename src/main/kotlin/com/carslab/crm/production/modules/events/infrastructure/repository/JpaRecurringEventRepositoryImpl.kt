@@ -70,4 +70,9 @@ class JpaRecurringEventRepositoryImpl(
     override fun countByCompanyIdAndType(companyId: Long, type: EventType): Long {
         return recurringEventJpaRepository.countByCompanyIdAndEventType(companyId, type)
     }
+
+    @Transactional(readOnly = true)
+    override fun findAllByIds(ids: List<Long>): List<RecurringEvent> {
+        return recurringEventJpaRepository.findAllById(ids).map { it.toDomain(objectMapper) }
+    }
 }

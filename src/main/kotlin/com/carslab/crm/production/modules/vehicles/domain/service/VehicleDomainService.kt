@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -123,5 +124,9 @@ class VehicleDomainService(
         vehicleStatisticsRepository.addRevenue(vehicleId, amount)
 
         logger.info("Added revenue for vehicle: {}", vehicleId.value)
+    }
+
+    fun uploadVehicleImage(vehicleId: VehicleId, file: MultipartFile, companyId: Long) {
+        TODO("Not yet implemented")
     }
 }

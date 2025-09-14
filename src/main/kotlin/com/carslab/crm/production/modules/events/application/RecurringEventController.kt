@@ -193,6 +193,26 @@ class RecurringEventController(
         return ok(calendar)
     }
 
+    // NEW ENDPOINT: Calendar with detailed event information (solves N+1 query problem)
+    @GetMapping("/calendar/detailed")
+    @Operation(
+        summary = "Get event calendar with full event details",
+        description = "Retrieves all event occurrences with embedded recurring event details for calendar view. " +
+                "This endpoint is optimized to avoid N+1 queries by fetching all required data in a single request."
+    )
+    fun getEventCalendarWithDetails(
+        @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) start_date: LocalDate,
+        @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) end_date: LocalDate,
+        @Parameter(description = "Include event details in response") @RequestParam(defaultValue = "true") includeEventDetails: Boolean = true
+    ): ResponseEntity<List<EventOccurrenceWithDetailsResponse>> {
+        logger.info("Getting detailed event calendar from {} to {} (includeDetails: {})", start_date, end_date, includeEventDetails)
+
+        val calendarWithDetails = eventCalendarQueryService.getEventCalendarWithDetails(start_date, end_date, includeEventDetails)
+
+        logger.info("Retrieved {} occurrences with details for calendar", calendarWithDetails.size)
+        return ok(calendarWithDetails)
+    }
+
     @GetMapping("/upcoming")
     @Operation(summary = "Get upcoming events", description = "Retrieves upcoming event occurrences")
     fun getUpcomingEvents(
