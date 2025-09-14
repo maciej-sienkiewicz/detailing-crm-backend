@@ -276,6 +276,6 @@ data class VisitTableResponse(
 
 data class MediaUploadResponse(
     val mediaId: String,
-    val protocolId: String,
+    val protocolId: String?,
     val message: String = "Media uploaded successfully"
 )

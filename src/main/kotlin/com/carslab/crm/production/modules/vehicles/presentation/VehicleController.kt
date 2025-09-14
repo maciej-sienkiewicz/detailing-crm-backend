@@ -7,6 +7,8 @@ import com.carslab.crm.production.modules.vehicles.application.dto.VehicleRespon
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleTableResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleWithStatisticsResponse
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleMediaCommandService
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleMediaQueryService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
 import com.carslab.crm.production.modules.visits.application.service.query.VisitMediaQueryService
@@ -23,6 +25,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -39,6 +42,8 @@ class VehicleController(
     private val vehicleQueryService: VehicleQueryService,
     private val visitQueryService: VisitQueryService,
     private val visitMediaQueryService: VisitMediaQueryService,
+    private val vehicleMediaCommandService: VehicleMediaCommandService,
+    private val vehicleMediaQueryService: VehicleMediaQueryService,
 ) : BaseController() {
 
     @PostMapping
@@ -218,7 +223,10 @@ class VehicleController(
     }
 
     @GetMapping("/{id}/service-history")
-    @Operation(summary = "Get vehicle service history", description = "Retrieves the service history for a specific vehicle")
+    @Operation(
+        summary = "Get vehicle service history",
+        description = "Retrieves the service history for a specific vehicle"
+    )
     fun getVehicleServiceHistory(
         @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String
     ): ResponseEntity<List<ServiceHistoryResponse>> {
@@ -285,48 +293,200 @@ class VehicleController(
         return ok(response)
     }
 
+    @PostMapping("/{id}/images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Upload image to vehicle", description = "Uploads an image directly to a vehicle")
+    fun uploadVehicleImage(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String,
+        request: MultipartHttpServletRequest
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("Uploading image to vehicle: $id")
+
+        try {
+            val response = vehicleMediaCommandService.uploadVehicleImage(id, request)
+            logger.info("Successfully uploaded image to vehicle: $id with media ID: ${response.mediaId}")
+
+            return created(
+                createSuccessResponse(
+                    "Image uploaded successfully",
+                    mapOf(
+                        "mediaId" to response.mediaId,
+                        "vehicleId" to id
+                    )
+                )
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to upload image to vehicle: $id", e)
+            throw e
+        }
+    }
+
+    // Zmodyfikuj istniejącą metodę getVehicleImageThumbnails:
     @GetMapping("/{id}/images/thumbnails")
-    @Operation(summary = "Get vehicle image thumbnails", description = "Retrieves a paginated list of image thumbnails for a specific vehicle")
+    @Operation(
+        summary = "Get vehicle image thumbnails",
+        description = "Retrieves all image thumbnails for a vehicle (direct + from visits)"
+    )
     fun getVehicleImageThumbnails(
         @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String,
-        @PageableDefault(size = 3, sort = ["uploadedAt"], direction = Sort.Direction.DESC) pageable: Pageable
+        @PageableDefault(size = 3, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable
     ): ResponseEntity<Page<VehicleImageResponse>> {
         logger.info("Getting image thumbnails for vehicle ID: $id with page request: $pageable")
 
-        // 1. Pobierz całą stronę wizyt, aby zachować informacje o paginacji
-        val visitsPage = visitQueryService.getVisitsForVehicle(id, Pageable.ofSize(1000))
+        try {
+            // Nowa logika - pobierz wszystkie zdjęcia pojazdu
+            val allVehicleImages = vehicleMediaQueryService.getAllVehicleImages(id)
 
-        // 2. Pobierz wszystkie media dla wizyt z bieżącej strony
-        val visitMediaList: List<VisitMediaResponse> = visitsPage.content.flatMap { visit ->
-            visitMediaQueryService.getVisitMedia(visit.id)
-        }
+            // Konwertuj na VehicleImageResponse (zachowaj format odpowiedzi)
+            val imageResponses = allVehicleImages.map { media ->
+                VehicleImageResponse(
+                    id = media.id,
+                    url = media.downloadUrl,
+                    thumbnailUrl = media.downloadUrl, // Można dodać osobny endpoint dla miniaturek
+                    filename = media.name,
+                    uploadedAt = media.createdAt
+                )
+            }
 
-        // 3. Zmapuj listę obiektów VisitMediaResponse na VehicleImageResponse
-        val imageResponses = visitMediaList.map { media ->
-            VehicleImageResponse(
-                id = media.id,
-                url = media.downloadUrl,
-                // Zakładamy, że URL miniaturki jest taki sam jak URL pełnego obrazu.
-                // Jeśli masz osobny URL dla miniaturki, zmień to mapowanie.
-                thumbnailUrl = media.downloadUrl,
-                filename = media.name,
-                uploadedAt = media.createdAt
+            // Implementacja prostej paginacji w pamięci (dla zachowania kompatybilności)
+            val startIndex = pageable.offset.toInt()
+            val endIndex = minOf(startIndex + pageable.pageSize, imageResponses.size)
+            val pageContent = if (startIndex < imageResponses.size) {
+                imageResponses.subList(startIndex, endIndex)
+            } else {
+                emptyList()
+            }
+
+            val imagePage: Page<VehicleImageResponse> = PageImpl(
+                pageContent,
+                pageable,
+                imageResponses.size.toLong()
             )
+
+            logger.info("Successfully retrieved ${imagePage.numberOfElements} image thumbnails for vehicle ID: $id")
+            return ok(imagePage)
+
+        } catch (e: Exception) {
+            logger.error("Failed to get image thumbnails for vehicle: $id", e)
+            throw e
         }
-
-        // 4. Utwórz obiekt Page z przetworzoną listą i oryginalnymi danymi paginacji
-        // UWAGA: Paginacja jest oparta na WIZYTACH, a nie na OBRAZKACH.
-        // Oznacza to, że całkowita liczba stron/elementów odnosi się do liczby wizyt.
-        val imagePage: Page<VehicleImageResponse> = PageImpl(
-            imageResponses,           // Zawartość bieżącej strony (obrazki)
-            pageable,                 // Informacje o żądanej stronie
-            visitsPage.totalElements  // Całkowita liczba wizyt (nie obrazków)
-        )
-
-        logger.info("Successfully retrieved ${imagePage.numberOfElements} image thumbnails for vehicle ID: $id")
-        return ok(imagePage)
     }
 
+    @GetMapping("/{id}/images")
+    @Operation(
+        summary = "Get all vehicle images",
+        description = "Retrieves all images for a vehicle (direct + from visits)"
+    )
+    fun getAllVehicleImages(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String
+    ): ResponseEntity<List<VehicleImageResponse>> {
+        logger.info("Getting all images for vehicle ID: $id")
+
+        try {
+            val allVehicleImages = vehicleMediaQueryService.getAllVehicleImages(id)
+
+            val imageResponses = allVehicleImages.map { media ->
+                VehicleImageResponse(
+                    id = media.id,
+                    url = media.downloadUrl,
+                    thumbnailUrl = media.downloadUrl,
+                    filename = media.name,
+                    uploadedAt = media.createdAt
+                )
+            }
+
+            logger.info("Successfully retrieved ${imageResponses.size} images for vehicle ID: $id")
+            return ok(imageResponses)
+
+        } catch (e: Exception) {
+            logger.error("Failed to get all images for vehicle: $id", e)
+            throw e
+        }
+    }
+
+    @GetMapping("/{id}/images/direct")
+    @Operation(
+        summary = "Get direct vehicle images",
+        description = "Retrieves only images directly assigned to vehicle (excluding visit images)"
+    )
+    fun getDirectVehicleImages(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String
+    ): ResponseEntity<List<VehicleImageResponse>> {
+        logger.info("Getting direct images for vehicle ID: $id")
+
+        try {
+            val directImages = vehicleMediaQueryService.getDirectVehicleImages(id)
+
+            val imageResponses = directImages.map { media ->
+                VehicleImageResponse(
+                    id = media.id,
+                    url = media.downloadUrl,
+                    thumbnailUrl = media.downloadUrl,
+                    filename = media.name,
+                    uploadedAt = media.createdAt
+                )
+            }
+
+            logger.info("Successfully retrieved ${imageResponses.size} direct images for vehicle ID: $id")
+            return ok(imageResponses)
+
+        } catch (e: Exception) {
+            logger.error("Failed to get direct images for vehicle: $id", e)
+            throw e
+        }
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    @Operation(summary = "Delete vehicle image", description = "Deletes a specific image from a vehicle")
+    fun deleteVehicleImage(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String,
+        @Parameter(description = "Image ID", required = true) @PathVariable imageId: String
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("Deleting image: $imageId from vehicle ID: $id")
+
+        try {
+            vehicleMediaCommandService.deleteVehicleImage(id, imageId)
+            logger.info("Successfully deleted image: $imageId from vehicle ID: $id")
+
+            return ok(
+                createSuccessResponse(
+                    "Image deleted successfully",
+                    mapOf(
+                        "vehicleId" to id,
+                        "imageId" to imageId
+                    )
+                )
+            )
+
+        } catch (e: Exception) {
+            logger.error("Failed to delete image: $imageId from vehicle: $id", e)
+            throw e
+        }
+    }
+
+    @GetMapping("/{id}/images/count")
+    @Operation(summary = "Get vehicle images count", description = "Returns the total count of images for a vehicle")
+    fun getVehicleImagesCount(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("Getting images count for vehicle ID: $id")
+
+        try {
+            val count = vehicleMediaQueryService.countAllVehicleImages(id)
+
+            return ok(
+                mapOf(
+                    "vehicleId" to id,
+                    "totalImages" to count,
+                    "hasImages" to (count > 0)
+                )
+            )
+
+        } catch (e: Exception) {
+            logger.error("Failed to get images count for vehicle: $id", e)
+            throw e
+        }
+    }
+    
     private fun createSuccessResponse(message: String, data: Map<String, Any>): Map<String, Any> {
         return mapOf(
             "success" to true,

@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.visits.domain.command
 
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
+import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
@@ -93,8 +94,9 @@ data class AddCommentCommand(
 
 data class UploadMediaCommand(
     val visitId: VisitId,
+    val vehicleId: VehicleId? = null,
     val file: org.springframework.web.multipart.MultipartFile,
-    val metadata: MediaMetadata
+    val metadata: MediaMetadata,
 )
 
 data class UploadDocumentCommand(

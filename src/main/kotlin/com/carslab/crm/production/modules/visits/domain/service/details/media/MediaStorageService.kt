@@ -10,16 +10,16 @@ class MediaStorageService(
     private val storageService: UniversalStorageService
 ) {
 
-    fun storeMediaFile(command: UploadMediaCommand, companyId: Long): String {
+    fun storeMediaFile(command: UploadMediaCommand, companyId: Long, entityType: String = "visit", category: String = "visits", id: String = ""): String {
         return storageService.storeFile(
             UniversalStoreRequest(
                 file = command.file,
                 originalFileName = command.file.originalFilename ?: "image.jpg",
                 contentType = command.file.contentType ?: "image/jpeg",
                 companyId = companyId,
-                entityId = command.visitId.value.toString(),
-                entityType = "visit",
-                category = "visits",
+                entityId = if(entityType == "visit") command.visitId.value.toString() else entityType,
+                entityType = entityType,
+                category = category,
                 subCategory = "media",
                 description = command.metadata.description,
                 tags = buildTagsMap(command.metadata.tags)
