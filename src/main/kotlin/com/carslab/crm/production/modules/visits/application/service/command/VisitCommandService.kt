@@ -7,9 +7,11 @@ import com.carslab.crm.production.modules.visits.application.dto.AddServicesToVi
 import com.carslab.crm.production.modules.visits.application.dto.ChangeStatusRequest
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import com.carslab.crm.production.modules.visits.application.dto.RemoveServiceFromVisitRequest
+import com.carslab.crm.production.modules.visits.application.dto.UpdateVisitServicesRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import com.carslab.crm.production.modules.visits.application.service.command.handler.AddServicesToVisitHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.RemoveServiceFromVisitHandler
+import com.carslab.crm.production.modules.visits.application.service.command.handler.UpdateVisitServicesHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitCreateHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitUpdateHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitStatusChangeHandler
@@ -30,6 +32,7 @@ class VisitCommandService(
     private val releaseHandler: VisitReleaseHandler,
     private val addServicesHandler: AddServicesToVisitHandler,
     private val removeServiceHandler: RemoveServiceFromVisitHandler,
+    private val updateVisitServicesHandler: UpdateVisitServicesHandler,
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(VisitCommandService::class.java)
@@ -104,6 +107,16 @@ class VisitCommandService(
         val result = removeServiceHandler.handle(VisitId.of(visitId), request, companyId)
 
         logger.info("Service removed successfully from visit: {}", visitId)
+        return result
+    }
+
+    fun updateVisitServices(visitId: String, request: UpdateVisitServicesRequest): VisitResponse {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Updating services for visit: {} for company: {}", visitId, companyId)
+
+        val result = updateVisitServicesHandler.handle(VisitId.of(visitId), request, companyId)
+
+        logger.info("Services updated successfully for visit: {}", visitId)
         return result
     }
 }

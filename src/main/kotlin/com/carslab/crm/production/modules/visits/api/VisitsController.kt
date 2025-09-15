@@ -157,4 +157,14 @@ class VisitController(
         val visits = visitQueryService.getVisitsForVehicle(vehicleId, pageable)
         return ResponseEntity.ok(visits)
     }
+
+    @PutMapping("/{visitId}/services")
+    @Operation(summary = "Update visit services", description = "Updates existing services in a visit by matching service names")
+    fun updateVisitServices(
+        @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
+        @Valid @RequestBody request: UpdateVisitServicesRequest
+    ): ResponseEntity<VisitResponse> {
+        val visit = visitCommandService.updateVisitServices(visitId, request)
+        return ResponseEntity.ok(visit)
+    }
 }
