@@ -90,6 +90,17 @@ class JpaMediaRepositoryImpl(
         return media
     }
 
+    @Transactional(readOnly = true)
+    override fun findByContextAndCompanyId(context: MediaContext, companyId: Long): List<Media> {
+        logger.debug("Finding media by context: {} for company: {}", context, companyId)
+
+        val media = jpaRepository.findByContextAndCompanyId(context, companyId)
+            .map { it.toDomain() }
+
+        logger.debug("Found {} media items for context: {}", media.size, context)
+        return media
+    }
+
     override fun deleteById(mediaId: MediaId): Boolean {
         logger.debug("Deleting media: {}", mediaId.value)
 
@@ -106,6 +117,17 @@ class JpaMediaRepositoryImpl(
     @Transactional(readOnly = true)
     override fun existsByIdAndCompanyId(mediaId: MediaId, companyId: Long): Boolean {
         return jpaRepository.existsByIdAndCompanyId(mediaId.value, companyId)
+    }
+
+    @Transactional(readOnly = true)
+    override fun findByCompanyId(companyId: Long): List<Media> {
+        logger.debug("Finding all media for company: {}", companyId)
+
+        val media = jpaRepository.findByCompanyId(companyId)
+            .map { it.toDomain() }
+
+        logger.debug("Found {} media items for company: {}", media.size, companyId)
+        return media
     }
 
     @Transactional(readOnly = true)

@@ -116,7 +116,7 @@ class RecurringEventCommandService(
         val event = recurringEventRepository.findById(RecurringEventId.of(eventId), companyId)
             ?: throw EntityNotFoundException("Recurring event not found: $eventId")
 
-        val deactivatedEvent = event.deactivate()
+        val deactivatedEvent = event.changeStatus()
         val savedEvent = recurringEventRepository.save(deactivatedEvent)
 
         logger.info("Recurring event deactivated successfully: {}", eventId)

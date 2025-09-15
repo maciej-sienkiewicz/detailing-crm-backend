@@ -94,7 +94,6 @@ class AddServicesToVisitHandler(
         }
 
         val updatedServices = visit.services + newServices
-        val updatedVisit = visit.updateServices(updatedServices)
 
         return aggregateService.updateVisitServices(command.visitId, updatedServices, command.companyId)
     }

@@ -30,6 +30,10 @@ data class RecurringEvent(
         return copy(isActive = false, updatedAt = LocalDateTime.now())
     }
 
+    fun changeStatus(): RecurringEvent {
+        return copy(isActive = !this.isActive, updatedAt = LocalDateTime.now())
+    }
+
     fun updateTitle(newTitle: String): RecurringEvent {
         require(newTitle.isNotBlank()) { "Event title cannot be blank" }
         return copy(title = newTitle, updatedAt = LocalDateTime.now())

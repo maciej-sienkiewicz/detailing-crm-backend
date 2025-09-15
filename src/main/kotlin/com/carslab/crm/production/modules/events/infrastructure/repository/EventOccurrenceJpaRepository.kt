@@ -96,6 +96,7 @@ interface EventOccurrenceJpaRepository : JpaRepository<EventOccurrenceEntity, Lo
         WHERE r.companyId = :companyId
         AND o.scheduledDate >= :startDate 
         AND o.scheduledDate <= :endDate
+        AND r.isActive IS TRUE
         ORDER BY o.scheduledDate ASC
     """)
     fun findByCompanyIdAndDateRangeWithoutPagination(

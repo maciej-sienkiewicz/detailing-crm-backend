@@ -27,7 +27,7 @@ class EventCommandMapper {
         val daysOfWeek = request.daysOfWeek?.let { days ->
             days.map { dayName ->
                 try {
-                    DayOfWeek.valueOf(dayName.uppercase())
+                    DayOfWeek.valueOf(dayName.convertShortcutToFullDayOfWeek())
                 } catch (e: IllegalArgumentException) {
                     throw IllegalArgumentException("Invalid day of week: $dayName")
                 }
@@ -55,6 +55,18 @@ class EventCommandMapper {
             maxOccurrences = request.maxOccurrences
         )
     }
+    
+    private fun String.convertShortcutToFullDayOfWeek() = 
+        when (this.lowercase()) {
+            "mon" -> "MONDAY"
+            "tue" -> "TUESDAY"
+            "wed" -> "WEDNESDAY"
+            "thu" -> "THURSDAY"
+            "fri" -> "FRIDAY"
+            "sat" -> "SATURDAY"
+            "sun" -> "SUNDAY"
+            else -> this.uppercase()
+        }
 
     fun mapVisitTemplate(request: VisitTemplateRequest): VisitTemplate {
         val estimatedDuration = Duration.ofMinutes(request.estimatedDurationMinutes)

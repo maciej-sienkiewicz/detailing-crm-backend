@@ -10,15 +10,9 @@ import org.springframework.stereotype.Repository
 @Repository
 interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
 
-    /**
-     * Znajduje media po visit ID
-     */
     @Query("SELECT m FROM MediaEntity m WHERE m.visitId = :visitId ORDER BY m.createdAt DESC")
     fun findByVisitId(@Param("visitId") visitId: Long): List<MediaEntity>
 
-    /**
-     * Znajduje media bezpośrednio przypisane do pojazdu (context = VEHICLE)
-     */
     @Query("""
         SELECT m FROM MediaEntity m 
         WHERE m.vehicleId = :vehicleId 
@@ -31,9 +25,6 @@ interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
         @Param("companyId") companyId: Long
     ): List<MediaEntity>
 
-    /**
-     * Znajduje wszystkie media powiązane z pojazdem (bezpośrednio + z wizyt)
-     */
     @Query("""
         SELECT m FROM MediaEntity m 
         WHERE m.vehicleId = :vehicleId 
@@ -45,9 +36,6 @@ interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
         @Param("companyId") companyId: Long
     ): List<MediaEntity>
 
-    /**
-     * Znajduje media po kontekście i entity ID
-     */
     @Query("""
         SELECT m FROM MediaEntity m 
         WHERE m.context = :context 
@@ -61,14 +49,26 @@ interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
         @Param("companyId") companyId: Long
     ): List<MediaEntity>
 
-    /**
-     * Sprawdza czy media istnieje i należy do firmy
-     */
+    @Query("""
+        SELECT m FROM MediaEntity m 
+        WHERE m.context = :context 
+        AND m.companyId = :companyId 
+        ORDER BY m.createdAt DESC
+    """)
+    fun findByContextAndCompanyId(
+        @Param("context") context: MediaContext,
+        @Param("companyId") companyId: Long
+    ): List<MediaEntity>
+
     fun existsByIdAndCompanyId(id: String, companyId: Long): Boolean
 
-    /**
-     * Znajduje media po company ID z paginacją
-     */
+    @Query("""
+        SELECT m FROM MediaEntity m 
+        WHERE m.companyId = :companyId 
+        ORDER BY m.createdAt DESC
+    """)
+    fun findByCompanyId(@Param("companyId") companyId: Long): List<MediaEntity>
+
     @Query("""
         SELECT m FROM MediaEntity m 
         WHERE m.companyId = :companyId 
@@ -81,14 +81,8 @@ interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
         @Param("offset") offset: Int
     ): List<MediaEntity>
 
-    /**
-     * Liczy wszystkie media dla firmy
-     */
     fun countByCompanyId(companyId: Long): Long
 
-    /**
-     * Znajduje media dla galerii z filtrami (dla przyszłego użytku)
-     */
     @Query(value = """
         SELECT m.* FROM media m
         WHERE m.company_id = :companyId
@@ -105,9 +99,6 @@ interface MediaJpaRepository : JpaRepository<MediaEntity, String> {
         @Param("offset") offset: Int
     ): List<MediaEntity>
 
-    /**
-     * Liczy media dla galerii z filtrami
-     */
     @Query(value = """
         SELECT COUNT(*) FROM media m
         WHERE m.company_id = :companyId

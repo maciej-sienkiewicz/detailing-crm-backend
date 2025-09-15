@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.media.application.dto.GalleryMediaResp
 import com.carslab.crm.production.modules.media.application.dto.MediaFileResponse
 import com.carslab.crm.production.modules.media.application.dto.MediaResponse
 import com.carslab.crm.production.modules.media.application.dto.MediaStatsResponse
+import com.carslab.crm.production.modules.media.domain.model.MediaContext
 import com.carslab.crm.production.modules.media.domain.model.MediaId
 import com.carslab.crm.production.modules.media.domain.service.MediaDomainService
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
@@ -22,9 +23,6 @@ class MediaQueryService(
 ) {
     private val logger = LoggerFactory.getLogger(MediaQueryService::class.java)
 
-    /**
-     * Pobiera wszystkie zdjęcia pojazdu (bezpośrednio przypisane + z wizyt)
-     */
     fun getAllVehicleMedia(vehicleId: String): List<MediaResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting all media for vehicle: {} and company: {}", vehicleId, companyId)
@@ -42,9 +40,6 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera zdjęcia dla wizyty (kompatybilność wsteczna)
-     */
     fun getVisitMedia(visitId: String): List<MediaResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting media for visit: {} and company: {}", visitId, companyId)
@@ -62,9 +57,38 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera dane pliku media
-     */
+    fun getAllMediaForCompany(companyId: Long): List<MediaResponse> {
+        logger.debug("Getting all media for company: {}", companyId)
+
+        return try {
+            val media = mediaDomainService.getAllMediaForCompany(companyId)
+            val responses = media.map { MediaResponse.from(it) }
+
+            logger.debug("Retrieved {} media items for company: {}", responses.size, companyId)
+            responses
+
+        } catch (e: Exception) {
+            logger.error("Failed to get all media for company: {}", companyId, e)
+            throw e
+        }
+    }
+
+    fun getAllVisitMediaForCompany(companyId: Long): List<MediaResponse> {
+        logger.debug("Getting all visit media for company: {}", companyId)
+
+        return try {
+            val media = mediaDomainService.getAllMediaByContextForCompany(MediaContext.VISIT, companyId)
+            val responses = media.map { MediaResponse.from(it) }
+
+            logger.debug("Retrieved {} visit media items for company: {}", responses.size, companyId)
+            responses
+
+        } catch (e: Exception) {
+            logger.error("Failed to get visit media for company: {}", companyId, e)
+            throw e
+        }
+    }
+
     fun getMediaFile(mediaId: String): ByteArray? {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting media file: {} for company: {}", mediaId, companyId)
@@ -77,9 +101,6 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera zdjęcie z metadanymi (kompatybilność z istniejącym API)
-     */
     fun getImageWithMetadata(mediaId: String): GetMediaQuery? {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting image with metadata: {} for company: {}", mediaId, companyId)
@@ -101,9 +122,6 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera media z metadanymi dla download
-     */
     fun getMediaWithMetadata(mediaId: String): MediaFileResponse? {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting media with metadata: {} for company: {}", mediaId, companyId)
@@ -125,9 +143,6 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera media dla galerii z dodatkową informacją kontekstową
-     */
     fun getGalleryMediaForVehicle(vehicleId: String): List<GalleryMediaResponse> {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting gallery media for vehicle: {} and company: {}", vehicleId, companyId)
@@ -148,17 +163,11 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Sprawdza czy media istnieje
-     */
     fun existsMedia(mediaId: String): Boolean {
         val companyId = securityContext.getCurrentCompanyId()
         return mediaDomainService.existsMedia(MediaId.of(mediaId), companyId)
     }
 
-    /**
-     * Pobiera media po ID
-     */
     fun getMediaById(mediaId: String): MediaResponse? {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting media by ID: {} for company: {}", mediaId, companyId)
@@ -173,14 +182,10 @@ class MediaQueryService(
         }
     }
 
-    /**
-     * Pobiera statystyki media dla firmy (dla przyszłego użytku)
-     */
     fun getMediaStats(): MediaStatsResponse {
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Getting media stats for company: {}", companyId)
 
-        // TODO: Implementacja statystyk po dodaniu odpowiednich metod w repository
         return MediaStatsResponse(
             totalCount = 0L,
             totalSize = 0L,
