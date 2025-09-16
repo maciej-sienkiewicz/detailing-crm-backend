@@ -11,6 +11,7 @@ import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitComment
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.springframework.stereotype.Service
 
 @Service
@@ -51,15 +52,13 @@ class VisitActivitySender(
         )
     }
 
-    fun onCommentAdded(comment: VisitComment, visitId: VisitId, title: String) {
+    fun onCommentAdded(comment: VisitComment, visitId: VisitId, title: String, authContext: AuthContext) {
         activityCommandService.createActivity(
             CreateActivityRequest(
                 category = ActivityCategory.PROTOCOL,
                 message = "Dodano komentarz do wizyty.",
-                userId = securityContext.getCurrentUserId()
-                    ?: throw IllegalStateException("User not found in security context"),
-                userName = securityContext.getCurrentUserName()
-                    ?: throw IllegalStateException("User not found in security context"),
+                userId = authContext.userId.value,
+                userName = authContext.userName,
                 description = "Treść komentarza: ${comment.content}",
                 primaryEntity = RelatedEntityDto(
                     id = visitId.value.toString(),
@@ -68,9 +67,31 @@ class VisitActivitySender(
                 ),
                 relatedEntities = emptyList(),
                 metadata = mapOf()
-            )
+            ),
+            authContext = authContext
         )
     }
+
+    fun onWarningAdded(comment: VisitComment, visitId: VisitId, title: String, authContext: AuthContext) {
+        activityCommandService.createActivity(
+            CreateActivityRequest(
+                category = ActivityCategory.NOTIFICATION,
+                message = "Coś poszło nie tak!",
+                userId = authContext.userId.value,
+                userName = authContext.userName,
+                description = comment.content,
+                primaryEntity = RelatedEntityDto(
+                    id = visitId.value.toString(),
+                    type = "VISIT",
+                    name = title
+                ),
+                relatedEntities = emptyList(),
+                metadata = mapOf()
+            ),
+            authContext = authContext
+        )
+    }
+
 
     fun onVisitUpdated(newVisit: Visit, existingVisit: Visit, client: ClientResponse, vehicle: VehicleResponse) {
         activityCommandService.createActivity(

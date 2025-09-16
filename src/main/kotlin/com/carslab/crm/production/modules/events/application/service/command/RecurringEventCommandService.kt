@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.events.application.service.command
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.events.application.dto.*
 import com.carslab.crm.production.modules.events.application.service.command.mapper.EventCommandMapper
+import com.carslab.crm.production.modules.events.domain.activity.EventActivitySender
 import com.carslab.crm.production.modules.events.domain.factory.RecurringEventFactory
 import com.carslab.crm.production.modules.events.domain.models.value_objects.RecurringEventId
 import com.carslab.crm.production.modules.events.domain.repositories.RecurringEventRepository
@@ -22,7 +23,8 @@ class RecurringEventCommandService(
     private val recurringEventFactory: RecurringEventFactory,
     private val recurrenceCalculationService: RecurrenceCalculationService,
     private val eventCommandMapper: EventCommandMapper,
-    private val securityContext: SecurityContext
+    private val securityContext: SecurityContext,
+    private val eventActivitySender: EventActivitySender
 ) {
     private val logger = LoggerFactory.getLogger(RecurringEventCommandService::class.java)
 
@@ -55,7 +57,10 @@ class RecurringEventCommandService(
         }
 
         val savedEvent = recurringEventRepository.save(recurringEvent)
-        generateInitialOccurrences(savedEvent)
+        val occurrencesCount = generateInitialOccurrences(savedEvent)
+
+        // Rejestrujemy aktywność
+        eventActivitySender.onRecurringEventCreated(savedEvent, occurrencesCount)
 
         logger.info("Recurring event created successfully: {}", savedEvent.id)
         return RecurringEventResponse.from(savedEvent)
@@ -85,9 +90,14 @@ class RecurringEventCommandService(
 
         val savedEvent = recurringEventRepository.save(updatedEvent)
 
+        var regeneratedCount = 0
         if (recurrencePattern != null) {
-            regenerateOccurrences(savedEvent)
+            regeneratedCount = regenerateOccurrences(savedEvent)
+            eventActivitySender.onOccurrencesRegenerated(savedEvent, regeneratedCount)
         }
+
+        // Rejestrujemy aktywność aktualizacji
+        eventActivitySender.onRecurringEventUpdated(savedEvent, existingEvent)
 
         logger.info("Recurring event updated successfully: {}", eventId)
         return RecurringEventResponse.from(savedEvent)
@@ -100,10 +110,15 @@ class RecurringEventCommandService(
         val event = recurringEventRepository.findById(eventId, companyId)
             ?: throw EntityNotFoundException("Recurring event not found: ${eventId.value}")
 
+        // Liczymy wystąpienia przed usunięciem
+        val occurrencesCount = eventOccurrenceRepository.countByRecurringEventId(eventId).toInt()
+
         eventOccurrenceRepository.deleteByRecurringEventId(eventId)
         val deleted = recurringEventRepository.deleteById(eventId, companyId)
 
         if (deleted) {
+            // Rejestrujemy aktywność usunięcia
+            eventActivitySender.onRecurringEventDeleted(event, occurrencesCount)
             logger.info("Recurring event deleted successfully: {}", eventId.value)
         }
         return deleted
@@ -119,11 +134,16 @@ class RecurringEventCommandService(
         val deactivatedEvent = event.changeStatus()
         val savedEvent = recurringEventRepository.save(deactivatedEvent)
 
+        // Rejestrujemy aktywność deaktywacji
+        if (!savedEvent.isActive) {
+            eventActivitySender.onRecurringEventDeactivated(savedEvent)
+        }
+
         logger.info("Recurring event deactivated successfully: {}", eventId)
         return RecurringEventResponse.from(savedEvent)
     }
 
-    private fun generateInitialOccurrences(event: com.carslab.crm.production.modules.events.domain.models.aggregates.RecurringEvent) {
+    private fun generateInitialOccurrences(event: com.carslab.crm.production.modules.events.domain.models.aggregates.RecurringEvent): Int {
         val fromDate = LocalDateTime.now()
         val toDate = fromDate.plusMonths(6)
 
@@ -137,12 +157,23 @@ class RecurringEventCommandService(
         if (occurrences.isNotEmpty()) {
             eventOccurrenceRepository.saveAll(occurrences)
             logger.info("Generated {} initial occurrences for event: {}", occurrences.size, event.id)
+
+            // Rejestrujemy aktywność generowania wystąpień
+            eventActivitySender.onOccurrencesGenerated(
+                event,
+                occurrences.size,
+                fromDate.toLocalDate().toString(),
+                toDate.toLocalDate().toString()
+            )
         }
+
+        return occurrences.size
     }
 
-    private fun regenerateOccurrences(event: com.carslab.crm.production.modules.events.domain.models.aggregates.RecurringEvent) {
+    private fun regenerateOccurrences(event: com.carslab.crm.production.modules.events.domain.models.aggregates.RecurringEvent): Int {
         eventOccurrenceRepository.deleteByRecurringEventId(event.id!!)
-        generateInitialOccurrences(event)
+        val newCount = generateInitialOccurrences(event)
         logger.info("Regenerated occurrences for event: {}", event.id)
+        return newCount
     }
 }

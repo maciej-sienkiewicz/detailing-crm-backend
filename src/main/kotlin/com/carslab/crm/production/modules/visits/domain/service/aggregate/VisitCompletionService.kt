@@ -21,6 +21,8 @@ import com.carslab.crm.production.modules.visits.domain.service.details.Financia
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -35,6 +37,7 @@ class VisitCompletionService(
     private val emailService: EmailSendingService,
     private val activitySender: VisitActivitySender,
     private val commentCommandService: VisitCommentCommandService,
+    private val backgroundTaskScope: CoroutineScope
 ) {
     private val logger = LoggerFactory.getLogger(VisitCompletionService::class.java)
 
@@ -45,13 +48,52 @@ class VisitCompletionService(
 
         val documentItems = createDocumentItems(visit.services, request)
         val documentTotals = calculateDocumentTotals(documentItems)
-
+        
         completeVisit(visit, companyId)
+        
         activitySender.onVisitCompleted(visit)
-        createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals)
-        updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount())
-        sendEmail(visitId)
-        addCommentsToVisit(request, visit.id!!)
+
+        backgroundTaskScope.launch {
+            launch {
+                runCatching { createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals) }
+                    .onFailure {
+                        commentCommandService.addWarning(
+                            AddCommentRequest(
+                                content = "Nie udało się wygenerować dokumentu finansowego. Upewnij się, że masz aktywny i pooprawny szablon faktury.",
+                                type = "SYSTEM",
+                                visitId = visit.id!!.value.toString()
+                            ),
+                            companyId = companyId
+                        )
+                        logger.error("Failed to update revenue statistics", it) 
+                    }
+            }
+            
+            launch {
+                runCatching { updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount()) }
+                    .onFailure { logger.error("Failed to update revenue statistics", it) }
+            }
+
+            launch {
+                runCatching { sendEmail(visitId) }
+                    .onFailure { 
+                        commentCommandService.addWarning(
+                            AddCommentRequest(
+                                content = "Nie udało się wysłać e-maila z protokołem. Upewnij się, że masz poprawną konfigurację maila. ",
+                                type = "SYSTEM",
+                                visitId = visit.id!!.value.toString(),
+                            ),
+                            companyId = companyId
+                        )
+                        logger.error("Failed to send email", it)
+                    }
+            }
+
+            launch {
+                runCatching { addCommentsToVisit(request, visit.id!!) }
+                    .onFailure { logger.error("Failed to add comments", it) }
+            }
+        }
         
         return true
     }

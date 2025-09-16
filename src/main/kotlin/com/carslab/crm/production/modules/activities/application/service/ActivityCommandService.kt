@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.activities.domain.command.CreateActivi
 import com.carslab.crm.production.modules.activities.domain.command.RelatedEntity
 import com.carslab.crm.production.modules.activities.domain.model.ActivityId
 import com.carslab.crm.production.modules.activities.domain.service.ActivityDomainService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,8 +19,8 @@ class ActivityCommandService(
 ) {
     private val logger = LoggerFactory.getLogger(ActivityCommandService::class.java)
 
-    fun createActivity(request: CreateActivityRequest): ActivityId {
-        val companyId = securityContext.getCurrentCompanyId()
+    fun createActivity(request: CreateActivityRequest, authContext: AuthContext? = null): ActivityId {
+        val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
         logger.info("Creating activity for company: {}", companyId)
 
         val command = CreateActivityCommand(

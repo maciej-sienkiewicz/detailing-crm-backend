@@ -1,11 +1,14 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
+import com.carslab.crm.domain.model.UserId
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
 import com.carslab.crm.production.modules.visits.application.dto.AddCommentRequest
 import com.carslab.crm.production.modules.visits.application.dto.VisitCommentResponse
 import com.carslab.crm.production.modules.visits.domain.command.AddCommentCommand
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.domain.service.details.CommentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -32,7 +35,34 @@ class VisitCommentCommandService(
             author = author
         )
 
-        val comment = commentService.addComment(command, companyId)
+        val comment = commentService.addComment(command, AuthContext(
+            companyId = CompanyId.of(companyId),
+            userId = UserId(securityContext.getCurrentUserId().toString()),
+            userName = securityContext.getCurrentUserName() ?: "System"
+        ))
+        
+        logger.info("Comment added successfully to visit: {}", request.visitId)
+
+        return VisitCommentResponse.from(comment)
+    }
+    
+    fun addWarning(request: AddCommentRequest, companyId: Long): VisitCommentResponse {
+        val author = securityContext.getCurrentUserName() ?: "System"
+
+        logger.info("Adding comment to visit: {} for company: {}", request.visitId, companyId)
+
+        val command = AddCommentCommand(
+            visitId = VisitId.of(request.visitId),
+            content = request.content,
+            type = request.type.uppercase().let { CommentType.valueOf(it) },
+            author = author
+        )
+
+        val comment = commentService.addComment(command, AuthContext(
+            companyId = CompanyId.of(companyId),
+            userId = UserId(securityContext.getCurrentUserId().toString()),
+            userName = securityContext.getCurrentUserName() ?: "System"
+        ))
         logger.info("Comment added successfully to visit: {}", request.visitId)
 
         return VisitCommentResponse.from(comment)

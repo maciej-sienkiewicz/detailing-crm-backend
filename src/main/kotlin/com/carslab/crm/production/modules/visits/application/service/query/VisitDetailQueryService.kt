@@ -25,8 +25,8 @@ class VisitDetailQueryService(
 ) {
     private val logger = LoggerFactory.getLogger(VisitDetailQueryService::class.java)
 
-    fun getVisitDetail(visitId: String): CarReceptionDetailDto {
-        val companyId = securityContext.getCurrentCompanyId()
+    fun getVisitDetail(visitId: String, companyId: Long? = null): CarReceptionDetailDto {
+        val companyId = companyId ?: securityContext.getCurrentCompanyId()
         logger.debug("Fetching visit detail: {} for company: {}", visitId, companyId)
 
         val visitDetail = visitDetailQueryRepository.findVisitDetailById(VisitId.of(visitId), companyId)

@@ -2,10 +2,12 @@ package com.carslab.crm.production.modules.events.application.service.command
 
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.events.application.dto.*
+import com.carslab.crm.production.modules.events.domain.activity.EventActivitySender
 import com.carslab.crm.production.modules.events.domain.factory.EventOccurrenceFactory
 import com.carslab.crm.production.modules.events.domain.models.enums.OccurrenceStatus
 import com.carslab.crm.production.modules.events.domain.models.value_objects.EventOccurrenceId
 import com.carslab.crm.production.modules.events.domain.repositories.EventOccurrenceRepository
+import com.carslab.crm.production.modules.events.domain.repositories.RecurringEventRepository
 import com.carslab.crm.production.modules.events.domain.services.EventToVisitConversionService
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import com.carslab.crm.production.shared.exception.BusinessException
@@ -20,7 +22,9 @@ class EventOccurrenceCommandService(
     private val eventOccurrenceRepository: EventOccurrenceRepository,
     private val eventOccurrenceFactory: EventOccurrenceFactory,
     private val eventToVisitConversionService: EventToVisitConversionService,
-    private val securityContext: SecurityContext
+    private val recurringEventRepository: RecurringEventRepository,
+    private val securityContext: SecurityContext,
+    private val eventActivitySender: EventActivitySender
 ) {
     private val logger = LoggerFactory.getLogger(EventOccurrenceCommandService::class.java)
 
@@ -32,6 +36,8 @@ class EventOccurrenceCommandService(
 
         val occurrence = eventOccurrenceRepository.findById(EventOccurrenceId.of(occurrenceId))
             ?: throw EntityNotFoundException("Event occurrence not found: $occurrenceId")
+
+        val previousStatus = occurrence.status
 
         val newStatus = try {
             OccurrenceStatus.valueOf(request.status.uppercase())
@@ -46,6 +52,15 @@ class EventOccurrenceCommandService(
         )
 
         val savedOccurrence = eventOccurrenceRepository.save(updatedOccurrence)
+
+        // Pobieramy dane zdarzenia cyklicznego dla aktywności
+        val companyId = securityContext.getCurrentCompanyId()
+        val recurringEvent = recurringEventRepository.findById(occurrence.recurringEventId, companyId)
+            ?: throw EntityNotFoundException("Recurring event not found: ${occurrence.recurringEventId}")
+
+        // Rejestrujemy aktywność zmiany statusu
+        eventActivitySender.onOccurrenceStatusChanged(savedOccurrence, recurringEvent, previousStatus)
+
         logger.info("Occurrence status updated successfully: {}", occurrenceId)
 
         return EventOccurrenceResponse.from(savedOccurrence)
