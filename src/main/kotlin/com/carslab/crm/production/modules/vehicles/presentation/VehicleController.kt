@@ -3,9 +3,11 @@ package com.carslab.crm.production.modules.vehicles.presentation
 import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.CreateVehicleRequest
 import com.carslab.crm.production.modules.vehicles.application.dto.UpdateVehicleRequest
+import com.carslab.crm.production.modules.vehicles.application.dto.VehicleAnalyticsResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleTableResponse
 import com.carslab.crm.production.modules.vehicles.application.dto.VehicleWithStatisticsResponse
+import com.carslab.crm.production.modules.vehicles.application.service.VehicleAnalyticsQueryService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleMediaCommandService
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleMediaQueryService
@@ -40,10 +42,9 @@ import java.util.*
 class VehicleController(
     private val vehicleCommandService: VehicleCommandService,
     private val vehicleQueryService: VehicleQueryService,
-    private val visitQueryService: VisitQueryService,
-    private val visitMediaQueryService: VisitMediaQueryService,
     private val vehicleMediaCommandService: VehicleMediaCommandService,
     private val vehicleMediaQueryService: VehicleMediaQueryService,
+    private val vehicleAnalyticsQueryService: VehicleAnalyticsQueryService
 ) : BaseController() {
 
     @PostMapping
@@ -486,6 +487,42 @@ class VehicleController(
             throw e
         }
     }
+
+    @GetMapping("/{id}/analytics")
+    @Operation(
+        summary = "Get vehicle analytics",
+        description = "Retrieves comprehensive analytics for a vehicle including profitability, visit patterns, and service preferences"
+    )
+    fun getVehicleAnalytics(
+        @Parameter(description = "Vehicle ID", required = true) @PathVariable id: String
+    ): ResponseEntity<VehicleAnalyticsResponse> {
+        logger.info("Getting analytics for vehicle ID: $id")
+
+        val analytics = vehicleAnalyticsQueryService.getVehicleAnalytics(id)
+        logger.info("Successfully retrieved analytics for vehicle ID: $id")
+
+        return ok(analytics)
+    }
+
+    @PostMapping("/batch-analytics")
+    @Operation(
+        summary = "Get batch vehicle analytics",
+        description = "Retrieves analytics for multiple vehicles in a single request for performance optimization"
+    )
+    fun getBatchVehicleAnalytics(
+        @Valid @RequestBody request: BatchAnalyticsRequest
+    ): ResponseEntity<Map<String, VehicleAnalyticsResponse>> {
+        logger.info("Getting batch analytics for {} vehicles", request.vehicleIds.size)
+
+        if (request.vehicleIds.size > 100) {
+            throw IllegalArgumentException("Maximum 100 vehicles allowed per batch request")
+        }
+
+        val analytics = vehicleAnalyticsQueryService.getBatchVehicleAnalytics(request.vehicleIds)
+        logger.info("Successfully retrieved batch analytics for {} vehicles", request.vehicleIds.size)
+
+        return ok(analytics)
+    }
     
     private fun createSuccessResponse(message: String, data: Map<String, Any>): Map<String, Any> {
         return mapOf(
@@ -553,4 +590,9 @@ data class VehicleImageResponse(
     val filename: String,
     @JsonProperty("uploaded_at")
     val uploadedAt: LocalDateTime
+)
+
+data class BatchAnalyticsRequest(
+    @JsonProperty("vehicle_ids")
+    val vehicleIds: List<String>
 )
