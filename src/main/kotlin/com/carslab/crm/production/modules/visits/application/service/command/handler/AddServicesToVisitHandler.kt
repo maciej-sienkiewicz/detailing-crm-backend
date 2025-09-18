@@ -7,8 +7,11 @@ import com.carslab.crm.production.modules.visits.application.dto.AddServicesToVi
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import com.carslab.crm.production.modules.visits.domain.command.AddServiceItemCommand
 import com.carslab.crm.production.modules.visits.domain.command.AddServicesToVisitCommand
+import com.carslab.crm.production.modules.visits.domain.command.ChangeVisitStatusCommand
+import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.AggregateService
@@ -32,6 +35,16 @@ class AddServicesToVisitHandler(
 
         val command = buildCommand(visitId, request, companyId)
         val updatedVisit = addServicesToVisit(command)
+            .also { visit ->  
+                if(visit.status == VisitStatus.READY_FOR_PICKUP) {
+                    aggregateService.changeVisitStatus(ChangeVisitStatusCommand(
+                        visitId = visitId,
+                        newStatus = VisitStatus.IN_PROGRESS,
+                        reason = "Dodano nową usługę.",
+                        companyId = companyId
+                    ))
+                }
+            }
 
         logger.info("Successfully added services to visit: {}", visitId.value)
         return VisitResponse.from(updatedVisit)
@@ -84,7 +97,7 @@ class AddServicesToVisitHandler(
         return createdService.id
     }
 
-    private fun addServicesToVisit(command: AddServicesToVisitCommand): com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit {
+    private fun addServicesToVisit(command: AddServicesToVisitCommand): Visit {
         val visit = aggregateService.findById(command.visitId, command.companyId)
 
         validateVisitCanHaveServicesAdded(visit)
@@ -98,11 +111,11 @@ class AddServicesToVisitHandler(
         return aggregateService.updateVisitServices(command.visitId, updatedServices, command.companyId)
     }
 
-    private fun validateVisitCanHaveServicesAdded(visit: com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit) {
-        if (visit.status == com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.COMPLETED) {
+    private fun validateVisitCanHaveServicesAdded(visit: Visit) {
+        if (visit.status == VisitStatus.COMPLETED) {
             throw BusinessException("Cannot add services to completed visit")
         }
-        if (visit.status == com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.CANCELLED) {
+        if (visit.status == VisitStatus.CANCELLED) {
             throw BusinessException("Cannot add services to cancelled visit")
         }
     }

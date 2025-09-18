@@ -12,6 +12,7 @@ import com.carslab.crm.production.modules.events.domain.models.enums.OccurrenceS
 import com.carslab.crm.production.modules.events.domain.models.enums.RecurrenceFrequency
 import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import org.springframework.stereotype.Service
+import java.time.format.DateTimeFormatter
 
 @Service
 class EventActivitySender(
@@ -120,15 +121,15 @@ class EventActivitySender(
         activityCommandService.createActivity(
             CreateActivityRequest(
                 category = ActivityCategory.PROTOCOL,
-                message = "Zmieniono status wystąpienia zdarzenia: \"${recurringEvent.title}\"",
+                message = "Zmieniono status zaplanowanego wydarzenia: \"${recurringEvent.title}\"",
                 userId = getCurrentUserId(),
                 userName = getCurrentUserName(),
                 description = "Status: '${humanFriendlyStatus(previousStatus)}' -> '${humanFriendlyStatus(occurrence.status)}'\n" +
-                        "Data wystąpienia: ${occurrence.scheduledDate}",
+                        "Data wystąpienia: ${occurrence.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}",
                 primaryEntity = RelatedEntityDto(
                     id = occurrence.id?.value?.toString() ?: "",
                     type = "EVENT_OCCURRENCE",
-                    name = "${recurringEvent.title} - ${occurrence.scheduledDate.toLocalDate()}"
+                    name = "${recurringEvent.title} - ${occurrence.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}"
                 ),
                 relatedEntities = listOf(
                     RelatedEntityDto(
@@ -140,7 +141,7 @@ class EventActivitySender(
                 metadata = mapOf(
                     "previousStatus" to previousStatus.name,
                     "newStatus" to occurrence.status.name,
-                    "scheduledDate" to occurrence.scheduledDate.toString(),
+                    "scheduledDate" to occurrence.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")).toString(),
                     "eventType" to recurringEvent.type.name
                 )
             )
@@ -159,12 +160,12 @@ class EventActivitySender(
                 userId = getCurrentUserId(),
                 userName = getCurrentUserName(),
                 description = "Utworzono wizytę: \"${visitResponse.title}\"\n" +
-                        "Data wystąpienia: ${occurrence.scheduledDate}\n" +
+                        "Data wystąpienia: ${occurrence.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}\n" +
                         "ID wizyty: ${visitResponse.id}",
                 primaryEntity = RelatedEntityDto(
                     id = occurrence.id?.value?.toString() ?: "",
                     type = "EVENT_OCCURRENCE",
-                    name = "${recurringEvent.title} - ${occurrence.scheduledDate.toLocalDate()}"
+                    name = "${recurringEvent.title} - ${occurrence.scheduledDate.toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))}"
                 ),
                 relatedEntities = listOf(
                     RelatedEntityDto(

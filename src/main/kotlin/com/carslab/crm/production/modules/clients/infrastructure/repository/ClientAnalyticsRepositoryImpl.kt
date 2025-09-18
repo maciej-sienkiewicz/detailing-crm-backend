@@ -278,11 +278,12 @@ class ClientAnalyticsRepositoryImpl(
     }
 
     override fun getClientGrowthChart(clientId: ClientId, companyId: Long, months: Int): List<ClientMonthlyRevenue> {
+        // Najpierw tworzymy zapytanie z użyciem konkatenacji stringów dla INTERVAL
         val sql = """
             WITH monthly_buckets AS (
                 SELECT 
                     generate_series(
-                        date_trunc('month', CURRENT_DATE - INTERVAL ':months months'),
+                        date_trunc('month', CURRENT_DATE - INTERVAL '$months months'),
                         date_trunc('month', CURRENT_DATE),
                         INTERVAL '1 month'
                     )::date as month_start
@@ -303,7 +304,7 @@ class ClientAnalyticsRepositoryImpl(
                 WHERE v.client_id = :clientId 
                   AND v.company_id = :companyId
                   AND v.status IN ('COMPLETED', 'READY_FOR_PICKUP')
-                  AND v.start_date >= CURRENT_DATE - INTERVAL ':months months'
+                  AND v.start_date >= CURRENT_DATE - INTERVAL '$months months'
                 GROUP BY date_trunc('month', v.start_date)::date
             )
             SELECT 
@@ -320,8 +321,7 @@ class ClientAnalyticsRepositoryImpl(
 
         val params = mapOf(
             "clientId" to clientId.value,
-            "companyId" to companyId,
-            "months" to months
+            "companyId" to companyId
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
