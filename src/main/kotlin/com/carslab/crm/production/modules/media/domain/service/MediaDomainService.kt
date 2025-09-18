@@ -17,6 +17,7 @@ import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import java.time.LocalDateTime
 
 @Service
 class MediaDomainService(
@@ -194,5 +195,32 @@ class MediaDomainService(
         }
 
         return media
+    }
+
+    fun updateMediaTags(mediaId: MediaId, tags: List<String>, companyId: Long): Boolean {
+        logger.info("Updating tags for media: {} for company: {}", mediaId.value, companyId)
+
+        val media = mediaRepository.findById(mediaId)
+            ?: throw EntityNotFoundException("Media not found: ${mediaId.value}")
+
+        if (!media.canBeAccessedBy(companyId)) {
+            throw BusinessException("Access denied to media: ${mediaId.value}")
+        }
+
+        // Walidacja tagów
+        require(tags.size <= 20) { "Too many tags (max 20)" }
+        require(tags.all { it.isNotBlank() && it.length <= 50 }) {
+            "All tags must be non-blank and max 50 characters"
+        }
+
+        val updatedMedia = media.copy(
+            tags = tags.map { it.trim() }.distinct(),
+            updatedAt = LocalDateTime.now()
+        )
+
+        mediaRepository.save(updatedMedia)
+
+        logger.info("Media tags updated successfully: {} with {} tags", mediaId.value, tags.size)
+        return true
     }
 }

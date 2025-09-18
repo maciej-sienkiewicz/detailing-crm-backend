@@ -1,10 +1,13 @@
 package com.carslab.crm.production.modules.media.presentation
 
+import com.carslab.crm.production.modules.media.application.dto.UpdateMediaTagsRequest
+import com.carslab.crm.production.modules.media.application.service.MediaCommandService
 import com.carslab.crm.production.modules.media.application.service.MediaQueryService
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
@@ -20,7 +23,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/media")
 @Tag(name = "Media", description = "Media file operations")
 class MediaController(
-    private val mediaQueryService: MediaQueryService
+    private val mediaQueryService: MediaQueryService,
+    private val mediaCommandService: MediaCommandService,
 ) : BaseController() {
 
     @GetMapping("/{mediaId}/download")
@@ -92,5 +96,36 @@ class MediaController(
             "mediaId" to mediaId,
             "exists" to exists
         ))
+    }
+
+    @PutMapping("/{mediaId}/tags")
+    @Operation(summary = "Update media tags", description = "Updates tags for specified media")
+    fun updateMediaTags(
+        @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String,
+        @RequestBody @Valid request: UpdateMediaTagsRequest
+    ): ResponseEntity<Map<String, Any>> {
+        logger.info("Updating tags for media: $mediaId with tags: ${request.tags}")
+
+        try {
+            mediaCommandService.updateMediaTags(mediaId, request.tags)
+
+            val updatedMedia = mediaQueryService.getMediaById(mediaId)
+                ?: return ResponseEntity.notFound().build()
+
+            logger.info("Successfully updated tags for media: $mediaId")
+
+            return ok(mapOf(
+                "mediaId" to mediaId,
+                "tags" to updatedMedia.tags,
+                "message" to "Tags updated successfully"
+            ))
+
+        } catch (e: IllegalStateException) {
+            logger.warn("Failed to update tags for media: $mediaId - ${e.message}")
+            return ResponseEntity.notFound().build()
+        } catch (e: IllegalArgumentException) {
+            logger.warn("Invalid tags for media: $mediaId - ${e.message}")
+            return badRequest(e.message ?: "Unknown error occurred")
+        }
     }
 }

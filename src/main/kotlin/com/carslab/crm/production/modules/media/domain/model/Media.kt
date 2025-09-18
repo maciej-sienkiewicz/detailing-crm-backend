@@ -51,6 +51,18 @@ data class Media(
 
     fun canBeAccessedBy(companyId: Long): Boolean = this.companyId == companyId
 
+    fun updateTags(newTags: List<String>): Media {
+        require(newTags.size <= 20) { "Too many tags (max 20)" }
+        require(newTags.all { it.isNotBlank() && it.length <= 50 }) {
+            "All tags must be non-blank and max 50 characters"
+        }
+
+        return this.copy(
+            tags = newTags.map { it.trim() }.distinct(),
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
     companion object {
         fun createForVisit(
             visitId: VisitId,

@@ -174,4 +174,24 @@ class MediaCommandService(
             throw e
         }
     }
+
+    fun updateMediaTags(mediaId: String, tags: List<String>) {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.info("Updating tags for media: {} for company: {}", mediaId, companyId)
+
+        try {
+            val updated = mediaDomainService.updateMediaTags(MediaId.of(mediaId), tags, companyId)
+
+            if (!updated) {
+                logger.warn("Failed to update tags for media: {} - not found or access denied", mediaId)
+                throw IllegalStateException("Media not found or could not be updated")
+            }
+
+            logger.info("Media tags updated successfully: {}", mediaId)
+
+        } catch (e: Exception) {
+            logger.error("Failed to update tags for media: {} for company: {}", mediaId, companyId, e)
+            throw e
+        }
+    }
 }

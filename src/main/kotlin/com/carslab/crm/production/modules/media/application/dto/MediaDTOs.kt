@@ -167,3 +167,12 @@ data class MediaStatsResponse(
     @JsonProperty("by_type")
     val byType: Map<String, Long>
 )
+
+data class UpdateMediaTagsRequest(
+    val tags: List<String>
+) {
+    init {
+        require(tags.size <= 20) { "Too many tags (max 20)" }
+        require(tags.all { it.isNotBlank() && it.length <= 50 }) { "Tags must be non-blank and max 50 characters" }
+    }
+}
