@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.visits.application.dto.VisitResponse
 import com.carslab.crm.production.modules.visits.application.service.command.handler.support.DeliveryPersonHandler
 import com.carslab.crm.production.modules.visits.application.service.command.mapper.VisitCommandMapper
 import com.carslab.crm.production.modules.visits.domain.activity.VisitActivitySender
+import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.AggregateService
@@ -25,9 +26,15 @@ class VisitUpdateHandler(
     fun handle(visitId: VisitId, request: UpdateCarReceptionCommand, companyId: Long): VisitResponse {
         val existingVisit = visitDomain.findById(visitId, companyId)
 
-        deliveryPersonHandler.handleDeliveryPersonCreation(request, existingVisit)
-
-        val command = commandMapper.mapUpdateCommand(request)
+        val deliveryPerson = request.deliveryPerson
+        val updatedDeliveryPerson: DeliveryPerson? = if(deliveryPerson != null) {
+            val newId = deliveryPersonHandler.handleDeliveryPersonCreation(request, existingVisit)
+            deliveryPerson.copy(id = newId ?: deliveryPerson.id)
+        } else {
+            null
+        }
+        
+        val command = commandMapper.mapUpdateCommand(request.copy(deliveryPerson = updatedDeliveryPerson))
         val updatedVisit = visitDomain.updateVisit(visitId, command, companyId)
 
         sendUpdateActivity(updatedVisit, existingVisit)
