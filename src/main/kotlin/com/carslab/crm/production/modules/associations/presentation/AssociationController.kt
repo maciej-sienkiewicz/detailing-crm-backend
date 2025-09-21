@@ -35,7 +35,7 @@ class AssociationController(
     }
 
     @DeleteMapping("/client/{clientId}/vehicle/{vehicleId}")
-    @HttpMonitored(endpoint = "DELETE_/api/associations/client/{id}/vehicle/{id}")
+    @HttpMonitored(endpoint = "DELETE_/api/associations/client/{clientId}/vehicle/{vehicleId}")
     @Operation(summary = "End association", description = "Ends the association between client and vehicle")
     fun endAssociation(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String,
@@ -50,7 +50,7 @@ class AssociationController(
     }
 
     @PutMapping("/client/{clientId}/vehicle/{vehicleId}/primary")
-    @HttpMonitored(endpoint = "PUT_/api/associations/client/{id}/vehicle/{id}/primary")
+    @HttpMonitored(endpoint = "PUT_/api/associations/client/{clientId}/vehicle/{vehicleId}/primary")
     @Operation(summary = "Make primary owner", description = "Makes the client the primary owner of the vehicle")
     fun makePrimaryOwner(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String,
@@ -65,7 +65,7 @@ class AssociationController(
     }
 
     @GetMapping("/client/{clientId}/vehicles")
-    @HttpMonitored(endpoint = "GET_/api/associations/client/{id}/vehicles")
+    @HttpMonitored(endpoint = "GET_/api/associations/client/{clientId}/vehicles")
     @Operation(summary = "Get client vehicles", description = "Retrieves all vehicles associated with a client")
     fun getClientVehicles(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
@@ -79,7 +79,7 @@ class AssociationController(
     }
 
     @GetMapping("/vehicle/{vehicleId}/clients")
-    @HttpMonitored(endpoint = "GET_/api/associations/vehicle/{id}/clients")
+    @HttpMonitored(endpoint = "GET_/api/associations/vehicle/{vehicleId}/clients")
     @Operation(summary = "Get vehicle clients", description = "Retrieves all clients associated with a vehicle")
     fun getVehicleClients(
         @Parameter(description = "Vehicle ID", required = true) @PathVariable vehicleId: String

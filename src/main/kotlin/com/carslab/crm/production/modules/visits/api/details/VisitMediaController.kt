@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.visits.application.dto.MediaUploadResp
 import com.carslab.crm.production.modules.visits.application.dto.VisitMediaResponse
 import com.carslab.crm.production.modules.visits.application.service.command.VisitMediaCommandService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitMediaQueryService
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -25,6 +26,7 @@ class VisitMediaController(
 ) {
 
     @PostMapping("/{visitId}/media", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @HttpMonitored(endpoint = "POST_/api/v1/protocols/{visitId}/media")
     @Operation(summary = "Upload media to visit")
     fun uploadMedia(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
@@ -35,6 +37,7 @@ class VisitMediaController(
     }
 
     @GetMapping("/{visitId}/images")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/{visitId}/images")
     @Operation(summary = "Get visit media")
     fun getVisitMedia(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
@@ -44,6 +47,7 @@ class VisitMediaController(
     }
 
     @GetMapping("/media/{mediaId}/download")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/media/{mediaId}/download")
     @Operation(summary = "Download media file")
     fun downloadMedia(
         @Parameter(description = "Media ID") @PathVariable mediaId: String
@@ -59,6 +63,7 @@ class VisitMediaController(
     }
 
     @GetMapping("/image/{fileId}")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/image/{fileId}")
     @Operation(summary = "Get image file")
     fun getImage(
         @Parameter(description = "File ID") @PathVariable fileId: String
@@ -75,6 +80,7 @@ class VisitMediaController(
     }
 
     @DeleteMapping("/{visitId}/image/{mediaId}")
+    @HttpMonitored(endpoint = "DELETE_/api/v1/protocols/{visitId}/image/{mediaId}")
     @Operation(summary = "Delete image file")
     fun deleteMedia(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,

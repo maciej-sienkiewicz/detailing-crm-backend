@@ -20,7 +20,8 @@ annotation class DatabaseMonitored(
     val repository: String,
     val method: String,
     val recordOnlyOnError: Boolean = false,
-    val timeoutMs: Long = 30000
+    val timeoutMs: Long = 30000,
+    val operation: String,
 )
 
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
