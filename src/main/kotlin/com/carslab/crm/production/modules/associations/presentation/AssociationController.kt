@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.associations.application.dto.Associati
 import com.carslab.crm.production.modules.associations.application.dto.CreateAssociationRequest
 import com.carslab.crm.production.modules.associations.application.service.AssociationCommandService
 import com.carslab.crm.production.modules.associations.application.service.AssociationQueryService
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -21,6 +22,7 @@ class AssociationController(
 ) : BaseController() {
 
     @PostMapping
+    @HttpMonitored(endpoint = "POST_/api/associations")
     @Operation(summary = "Create association", description = "Creates a new association between client and vehicle")
     fun createAssociation(@Valid @RequestBody request: CreateAssociationRequest): ResponseEntity<AssociationResponse> {
         logger.info("Received request to create association between client: {} and vehicle: {}",
@@ -33,6 +35,7 @@ class AssociationController(
     }
 
     @DeleteMapping("/client/{clientId}/vehicle/{vehicleId}")
+    @HttpMonitored(endpoint = "DELETE_/api/associations/client/{id}/vehicle/{id}")
     @Operation(summary = "End association", description = "Ends the association between client and vehicle")
     fun endAssociation(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String,
@@ -47,6 +50,7 @@ class AssociationController(
     }
 
     @PutMapping("/client/{clientId}/vehicle/{vehicleId}/primary")
+    @HttpMonitored(endpoint = "PUT_/api/associations/client/{id}/vehicle/{id}/primary")
     @Operation(summary = "Make primary owner", description = "Makes the client the primary owner of the vehicle")
     fun makePrimaryOwner(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String,
@@ -61,6 +65,7 @@ class AssociationController(
     }
 
     @GetMapping("/client/{clientId}/vehicles")
+    @HttpMonitored(endpoint = "GET_/api/associations/client/{id}/vehicles")
     @Operation(summary = "Get client vehicles", description = "Retrieves all vehicles associated with a client")
     fun getClientVehicles(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
@@ -74,6 +79,7 @@ class AssociationController(
     }
 
     @GetMapping("/vehicle/{vehicleId}/clients")
+    @HttpMonitored(endpoint = "GET_/api/associations/vehicle/{id}/clients")
     @Operation(summary = "Get vehicle clients", description = "Retrieves all clients associated with a vehicle")
     fun getVehicleClients(
         @Parameter(description = "Vehicle ID", required = true) @PathVariable vehicleId: String

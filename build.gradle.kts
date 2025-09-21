@@ -81,6 +81,8 @@ dependencies {
 
 	// Metrics
 	implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("io.micrometer:micrometer-core")
 
 	// Kotlin
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
