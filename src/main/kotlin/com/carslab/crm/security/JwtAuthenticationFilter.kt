@@ -115,11 +115,16 @@ class JwtAuthenticationFilter(
             "/api/debug/token",
             "/api/health",
             "/api/users",
-            "/actuator",
             "/error",
             "/favicon.ico",
             "/ws/"
         )
+
+        // Sprawdź czy to actuator endpoint
+        if (uri.startsWith("/actuator")) {
+            return true
+        }
+
         return publicPaths.any { uri.startsWith(it) }
     }
 }
