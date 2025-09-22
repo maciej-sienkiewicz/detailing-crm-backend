@@ -5,7 +5,6 @@ import com.carslab.crm.production.modules.services.application.dto.ServiceRespon
 import com.carslab.crm.production.modules.services.application.dto.UpdateServiceRequest
 import com.carslab.crm.production.modules.services.application.service.ServiceCommandService
 import com.carslab.crm.production.modules.services.application.service.ServiceQueryService
-import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -23,7 +22,6 @@ class ServiceController(
 ) : BaseController() {
 
     @GetMapping
-    @HttpMonitored(endpoint = "GET_/api/services")
     @Operation(summary = "Get all services", description = "Retrieves all active services for current company")
     fun getAllServices(): ResponseEntity<List<ServiceResponse>> {
         logger.info("Getting all services")
@@ -33,7 +31,6 @@ class ServiceController(
     }
 
     @GetMapping("/{id}")
-    @HttpMonitored(endpoint = "GET_/api/services/{id}")
     @Operation(summary = "Get service by ID", description = "Retrieves an active service by its ID")
     fun getServiceById(
         @Parameter(description = "Service ID", required = true) @PathVariable id: String
@@ -45,7 +42,6 @@ class ServiceController(
     }
 
     @PostMapping
-    @HttpMonitored(endpoint = "POST_/api/services")
     @Operation(summary = "Create a new service", description = "Creates a new service")
     fun createService(@Valid @RequestBody request: CreateServiceRequest): ResponseEntity<ServiceResponse> {
         logger.info("Creating new service: {}", request.name)
@@ -55,7 +51,6 @@ class ServiceController(
     }
 
     @PutMapping("/{id}")
-    @HttpMonitored(endpoint = "PUT_/api/services/{id}")
     @Operation(summary = "Update service", description = "Updates an existing service")
     fun updateService(
         @Parameter(description = "Service ID", required = true) @PathVariable id: String,
@@ -68,7 +63,6 @@ class ServiceController(
     }
 
     @DeleteMapping("/{id}")
-    @HttpMonitored(endpoint = "DELETE_/api/services/{id}")
     @Operation(summary = "Delete service", description = "Deactivates a service")
     fun deleteService(
         @Parameter(description = "Service ID", required = true) @PathVariable id: String
