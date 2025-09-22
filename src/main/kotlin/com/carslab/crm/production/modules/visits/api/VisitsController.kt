@@ -12,6 +12,7 @@ import com.carslab.crm.production.modules.visits.application.service.query.Visit
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitListQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -35,6 +36,7 @@ class VisitController(
 ) {
 
     @PostMapping
+    @HttpMonitored(endpoint = "POST_/api/v1/protocols")
     @Operation(summary = "Create new visit")
     fun createVisit(@Valid @RequestBody request: CreateVisitRequest): ResponseEntity<VisitResponse> {
         val visit = visitCommandService.createVisit(request)
@@ -42,6 +44,7 @@ class VisitController(
     }
 
     @GetMapping("/{visitId}")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/{id}")
     @Operation(summary = "Get visit by ID")
     fun getVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
@@ -51,6 +54,7 @@ class VisitController(
     }
 
     @PostMapping("/{id}/release")
+    @HttpMonitored(endpoint = "POST_/api/v1/protocols/{id}/release")
     @Operation(summary = "Release vehicle to client", description = "Completes protocol by releasing vehicle to client with payment details")
     fun releaseVehicle(
         @Parameter(description = "Visit ID", required = true) @PathVariable id: String,
@@ -62,6 +66,7 @@ class VisitController(
     }
 
     @PutMapping("/{visitId}")
+    @HttpMonitored(endpoint = "PUT_/api/v1/protocols/{id}")
     @Operation(summary = "Update visit")
     fun updateVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
@@ -73,6 +78,7 @@ class VisitController(
     }
 
     @PostMapping("/{visitId}/services")
+    @HttpMonitored(endpoint = "POST_/api/v1/protocols/{id}/services")
     @Operation(summary = "Add services to visit", description = "Adds new services to an existing visit with PENDING approval status")
     fun addServicesToVisit(
         @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
@@ -83,6 +89,7 @@ class VisitController(
     }
 
     @DeleteMapping("/{visitId}/services")
+    @HttpMonitored(endpoint = "DELETE_/api/v1/protocols/{id}/services")
     @Operation(summary = "Remove service from visit", description = "Removes a service from an existing visit")
     fun removeServiceFromVisit(
         @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,
@@ -93,6 +100,7 @@ class VisitController(
     }
 
     @PatchMapping("/{visitId}/status")
+    @HttpMonitored(endpoint = "PATCH_/api/v1/protocols/{id}/status")
     @Operation(summary = "Change visit status")
     fun changeVisitStatus(
         @Parameter(description = "Visit ID") @PathVariable visitId: String,
@@ -103,6 +111,7 @@ class VisitController(
     }
 
     @DeleteMapping("/{visitId}")
+    @HttpMonitored(endpoint = "DELETE_/api/v1/protocols/{id}")
     @Operation(summary = "Delete visit")
     fun deleteVisit(
         @Parameter(description = "Visit ID") @PathVariable visitId: String
@@ -112,6 +121,7 @@ class VisitController(
     }
 
     @GetMapping("/counters")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/counters")
     @Operation(summary = "Get visit counters by status")
     fun getVisitCounters(): ResponseEntity<VisitCountersResponse> {
         val counters = visitCountersQueryService.getVisitCounters()
@@ -119,6 +129,7 @@ class VisitController(
     }
 
     @GetMapping("/client/{clientId}")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/client/{id}")
     @Operation(summary = "Get visits for specific client")
     fun getVisitsForClient(
         @Parameter(description = "Client ID") @PathVariable clientId: String,
@@ -147,6 +158,7 @@ class VisitController(
     }
 
     @GetMapping("/vehicles/{vehicleId}")
+    @HttpMonitored(endpoint = "GET_/api/v1/protocols/vehicles/{id}")
     @Operation(summary = "Get visits for specific vehicle")
     fun getVisitsForVehicle(
         @Parameter(description = "Vehicle ID") @PathVariable vehicleId: String,
@@ -159,6 +171,7 @@ class VisitController(
     }
 
     @PutMapping("/{visitId}/services")
+    @HttpMonitored(endpoint = "PUT_/api/v1/protocols/{id}/services")
     @Operation(summary = "Update visit services", description = "Updates existing services in a visit by matching service names")
     fun updateVisitServices(
         @Parameter(description = "Visit ID", required = true) @PathVariable visitId: String,

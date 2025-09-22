@@ -8,6 +8,7 @@ import com.carslab.crm.production.modules.clients.application.dto.CreateClientRe
 import com.carslab.crm.production.modules.clients.application.dto.UpdateClientRequest
 import com.carslab.crm.production.modules.clients.application.service.ClientCommandService
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -26,6 +27,7 @@ class ClientController(
 ) : BaseController() {
 
     @PostMapping
+    @HttpMonitored(endpoint = "POST_/api/clients")
     @Operation(summary = "Create a new client", description = "Creates a new client with the provided information")
     fun createClient(@Valid @RequestBody request: CreateClientRequest): ResponseEntity<ClientResponse> {
         logger.info("Received request to create new client: ${request.firstName} ${request.lastName}")
@@ -37,6 +39,7 @@ class ClientController(
     }
 
     @GetMapping("/search")
+    @HttpMonitored(endpoint = "GET_/api/clients/search")
     @Operation(summary = "Search clients", description = "Search clients by name, email, or phone number")
     fun searchClients(
         @Parameter(description = "Client name to search for") @RequestParam(required = false) name: String?,
@@ -63,6 +66,7 @@ class ClientController(
     }
 
     @GetMapping("/paginated")
+    @HttpMonitored(endpoint = "GET_/api/clients/paginated")
     @Operation(summary = "Get clients with pagination", description = "Retrieves clients with pagination and filtering")
     fun getClientsPaginated(
         @Parameter(description = "Client name to search for") @RequestParam(required = false) name: String?,
@@ -107,6 +111,7 @@ class ClientController(
     }
 
     @GetMapping
+    @HttpMonitored(endpoint = "GET_/api/clients")
     @Operation(summary = "Get all clients", description = "Retrieves all clients with expanded information (legacy endpoint)")
     fun getAllClients(): ResponseEntity<List<ClientResponse>> {
         logger.info("Getting all clients (legacy endpoint)")
@@ -130,6 +135,7 @@ class ClientController(
     }
 
     @GetMapping("/{id}")
+    @HttpMonitored(endpoint = "GET_/api/clients/{id}")
     @Operation(summary = "Get client by ID", description = "Retrieves a client by their ID")
     fun getClientById(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long
@@ -141,6 +147,7 @@ class ClientController(
     }
 
     @PutMapping("/{id}")
+    @HttpMonitored(endpoint = "PUT_/api/clients/{id}")
     @Operation(summary = "Update a client", description = "Updates an existing client with the provided information")
     fun updateClient(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long,
@@ -155,6 +162,7 @@ class ClientController(
     }
 
     @DeleteMapping("/{id}")
+    @HttpMonitored(endpoint = "DELETE_/api/clients/{id}")
     @Operation(summary = "Delete a client", description = "Deletes a client by their ID")
     fun deleteClient(
         @Parameter(description = "Client ID", required = true) @PathVariable id: Long
@@ -168,6 +176,7 @@ class ClientController(
     }
 
     @GetMapping("/{clientId}/statistics")
+    @HttpMonitored(endpoint = "GET_/api/clients/{id}/statistics")
     @Operation(summary = "Get client statistics", description = "Retrieves statistical information about a client")
     fun getStatistics(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
@@ -186,6 +195,7 @@ class ClientController(
     }
 
     @GetMapping("/{clientId}/vehicles")
+    @HttpMonitored(endpoint = "GET_/api/clients/{id}/vehicles")
     @Operation(summary = "Get client vehicles", description = "Retrieves vehicles associated with a client")
     fun getVehicles(
         @Parameter(description = "Client ID", required = true) @PathVariable clientId: String
