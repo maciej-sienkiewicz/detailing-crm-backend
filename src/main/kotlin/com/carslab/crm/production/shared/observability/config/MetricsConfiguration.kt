@@ -2,9 +2,9 @@ package com.carslab.crm.production.shared.observability.config
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.config.MeterFilter
-import io.micrometer.prometheus.PrometheusConfig
-import io.micrometer.prometheus.PrometheusMeterRegistry
-import org.springframework.boot.actuator.autoconfigure.metrics.MeterRegistryCustomizer
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -55,13 +55,6 @@ class MetricsConfiguration {
             registry.config()
                 .commonTags("application", "crm-production")
                 .commonTags("environment", System.getProperty("spring.profiles.active", "unknown"))
-                .meterFilter(MeterFilter.replaceTagValues("uri") { uri ->
-                    if (uri.contains("/api/")) {
-                        uri.substringBefore("?")
-                            .replace(Regex("\\d+"), "{id}")
-                            .replace(Regex("[a-f0-9-]{36}"), "{uuid}")
-                    } else uri
-                })
         }
     }
 
@@ -69,12 +62,16 @@ class MetricsConfiguration {
     fun histogramCustomizer(): MeterRegistryCustomizer<MeterRegistry> {
         return MeterRegistryCustomizer { registry ->
             registry.config()
-                .meterFilter(MeterFilter.maximumAllowableTags(
-                    "http.server.requests", "uri", 100, MeterFilter.deny()
-                ))
-                .meterFilter(MeterFilter.maximumAllowableTags(
-                    "business.operation", "operation", 200, MeterFilter.deny()
-                ))
+                .meterFilter(
+                    MeterFilter.maximumAllowableTags(
+                        "http.server.requests", "uri", 100, MeterFilter.deny()
+                    )
+                )
+                .meterFilter(
+                    MeterFilter.maximumAllowableTags(
+                        "business.operation", "operation", 200, MeterFilter.deny()
+                    )
+                )
         }
     }
 }

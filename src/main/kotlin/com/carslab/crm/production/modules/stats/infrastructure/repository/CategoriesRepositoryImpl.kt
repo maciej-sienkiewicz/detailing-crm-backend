@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.stats.domain.model.ServiceId
 import com.carslab.crm.production.modules.stats.domain.repository.CategoriesRepository
 import com.carslab.crm.production.modules.stats.infrastructure.entity.CategoryEntity
 import com.carslab.crm.production.modules.stats.infrastructure.entity.ServiceCategoryMappingEntity
+import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -21,6 +22,7 @@ class CategoriesRepositoryImpl(
 
     private val logger = LoggerFactory.getLogger(CategoriesRepositoryImpl::class.java)
 
+    @DatabaseMonitored(repository = "category", method = "createCategory", operation = "insert")
     override fun createCategory(categoryName: String, companyId: Long): Category {
         logger.debug("Creating category: {} for company: {}", categoryName, companyId)
 
@@ -40,6 +42,7 @@ class CategoriesRepositoryImpl(
         )
     }
 
+    @DatabaseMonitored(repository = "category", method = "addToCategory", operation = "update")
     override fun addToCategory(servicesIds: List<ServiceId>, categoryId: CategoryId) {
         logger.debug("Adding {} services to category: {}", servicesIds.size, categoryId.id)
 
@@ -59,6 +62,7 @@ class CategoriesRepositoryImpl(
         logger.debug("Services added to category successfully")
     }
 
+    @DatabaseMonitored(repository = "category", method = "updateCategoryName", operation = "update")
     override fun updateCategoryName(categoryId: CategoryId, newName: String): Category {
         logger.debug("Updating category name: {} to: {}", categoryId.id, newName)
 
@@ -85,6 +89,7 @@ class CategoriesRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "category", method = "getCategories", operation = "select")
     override fun getCategories(companyId: Long): List<Category> {
         logger.debug("Fetching categories for company: {}", companyId)
 
@@ -103,6 +108,7 @@ class CategoriesRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "category", method = "getCategoryName", operation = "select")
     override fun getCategoryName(categoryId: CategoryId, companyId: Long): String {
         logger.debug("Fetching category name for category: {} and company: {}", categoryId.id, companyId)
 

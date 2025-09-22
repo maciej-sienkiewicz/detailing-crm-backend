@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.stats.application.dto.TimeGranularity
 import com.carslab.crm.production.modules.stats.domain.model.*
 import com.carslab.crm.production.modules.stats.domain.repository.StatisticsRepository
 import com.carslab.crm.production.modules.stats.infrastructure.mapper.TimeSeriesMapper
+import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -17,6 +18,7 @@ class StatisticsRepositoryImpl(
 
     private val logger = LoggerFactory.getLogger(StatisticsRepositoryImpl::class.java)
 
+    @DatabaseMonitored(repository = "category", method = "getUncategorizedServices", operation = "select")
     override fun getUncategorizedServices(companyId: Long): List<UncategorizedService> {
         logger.debug("Fetching uncategorized services for company: {}", companyId)
 
@@ -35,6 +37,7 @@ class StatisticsRepositoryImpl(
         return services
     }
 
+    @DatabaseMonitored(repository = "category", method = "getCategorizedServices", operation = "select")
     override fun getCategorizedServices(categoryId: CategoryId, companyId: Long): List<CategorizedService> {
         logger.debug("Fetching categorized services for category: {} and company: {}", categoryId.id, companyId)
 
@@ -53,6 +56,7 @@ class StatisticsRepositoryImpl(
         return services
     }
 
+    @DatabaseMonitored(repository = "category", method = "getCategoryStatsSummary", operation = "select")
     override fun getCategoryStatsSummary(categoryId: CategoryId, companyId: Long): CategoryStatsSummary {
         logger.debug("Fetching category stats summary for category: {} and company: {}", categoryId.id, companyId)
 
@@ -71,6 +75,7 @@ class StatisticsRepositoryImpl(
         return summary
     }
 
+    @DatabaseMonitored(repository = "category", method = "getCategoryStatsTimeSeries", operation = "select")
     override fun getCategoryStatsTimeSeries(
         categoryId: CategoryId,
         startDate: LocalDate,
@@ -102,6 +107,7 @@ class StatisticsRepositoryImpl(
         return timeSeries
     }
 
+    @DatabaseMonitored(repository = "category", method = "getServiceStats", operation = "select")
     override fun getServiceStats(
         serviceId: String,
         startDate: LocalDate,

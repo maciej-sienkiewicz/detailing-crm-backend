@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.services.domain.model.ServiceId
 import com.carslab.crm.production.modules.services.domain.repository.ServiceRepository
 import com.carslab.crm.production.modules.services.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.services.infrastructure.mapper.toEntity
+import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -17,6 +18,7 @@ class ServiceRepositoryImpl(
 
     private val logger = LoggerFactory.getLogger(ServiceRepositoryImpl::class.java)
 
+    @DatabaseMonitored(repository = "service", method = "save", operation = "insert")
     override fun save(service: Service): Service {
         logger.debug("Saving service: {} for company: {}", service.id.value, service.companyId)
 
@@ -28,6 +30,7 @@ class ServiceRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "service", method = "findById", operation = "select")
     override fun findById(id: ServiceId): Service? {
         logger.debug("Finding service by ID: {}", id.value)
 
@@ -43,6 +46,7 @@ class ServiceRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "service", method = "findActiveById", operation = "select")
     override fun findActiveById(id: ServiceId): Service? {
         logger.debug("Finding active service by ID: {}", id.value)
 
@@ -56,6 +60,7 @@ class ServiceRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "service", method = "findActiveByCompanyId", operation = "select")
     override fun findActiveByCompanyId(companyId: Long): List<Service> {
         logger.debug("Finding active services for company: {}", companyId)
 
@@ -67,6 +72,7 @@ class ServiceRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "service", method = "existsByCompanyIdAndName", operation = "select")
     override fun existsByCompanyIdAndName(companyId: Long, name: String): Boolean {
         logger.debug("Checking if active service exists: {} for company: {}", name, companyId)
 
@@ -76,6 +82,7 @@ class ServiceRepositoryImpl(
         return exists
     }
 
+    @DatabaseMonitored(repository = "service", method = "deleteById", operation = "delete")
     override fun deleteById(id: ServiceId): Boolean {
         logger.debug("Deleting service: {}", id.value)
 
@@ -94,6 +101,7 @@ class ServiceRepositoryImpl(
         }
     }
 
+    @DatabaseMonitored(repository = "service", method = "deactivateById", operation = "update")
     override fun deactivateById(id: ServiceId) {
         logger.debug("Deactivating service: {}", id.value)
 

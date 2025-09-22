@@ -4,6 +4,7 @@ import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.production.modules.templates.application.dto.*
 import com.carslab.crm.production.modules.templates.application.service.command.TemplateCommandService
 import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -26,6 +27,7 @@ class TemplateController(
 ) {
 
     @GetMapping
+    @HttpMonitored(endpoint = "GET_/api/v1/templates")
     @Operation(summary = "Get all templates with pagination")
     fun getTemplates(
         @Parameter(description = "Page number") @RequestParam(defaultValue = "0") page: Int,
@@ -43,6 +45,7 @@ class TemplateController(
     }
 
     @GetMapping("/types")
+    @HttpMonitored(endpoint = "GET_/api/v1/templates/types")
     @Operation(summary = "Get available template types")
     fun getTemplateTypes(): ResponseEntity<List<TemplateTypeResponse>> {
         val types = templateQueryService.getTemplateTypes()
@@ -50,6 +53,7 @@ class TemplateController(
     }
 
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @HttpMonitored(endpoint = "POST_/api/v1/templates")
     @Operation(summary = "Upload new template")
     fun uploadTemplate(
         @ModelAttribute @Valid request: UploadTemplateRequest
@@ -59,6 +63,7 @@ class TemplateController(
     }
 
     @PutMapping("/{templateId}")
+    @HttpMonitored(endpoint = "PUT_/api/v1/templates/{templateId}")
     @Operation(summary = "Update template metadata")
     fun updateTemplate(
         @Parameter(description = "Template ID") @PathVariable templateId: String,
@@ -69,6 +74,7 @@ class TemplateController(
     }
 
     @DeleteMapping("/{templateId}")
+    @HttpMonitored(endpoint = "DELETE_/api/v1/templates/{templateId}")
     @Operation(summary = "Delete template")
     fun deleteTemplate(
         @Parameter(description = "Template ID") @PathVariable templateId: String
@@ -78,6 +84,7 @@ class TemplateController(
     }
 
     @GetMapping("/{templateId}/download")
+    @HttpMonitored(endpoint = "GET_/api/v1/templates/{templateId}/download")
     @Operation(summary = "Download template file")
     fun downloadTemplate(
         @Parameter(description = "Template ID") @PathVariable templateId: String
@@ -91,6 +98,7 @@ class TemplateController(
     }
 
     @GetMapping("/{templateId}/preview")
+    @HttpMonitored(endpoint = "GET_/api/v1/templates/{templateId}/preview")
     @Operation(summary = "Preview template file")
     fun previewTemplate(
         @Parameter(description = "Template ID") @PathVariable templateId: String

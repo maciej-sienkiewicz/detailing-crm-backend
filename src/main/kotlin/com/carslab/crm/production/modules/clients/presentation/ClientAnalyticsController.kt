@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.clients.application.dto.ClientAnalytic
 import com.carslab.crm.production.modules.clients.application.dto.CompanyAveragesResponse
 import com.carslab.crm.production.modules.clients.application.service.ClientAnalyticsService
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -20,6 +21,7 @@ class ClientAnalyticsController(
 ) : BaseController() {
 
     @GetMapping
+    @HttpMonitored(endpoint = "GET_/api/clients/{clientId}/analytics")
     @Operation(
         summary = "Get comprehensive client analytics",
         description = "Returns detailed analytics including revenue trends, seasonality, top services, and comparisons"
@@ -38,6 +40,7 @@ class ClientAnalyticsController(
     }
 
     @GetMapping("/summary")
+    @HttpMonitored(endpoint = "GET_/api/clients/{clientId}/analytics/summary")
     @Operation(
         summary = "Get client analytics summary",
         description = "Returns lightweight analytics summary for dashboard/list views"
@@ -64,6 +67,7 @@ class CompanyAnalyticsController(
 ) : BaseController() {
 
     @GetMapping("/averages")
+    @HttpMonitored(endpoint = "GET_/api/company/analytics/averages")
     @Operation(
         summary = "Get company averages",
         description = "Returns company-wide average metrics for comparison purposes"
@@ -78,6 +82,7 @@ class CompanyAnalyticsController(
     }
 
     @PostMapping("/clients/batch")
+    @HttpMonitored(endpoint = "POST_/api/company/analytics/clients/batch")
     @Operation(
         summary = "Get batch client analytics",
         description = "Returns basic analytics for multiple clients in a single request"

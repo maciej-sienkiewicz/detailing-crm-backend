@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.clients.domain.repository.ClientReposi
 import com.carslab.crm.production.modules.clients.domain.repository.ClientSearchCriteria
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toEntity
+import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -24,6 +25,7 @@ class ClientRepositoryImpl(
 
     private val logger = LoggerFactory.getLogger(ClientRepositoryImpl::class.java)
 
+    @DatabaseMonitored(repository = "client", method = "save", operation = "insert")
     override fun save(client: Client): Client {
         logger.debug("Saving client: {} for company: {}", client.id.value, client.companyId)
 
@@ -35,6 +37,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "findById", operation = "select")
     override fun findById(id: ClientId): Client? {
         logger.debug("Finding client by ID: {}", id.value)
 
@@ -51,6 +54,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "findByCompanyId", operation = "select")
     override fun findByCompanyId(companyId: Long, pageable: Pageable): Page<Client> {
         logger.debug("Finding clients for company: {}", companyId)
 
@@ -62,6 +66,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "findByEmail", operation = "select")
     override fun findByEmail(email: String, companyId: Long): Client? {
         logger.debug("Finding client by email: {} for company: {}", email, companyId)
 
@@ -71,6 +76,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "findByPhone", operation = "select")
     override fun findByPhone(phone: String, companyId: Long): Client? {
         logger.debug("Finding client by phone: {} for company: {}", phone, companyId)
 
@@ -80,15 +86,18 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "existsByEmail", operation = "select")
     override fun existsByEmail(email: String, companyId: Long): Boolean {
         return jpaRepository.existsByEmailAndCompanyIdAndActiveTrue(email, companyId)
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "existsByPhone", operation = "select")
     override fun existsByPhone(phone: String, companyId: Long): Boolean {
         return jpaRepository.existsByPhoneAndCompanyIdAndActiveTrue(phone, companyId)
     }
 
+    @DatabaseMonitored(repository = "client", method = "deleteById", operation = "update")
     override fun deleteById(id: ClientId): Boolean {
         logger.debug("Soft deleting client: {}", id.value)
 
@@ -108,6 +117,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "searchClients", operation = "select")
     override fun searchClients(
         companyId: Long,
         searchCriteria: ClientSearchCriteria,
@@ -129,6 +139,7 @@ class ClientRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
+    @DatabaseMonitored(repository = "client", method = "searchClientsWithStatistics", operation = "select")
     override fun searchClientsWithStatistics(
         companyId: Long,
         searchCriteria: ClientSearchCriteria,
@@ -174,6 +185,7 @@ class ClientRepositoryImpl(
         return PageImpl(enrichedClients, pageable, totalCount)
     }
 
+    @DatabaseMonitored(repository = "client", method = "findByIds", operation = "select")
     override fun findByIds(ids: List<ClientId>, companyId: Long): List<Client> {
         if (ids.isEmpty()) return emptyList()
 
@@ -187,6 +199,7 @@ class ClientRepositoryImpl(
         return clients
     }
 
+    @DatabaseMonitored(repository = "client", method = "findByPhoneOrEmail", operation = "select")
     override fun findByPhoneOrEmail(
         phone: String?,
         email: String?,
@@ -209,6 +222,7 @@ class ClientRepositoryImpl(
         return result
     }
 
+    @DatabaseMonitored(repository = "client", method = "findWithCursorPagination", operation = "select")
     fun findWithCursorPagination(companyId: Long, lastId: Long, limit: Int): List<Client> {
         logger.debug("Finding clients with cursor pagination: company={}, lastId={}, limit={}", companyId, lastId, limit)
 

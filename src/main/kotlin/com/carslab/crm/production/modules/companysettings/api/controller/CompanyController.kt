@@ -5,6 +5,7 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.company_settings.domain.LogoStorageService
 import com.carslab.crm.production.modules.companysettings.application.dto.*
 import com.carslab.crm.production.modules.companysettings.application.service.*
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -31,6 +32,7 @@ class CompanyController(
 ) : BaseController() {
 
     @GetMapping
+    @HttpMonitored(endpoint = "GET_/api/company")
     @Operation(summary = "Get company settings", description = "Retrieves company settings for the current company")
     fun getCompanySettings(): ResponseEntity<CompanySettingsResponse> {
         val companyId = securityContext.getCurrentCompanyId()
@@ -41,6 +43,7 @@ class CompanyController(
     }
 
     @PostMapping
+    @HttpMonitored(endpoint = "POST_/api/company")
     @Operation(summary = "Initialize company", description = "Creates a new company")
     fun createCompany(@Valid @RequestBody request: CreateCompanyRequest): ResponseEntity<CompanyResponse> {
         logger.info("Initializing new company: ${request.companyName}")
@@ -52,6 +55,7 @@ class CompanyController(
     }
 
     @PostMapping("/logo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @HttpMonitored(endpoint = "POST_/api/company/logo")
     @Operation(summary = "Upload company logo", description = "Uploads a logo for the current company")
     fun uploadLogo(
         @Parameter(description = "Logo file", required = true)
@@ -71,6 +75,7 @@ class CompanyController(
     }
 
     @GetMapping("/logo/{logoFileId}")
+    @HttpMonitored(endpoint = "GET_/api/company/logo/{logoFileId}")
     @Operation(summary = "Get company logo", description = "Retrieves company logo by file ID")
     fun getLogo(
         @Parameter(description = "Logo file ID", required = true)
@@ -103,6 +108,7 @@ class CompanyController(
     }
     
     @PatchMapping("/basic-info")
+    @HttpMonitored(endpoint = "PATCH_/api/company/basic-info")
     @Operation(
         summary = "Update company basic information",
         description = "Updates basic company information (name, address, phone, website). Tax ID cannot be changed."
@@ -120,6 +126,7 @@ class CompanyController(
     }
 
     @PatchMapping("/bank-settings")
+    @HttpMonitored(endpoint = "PATCH_/api/company/bank-settings")
     @Operation(
         summary = "Update company bank settings",
         description = "Updates company bank account information"
@@ -137,6 +144,7 @@ class CompanyController(
     }
 
     @PatchMapping("/mail-configuration")
+    @HttpMonitored(endpoint = "PATCH_/api/company/mail-configuration")
     @Operation(
         summary = "Update company mail configuration",
         description = "Updates email server configuration for company"
@@ -154,6 +162,7 @@ class CompanyController(
     }
 
     @PatchMapping("/google-drive")
+    @HttpMonitored(endpoint = "PATCH_/api/company/google-drive")
     @Operation(
         summary = "Update Google Drive settings",
         description = "Updates Google Drive integration configuration"

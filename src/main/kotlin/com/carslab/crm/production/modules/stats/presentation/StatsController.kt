@@ -4,6 +4,7 @@ import com.carslab.crm.production.modules.stats.application.dto.*
 import com.carslab.crm.production.modules.stats.application.service.StatsCommandService
 import com.carslab.crm.production.modules.stats.application.service.StatsQueryService
 import com.carslab.crm.production.shared.presentation.BaseController
+import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -22,6 +23,7 @@ class StatsController(
 ) : BaseController() {
 
     @GetMapping("/categories")
+    @HttpMonitored(endpoint = "GET_/api/stats/categories")
     @Operation(summary = "Create a new category", description = "Creates a new service category")
     fun createCategory(): ResponseEntity<List<CategoryResponse>> {
 
@@ -32,6 +34,7 @@ class StatsController(
     }
 
     @PostMapping("/categories")
+    @HttpMonitored(endpoint = "POST_/api/stats/categories")
     @Operation(summary = "Create a new category", description = "Creates a new service category")
     fun createCategory(@Valid @RequestBody request: CreateCategoryRequest): ResponseEntity<CategoryResponse> {
         logger.info("Received request to create new category: {}", request.name)
@@ -43,6 +46,7 @@ class StatsController(
     }
 
     @PostMapping("/categories/{categoryId}/services")
+    @HttpMonitored(endpoint = "POST_/api/stats/categories/{categoryId}/services")
     @Operation(summary = "Add services to category", description = "Adds services to an existing category")
     fun addToCategory(
         @Parameter(description = "Category ID", required = true) @PathVariable categoryId: Long,
@@ -57,6 +61,7 @@ class StatsController(
     }
 
     @GetMapping("/services/uncategorized")
+    @HttpMonitored(endpoint = "GET_/api/stats/services/uncategorized")
     @Operation(summary = "Get uncategorized services", description = "Retrieves services that are not assigned to any category")
     fun getUncategorizedServices(): ResponseEntity<List<UncategorizedServiceResponse>> {
         logger.info("Getting uncategorized services")
@@ -68,6 +73,7 @@ class StatsController(
     }
 
     @GetMapping("/services/{categoryId}")
+    @HttpMonitored(endpoint = "GET_/api/stats/services/{categoryId}")
     @Operation(summary = "Get categorized services", description = "Retrieves services assigned to a specific category")
     fun getCategorizedServices(
         @Parameter(description = "Category ID", required = true) @PathVariable categoryId: Long
@@ -81,6 +87,7 @@ class StatsController(
     }
 
     @GetMapping("/categories/{categoryId}/summary")
+    @HttpMonitored(endpoint = "GET_/api/stats/categories/{categoryId}/summary")
     @Operation(summary = "Get category statistics summary", description = "Retrieves total orders and revenue for a category")
     fun getCategoryStatsSummary(
         @Parameter(description = "Category ID", required = true) @PathVariable categoryId: Long
@@ -94,6 +101,7 @@ class StatsController(
     }
 
     @GetMapping("/categories/{category_id}/timeseries")
+    @HttpMonitored(endpoint = "GET_/api/stats/categories/{category_id}/timeseries")
     @Operation(summary = "Get category time series statistics", description = "Retrieves category statistics over time with specified granularity")
     fun getCategoryStatsTimeSeries(
         @Parameter(description = "Category ID", required = true) @PathVariable category_id: Long,
@@ -114,6 +122,7 @@ class StatsController(
     }
 
     @GetMapping("/services/{serviceId}/timeseries")
+    @HttpMonitored(endpoint = "GET_/api/stats/services/{serviceId}/timeseries")
     @Operation(summary = "Get service time series statistics", description = "Retrieves service statistics over time with specified granularity")
     fun getServiceStats(
         @Parameter(description = "Service ID", required = true) @PathVariable serviceId: String,
