@@ -56,7 +56,8 @@ class SecurityConfig(
                         "/api/tablets/pair",        // Parowanie tabletu
                         "/api/tablets/register",    // Rejestracja tabletu
                         "/api/auth/**",
-                        "/ws/**"
+                        "/ws/**",
+                        "/actuator/**",
                     ).permitAll()
 
                     // Admin endpoints
