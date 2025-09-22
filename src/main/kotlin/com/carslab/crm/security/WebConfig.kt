@@ -28,9 +28,7 @@ class SecurityConfig(
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder(12)
-
-
-
+    
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         logger.info("Configuring Security Filter Chain")
@@ -38,19 +36,25 @@ class SecurityConfig(
         return http
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            
 
             .authorizeHttpRequests { auth ->
                 auth
                     // OPTIONS requests MUSZĄ być dozwolone dla wszystkich endpointów
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/actuator/prometheus", "/actuator/metrics").permitAll()
+
+
+                    // Actuator endpoints
+                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/prometheus", "/actuator/metrics").permitAll()
 
                     // Public endpoints
                     .requestMatchers(
                         "/api/health/**",
                         "/api/users",
-                        "/actuator/health",
                         "/api/tablets/pair",        // Parowanie tabletu
-                        "/api/tablets/register",    // DODANE - Rejestracja tabletu
+                        "/api/tablets/register",    // Rejestracja tabletu
                         "/api/auth/**",
                         "/ws/**"
                     ).permitAll()
