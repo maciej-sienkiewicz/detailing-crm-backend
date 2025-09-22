@@ -33,6 +33,7 @@ import com.carslab.crm.production.modules.invoice_templates.application.dto.Invo
 import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceGenerationService
 import com.carslab.crm.production.modules.invoice_templates.application.service.InvoiceTemplateQueryService
 import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -61,18 +62,18 @@ class InvoiceTemplateService(
 
     @Transactional(readOnly = true)
     fun generateInvoiceForDocument(
-        companyId: Long,
         documentId: String,
-        templateId: InvoiceTemplateId? = null
+        templateId: InvoiceTemplateId? = null,
+        authContext: AuthContext,
     ): ByteArray {
         logger.debug("Generating invoice for document {} with template {} for company {}",
-            documentId, templateId?.value, companyId)
+            documentId, templateId?.value, authContext.companyId)
 
-        validateCompanyId(companyId)
+        validateCompanyId(authContext.companyId.value)
 
-        val document = documentService.getDocumentById(documentId)
-        val template: ByteArray = getTemplateForGeneration(companyId)
-        val companySettings = getCompanySettings(companyId)
+        val document = documentService.getDocumentById(documentId, authContext)
+        val template: ByteArray = getTemplateForGeneration(authContext.companyId.value)
+        val companySettings = getCompanySettings(authContext.companyId.value)
         val logoData = companySettings.basicInfo.logoId
             ?.let { logoStorageService.getLogoPath(it) }
             ?.let { Files.readAllBytes(it) }

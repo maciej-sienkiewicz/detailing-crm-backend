@@ -4,11 +4,12 @@ import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import com.carslab.crm.modules.finances.domain.signature.model.SignatureSession
 import com.carslab.crm.modules.finances.domain.signature.model.SignatureCompletionData
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import java.util.*
 
 interface InvoiceDocumentService {
-    fun getDocument(invoiceId: String): UnifiedFinancialDocument
-    fun createInvoiceFromVisit(visitId: String, companyId: Long, request: InvoiceSignatureRequest): UnifiedFinancialDocument
+    fun getDocument(invoiceId: String, authContext: AuthContext): UnifiedFinancialDocument
+    fun createInvoiceFromVisit(visitId: String, request: InvoiceSignatureRequest, authContext: AuthContext): UnifiedFinancialDocument
 }
 
 interface TabletCommunicationService {

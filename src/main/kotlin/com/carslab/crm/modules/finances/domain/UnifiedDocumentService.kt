@@ -39,6 +39,7 @@ import com.carslab.crm.modules.finances.domain.InvoiceAttachmentGenerationServic
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import org.slf4j.LoggerFactory
@@ -67,9 +68,9 @@ class UnifiedDocumentService(
     private val logger = LoggerFactory.getLogger(UnifiedDocumentService::class.java)
 
     @Transactional
-    fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
+    fun createDocument(request: CreateUnifiedDocumentRequest, attachmentFile: MultipartFile?, authContext: AuthContext? = null): UnifiedFinancialDocument {
         logger.info("Creating new financial document: {}", request.title)
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+        val companyId = authContext?.companyId?.value ?: (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         validateDocumentRequest(request)
         val document = convertToDocumentModel(request)
@@ -114,7 +115,7 @@ class UnifiedDocumentService(
             document
         }
 
-        val savedDocument = documentRepository.save(completeDocument)
+        val savedDocument = documentRepository.save(completeDocument, authContext)
         logger.info("Created document with ID: {}", savedDocument.id.value)
 
         try {
@@ -128,16 +129,16 @@ class UnifiedDocumentService(
         }
 
         val visitDetails = document.protocolId?.let {
-            visitDetailQueryService.getSimpleDetails(it)
+            visitDetailQueryService.getSimpleDetails(it, authContext)
         }
 
         eventsPublisher.publish(
             InvoiceCreatedEvent.create(
                 visit = visitDetails,
                 document = savedDocument,
-                userId = securityContext.getCurrentUserId(),
+                userId = authContext?.userId?.value,
                 companyId = companyId,
-                userName = securityContext.getCurrentUserName(),
+                userName = authContext?.userName,
             )
         )
 
@@ -145,11 +146,9 @@ class UnifiedDocumentService(
     }
 
     @Transactional
-    fun updateDocument(id: String, request: UpdateUnifiedDocumentRequest, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
+    fun updateDocument(id: String, request: UpdateUnifiedDocumentRequest, attachmentFile: MultipartFile?, authContext: AuthContext): UnifiedFinancialDocument {
         logger.info("Updating document with ID: {}", id)
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-
-        val existingDocument = documentRepository.findById(UnifiedDocumentId(id))
+        val existingDocument = documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
 
         val oldStatus = existingDocument.status
@@ -169,7 +168,7 @@ class UnifiedDocumentService(
                         file = attachmentFile,
                         originalFileName = attachmentFile.originalFilename ?: "document.pdf",
                         contentType = attachmentFile.contentType ?: "application/pdf",
-                        companyId = companyId,
+                        companyId = authContext.companyId.value,
                         entityId = existingDocument.id.value,
                         entityType = "document",
                         category = "finances",
@@ -207,7 +206,7 @@ class UnifiedDocumentService(
             documentBalanceService.handleDocumentChange(
                 document = savedDocument,
                 oldStatus = oldStatus,
-                companyId = companyId
+                companyId = authContext.companyId.value,
             )
         } catch (e: Exception) {
             logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
@@ -219,7 +218,7 @@ class UnifiedDocumentService(
     }
 
     @Transactional
-    fun updateDocumentWithAttachment(document: UnifiedFinancialDocument): UnifiedFinancialDocument {
+    fun updateDocumentWithAttachment(document: UnifiedFinancialDocument, authContext: AuthContext): UnifiedFinancialDocument {
         logger.info("Updating document with new attachment: {}", document.id.value)
 
         val savedDocument = documentRepository.save(document)
@@ -229,9 +228,9 @@ class UnifiedDocumentService(
         return savedDocument
     }
 
-    fun getDocumentById(id: String): UnifiedFinancialDocument {
+    fun getDocumentById(id: String, authContext: AuthContext): UnifiedFinancialDocument {
         logger.debug("Getting document by ID: {}", id)
-        return documentRepository.findById(UnifiedDocumentId(id))
+        return documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
     }
 
@@ -242,15 +241,13 @@ class UnifiedDocumentService(
     }
 
     @Transactional
-    fun deleteDocument(id: String): Boolean {
+    fun deleteDocument(id: String, authContext: AuthContext): Boolean {
         logger.info("Deleting document with ID: {}", id)
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
-
-        val document = documentRepository.findById(UnifiedDocumentId(id))
+        val document = documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
 
         try {
-            documentBalanceService.handleDocumentDeletion(document, companyId)
+            documentBalanceService.handleDocumentDeletion(document, authContext.companyId.value)
         } catch (e: Exception) {
             logger.warn("Failed to reverse balance for deleted document $id: ${e.message}")
         }
@@ -267,11 +264,9 @@ class UnifiedDocumentService(
     }
 
     @Transactional
-    fun updateDocumentStatus(id: String, status: String): Boolean {
+    fun updateDocumentStatus(id: String, status: String, authContext: AuthContext): Boolean {
         logger.info("Updating status of document with ID: {} to: {}", id, status)
-        val companyId = securityContext.getCurrentCompanyId()
-
-        val document = documentRepository.findById(UnifiedDocumentId(id))
+        val document = documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
 
         val oldStatus = document.status
@@ -284,7 +279,7 @@ class UnifiedDocumentService(
                 documentBalanceService.handleDocumentChange(
                     document = updatedDocument,
                     oldStatus = oldStatus,
-                    companyId = companyId
+                    companyId = authContext.companyId.value,
                 )
             } catch (e: Exception) {
                 logger.warn("Failed to update balance for status change of document $id: ${e.message}")
@@ -295,11 +290,9 @@ class UnifiedDocumentService(
     }
 
     @Transactional
-    fun updatePaidAmount(id: String, paidAmount: BigDecimal): Boolean {
+    fun updatePaidAmount(id: String, paidAmount: BigDecimal, authContext: AuthContext): Boolean {
         logger.info("Updating paid amount of document with ID: {} to: {}", id, paidAmount)
-        val companyId = securityContext.getCurrentCompanyId()
-
-        val document = documentRepository.findById(UnifiedDocumentId(id))
+        val document = documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
 
         val oldStatus = document.status
@@ -321,7 +314,7 @@ class UnifiedDocumentService(
                 documentBalanceService.handleDocumentChange(
                     document = updatedDocument,
                     oldStatus = oldStatus,
-                    companyId = companyId
+                    companyId = authContext.companyId.value,
                 )
             } catch (e: Exception) {
                 logger.warn("Failed to update balance for paid amount change of document $id: ${e.message}")
@@ -331,10 +324,10 @@ class UnifiedDocumentService(
         return updated
     }
 
-    fun getDocumentAttachment(id: String): Pair<ByteArray, String>? {
+    fun getDocumentAttachment(id: String, authContext: AuthContext): Pair<ByteArray, String>? {
         logger.debug("Getting attachment for document with ID: {}", id)
 
-        val document = documentRepository.findById(UnifiedDocumentId(id))
+        val document = documentRepository.findById(UnifiedDocumentId(id), authContext)
             ?: throw ResourceNotFoundException("Document", id)
 
         return document.attachment?.let {
@@ -345,67 +338,6 @@ class UnifiedDocumentService(
                 logger.error("Failed to retrieve attachment for document $id: ${e.message}")
                 null
             }
-        }
-    }
-    
-    private fun generateAndStorePermanentInvoicePdf(document: UnifiedFinancialDocument, companyId: Long): UnifiedFinancialDocument {
-        return try {
-            // Generuj tymczasowy PDF
-            val tempAttachment = invoiceAttachmentGenerationService.generateInvoiceAttachmentWithoutSignature(document)
-                ?: return document
-
-            // Pobierz bytes z tymczasowego pliku
-            val pdfBytes = documentStorageService.retrieveFile(tempAttachment.storageId)
-                ?: return document
-
-            // Usuń tymczasowy plik
-            try {
-                documentStorageService.deleteFile(tempAttachment.storageId)
-            } catch (e: Exception) {
-                logger.warn("Failed to cleanup temporary file: ${tempAttachment.storageId}", e)
-            }
-
-            // Zapisz w właściwym katalogu
-            val permanentStorageId = documentStorageService.storeFile(
-                UniversalStoreRequest(
-                    file = createMultipartFile(pdfBytes, document),
-                    originalFileName = "invoice-${document.number}.pdf",
-                    contentType = "application/pdf",
-                    companyId = companyId,
-                    entityId = document.id.value,
-                    entityType = "document",
-                    category = "finances",
-                    subCategory = "invoices/${document.direction.name.lowercase()}",
-                    description = "Generated invoice PDF without signature",
-                    date = document.issuedDate,
-                    tags = mapOf(
-                        "documentType" to document.type.name,
-                        "direction" to document.direction.name,
-                        "signed" to "false",
-                        "version" to "unsigned",
-                        "originalNumber" to document.number,
-                        "generated" to "true"
-                    )
-                )
-            )
-
-            // Utwórz stały załącznik
-            val permanentAttachment = DocumentAttachment(
-                id = UUID.randomUUID().toString(),
-                name = "invoice-${document.number}.pdf",
-                size = pdfBytes.size.toLong(),
-                type = "application/pdf",
-                storageId = permanentStorageId,
-                uploadedAt = LocalDateTime.now()
-            )
-
-            // Zaktualizuj dokument z załącznikiem
-            val updatedDocument = document.copy(attachment = permanentAttachment)
-            updateDocumentWithAttachment(updatedDocument)
-
-        } catch (e: Exception) {
-            logger.error("Failed to generate permanent invoice PDF for document: ${document.id.value}", e)
-            document
         }
     }
 

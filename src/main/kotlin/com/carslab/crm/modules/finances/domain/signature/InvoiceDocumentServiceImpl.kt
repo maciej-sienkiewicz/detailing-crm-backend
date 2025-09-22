@@ -12,6 +12,7 @@ import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitDetailReadModel
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,16 +31,16 @@ class InvoiceDocumentServiceImpl(
 
     private val logger = LoggerFactory.getLogger(InvoiceDocumentServiceImpl::class.java)
 
-    override fun getDocument(invoiceId: String): UnifiedFinancialDocument {
+    override fun getDocument(invoiceId: String, authContext: AuthContext): UnifiedFinancialDocument {
         return try {
-            unifiedDocumentService.getDocumentById(invoiceId)
+            unifiedDocumentService.getDocumentById(invoiceId, authContext)
         } catch (e: Exception) {
             logger.error("Failed to get document: $invoiceId", e)
             throw InvoiceSignatureException("Document not found: $invoiceId", e)
         }
     }
 
-    override fun createInvoiceFromVisit(visitId: String, companyId: Long, request: InvoiceSignatureRequest): UnifiedFinancialDocument {
+    override fun createInvoiceFromVisit(visitId: String, request: InvoiceSignatureRequest, authContext: AuthContext): UnifiedFinancialDocument {
         logger.info("Finding or creating invoice from visit: $visitId")
         
         val protocol = detailsFetchService.getSimpleDetails(visitId)
@@ -49,7 +50,7 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
-        return createInvoiceFromVisit(protocol, companyId, request)
+        return createInvoiceFromVisit(protocol, authContext.companyId.value, request)
     }
     
     private fun createInvoiceFromVisit(

@@ -6,6 +6,7 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.company_settings.domain.port.EncryptionService
 import com.carslab.crm.modules.email.domain.ports.EmailAttachment
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import jakarta.mail.AuthenticationFailedException
 import org.slf4j.LoggerFactory
 import org.springframework.mail.javamail.JavaMailSenderImpl
@@ -30,10 +31,11 @@ class SmtpEmailSender(
         htmlContent: String,
         senderName: String?,
         senderEmail: String?,
-        attachment: EmailAttachment?
+        attachment: EmailAttachment?,
+        authContext: AuthContext?,
     ): Boolean {
         return try {
-            val companyId = securityContext.getCurrentCompanyId()
+            val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
             val emailConfig = companyDetailsFetchService.getCompanySettings(companyId)
                 .mailConfiguration
 

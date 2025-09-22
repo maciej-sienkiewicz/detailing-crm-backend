@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.finances.api.controller
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.domain.model.UserId
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.finances.api.requests.InvoiceSignatureRequest
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureResponse
@@ -9,10 +10,13 @@ import com.carslab.crm.modules.finances.domain.signature.InvoiceSignatureOrchest
 import com.carslab.crm.modules.finances.domain.signature.model.InvoiceSignatureException
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.application.commands.models.valueobjects.OverridenInvoiceServiceItem
+import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid
+import java.lang.IllegalStateException
 import java.time.Instant
 import java.util.*
 
@@ -27,8 +31,11 @@ class InvoiceSignatureController(
     fun requestInvoiceSignatureFromVisit(
         @Valid @RequestBody request: InvoiceSignatureFromVisitRequest
     ): ResponseEntity<InvoiceSignatureResponse> {
-        val companyId = securityContext.getCurrentCompanyId()
-        val userId = securityContext.getCurrentUserId()
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
         return try {
             val signatureRequest = InvoiceSignatureRequest(
@@ -51,10 +58,9 @@ class InvoiceSignatureController(
             )
 
             val response = orchestrator.requestInvoiceSignatureFromVisit(
-                companyId = companyId,
-                userId = userId.toString(),
                 visitId = request.visitId,
-                request = signatureRequest
+                request = signatureRequest,
+                authContext = authContext
             )
 
             ok(response)

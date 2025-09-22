@@ -127,4 +127,15 @@ class JwtAuthenticationFilter(
 
         return publicPaths.any { uri.startsWith(it) }
     }
+
+    fun List<Order>.calculateRevenueByCategory(): Map<String, Double> {
+        return this.groupBy { it.category }
+            .mapValues { entry -> entry.value.sumOf { it.amount } }
+    }
 }
+
+data class Order(
+    val id: Long,
+    val amount: Double,
+    val category: String
+)

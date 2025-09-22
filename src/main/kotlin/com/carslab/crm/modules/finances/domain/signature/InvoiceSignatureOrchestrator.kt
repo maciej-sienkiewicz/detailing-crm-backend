@@ -7,6 +7,7 @@ import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatus
 import com.carslab.crm.modules.finances.api.responses.InvoiceSignatureStatusResponse
 import com.carslab.crm.modules.finances.domain.signature.ports.*
 import com.carslab.crm.modules.finances.domain.signature.model.*
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,16 +25,15 @@ class InvoiceSignatureOrchestrator(
     private val logger = LoggerFactory.getLogger(InvoiceSignatureOrchestrator::class.java)
 
     fun requestInvoiceSignatureFromVisit(
-        companyId: Long,
-        userId: String,
         visitId: String,
-        request: InvoiceSignatureRequest
+        request: InvoiceSignatureRequest,
+        authContext: AuthContext
     ): InvoiceSignatureResponse {
         logger.info("Starting invoice signature process for visit: $visitId")
 
         return try {
-            val document = documentService.createInvoiceFromVisit(visitId, companyId, request)
-            requestInvoiceSignature(companyId, userId, document.id.value, request)
+            val document = documentService.createInvoiceFromVisit(visitId, request, authContext)
+            requestInvoiceSignature(document.id.value, request, authContext)
         } catch (e: Exception) {
             logger.error("Failed to request invoice signature from visit: $visitId", e)
             throw InvoiceSignatureException("Failed to request invoice signature: ${e.message}", e)
@@ -41,34 +41,33 @@ class InvoiceSignatureOrchestrator(
     }
 
     fun requestInvoiceSignature(
-        companyId: Long,
-        userId: String,
         invoiceId: String,
-        request: InvoiceSignatureRequest
+        request: InvoiceSignatureRequest,
+        authContext: AuthContext,
     ): InvoiceSignatureResponse {
         logger.info("Requesting invoice signature for invoice: $invoiceId")
 
         return try {
-            tabletCommunicationService.validateTabletAccess(request.tabletId, companyId)
+            tabletCommunicationService.validateTabletAccess(request.tabletId, authContext.companyId.value)
 
-            val document = documentService.getDocument(invoiceId)
+            val document = documentService.getDocument(invoiceId, authContext)
 
             val session = sessionManager.createSession(
                 SignatureSessionRequest(
                     invoiceId = invoiceId,
                     tabletId = request.tabletId,
-                    companyId = companyId,
+                    companyId = authContext.companyId.value,
                     signerName = request.customerName,
                     signatureTitle = request.signatureTitle,
                     instructions = request.instructions,
-                    userId = userId,
+                    userId = authContext.userId.value,
                     timeoutMinutes = request.timeoutMinutes
                 )
             )
 
             // Generate PDF with seller signature if available
             val unsignedPdf = attachmentManager.getOrGenerateUnsignedPdfWithSellerSignature(
-                document, userId.toLongOrNull() ?: 1L
+                document, authContext.userId.value.toLongOrNull() ?: 1L
             )
 
             sessionManager.cacheDocumentForSignature(
@@ -76,14 +75,14 @@ class InvoiceSignatureOrchestrator(
                 document,
                 unsignedPdf,
                 request.customerName,
-                userId.toLongOrNull() ?: 1L
+                authContext.userId.value.toLongOrNull() ?: 1L
             )
 
             val sent = tabletCommunicationService.sendSignatureRequest(session, document, unsignedPdf)
 
             if (sent) {
                 sessionManager.markSessionAsSentToTablet(session.sessionId)
-                notificationService.notifySignatureStarted(companyId, session.sessionId, invoiceId)
+                notificationService.notifySignatureStarted(authContext.companyId.value, session.sessionId, invoiceId)
 
                 InvoiceSignatureResponse(
                     success = true,

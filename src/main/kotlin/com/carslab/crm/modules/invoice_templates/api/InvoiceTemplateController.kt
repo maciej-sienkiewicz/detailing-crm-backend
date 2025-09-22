@@ -1,6 +1,7 @@
 package com.carslab.crm.modules.invoice_templates.api
 
 import com.carslab.crm.api.controller.base.BaseController
+import com.carslab.crm.domain.model.UserId
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.invoice_templates.api.requests.ActivateTemplateRequest
 import com.carslab.crm.modules.invoice_templates.api.requests.UploadTemplateRequest
@@ -8,6 +9,8 @@ import com.carslab.crm.modules.invoice_templates.api.responses.InvoiceTemplateRe
 import com.carslab.crm.modules.invoice_templates.domain.InvoiceTemplateService
 import com.carslab.crm.modules.invoice_templates.domain.model.InvoiceTemplateId
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -16,6 +19,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.lang.IllegalStateException
 
 @RestController
 @RequestMapping("/api/invoice-templates")
@@ -110,10 +114,16 @@ class InvoiceTemplateController(
         logger.debug("Generating invoice for document {} with template {} for company: {}",
             documentId, templateId, companyId)
 
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
+
         val pdfBytes = invoiceTemplateService.generateInvoiceForDocument(
-            companyId = companyId,
             documentId = documentId,
-            templateId = templateId?.let { InvoiceTemplateId(it) }
+            templateId = templateId?.let { InvoiceTemplateId(it) },
+            authContext = authContext
         )
 
         return ResponseEntity.ok()

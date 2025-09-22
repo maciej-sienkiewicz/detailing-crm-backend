@@ -17,6 +17,7 @@ import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.policy.VisitBusinessPolicy
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.domain.service.details.FinancialDocumentService
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.exception.BusinessException
@@ -41,21 +42,21 @@ class VisitCompletionService(
 ) {
     private val logger = LoggerFactory.getLogger(VisitCompletionService::class.java)
 
-    fun releaseVehicle(visitId: VisitId, request: ReleaseVehicleRequest, companyId: Long): Boolean {
-        val visit = visitRepository.findById(visitId, companyId) 
+    fun releaseVehicle(visitId: VisitId, request: ReleaseVehicleRequest, authContext: AuthContext): Boolean {
+        val visit = visitRepository.findById(visitId, authContext.companyId.value, authContext) 
             ?: throw EntityNotFoundException("Visit not found: ${visitId.value}")
         businessPolicy.validateReleaseConditions(visit)
 
         val documentItems = createDocumentItems(visit.services, request)
         val documentTotals = calculateDocumentTotals(documentItems)
         
-        completeVisit(visit, companyId)
+        completeVisit(visit, authContext.companyId.value)
         
-        activitySender.onVisitCompleted(visit)
+        activitySender.onVisitCompleted(visit, authContext)
 
         backgroundTaskScope.launch {
             launch {
-                runCatching { createFinancialDocument(visitId, visit.title, request, companyId, documentItems, documentTotals) }
+                runCatching { createFinancialDocument(visitId, visit.title, request, authContext.companyId.value, documentItems, documentTotals, authContext) }
                     .onFailure {
                         commentCommandService.addWarning(
                             AddCommentRequest(
@@ -63,19 +64,19 @@ class VisitCompletionService(
                                 type = "SYSTEM",
                                 visitId = visit.id!!.value.toString()
                             ),
-                            companyId = companyId
+                            companyId = authContext.companyId.value
                         )
                         logger.error("Failed to update revenue statistics", it) 
                     }
             }
             
             launch {
-                runCatching { updateRevenueStatistics(visit.clientId, visit.vehicleId, companyId, visit.totalAmount()) }
+                runCatching { updateRevenueStatistics(visit.clientId, visit.vehicleId, authContext.companyId.value, visit.totalAmount()) }
                     .onFailure { logger.error("Failed to update revenue statistics", it) }
             }
 
             launch {
-                runCatching { sendEmail(visitId) }
+                runCatching { sendEmail(visitId, authContext) }
                     .onFailure { 
                         commentCommandService.addWarning(
                             AddCommentRequest(
@@ -83,7 +84,7 @@ class VisitCompletionService(
                                 type = "SYSTEM",
                                 visitId = visit.id!!.value.toString(),
                             ),
-                            companyId = companyId
+                            companyId = authContext.companyId.value
                         )
                         logger.error("Failed to send email", it)
                     }
@@ -189,7 +190,8 @@ class VisitCompletionService(
         request: ReleaseVehicleRequest,
         companyId: Long,
         items: List<DocumentItem>,
-        totals: DocumentTotals
+        totals: DocumentTotals,
+        authContext: AuthContext,
     ) {
         try {
             val command = FinancialDocumentCommand(
@@ -221,7 +223,7 @@ class VisitCompletionService(
                 }
             )
 
-            financialDocumentService.createVisitDocument(command)
+            financialDocumentService.createVisitDocument(command, authContext)
         } catch (e: Exception) {
             logger.error("Failed to create financial document for visit: ${visitId.value}", e)
             throw BusinessException("Failed to create financial document")
@@ -278,7 +280,7 @@ class VisitCompletionService(
         }
     }
     
-    private fun sendEmail(visitId: VisitId) {
-        emailService.sendProtocolEmail(visitId.value.toString())
+    private fun sendEmail(visitId: VisitId, authContext: AuthContext) {
+        emailService.sendProtocolEmail(visitId.value.toString(), authContext = authContext)
     }
 }

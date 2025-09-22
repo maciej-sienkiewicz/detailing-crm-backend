@@ -6,6 +6,7 @@ import com.carslab.crm.api.model.TransactionDirection
 import com.carslab.crm.domain.model.Audit
 import com.carslab.crm.domain.model.view.finance.*
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import jakarta.persistence.*
 import org.hibernate.annotations.BatchSize
 import org.hibernate.annotations.Fetch
@@ -219,10 +220,10 @@ class UnifiedDocumentEntity(
     }
 
     companion object {
-        fun fromDomain(domain: UnifiedFinancialDocument): UnifiedDocumentEntity {
+        fun fromDomain(domain: UnifiedFinancialDocument, authContext: AuthContext? = null): UnifiedDocumentEntity {
             return UnifiedDocumentEntity(
                 id = domain.id.value,
-                companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
+                companyId = authContext?.companyId?.value ?: (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId,
                 number = domain.number,
                 type = domain.type,
                 title = domain.title,

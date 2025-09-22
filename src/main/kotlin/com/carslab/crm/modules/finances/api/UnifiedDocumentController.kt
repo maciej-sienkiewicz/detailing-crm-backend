@@ -8,6 +8,7 @@ import com.carslab.crm.api.model.response.InvoiceDataResponse
 import com.carslab.crm.api.model.response.InvoiceDataResponseWithDirection
 import com.carslab.crm.api.model.response.UnifiedDocumentResponse
 import com.carslab.crm.api.model.response.PaginatedResponse
+import com.carslab.crm.domain.model.UserId
 import com.carslab.crm.finances.domain.UnifiedDocumentService
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.ParallelInvoiceExtractionService
@@ -17,6 +18,8 @@ import com.carslab.crm.modules.finances.api.responses.InvoiceGenerationResponse
 import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
+import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -30,6 +33,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.lang.IllegalStateException
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -102,8 +106,13 @@ class UnifiedDocumentController(
         @Parameter(description = "Document ID", required = true) @PathVariable id: String
     ): ResponseEntity<UnifiedDocumentResponse> {
         logger.info("Getting document by ID: {}", id)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val document = documentService.getDocumentById(id)
+        val document = documentService.getDocumentById(id, authContext)
         val response = document.toResponse()
 
         return ok(response)
@@ -140,8 +149,13 @@ class UnifiedDocumentController(
         logger.info("Updating document with ID: {}", id)
 
         val updateRequest = objectMapper.readValue(document, UpdateUnifiedDocumentRequest::class.java)
-
-        val updatedDocument = documentService.updateDocument(id, updateRequest, attachment)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
+        
+        val updatedDocument = documentService.updateDocument(id, updateRequest, attachment, authContext)
         val response = updatedDocument.toResponse()
 
         return ok(response)
@@ -153,8 +167,13 @@ class UnifiedDocumentController(
         @Parameter(description = "Document ID", required = true) @PathVariable id: String
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Deleting document with ID: {}", id)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val deleted = documentService.deleteDocument(id)
+        val deleted = documentService.deleteDocument(id, authContext)
 
         return if (deleted) {
             ok(createSuccessResponse("Document successfully deleted", mapOf("documentId" to id)))
@@ -170,8 +189,13 @@ class UnifiedDocumentController(
         @RequestBody statusRequest: StatusUpdateRequest
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Updating status of document with ID: {} to: {}", id, statusRequest.status)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val updated = documentService.updateDocumentStatus(id, statusRequest.status)
+        val updated = documentService.updateDocumentStatus(id, statusRequest.status, authContext)
 
         return if (updated) {
             ok(createSuccessResponse("Document status successfully updated",
@@ -188,8 +212,13 @@ class UnifiedDocumentController(
         @Parameter(description = "Paid amount", required = true) @RequestParam paidAmount: BigDecimal
     ): ResponseEntity<Map<String, Any>> {
         logger.info("Updating paid amount of document with ID: {} to: {}", id, paidAmount)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val updated = documentService.updatePaidAmount(id, paidAmount)
+        val updated = documentService.updatePaidAmount(id, paidAmount, authContext)
 
         return if (updated) {
             ok(createSuccessResponse("Document paid amount successfully updated",
@@ -205,8 +234,13 @@ class UnifiedDocumentController(
         @Parameter(description = "Document ID", required = true) @PathVariable id: String
     ): ResponseEntity<Resource> {
         logger.info("Getting attachment for document with ID: {}", id)
+        val authContext = AuthContext(
+            companyId = CompanyId(securityContext.getCurrentCompanyId()),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User ID is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val attachmentData = documentService.getDocumentAttachment(id)
+        val attachmentData = documentService.getDocumentAttachment(id, authContext)
             ?: return ResponseEntity.notFound().build()
 
         val (fileBytes, contentType) = attachmentData

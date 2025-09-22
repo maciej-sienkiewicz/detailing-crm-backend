@@ -7,6 +7,7 @@ import com.carslab.crm.modules.email.domain.ports.EmailRepository
 import com.carslab.crm.modules.email.infrastructure.persistence.entity.EmailHistoryEntity
 import com.carslab.crm.modules.email.infrastructure.persistence.repository.EmailHistoryJpaRepository
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -27,8 +28,8 @@ class JpaEmailRepositoryAdapter(
             .orElse(null)
     }
 
-    override fun updateStatus(id: EmailHistoryId, status: EmailStatus, errorMessage: String?) {
-        val companyId = securityContext.getCurrentCompanyId()
+    override fun updateStatus(id: EmailHistoryId, status: EmailStatus, errorMessage: String?, authContext: AuthContext?) {
+        val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
         emailHistoryJpaRepository.findById(id.value).ifPresent { entity ->
             if (entity.companyId == companyId) {
                 entity.status = status

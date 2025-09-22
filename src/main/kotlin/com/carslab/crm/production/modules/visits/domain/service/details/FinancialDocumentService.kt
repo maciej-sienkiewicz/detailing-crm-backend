@@ -23,12 +23,11 @@ class FinancialDocumentService(
     private val companyDetailsFetchService: CompanyDetailsFetchService,
     private val visitDetailQueryService: VisitDetailQueryService,
     private val invoiceTemplateService: InvoiceTemplateService,
-    private val securityContext: SecurityContext,
     private val universalStorageService: UniversalStorageService,
 ) {
 
-    fun createVisitDocument(command: VisitCompletionService.FinancialDocumentCommand) {
-        val visit = visitDetailQueryService.getVisitDetail(command.visitId)
+    fun createVisitDocument(command: VisitCompletionService.FinancialDocumentCommand, authContext: AuthContext) {
+        val visit = visitDetailQueryService.getVisitDetail(command.visitId, authContext.companyId.value)
         val companyDetails = companyDetailsFetchService.getCompanySettings(command.companyId)
 
         val documentItems = command.items.map { item ->
@@ -71,12 +70,13 @@ class FinancialDocumentService(
                 protocolNumber = null,
                 visitId = command.visitId
             ),
-            attachmentFile = null
+            attachmentFile = null,
+            authContext
         )
         if(command.documentType.uppercase() == "INVOICE") {
             val generated = invoiceTemplateService.generateInvoiceForDocument(
-                securityContext.getCurrentCompanyId(),
                 document.id.value,
+                authContext = authContext
             )
             val file = universalStorageService.storeFile(
                 request = UniversalStoreRequest(
@@ -109,7 +109,8 @@ class FinancialDocumentService(
                         type = "application/pdf",
                         storageId = file,
                     )
-                )
+                ),
+                authContext
             )
         }
     }

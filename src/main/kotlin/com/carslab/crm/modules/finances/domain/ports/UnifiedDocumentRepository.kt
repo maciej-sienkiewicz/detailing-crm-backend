@@ -5,6 +5,7 @@ import com.carslab.crm.api.model.UnifiedDocumentFilterDTO
 import com.carslab.crm.domain.model.view.finance.UnifiedDocumentId
 import com.carslab.crm.domain.model.view.finance.UnifiedFinancialDocument
 import com.carslab.crm.finances.domain.PaginatedResult
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -16,12 +17,12 @@ interface UnifiedDocumentRepository {
     /**
      * Zapisuje nowy dokument lub aktualizuje istniejący.
      */
-    fun save(document: UnifiedFinancialDocument): UnifiedFinancialDocument
+    fun save(document: UnifiedFinancialDocument, authContext: AuthContext? = null): UnifiedFinancialDocument
 
     /**
      * Znajduje dokument po jego identyfikatorze.
      */
-    fun findById(id: UnifiedDocumentId): UnifiedFinancialDocument?
+    fun findById(id: UnifiedDocumentId, authContext: AuthContext): UnifiedFinancialDocument?
 
     /**
      * Znajduje wszystkie dokumenty spełniające podane kryteria filtrowania z paginacją.
@@ -46,7 +47,7 @@ interface UnifiedDocumentRepository {
     /**
      * Generuje numer dokumentu na podstawie roku, miesiąca i typu.
      */
-    fun generateDocumentNumber(year: Int, month: Int, type: String, direction: String): String
+    fun generateDocumentNumber(year: Int, month: Int, type: String, direction: String, authContext: AuthContext? = null): String
 
     /**
      * Znajduje przeterminowane dokumenty.

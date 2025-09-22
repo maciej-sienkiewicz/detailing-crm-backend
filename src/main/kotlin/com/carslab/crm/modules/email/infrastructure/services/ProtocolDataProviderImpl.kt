@@ -4,6 +4,7 @@ import com.carslab.crm.modules.email.domain.model.ProtocolEmailData
 import com.carslab.crm.modules.email.domain.model.ProtocolServiceData
 import com.carslab.crm.modules.email.domain.ports.ProtocolDataProvider
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDetailQueryService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -14,10 +15,10 @@ class ProtocolDataProviderImpl(
 
     private val logger = LoggerFactory.getLogger(ProtocolDataProviderImpl::class.java)
 
-    override fun getProtocolData(protocolId: String): ProtocolEmailData? {
+    override fun getProtocolData(protocolId: String, authContext: AuthContext?): ProtocolEmailData? {
         try {
 
-            val protocol = visitDetailQueryService.getSimpleDetails(protocolId)
+            val protocol = visitDetailQueryService.getSimpleDetails(protocolId, authContext)
 
             val services = protocol.services.map { service ->
                 ProtocolServiceData(

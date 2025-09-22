@@ -125,15 +125,13 @@ class VisitActivitySender(
         )
     }
     
-    fun onVisitCompleted(visit: Visit) {
+    fun onVisitCompleted(visit: Visit, authContext: AuthContext) {
         activityCommandService.createActivity(
             CreateActivityRequest(
                 category = ActivityCategory.PROTOCOL,
                 message = "Wizyta zakończona: \"${visit.title}\"",
-                userId = securityContext.getCurrentUserId()
-                    ?: throw IllegalStateException("User not found in security context"),
-                userName = securityContext.getCurrentUserName()
-                    ?: throw IllegalStateException("User not found in security context"),
+                userId = authContext.userId.value,
+                userName = authContext.userName,
                 description = "Suma brutto: ${visit.totalAmount()} PLN",
                 primaryEntity = RelatedEntityDto(
                     id = visit.id.toString(),
@@ -141,7 +139,8 @@ class VisitActivitySender(
                     name = visit.title
                 ),
                 metadata = mapOf()
-            )
+            ),
+            authContext
         )
     }
 

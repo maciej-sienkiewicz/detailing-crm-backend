@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.visits.domain.models.aggregates.Visit
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitRepository
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.infrastructure.entity.VisitEntity
 import com.carslab.crm.production.modules.visits.infrastructure.repository.batch.VisitBatchOperations
 import org.springframework.data.domain.Page
@@ -31,8 +32,8 @@ class JpaVisitRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    override fun findById(visitId: VisitId, companyId: Long): Visit? {
-        return visitJpaRepository.findByIdAndCompanyIdWithServices(visitId.value, companyId)
+    override fun findById(visitId: VisitId, companyId: Long, authContext: AuthContext?): Visit? {
+        return visitJpaRepository.findByIdAndCompanyIdWithServices(visitId.value, authContext?.companyId?.value ?: companyId)
             ?.toDomain()
     }
 

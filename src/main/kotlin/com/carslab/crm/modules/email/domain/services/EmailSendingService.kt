@@ -9,6 +9,7 @@ import com.carslab.crm.modules.visits.infrastructure.storage.ProtocolDocumentSto
 import com.carslab.crm.production.modules.companysettings.application.service.CompanyDetailsFetchService
 import com.carslab.crm.production.modules.companysettings.domain.repository.CompanyRepository
 import com.carslab.crm.production.modules.visits.application.service.query.VisitDocumentQueryService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
@@ -32,13 +33,14 @@ class EmailSendingService(
         protocolId: String,
         recipientEmail: String? = null,
         customSubject: String? = null,
-        additionalVariables: Map<String, String> = emptyMap()
+        additionalVariables: Map<String, String> = emptyMap(),
+        authContext: AuthContext? = null,
     ): String {
         logger.info("Starting protocol email sending process for protocol: $protocolId")
 
-        val companyId = securityContext.getCurrentCompanyId()
+        val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
 
-        val protocolData = protocolDataProvider.getProtocolData(protocolId)
+        val protocolData = protocolDataProvider.getProtocolData(protocolId, authContext)
             ?: throw IllegalArgumentException("Protocol not found: $protocolId")
         
         if(!listOf("crm1@sienkiewicz-maciej.pl", "crm2@sienkiewicz-maciej.pl", "crm3@sienkiewicz-maciej.pl").contains(protocolData.clientEmail)) {
@@ -65,7 +67,8 @@ class EmailSendingService(
                 protocolData = protocolData,
                 companyName = emailConfig.fromName ?: throw IllegalStateException("Sender name not configured"),
                 companyEmail = emailConfig.email ?: throw IllegalStateException("Sender email not configured"),
-                additionalVariables = additionalVariables
+                additionalVariables = additionalVariables,
+                authContext = authContext,
             )
 
             val subject = customSubject ?: emailTemplateService.generateSubject(protocolData)
@@ -107,14 +110,15 @@ class EmailSendingService(
                     filename = protocolDetails.originalName,
                     content = protocol,
                     contentType = "application/pdf"
-                ) else null
+                ) else null,
+                authContext = authContext,
             )
 
             if (sent) {
-                emailRepository.updateStatus(emailId, EmailStatus.SENT)
+                emailRepository.updateStatus(emailId, EmailStatus.SENT, authContext = authContext)
                 logger.info("Successfully sent protocol email for protocol: $protocolId, emailId: ${emailId.value}")
             } else {
-                emailRepository.updateStatus(emailId, EmailStatus.FAILED, "Failed to send email")
+                emailRepository.updateStatus(emailId, EmailStatus.FAILED, "Failed to send email", authContext = authContext)
                 logger.error("Failed to send protocol email for protocol: $protocolId, emailId: ${emailId.value}")
                 throw RuntimeException("Failed to send email")
             }
@@ -122,7 +126,7 @@ class EmailSendingService(
             return emailId.value
         } catch (e: Exception) {
             logger.error("Error sending protocol email for protocol: $protocolId", e)
-            emailRepository.updateStatus(emailId, EmailStatus.FAILED, e.message)
+            emailRepository.updateStatus(emailId, EmailStatus.FAILED, e.message, authContext = authContext)
             throw e
         }
     }

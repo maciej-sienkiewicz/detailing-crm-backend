@@ -13,6 +13,7 @@ import com.carslab.crm.production.modules.visits.domain.repositories.VisitReposi
 import com.carslab.crm.production.modules.visits.domain.service.aggregate.VisitCompletionService
 import com.carslab.crm.production.modules.visits.domain.service.aggregate.VisitCreationService
 import com.carslab.crm.production.modules.visits.domain.service.aggregate.VisitModificationService
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -42,8 +43,8 @@ class AggregateService(
         return modificationService.deleteVisit(visitId, companyId)
     }
 
-    fun releaseVehicle(visitId: VisitId, request: ReleaseVehicleRequest, companyId: Long): Boolean {
-        return completionService.releaseVehicle(visitId, request, companyId)
+    fun releaseVehicle(visitId: VisitId, request: ReleaseVehicleRequest, authContext: AuthContext): Boolean {
+        return completionService.releaseVehicle(visitId, request, authContext)
     }
 
     fun findById(visitId: VisitId, companyId: Long): Visit {

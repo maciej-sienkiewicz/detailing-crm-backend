@@ -5,6 +5,7 @@ import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.modules.email.domain.model.ProtocolEmailData
 import com.carslab.crm.production.modules.templates.application.service.query.TemplateQueryService
 import com.carslab.crm.production.modules.templates.domain.models.enums.TemplateType
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -25,9 +26,10 @@ class EmailTemplateService(
         protocolData: ProtocolEmailData,
         companyName: String,
         companyEmail: String,
-        additionalVariables: Map<String, String> = emptyMap()
+        additionalVariables: Map<String, String> = emptyMap(),
+        authContext: AuthContext? = null,
     ): String {
-        val companyId = securityContext.getCurrentCompanyId()
+        val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
         var content: String = templateQueryService.findActiveTemplateByTemplateType(TemplateType.MAIL_ON_VISIT_STARTED, companyId)
             ?.let { universalStorageService.retrieveFile(it.id) }
             ?.let { String(it, Charsets.UTF_8) }

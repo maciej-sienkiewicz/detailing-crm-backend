@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetailQueryRepository
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.domain.service.details.MediaService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
@@ -39,8 +40,8 @@ class VisitDetailQueryService(
         return mapToCarReceptionDetailDto(visitDetail, mediaItems)
     }
 
-    fun getSimpleDetails(visitId: String): VisitDetailReadModel {
-        val companyId = securityContext.getCurrentCompanyId()
+    fun getSimpleDetails(visitId: String, authContext: AuthContext? = null): VisitDetailReadModel {
+        val companyId = authContext?.companyId?.value ?: securityContext.getCurrentCompanyId()
         logger.debug("Fetching simple visit details: {} for company: {}", visitId, companyId)
 
         val visitDetail = visitDetailQueryRepository.findVisitDetailById(VisitId.of(visitId), companyId)

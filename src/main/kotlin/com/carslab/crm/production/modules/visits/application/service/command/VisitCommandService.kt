@@ -1,8 +1,10 @@
 package com.carslab.crm.production.modules.visits.application.service.command
 
+import com.carslab.crm.domain.model.UserId
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.visits.api.commands.ReleaseVehicleRequest
 import com.carslab.crm.modules.visits.api.commands.UpdateCarReceptionCommand
+import com.carslab.crm.production.modules.companysettings.domain.model.CompanyId
 import com.carslab.crm.production.modules.visits.application.dto.AddServicesToVisitRequest
 import com.carslab.crm.production.modules.visits.application.dto.ChangeStatusRequest
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
@@ -18,6 +20,7 @@ import com.carslab.crm.production.modules.visits.application.service.command.han
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitDeleteHandler
 import com.carslab.crm.production.modules.visits.application.service.command.handler.VisitReleaseHandler
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -83,8 +86,13 @@ class VisitCommandService(
     fun release(visitId: String, request: ReleaseVehicleRequest): Boolean {
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Releasing vehicle for visit: {} for company: {}", visitId, companyId)
+        val authContext = AuthContext(
+            companyId = CompanyId(companyId),
+            userId = UserId(securityContext.getCurrentUserId() ?: throw IllegalStateException("User id is null")),
+            userName = securityContext.getCurrentUserName() ?: "Unknown"
+        )
 
-        val result = releaseHandler.handle(visitId, request, companyId)
+        val result = releaseHandler.handle(visitId, request, authContext)
 
         logger.info("Vehicle released successfully for visit: {}", visitId)
         return result

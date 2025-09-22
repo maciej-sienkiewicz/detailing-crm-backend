@@ -19,6 +19,7 @@ import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.modules.finances.infrastructure.entitiy.CashHistoryBalanceEntity
+import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.security.core.context.SecurityContextHolder
@@ -40,8 +41,8 @@ class JpaUnifiedDocumentRepositoryAdapter(
 ) : UnifiedDocumentRepository {
 
     @Transactional
-    override fun save(document: UnifiedFinancialDocument): UnifiedFinancialDocument {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun save(document: UnifiedFinancialDocument, authContext: AuthContext?): UnifiedFinancialDocument {
+        val companyId = authContext?.companyId?.value ?: (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         val entity = if (documentJpaRepository.findByCompanyIdAndId(companyId, document.id.value).isPresent) {
             val existingEntity = documentJpaRepository.findByCompanyIdAndId(companyId, document.id.value).get()
@@ -77,14 +78,15 @@ class JpaUnifiedDocumentRepositoryAdapter(
 
             existingEntity
         } else {
-            val newEntity = UnifiedDocumentEntity.fromDomain(document)
+            val newEntity = UnifiedDocumentEntity.fromDomain(document, authContext)
             // Jeśli numer nie został wygenerowany, generujemy go
             if (newEntity.number.isBlank()) {
                 newEntity.number = generateDocumentNumber(
                     document.issuedDate.year,
                     document.issuedDate.month.value,
                     document.type.name,
-                    document.direction.name
+                    document.direction.name,
+                    authContext
                 )
             }
             newEntity
@@ -110,9 +112,8 @@ class JpaUnifiedDocumentRepositoryAdapter(
         return finalEntity.toDomain()
     }
 
-    override fun findById(id: UnifiedDocumentId): UnifiedFinancialDocument? {
-        val companyId = securityContext.getCurrentCompanyId()
-        return documentJpaRepository.findByCompanyIdAndId(companyId, id.value)
+    override fun findById(id: UnifiedDocumentId, authContext: AuthContext): UnifiedFinancialDocument? {
+        return documentJpaRepository.findByCompanyIdAndId(authContext.companyId.value, id.value)
             .map { it.toDomain() }
             .orElse(null)
     }
@@ -188,8 +189,8 @@ class JpaUnifiedDocumentRepositoryAdapter(
         }
     }
 
-    override fun generateDocumentNumber(year: Int, month: Int, type: String, direction: String): String {
-        val companyId = (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
+    override fun generateDocumentNumber(year: Int, month: Int, type: String, direction: String, authContext: AuthContext?): String {
+        val companyId = authContext?.companyId?.value ?: (SecurityContextHolder.getContext().authentication.principal as UserEntity).companyId
 
         // Format numeru zależny od typu i kierunku
         val prefix = when {
