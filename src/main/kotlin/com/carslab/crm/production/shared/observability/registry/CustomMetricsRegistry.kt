@@ -58,7 +58,6 @@ class CustomMetricsRegistry(
     fun recordDatabaseQuery(
         repository: String,
         method: String,
-        operation: String,
         duration: Duration,
         success: Boolean = true,
         errorType: String? = null,
@@ -70,7 +69,6 @@ class CustomMetricsRegistry(
                 mapOf(
                     "repository" to repository,
                     "method" to method,
-                    "operation" to operation,
                     MetricsConfiguration.COMMON_TAG_COMPANY_ID to companyId
                 )
             )

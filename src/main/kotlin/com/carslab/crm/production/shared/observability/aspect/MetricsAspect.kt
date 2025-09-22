@@ -91,7 +91,6 @@ class MetricsAspect(
                     metricsRegistry.recordDatabaseQuery(
                         repository = databaseMonitored.repository,
                         method = databaseMonitored.method,
-                        operation = databaseMonitored.operation,
                         duration = duration,
                         success = success,
                         errorType = errorType

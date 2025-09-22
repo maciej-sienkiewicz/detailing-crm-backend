@@ -5,7 +5,6 @@ import com.carslab.crm.production.modules.templates.domain.models.aggregates.Tem
 import com.carslab.crm.production.modules.templates.domain.models.enums.TemplateType
 import com.carslab.crm.production.modules.templates.domain.repositories.TemplateRepository
 import com.carslab.crm.production.modules.templates.infrastructure.entity.TemplateEntity
-import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
@@ -18,7 +17,6 @@ class JpaTemplateRepositoryImpl(
     private val storageService: UniversalStorageService
 ) : TemplateRepository {
 
-    @DatabaseMonitored(repository = "template", method = "save", operation = "insert")
     override fun save(template: Template): Template {
         val entity = TemplateEntity.fromDomain(template)
         val savedEntity = templateJpaRepository.save(entity)
@@ -26,7 +24,6 @@ class JpaTemplateRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findById", operation = "select")
     override fun findById(templateId: String, companyId: Long): Template? {
         return templateJpaRepository.findByIdAndCompanyId(templateId, companyId)
             .map { it.toDomain() }
@@ -34,28 +31,24 @@ class JpaTemplateRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findByCompanyId", operation = "select")
     override fun findByCompanyId(companyId: Long, pageable: Pageable): Page<Template> {
         return templateJpaRepository.findByCompanyId(companyId, pageable)
             .map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findByCompanyIdAndType", operation = "select")
     override fun findByCompanyIdAndType(companyId: Long, type: TemplateType, pageable: Pageable): Page<Template> {
         return templateJpaRepository.findByCompanyIdAndType(companyId, type, pageable)
             .map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findByCompanyIdAndIsActive", operation = "select")
     override fun findByCompanyIdAndIsActive(companyId: Long, isActive: Boolean, pageable: Pageable): Page<Template> {
         return templateJpaRepository.findByCompanyIdAndIsActive(companyId, isActive, pageable)
             .map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findByCompanyIdAndTypeAndIsActive", operation = "select")
     override fun findByCompanyIdAndTypeAndIsActive(
         companyId: Long,
         type: TemplateType,
@@ -67,7 +60,6 @@ class JpaTemplateRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findActiveByTypeAndCompany", operation = "select")
     override fun findActiveByTypeAndCompany(type: TemplateType, companyId: Long): Template? {
         return templateJpaRepository.findActiveByTypeAndCompany(companyId, type)
             .map { it.toDomain() }
@@ -75,25 +67,21 @@ class JpaTemplateRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "findAllActiveByTypeAndCompany", operation = "select")
     override fun findAllActiveByTypeAndCompany(type: TemplateType, companyId: Long): List<Template> {
         return templateJpaRepository.findAllActiveByTypeAndCompany(companyId, type)
             .map { it.toDomain() }
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "existsById", operation = "select")
     override fun existsById(templateId: String, companyId: Long): Boolean {
         return templateJpaRepository.existsByIdAndCompanyId(templateId, companyId)
     }
 
-    @DatabaseMonitored(repository = "template", method = "deleteById", operation = "delete")
     override fun deleteById(templateId: String, companyId: Long): Boolean {
         return templateJpaRepository.deleteByIdAndCompanyId(templateId, companyId) > 0
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "template", method = "getFileData", operation = "select")
     override fun getFileData(templateId: String): ByteArray? {
         return try {
             storageService.retrieveFile(templateId)

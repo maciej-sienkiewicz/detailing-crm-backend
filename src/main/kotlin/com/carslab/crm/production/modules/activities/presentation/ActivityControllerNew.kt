@@ -20,8 +20,8 @@ class ActivityControllerNew(
 ) : BaseController() {
     
     @GetMapping
-    @HttpMonitored(endpoint = "GET_/api/activities")
     @Operation(summary = "Get paginated activities for current company")
+    @HttpMonitored(endpoint = "POST_/api/activities")
     fun getActivities(
         @Parameter(description = "Page number (0-based)")
         @RequestParam(defaultValue = "0") page: Int,
@@ -33,8 +33,8 @@ class ActivityControllerNew(
     }
 
     @GetMapping("/{id}")
-    @HttpMonitored(endpoint = "GET_/api/activities/{id}")
     @Operation(summary = "Get activity by ID")
+    @HttpMonitored(endpoint = "GET_/api/activities")
     fun getActivity(
         @PathVariable id: String
     ): ResponseEntity<ActivityResponse> {

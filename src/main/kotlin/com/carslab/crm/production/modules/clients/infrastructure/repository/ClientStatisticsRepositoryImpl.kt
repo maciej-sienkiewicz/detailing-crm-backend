@@ -5,7 +5,6 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientStatistics
 import com.carslab.crm.production.modules.clients.domain.repository.ClientStatisticsRepository
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toEntity
-import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -21,7 +20,6 @@ class ClientStatisticsRepositoryImpl(
     private val logger = LoggerFactory.getLogger(ClientStatisticsRepositoryImpl::class.java)
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "client_statistics", method = "findByClientId", operation = "select")
     override fun findByClientId(clientId: ClientId): ClientStatistics? {
         logger.debug("Finding statistics for client: {}", clientId.value)
 
@@ -30,7 +28,6 @@ class ClientStatisticsRepositoryImpl(
             .orElse(null)
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "save", operation = "insert")
     override fun save(statistics: ClientStatistics): ClientStatistics {
         logger.debug("Saving statistics for client: {}", statistics.clientId.value)
 
@@ -42,7 +39,6 @@ class ClientStatisticsRepositoryImpl(
         return savedEntity.toDomain()
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "incrementVisitCount", operation = "update")
     override fun incrementVisitCount(clientId: ClientId) {
         logger.debug("Atomically incrementing visit count for client: {}", clientId.value)
 
@@ -56,7 +52,6 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "incrementVehicleCount", operation = "update")
     override fun incrementVehicleCount(clientId: ClientId) {
         logger.debug("Atomically incrementing vehicle count for client: {}", clientId.value)
 
@@ -70,7 +65,6 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "addRevenue", operation = "update")
     override fun addRevenue(clientId: ClientId, amount: BigDecimal) {
         logger.debug("Atomically adding revenue {} for client: {}", amount, clientId.value)
 
@@ -84,7 +78,6 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "decrementVehicleCount", operation = "update")
     override fun decrementVehicleCount(clientId: ClientId) {
         logger.debug("Atomically decrementing vehicle count for client: {}", clientId.value)
 
@@ -98,12 +91,10 @@ class ClientStatisticsRepositoryImpl(
         }
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "setLastVisitDate", operation = "update")
     override fun setLastVisitDate(clientId: ClientId, visitDate: LocalDateTime) {
         logger.debug("Setting last visit date atomically through upsertVisitCount for client: {}", clientId.value)
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "deleteByClientId", operation = "delete")
     override fun deleteByClientId(clientId: ClientId): Boolean {
         logger.debug("Deleting statistics for client: {}", clientId.value)
 
@@ -119,7 +110,6 @@ class ClientStatisticsRepositoryImpl(
         return success
     }
 
-    @DatabaseMonitored(repository = "client_statistics", method = "batchDelete", operation = "delete")
     fun batchDelete(clientIds: List<ClientId>) {
         if (clientIds.isEmpty()) return
 
@@ -132,7 +122,6 @@ class ClientStatisticsRepositoryImpl(
     }
 
     @Transactional(readOnly = true)
-    @DatabaseMonitored(repository = "client_statistics", method = "findByClientIds", operation = "select")
     fun findByClientIds(clientIds: List<ClientId>): Map<ClientId, ClientStatistics> {
         if (clientIds.isEmpty()) return emptyMap()
 

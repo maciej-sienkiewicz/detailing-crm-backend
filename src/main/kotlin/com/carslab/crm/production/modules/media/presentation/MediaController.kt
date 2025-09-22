@@ -3,7 +3,6 @@ package com.carslab.crm.production.modules.media.presentation
 import com.carslab.crm.production.modules.media.application.dto.UpdateMediaTagsRequest
 import com.carslab.crm.production.modules.media.application.service.MediaCommandService
 import com.carslab.crm.production.modules.media.application.service.MediaQueryService
-import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -29,7 +28,6 @@ class MediaController(
 ) : BaseController() {
 
     @GetMapping("/{mediaId}/download")
-    @HttpMonitored(endpoint = "GET_/api/media/{mediaId}/download")
     @Operation(summary = "Download media file", description = "Downloads the full resolution media file")
     fun downloadMedia(
         @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String
@@ -51,7 +49,6 @@ class MediaController(
     }
 
     @GetMapping("/{mediaId}/thumbnail")
-    @HttpMonitored(endpoint = "GET_/api/media/{mediaId}/thumbnail")
     @Operation(summary = "Get media thumbnail", description = "Gets media thumbnail for preview")
     fun getMediaThumbnail(
         @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String
@@ -73,7 +70,6 @@ class MediaController(
     }
 
     @GetMapping("/{mediaId}/info")
-    @HttpMonitored(endpoint = "GET_/api/media/{mediaId}/info")
     @Operation(summary = "Get media information", description = "Gets media metadata without file content")
     fun getMediaInfo(
         @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String
@@ -88,7 +84,6 @@ class MediaController(
     }
 
     @GetMapping("/{mediaId}/exists")
-    @HttpMonitored(endpoint = "GET_/api/media/{mediaId}/exists")
     @Operation(summary = "Check if media exists", description = "Checks if media exists and is accessible")
     fun checkMediaExists(
         @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String
@@ -104,7 +99,6 @@ class MediaController(
     }
 
     @PutMapping("/{mediaId}/tags")
-    @HttpMonitored(endpoint = "PUT_/api/media/{mediaId}/tags")
     @Operation(summary = "Update media tags", description = "Updates tags for specified media")
     fun updateMediaTags(
         @Parameter(description = "Media ID", required = true) @PathVariable mediaId: String,
