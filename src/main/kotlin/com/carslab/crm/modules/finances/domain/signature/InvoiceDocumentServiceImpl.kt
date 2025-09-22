@@ -50,18 +50,18 @@ class InvoiceDocumentServiceImpl(
             throw InvoiceSignatureException("Visit must be in READY_FOR_PICKUP or COMPLETED status to generate invoice")
         }
 
-        return createInvoiceFromVisit(protocol, authContext.companyId.value, request)
+        return createInvoiceFromVisit(protocol, authContext, request)
     }
     
     private fun createInvoiceFromVisit(
         protocol: VisitDetailReadModel,
-        companyId: Long,
+        authContext: AuthContext,
         request: InvoiceSignatureRequest
     ): UnifiedFinancialDocument {
         logger.info("Creating invoice from visit: ${protocol.id}")
 
-        val companySettings = companySettingsService.getCompanySettings(companyId)
-            ?: throw InvoiceSignatureException("Company settings not found for company: $companyId")
+        val companySettings = companySettingsService.getCompanySettings(authContext.companyId.value)
+            ?: throw InvoiceSignatureException("Company settings not found for company: ${authContext.companyId.value}")
 
         val approvedServices = protocol.services.filter {
             it.approvalStatus == "APPROVED"
@@ -130,7 +130,7 @@ class InvoiceDocumentServiceImpl(
         )
 
         return try {
-            unifiedDocumentRepository.save(document)
+            unifiedDocumentRepository.save(document, authContext)
         } catch (e: Exception) {
             logger.error("Error creating invoice from visit: ${protocol.id}", e)
             throw InvoiceSignatureException("Failed to create invoice: ${e.message}", e)

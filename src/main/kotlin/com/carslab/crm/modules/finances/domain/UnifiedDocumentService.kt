@@ -200,7 +200,7 @@ class UnifiedDocumentService(
 
         val completeDocument = updatedDocument.copy(attachment = attachment)
 
-        val savedDocument = documentRepository.save(completeDocument)
+        val savedDocument = documentRepository.save(completeDocument, authContext)
 
         try {
             documentBalanceService.handleDocumentChange(
@@ -221,7 +221,7 @@ class UnifiedDocumentService(
     fun updateDocumentWithAttachment(document: UnifiedFinancialDocument, authContext: AuthContext): UnifiedFinancialDocument {
         logger.info("Updating document with new attachment: {}", document.id.value)
 
-        val savedDocument = documentRepository.save(document)
+        val savedDocument = documentRepository.save(document, authContext)
 
         logger.info("Document attachment updated successfully: {}", savedDocument.id.value)
 
@@ -353,82 +353,7 @@ class UnifiedDocumentService(
             override fun transferTo(dest: java.io.File): Unit = throw UnsupportedOperationException("Transfer not supported")
         }
     }
-
-    private fun createDocumentInternal(document: UnifiedFinancialDocument, attachmentFile: MultipartFile?): UnifiedFinancialDocument {
-        val companyId = securityContext.getCurrentCompanyId()
-
-        validateDocumentRequest(document)
-
-        val attachment = attachmentFile?.let {
-            val storageId = documentStorageService.storeFile(
-                UniversalStoreRequest(
-                    file = it,
-                    originalFileName = it.originalFilename ?: "document.pdf",
-                    contentType = it.contentType ?: "application/pdf",
-                    companyId = companyId,
-                    entityId = document.id.value,
-                    entityType = "document",
-                    category = "finances",
-                    subCategory = when (document.type) {
-                        DocumentType.INVOICE -> "invoices/${document.direction.name.lowercase()}"
-                        DocumentType.RECEIPT -> "receipts"
-                        else -> "documents"
-                    },
-                    description = "Financial document attachment",
-                    date = document.issuedDate,
-                    tags = mapOf(
-                        "documentType" to document.type.name,
-                        "direction" to document.direction.name
-                    )
-                )
-            )
-
-            DocumentAttachment(
-                id = UUID.randomUUID().toString(),
-                name = it.originalFilename ?: "document.pdf",
-                size = it.size,
-                type = it.contentType ?: "application/octet-stream",
-                storageId = storageId,
-                uploadedAt = LocalDateTime.now()
-            )
-        }
-
-        val completeDocument = if (attachment != null) {
-            document.copy(attachment = attachment)
-        } else {
-            document
-        }
-
-        val savedDocument = documentRepository.save(completeDocument)
-        logger.info("Created document with ID: {}", savedDocument.id.value)
-
-        try {
-            documentBalanceService.handleDocumentChange(
-                document = savedDocument,
-                oldStatus = null,
-                companyId = companyId
-            )
-        } catch (e: Exception) {
-            logger.warn("Failed to update balance for document ${savedDocument.id.value}: ${e.message}")
-        }
-
-        val visitDetails = document.protocolId?.let {
-            visitDetailQueryService.getSimpleDetails(it)
-        }
-
-        eventsPublisher.publish(
-            InvoiceCreatedEvent.create(
-                visit = visitDetails,
-                document = savedDocument,
-                userId = securityContext.getCurrentUserId(),
-                companyId = companyId,
-                userName = securityContext.getCurrentUserName(),
-            )
-        )
-
-        return savedDocument
-    }
-
+    
     private fun validateDocumentRequest(document: UnifiedFinancialDocument) {
         document.dueDate?.let { dueDate ->
             if (dueDate.isBefore(document.issuedDate)) {
