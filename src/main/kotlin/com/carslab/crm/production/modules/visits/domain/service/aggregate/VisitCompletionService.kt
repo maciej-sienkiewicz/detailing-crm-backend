@@ -164,14 +164,13 @@ class VisitCompletionService(
     private fun createServiceItems(services: List<VisitService>): List<DocumentItem> {
         return services.map { service ->
             val finalPrice = service.finalPrice
-            val totalNet = CalculationUtils.calculateNetAmount(finalPrice)
 
             DocumentItem(
                 name = service.name,
                 quantity = BigDecimal.ONE,
                 unitPrice = finalPrice,
-                totalNet = totalNet,
-                totalGross = finalPrice
+                totalNet = finalPrice,
+                totalGross = finalPrice * "1.23".toBigDecimal()
             )
         }
     }
