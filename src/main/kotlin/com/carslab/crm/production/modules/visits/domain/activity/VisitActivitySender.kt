@@ -132,7 +132,7 @@ class VisitActivitySender(
                 message = "Wizyta zakończona: \"${visit.title}\"",
                 userId = authContext.userId.value,
                 userName = authContext.userName,
-                description = "Suma brutto: ${visit.totalAmount()} PLN",
+                description = "Suma netto: ${visit.totalAmount()} PLN",
                 primaryEntity = RelatedEntityDto(
                     id = visit.id.toString(),
                     type = "VISIT",
