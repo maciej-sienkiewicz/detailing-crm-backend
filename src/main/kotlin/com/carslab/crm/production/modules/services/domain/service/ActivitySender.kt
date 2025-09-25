@@ -20,7 +20,7 @@ class ActivitySender(
             message = "Utworzono nową usługę: \"${created.name}\"",
             userId = securityContext.getCurrentUserId() ?: throw UserNotFoundException("User not found in security context"),
             userName = securityContext.getCurrentUserName() ?: throw UserNotFoundException("User not found in security context"),
-            description = "NETTO: ${created.price} PLN, BRUTTO: ${created.price * (1.toBigDecimal() + created.vatRate.toBigDecimal() / 100.toBigDecimal())} PLN, Stawka VAT: ${created.vatRate}%",
+            description = "NETTO: ${created.price} PLN, BRUTTO: ${created.price * ((created.vatRate.toBigDecimal() / 100.toBigDecimal())+"1".toBigDecimal())} PLN, Stawka VAT: ${created.vatRate}%",
             primaryEntity = null,
             relatedEntities = emptyList(),
             metadata = mapOf()

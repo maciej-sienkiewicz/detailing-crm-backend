@@ -148,8 +148,8 @@ class VisitCompletionService(
         return overriddenItems.map { item ->
             val finalPrice = CalculationUtils.anyToBigDecimal(item.finalPrice ?: item.price)
             val quantity = CalculationUtils.anyToBigDecimal(item.quantity)
-            val totalGross = finalPrice.multiply(quantity)
-            val totalNet = CalculationUtils.calculateNetAmount(totalGross)
+            val totalGross = finalPrice * "1.23".toBigDecimal()
+            val totalNet = finalPrice
 
             DocumentItem(
                 name = item.name,
