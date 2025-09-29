@@ -73,15 +73,15 @@ class UserService(
         
         val createdCompany = companyInitializationService.initializeCompany(
             CreateCompanyRequest(
-                companyName = "CarsLab",
-                taxId = "8442327966",
-                address = "CarsLab Street 1",
-                phone = "+48 123 456 789",
-                website = "http://carslab.com",
-                bankAccountNumber = "PL61109010140000071219812874",
-                bankName = "Bank of CarsLab",
-                swiftCode = "CARSLABPL",
-                accountHolderName = "CarsLab S.A."
+                companyName = createUserCommand.companyName!!,
+                taxId = createUserCommand.taxId!!,
+                address = createUserCommand.address!!,
+                phone = createUserCommand.phone!!,
+                website = createUserCommand.website!!,
+                bankAccountNumber = createUserCommand.bankAccountNumber!!,
+                bankName = createUserCommand.bankName,
+                swiftCode = createUserCommand.swiftCode!!,
+                accountHolderName = createUserCommand.accountHolderName!!
             )
         )
 

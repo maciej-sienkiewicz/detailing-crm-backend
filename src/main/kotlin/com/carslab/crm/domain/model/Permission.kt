@@ -105,6 +105,18 @@ data class RoleWithPermissionsDto(
     val permissions: List<PermissionConfigDto>
 )
 
+/**
+ * companyName = "CarsLab",
+ *                 taxId = "8442327966",
+ *                 address = "CarsLab Street 1",
+ *                 phone = "+48 123 456 789",
+ *                 website = "http://carslab.com",
+ *                 bankAccountNumber = "PL61109010140000071219812874",
+ *                 bankName = "Bank of CarsLab",
+ *                 swiftCode = "CARSLABPL",
+ *                 accountHolderName = "CarsLab S.A."
+ */
+
 data class CreateUserCommand(
     @JsonProperty("username")
     val username: String = "",
@@ -116,6 +128,16 @@ data class CreateUserCommand(
     val firstName: String = "",
     @JsonProperty("lastName")
     val lastName: String = "",
+    val companyName: String? = null,
+    @JsonProperty("taxId")
+    val taxId: String? = null,
+    val address: String? = null,
+    val phone: String? = null,
+    val website: String? = null,
+    val bankAccountNumber: String? = null,
+    val bankName: String? = null,
+    val swiftCode: String? = null,
+    val accountHolderName: String? = null,
 )
 
 data class UserResponse(
