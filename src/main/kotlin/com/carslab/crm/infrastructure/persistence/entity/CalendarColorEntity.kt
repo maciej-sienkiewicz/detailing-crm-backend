@@ -9,13 +9,20 @@ import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "calendar_colors")
-class CalendarColorEntity(
+@Table(
+    name = "calendar_colors",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_calendar_color_name_company",
+            columnNames = ["name", "company_id"]
+        )
+    ]
+)class CalendarColorEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     var name: String,
 
     @Column(nullable = false)

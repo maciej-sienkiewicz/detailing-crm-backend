@@ -47,6 +47,13 @@ class CompanyDomainService(
         )
 
         return repository.save(company)
+            .also { colorFacade.createCalendarColor(
+                CreateCalendarColorCommand(
+                    name = "Domyślny kolor",
+                    color = "#1a365d",
+                ),
+                companyId = it.id.value
+            ) }
     }
 
     fun getCompanyById(companyId: Long): Company {
