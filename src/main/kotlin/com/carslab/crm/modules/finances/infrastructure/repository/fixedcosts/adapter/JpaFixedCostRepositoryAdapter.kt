@@ -61,7 +61,7 @@ class JpaFixedCostRepositoryAdapter(
 
             existingEntity
         } else {
-            FixedCostEntity.Companion.fromDomain(fixedCost)
+            FixedCostEntity.Companion.fromDomain(fixedCost, companyId)
         }
 
         // Zapisanie kosztu stałego aby uzyskać identyfikator (lub aktualizować istniejący)
