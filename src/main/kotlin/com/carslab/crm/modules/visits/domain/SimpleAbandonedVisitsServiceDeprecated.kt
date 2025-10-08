@@ -2,6 +2,7 @@ package com.carslab.crm.modules.visits.domain
 
 import com.carslab.crm.domain.model.ProtocolStatus
 import com.carslab.crm.modules.visits.api.response.AbandonedVisitsCleanupResult
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import jakarta.persistence.EntityManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -24,7 +25,7 @@ class SimpleAbandonedVisitsServiceDeprecated(
         logger.info("🔍 Looking for abandoned visits from $yesterday...")
 
         // Step 1: Single query to update all matching protocols
-        val updatedProtocolsCount = updateAbandonedProtocols(yesterday, cleanupTimestamp)
+        val updatedProtocolsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
 
         // Step 2: Add comments for all updated protocols
         
@@ -36,24 +37,23 @@ class SimpleAbandonedVisitsServiceDeprecated(
         )
     }
 
-    private fun updateAbandonedProtocols(targetDate: LocalDate, timestamp: LocalDateTime): Int {
-        // Native SQL query using actual table structure from ProtocolEntity
+    private fun updateAbandonedVisits(targetDate: LocalDate, timestamp: LocalDateTime): Int {
         val updateQuery = """
-            UPDATE visits 
-            SET status = :cancelledStatus,
-                updatedAt = :timestamp,
-            WHERE DATE(startDate) = :targetDate 
-            AND status = :scheduledStatus
-        """.trimIndent()
+        UPDATE visits 
+        SET status = :cancelledStatus,
+            updatedAt = :timestamp
+        WHERE CAST(startDate AS DATE) = CAST(:targetDate AS DATE)
+        AND status = :scheduledStatus
+    """.trimIndent()
 
         val updatedCount = entityManager.createNativeQuery(updateQuery)
-            .setParameter("cancelledStatus", ProtocolStatus.CANCELLED.name)
-            .setParameter("scheduledStatus", ProtocolStatus.SCHEDULED.name)
+            .setParameter("cancelledStatus", VisitStatus.CANCELLED.name)
+            .setParameter("scheduledStatus", VisitStatus.SCHEDULED.name)
             .setParameter("targetDate", targetDate)
             .setParameter("timestamp", timestamp)
             .executeUpdate()
 
-        logger.info("📊 Updated $updatedCount protocols to CANCELLED status")
+        logger.info("📊 Updated $updatedCount visits to CANCELLED status")
         return updatedCount
     }
 
