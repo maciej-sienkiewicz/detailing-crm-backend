@@ -27,7 +27,7 @@ class SimpleAbandonedVisitsServiceDeprecated(
         // Step 1: Single query to update all matching protocols
         val updatedProtocolsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
 
-        // Step 2: Add comments for all updated protocols
+        // Step 2: Add comments for alls updated protocols
         
         return AbandonedVisitsCleanupResult(
             updatedProtocolsCount = updatedProtocolsCount,
