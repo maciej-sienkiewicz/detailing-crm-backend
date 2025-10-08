@@ -21,7 +21,7 @@ class SimpleAbandonedVisitsServiceDeprecated(
         val yesterday = LocalDate.now().minusDays(1)
         val cleanupTimestamp = LocalDateTime.now()
 
-        logger.info("🔍 Looking for abandoned visits from $yesterday...")
+        logger.info("🔍 Looking for abandoned visitss from $yesterday...")
 
         val updatedVisitsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
         updateAbandonedVisits(yesterday.minusDays(1), cleanupTimestamp)
