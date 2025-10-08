@@ -18,7 +18,9 @@ import com.carslab.crm.finances.infrastructure.entitiy.DocumentItemEntity
 import com.carslab.crm.finances.infrastructure.entitiy.UnifiedDocumentEntity
 import com.carslab.crm.infrastructure.persistence.entity.UserEntity
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.finances.domain.balance.BalanceService
 import com.carslab.crm.modules.finances.infrastructure.entitiy.CashHistoryBalanceEntity
+import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationType
 import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -35,6 +37,7 @@ import kotlin.jvm.optionals.getOrElse
 class JpaUnifiedDocumentRepositoryAdapter(
     private val documentJpaRepository: UnifiedDocumentJpaRepository,
     private val cashBalancesRepository: CashBalancesRepository,
+    private val balanceService: BalanceService,
     private val bankAccountBalanceRepository: BankAccountBalanceRepository,
     private val cashHistoryFlowRepository: JpaCashHistoryFlowRepository,
     private val securityContext: SecurityContext,
@@ -243,10 +246,8 @@ class JpaUnifiedDocumentRepositoryAdapter(
             dateFrom, dateTo, TransactionDirection.INCOME, null, companyId
         )
 
-        val totalExpense = documentJpaRepository.calculateTotalForPeriodAndCompanyId(
-            dateFrom, dateTo, TransactionDirection.EXPENSE, null, companyId
-        )
-
+        val totalExpense = balanceService.findExpenses(companyId,BalanceOperationType.SUBTRACT)
+        
         val totalPaid = documentJpaRepository.calculateTotalPaidForPeriodAndCompanyId(
             dateFrom, dateTo, companyId
         )

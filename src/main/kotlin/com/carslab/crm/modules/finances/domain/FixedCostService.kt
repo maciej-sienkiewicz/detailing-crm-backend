@@ -15,6 +15,11 @@ import com.carslab.crm.finances.domain.model.fixedcosts.TrendDirection
 import com.carslab.crm.finances.domain.ports.fixedcosts.FixedCostRepository
 import com.carslab.crm.infrastructure.exception.ResourceNotFoundException
 import com.carslab.crm.infrastructure.exception.ValidationException
+import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.finances.domain.balance.BalanceService
+import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationType
+import com.carslab.crm.modules.finances.infrastructure.entity.BalanceType
+import com.carslab.crm.production.modules.visits.domain.service.details.FinancialDocumentService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,8 +31,10 @@ import java.util.UUID
 @Service
 @Transactional(readOnly = true)
 class FixedCostService(
-    private val fixedCostRepository: FixedCostRepository
-) {
+    private val fixedCostRepository: FixedCostRepository,
+    private val balanceService: BalanceService,
+    private val securityContext: SecurityContext,
+    ) {
 
     private val logger = LoggerFactory.getLogger(FixedCostService::class.java)
 
@@ -147,7 +154,7 @@ class FixedCostService(
     fun recordPayment(fixedCostId: String, request: RecordPaymentRequest): FixedCostPayment {
         logger.info("Recording payment for fixed cost ID: {}", fixedCostId)
 
-        fixedCostRepository.findById(FixedCostId(fixedCostId))
+        val fixedCost = fixedCostRepository.findById(FixedCostId(fixedCostId))
             ?: throw ResourceNotFoundException("FixedCost", fixedCostId)
 
         validatePaymentRequest(request)
@@ -165,6 +172,15 @@ class FixedCostService(
         )
 
         val savedPayment = fixedCostRepository.savePayment(FixedCostId(fixedCostId), payment)
+        balanceService.updateBalance(
+            companyId = securityContext.getCurrentCompanyId(),
+            balanceType = BalanceType.BANK,
+            amount = request.amount,
+            operation = BalanceOperationType.SUBTRACT,
+            documentId = null,
+            retryCount = 0,
+            updateReason = "Opłacono koszt stały: ${fixedCost.name}"
+        )
         logger.info("Recorded payment with ID: {}", savedPayment.id)
 
         return savedPayment

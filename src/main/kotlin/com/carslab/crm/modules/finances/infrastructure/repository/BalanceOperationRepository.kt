@@ -21,4 +21,8 @@ interface BalanceOperationRepository : JpaRepository<BalanceOperationEntity, Lon
     @Query("SELECT SUM(CASE WHEN o.operationType = 'ADD' THEN o.amount ELSE -o.amount END) " +
             "FROM BalanceOperationEntity o WHERE o.companyId = :companyId AND o.balanceType = :balanceType")
     fun calculateNetBalance(@Param("companyId") companyId: Long, @Param("balanceType") balanceType: BalanceType): BigDecimal?
+    
+    @Query("SELECT SUM(o.amount) " +
+            "FROM BalanceOperationEntity o WHERE o.companyId = :companyId and lower(o.operationType) = lower(:operationType)")
+    fun findAmountByCompanyIdAndOperationType(companyId: Long, operationType: String): BigDecimal
 }

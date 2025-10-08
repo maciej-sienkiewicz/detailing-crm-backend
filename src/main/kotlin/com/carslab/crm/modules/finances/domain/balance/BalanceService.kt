@@ -6,7 +6,6 @@ import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationEn
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceOperationType
 import com.carslab.crm.modules.finances.infrastructure.entity.BalanceType
 import com.carslab.crm.modules.finances.infrastructure.entity.CompanyBalanceEntity
-import com.carslab.crm.modules.finances.infrastructure.repository.BalanceHistoryRepository
 import com.carslab.crm.modules.finances.infrastructure.repository.BalanceOperationRepository
 import com.carslab.crm.modules.finances.infrastructure.repository.CompanyBalanceRepository
 import org.slf4j.LoggerFactory
@@ -32,7 +31,7 @@ class BalanceService(
         balanceType: BalanceType,
         amount: BigDecimal,
         operation: BalanceOperationType,
-        documentId: String,
+        documentId: String?,
         retryCount: Int = 0,
         updateReason: String
     ) {
@@ -121,6 +120,13 @@ class BalanceService(
             isReconciled = isReconciled
         )
     }
+    
+    fun findExpenses(
+        companyId: Long,
+        operationType: BalanceOperationType
+    ): BigDecimal {
+        return balanceOperationRepository.findAmountByCompanyIdAndOperationType(companyId, operationType.toString())
+    }
 
     private fun getOrCreateBalance(companyId: Long): CompanyBalanceEntity {
         return companyBalanceRepository.findById(companyId).orElse(
@@ -129,7 +135,7 @@ class BalanceService(
     }
 
     private fun recordBalanceOperation(
-        companyId: Long, documentId: String, operation: BalanceOperationType,
+        companyId: Long, documentId: String?, operation: BalanceOperationType,
         balanceType: BalanceType, amount: BigDecimal,
         previousBalance: BigDecimal, newBalance: BigDecimal
     ) {
