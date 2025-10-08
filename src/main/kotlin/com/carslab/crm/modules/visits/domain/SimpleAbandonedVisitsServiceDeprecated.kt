@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Service
 @Transactional
@@ -16,15 +17,15 @@ class SimpleAbandonedVisitsServiceDeprecated(
 ) {
 
     private val logger = LoggerFactory.getLogger(SimpleAbandonedVisitsServiceDeprecated::class.java)
+    private val warsawZone = ZoneId.of("Europe/Warsaw")
 
     fun cancelAbandonedVisits(): AbandonedVisitsCleanupResult {
-        val yesterday = LocalDate.now().minusDays(1)
-        val cleanupTimestamp = LocalDateTime.now()
+        val yesterday = LocalDate.now(warsawZone).minusDays(1)
+        val cleanupTimestamp = LocalDateTime.now(warsawZone)
 
-        logger.info("🔍 Looking for abandoned visitss from $yesterday...")
+        logger.info("🔍 Looking for abandoned visits from $yesterday (Warsaw time: $cleanupTimestamp)...")
 
         val updatedVisitsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
-        updateAbandonedVisits(yesterday.minusDays(1), cleanupTimestamp)
 
         return AbandonedVisitsCleanupResult(
             updatedProtocolsCount = updatedVisitsCount,
