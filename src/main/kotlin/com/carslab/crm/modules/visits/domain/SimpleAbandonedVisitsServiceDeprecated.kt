@@ -1,8 +1,7 @@
 package com.carslab.crm.modules.visits.domain
 
-import com.carslab.crm.domain.model.ProtocolStatus
-import com.carslab.crm.modules.visits.api.response.AbandonedVisitsCleanupResult
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import com.carslab.crm.modules.visits.api.response.AbandonedVisitsCleanupResult
 import jakarta.persistence.EntityManager
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -24,13 +23,11 @@ class SimpleAbandonedVisitsServiceDeprecated(
 
         logger.info("🔍 Looking for abandoned visits from $yesterday...")
 
-        // Step 1: Single query to update all matching protocols
-        val updatedProtocolsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
+        val updatedVisitsCount = updateAbandonedVisits(yesterday, cleanupTimestamp)
+        updateAbandonedVisits(yesterday.minusDays(1), cleanupTimestamp)
 
-        // Step 2: Add comments for alls updated protocols
-        
         return AbandonedVisitsCleanupResult(
-            updatedProtocolsCount = updatedProtocolsCount,
+            updatedProtocolsCount = updatedVisitsCount,
             commentsAddedCount = 0,
             processedDate = yesterday,
             executionTimestamp = cleanupTimestamp
@@ -39,17 +36,17 @@ class SimpleAbandonedVisitsServiceDeprecated(
 
     private fun updateAbandonedVisits(targetDate: LocalDate, timestamp: LocalDateTime): Int {
         val updateQuery = """
-        UPDATE visits 
-        SET status = :cancelledStatus,
-            updatedAt = :timestamp
-        WHERE CAST(startDate AS DATE) = CAST(:targetDate AS DATE)
-        AND status = :scheduledStatus
-    """.trimIndent()
+            UPDATE visits 
+            SET status = :cancelledStatus,
+                updated_at = :timestamp
+            WHERE CAST(start_date AS DATE) = CAST(:targetDate AS DATE)
+            AND status = :scheduledStatus
+        """.trimIndent()
 
         val updatedCount = entityManager.createNativeQuery(updateQuery)
             .setParameter("cancelledStatus", VisitStatus.CANCELLED.name)
             .setParameter("scheduledStatus", VisitStatus.SCHEDULED.name)
-            .setParameter("targetDate", targetDate)
+            .setParameter("targetDate", java.sql.Date.valueOf(targetDate))
             .setParameter("timestamp", timestamp)
             .executeUpdate()
 
@@ -58,18 +55,17 @@ class SimpleAbandonedVisitsServiceDeprecated(
     }
 
     private fun addCommentsToUpdatedProtocols(targetDate: LocalDate, timestamp: LocalDateTime): Int {
-        // Get all protocol IDs that were just updated
         val getUpdatedProtocolsQuery = """
             SELECT id 
             FROM visits 
-            WHERE DATE(startDate) = :targetDate 
+            WHERE CAST(start_date AS DATE) = CAST(:targetDate AS DATE)
             AND status = :cancelledStatus
-            AND updatedAt = :timestamp
+            AND updated_at = :timestamp
         """.trimIndent()
 
         val protocolIds = entityManager.createNativeQuery(getUpdatedProtocolsQuery)
-            .setParameter("targetDate", targetDate)
-            .setParameter("cancelledStatus", ProtocolStatus.CANCELLED.name)
+            .setParameter("targetDate", java.sql.Date.valueOf(targetDate))
+            .setParameter("cancelledStatus", VisitStatus.CANCELLED.name)
             .setParameter("timestamp", timestamp)
             .resultList
             .map {
@@ -85,7 +81,6 @@ class SimpleAbandonedVisitsServiceDeprecated(
             return 0
         }
 
-        // Batch insert comments using actual ProtocolCommentEntity structure
         val insertCommentsQuery = """
             INSERT INTO protocol_comments (
                 protocol_id, 
@@ -104,7 +99,7 @@ class SimpleAbandonedVisitsServiceDeprecated(
             )
         """.trimIndent()
 
-        val commentTimestamp = timestamp.toString() // String format as required by entity
+        val commentTimestamp = timestamp.toString()
 
         var commentsAdded = 0
         protocolIds.forEach { protocolId ->
