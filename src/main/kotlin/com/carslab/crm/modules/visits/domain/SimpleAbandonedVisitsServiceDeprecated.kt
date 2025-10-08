@@ -27,11 +27,10 @@ class SimpleAbandonedVisitsServiceDeprecated(
         val updatedProtocolsCount = updateAbandonedProtocols(yesterday, cleanupTimestamp)
 
         // Step 2: Add comments for all updated protocols
-        val commentsAddedCount = addCommentsToUpdatedProtocols(yesterday, cleanupTimestamp)
-
+        
         return AbandonedVisitsCleanupResult(
             updatedProtocolsCount = updatedProtocolsCount,
-            commentsAddedCount = commentsAddedCount,
+            commentsAddedCount = 0,
             processedDate = yesterday,
             executionTimestamp = cleanupTimestamp
         )
@@ -40,11 +39,10 @@ class SimpleAbandonedVisitsServiceDeprecated(
     private fun updateAbandonedProtocols(targetDate: LocalDate, timestamp: LocalDateTime): Int {
         // Native SQL query using actual table structure from ProtocolEntity
         val updateQuery = """
-            UPDATE protocols 
+            UPDATE visits 
             SET status = :cancelledStatus,
-                updated_at = :timestamp,
-                status_updated_at = :timestamp
-            WHERE DATE(start_date) = :targetDate 
+                updatedAt = :timestamp,
+            WHERE DATE(startDate) = :targetDate 
             AND status = :scheduledStatus
         """.trimIndent()
 
@@ -63,10 +61,10 @@ class SimpleAbandonedVisitsServiceDeprecated(
         // Get all protocol IDs that were just updated
         val getUpdatedProtocolsQuery = """
             SELECT id 
-            FROM protocols 
-            WHERE DATE(start_date) = :targetDate 
+            FROM visits 
+            WHERE DATE(startDate) = :targetDate 
             AND status = :cancelledStatus
-            AND updated_at = :timestamp
+            AND updatedAt = :timestamp
         """.trimIndent()
 
         val protocolIds = entityManager.createNativeQuery(getUpdatedProtocolsQuery)

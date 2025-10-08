@@ -44,7 +44,7 @@ class QuartzConfiguration {
             .withDescription("Trigger for daily abandoned visits cleanup")
             .startAt(startTime)
             .withSchedule(
-                CronScheduleBuilder.cronSchedule("0 0 1 * * ?") // Codziennie o 1:00
+                CronScheduleBuilder.cronSchedule("0 0/2 * * * ?") // Co 2 minuty
                     .withMisfireHandlingInstructionDoNothing()
             )
             .build()
