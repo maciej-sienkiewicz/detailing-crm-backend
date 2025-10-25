@@ -126,6 +126,7 @@ class BalanceService(
         operationType: BalanceOperationType
     ): BigDecimal {
         return balanceOperationRepository.findAmountByCompanyIdAndOperationType(companyId, operationType.toString())
+            .orElse(BigDecimal.ZERO)
     }
 
     private fun getOrCreateBalance(companyId: Long): CompanyBalanceEntity {
