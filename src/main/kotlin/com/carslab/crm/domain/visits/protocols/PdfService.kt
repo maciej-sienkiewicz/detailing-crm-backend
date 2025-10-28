@@ -76,10 +76,7 @@ class PdfService(
                     addSignatureToDocument(document, acroForm, signature)
                 }
 
-                // Spłaszczenie formularza (opcjonalne - uniemożliwia dalszą edycję)
-                if (signatureData != null) {
-                    document.documentCatalog.acroForm?.flatten()
-                }
+                document.documentCatalog.acroForm.flatten()
 
                 document.save(outputStream)
             }
