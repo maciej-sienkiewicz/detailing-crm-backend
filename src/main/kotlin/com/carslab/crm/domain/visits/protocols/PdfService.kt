@@ -1,7 +1,5 @@
 package com.carslab.crm.domain.visits.protocols
 
-import com.carslab.crm.domain.model.CarReceptionProtocol
-import com.carslab.crm.domain.model.ProtocolId
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.infrastructure.storage.UniversalStorageService
 import com.carslab.crm.modules.visits.api.commands.CarReceptionDetailDto
@@ -63,11 +61,12 @@ class PdfService(
                     throw IllegalStateException("Brak formularza w podanym pliku PDF.")
                 }
 
-                // KLUCZOWE: Ustawienie fontu wspierającego polskie znaki
-                setPolishFont(document, acroForm)
+                // KLUCZOWE: Ładujemy font PRZED wypełnianiem pól
+                val polishFont = loadPolishFont(document)
+                setPolishFont(document, acroForm, polishFont)
 
-                // Wypełnianie standardowych pól tekstowych
-                fillTextFields(acroForm, formData)
+                // Wypełnianie standardowych pól tekstowych z fontem
+                fillTextFields(acroForm, formData, polishFont)
                 acroForm.getField("keys")?.setValue(if(protocol.keysProvided) "keys" else "Off")
                 acroForm.getField("documents")?.setValue(if(protocol.documentsProvided) "documents" else "Off")
 
@@ -76,7 +75,10 @@ class PdfService(
                     addSignatureToDocument(document, acroForm, signature)
                 }
 
-                document.documentCatalog.acroForm.flatten()
+                // Spłaszczenie formularza (opcjonalne - uniemożliwia dalszą edycję)
+                if (signatureData != null) {
+                    document.documentCatalog.acroForm?.flatten()
+                }
 
                 document.save(outputStream)
             }
@@ -88,53 +90,56 @@ class PdfService(
     /**
      * Ustawia font wspierający polskie znaki dla całego formularza
      */
-    private fun setPolishFont(document: PDDocument, acroForm: PDAcroForm) {
+    private fun setPolishFont(document: PDDocument, acroForm: PDAcroForm, font: PDType0Font) {
         try {
-            // Opcja 1: Użycie fontu systemowego (preferowane)
-            val font = loadPolishFont(document)
-
             // Ustawiamy font jako domyślny dla całego formularza
             val defaultResources = acroForm.defaultResources ?: PDResources()
             defaultResources.put(org.apache.pdfbox.cos.COSName.getPDFName("Helv"), font)
             acroForm.defaultResources = defaultResources
 
             // Ustawiamy domyślny wygląd z tym fontem
-            acroForm.defaultAppearance = "/Helv 0 Tf 0 g"
+            acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+
+            // KLUCZOWE: Wymuszamy regenerację wyglądu wszystkich pól
+            acroForm.needAppearances = true
 
             println("✓ Font wspierający polskie znaki został ustawiony")
         } catch (e: Exception) {
-            println("⚠ Nie udało się załadować fontu dla polskich znaków: ${e.message}")
-            println("  Używam transliteracji jako fallback")
+            println("⚠ Nie udało się ustawić fontu dla formularza: ${e.message}")
         }
     }
 
     /**
      * Ładuje font wspierający polskie znaki
-     * Próbuje najpierw użyć fontu z classpath, potem systemowego
+     * Próbuje w kolejności: resources -> systemowy -> internet cache
      */
     private fun loadPolishFont(document: PDDocument): PDType0Font {
-        // Opcja 1: Font z resources (jeśli dodasz plik .ttf do src/main/resources/fonts/)
+        // Opcja 1: Font z resources
         try {
             val fontResource = ClassPathResource("fonts/DejaVuSans.ttf")
             if (fontResource.exists()) {
+                println("✓ Używam fontu z resources")
                 return PDType0Font.load(document, fontResource.inputStream)
             }
         } catch (e: Exception) {
-            println("Nie znaleziono fontu DejaVuSans.ttf w resources")
+            println("Nie znaleziono fontu w resources")
         }
 
-        // Opcja 2: Font systemowy (działa na większości systemów)
+        // Opcja 2: Font systemowy
         val systemFontPaths = listOf(
-            // Linux
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+            "C:/Windows/Fonts/calibri.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/Library/Fonts/Arial.ttf"
         )
 
         for (fontPath in systemFontPaths) {
             try {
                 val fontFile = java.io.File(fontPath)
                 if (fontFile.exists()) {
-                    println("Używam fontu systemowego: $fontPath")
+                    println("✓ Używam fontu systemowego: $fontPath")
                     return PDType0Font.load(document, fontFile)
                 }
             } catch (e: Exception) {
@@ -142,20 +147,64 @@ class PdfService(
             }
         }
 
+        // Opcja 3: Pobierz font z internetu i cachuj lokalnie
+        try {
+            val cachedFont = downloadAndCacheFont()
+            println("✓ Używam fontu pobranego z internetu (cache)")
+            return PDType0Font.load(document, cachedFont)
+        } catch (e: Exception) {
+            println("✗ Nie udało się pobrać fontu: ${e.message}")
+        }
+
         throw IllegalStateException(
             "Nie znaleziono żadnego fontu wspierającego polskie znaki. " +
-                    "Dodaj DejaVuSans.ttf do src/main/resources/fonts/ lub zainstaluj font systemowy."
+                    "Zainstaluj fonts-dejavu w Dockerfile lub dodaj DejaVuSans.ttf do resources."
         )
     }
 
-    private fun fillTextFields(acroForm: PDAcroForm, formData: Map<String, String>) {
+    /**
+     * Pobiera font DejaVu Sans z internetu i cachuje go lokalnie w /tmp
+     */
+    private fun downloadAndCacheFont(): java.io.File {
+        val cacheDir = java.io.File("/tmp/carslab-fonts")
+        val cachedFontFile = java.io.File(cacheDir, "DejaVuSans.ttf")
+
+        // Jeśli font już jest w cache, użyj go
+        if (cachedFontFile.exists() && cachedFontFile.length() > 100_000) {
+            println("Używam fontu z cache: ${cachedFontFile.absolutePath}")
+            return cachedFontFile
+        }
+
+        // Pobierz font z internetu
+        println("Pobieram font DejaVu Sans z internetu...")
+        cacheDir.mkdirs()
+
+        val fontUrl = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
+
+        java.net.URL(fontUrl).openStream().use { input ->
+            cachedFontFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        println("✓ Font pobrany i zapisany w cache: ${cachedFontFile.absolutePath}")
+        return cachedFontFile
+    }
+
+    private fun fillTextFields(acroForm: PDAcroForm, formData: Map<String, String>, font: PDType0Font) {
         formData.forEach { (fieldName, value) ->
             val field = acroForm.getField(fieldName) as? PDTextField
             if (field != null) {
-                // Już nie używamy transliteracji - font obsługuje polskie znaki
-                field.setValue(value)
+                try {
+                    // Ustawiamy wartość - PDFBox użyje fontu z defaultResources formularza
+                    field.setValue(value)
+
+                    println("✓ Ustawiono wartość dla pola $fieldName: $value")
+                } catch (e: Exception) {
+                    println("✗ Błąd podczas ustawiania wartości dla pola $fieldName: ${e.message}")
+                }
             } else {
-                println("Nie znaleziono pola tekstowego: $fieldName")
+                println("⚠ Nie znaleziono pola tekstowego: $fieldName")
             }
         }
     }
