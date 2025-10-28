@@ -59,8 +59,8 @@ class PdfService(
 
                 // Wypełnianie standardowych pól tekstowych
                 fillTextFields(acroForm, formData)
-                acroForm.getField("keys")?.setValue(if(protocol.keysProvided) "[keys]" else "Off")
-                acroForm.getField("documents")?.setValue(if(protocol.documentsProvided) "[documents]" else "Off")
+                acroForm.getField("keys")?.setValue(if(protocol.keysProvided) "keys" else "Off")
+                acroForm.getField("documents")?.setValue(if(protocol.documentsProvided) "documents" else "Off")
 
                 // Dodanie podpisu jeśli został przekazany
                 signatureData?.let { signature ->
