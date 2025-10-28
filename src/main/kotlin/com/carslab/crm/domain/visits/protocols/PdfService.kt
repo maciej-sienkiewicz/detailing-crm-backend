@@ -59,6 +59,8 @@ class PdfService(
 
                 // Wypełnianie standardowych pól tekstowych
                 fillTextFields(acroForm, formData)
+                acroForm.getField("keys")?.setValue(if(protocol.keysProvided) "No" else "Off")
+                acroForm.getField("documents")?.setValue(if(protocol.documentsProvided) "No" else "Off")
 
                 // Dodanie podpisu jeśli został przekazany
                 signatureData?.let { signature ->
@@ -74,50 +76,6 @@ class PdfService(
             }
 
             return outputStream.toByteArray()
-        }
-    }
-
-    fun sign(document: ByteArray, signatureData: ByteArray): ByteArray {
-
-        ByteArrayOutputStream().use { outputStream ->
-            PDDocument.load(document.inputStream()).use { document ->
-                val acroForm: PDAcroForm? = document.documentCatalog.acroForm
-
-                if (acroForm == null) {
-                    throw IllegalStateException("Brak formularza w podanym pliku PDF.")
-                }
-
-                addSignatureToDocument(document, acroForm, signatureData)
-
-                document.documentCatalog.acroForm?.flatten()
-
-                document.save(outputStream)
-            }
-
-            return outputStream.toByteArray()
-        }
-    }
-
-    private fun addSignatureToDocument(
-        document: PDDocument,
-        acroForm: PDAcroForm,
-        signatureData: ByteArray
-    ) {
-        try {
-            // Próbujemy znaleźć pole podpisu w formularzu
-            val signatureField = acroForm.getField("Signature_1") as? PDSignatureField
-
-            if (signatureField != null) {
-                // Jeśli mamy dedykowane pole podpisu, używamy jego współrzędnych
-                addSignatureToField(document, signatureField, signatureData)
-            } else {
-                // Fallback: dodajemy podpis na stałej pozycji na ostatniej stronie
-                addSignatureToFixedPosition(document, signatureData)
-            }
-        } catch (e: Exception) {
-            println("Błąd podczas dodawania podpisu: ${e.message}")
-            // Fallback na stałą pozycję
-            addSignatureToFixedPosition(document, signatureData)
         }
     }
 
