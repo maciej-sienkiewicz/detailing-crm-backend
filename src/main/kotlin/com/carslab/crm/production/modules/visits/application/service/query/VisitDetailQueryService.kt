@@ -84,10 +84,10 @@ class VisitDetailQueryService(
                     id = service.id,
                     name = service.name,
                     quantity = service.quantity,
-                    price = service.basePrice,
+                    price = service.basePriceBrutto,
                     discountType = service.discountType?.let { EnumMappers.mapToApiDiscountType(EnumMappers.mapToDiscountType(it)!!) },
                     discountValue = service.discountValue,
-                    finalPrice = service.finalPrice,
+                    finalPrice = service.finalPriceBrutto,
                     approvalStatus = EnumMappers.mapToApiServiceApprovalStatus(EnumMappers.mapToServiceApprovalStatus(service.approvalStatus)),
                     note = service.note
                 )

@@ -11,7 +11,7 @@ import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceAppr
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.MediaMetadata
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
-import java.math.BigDecimal
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.time.LocalDateTime
 
 data class CreateVisitCommand(
@@ -57,11 +57,10 @@ data class UpdateVisitCommand(
 data class CreateServiceCommand(
     val id: String,
     val name: String,
-    val basePrice: BigDecimal,
+    val basePrice: PriceValueObject,
     val quantity: Long = 1,
     val discountType: DiscountType? = null,
-    val discountValue: BigDecimal? = null,
-    val finalPrice: BigDecimal? = null,
+    val discountValue: java.math.BigDecimal? = null,
     val approvalStatus: ServiceApprovalStatus = ServiceApprovalStatus.PENDING,
     val note: String? = null
 )
@@ -69,11 +68,10 @@ data class CreateServiceCommand(
 data class UpdateServiceCommand(
     val id: String,
     val name: String,
-    val basePrice: BigDecimal,
+    val basePrice: PriceValueObject,
     val quantity: Long,
     val discountType: DiscountType? = null,
-    val discountValue: BigDecimal? = null,
-    val finalPrice: BigDecimal? = null,
+    val discountValue: java.math.BigDecimal? = null,
     val approvalStatus: ServiceApprovalStatus = ServiceApprovalStatus.PENDING,
     val note: String? = null
 )

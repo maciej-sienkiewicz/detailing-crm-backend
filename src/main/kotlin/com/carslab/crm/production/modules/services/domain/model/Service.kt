@@ -1,6 +1,6 @@
 package com.carslab.crm.production.modules.services.domain.model
 
-import java.math.BigDecimal
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.time.LocalDateTime
 import java.util.*
 
@@ -17,7 +17,7 @@ data class Service(
     val companyId: Long,
     val name: String,
     val description: String?,
-    val price: BigDecimal,
+    val price: PriceValueObject,
     val vatRate: Int,
     val isActive: Boolean,
     val previousVersionId: ServiceId?,
@@ -29,7 +29,12 @@ data class Service(
         return this.companyId == companyId && this.isActive
     }
 
-    fun update(name: String, description: String?, price: BigDecimal, vatRate: Int): Service {
+    fun update(
+        name: String,
+        description: String?,
+        price: PriceValueObject,
+        vatRate: Int
+    ): Service {
         return copy(
             id = ServiceId.generate(),
             name = name,

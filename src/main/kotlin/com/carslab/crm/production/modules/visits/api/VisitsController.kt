@@ -147,7 +147,7 @@ class VisitController(
                 carMake = it.vehicle.make,
                 carModel = it.vehicle.model,
                 licensePlate = it.vehicle.licensePlate,
-                totalAmount = it.totalAmount,
+                totalAmount = it.totalAmountBrutto,
                 title = it.title
             ) },
             page = visits.page,

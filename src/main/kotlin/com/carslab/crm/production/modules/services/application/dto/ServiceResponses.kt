@@ -1,15 +1,15 @@
 package com.carslab.crm.production.modules.services.application.dto
 
 import com.carslab.crm.production.modules.services.domain.model.Service
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class ServiceResponse(
     val id: String,
     val name: String,
     val description: String?,
-    val price: BigDecimal,
+    val price: PriceResponseDto,
     @JsonProperty("vat_rate")
     val vatRate: Int,
     @JsonProperty("created_at")
@@ -23,7 +23,7 @@ data class ServiceResponse(
                 id = service.id.value,
                 name = service.name,
                 description = service.description,
-                price = service.price,
+                price = PriceResponseDto.from(service.price),
                 vatRate = service.vatRate,
                 createdAt = service.createdAt,
                 updatedAt = service.updatedAt

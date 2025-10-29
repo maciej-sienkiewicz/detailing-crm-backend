@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.services.infrastructure.mapper
 import com.carslab.crm.production.modules.services.domain.model.Service
 import com.carslab.crm.production.modules.services.domain.model.ServiceId
 import com.carslab.crm.production.modules.services.infrastructure.entity.ServiceEntity
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 
 fun Service.toEntity(): ServiceEntity {
     return ServiceEntity(
@@ -10,7 +11,9 @@ fun Service.toEntity(): ServiceEntity {
         companyId = this.companyId,
         name = this.name,
         description = this.description,
-        price = this.price,
+        priceNetto = this.price.priceNetto,
+        priceBrutto = this.price.priceBrutto,
+        taxAmount = this.price.taxAmount,
         vatRate = this.vatRate,
         isActive = this.isActive,
         previousVersionId = this.previousVersionId?.value,
@@ -26,7 +29,11 @@ fun ServiceEntity.toDomain(): Service {
         companyId = this.companyId,
         name = this.name,
         description = this.description,
-        price = this.price,
+        price = PriceValueObject(
+            priceNetto = this.priceNetto,
+            priceBrutto = this.priceBrutto,
+            taxAmount = this.taxAmount
+        ),
         vatRate = this.vatRate,
         isActive = this.isActive,
         previousVersionId = this.previousVersionId?.let { ServiceId.of(it) },

@@ -76,10 +76,10 @@ class InvoiceDocumentServiceImpl(
                 name = it.name,
                 description = it.note,
                 quantity = 1.toBigDecimal(),
-                unitPrice = it.finalPrice,
+                unitPrice = it.finalPriceBrutto,
                 taxRate = 23.toBigDecimal(),
-                totalNet = (it.finalPrice / 1.23.toBigDecimal()),
-                totalGross = it.finalPrice,
+                totalNet = it.finalPriceNetto,
+                totalGross = it.finalPriceBrutto,
             )} } else request.overridenItems.map {
             DocumentItem(
                 name = it.name,

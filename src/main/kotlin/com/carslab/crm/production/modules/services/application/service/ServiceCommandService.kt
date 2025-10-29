@@ -7,7 +7,9 @@ import com.carslab.crm.production.modules.services.application.dto.UpdateService
 import com.carslab.crm.production.modules.services.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.services.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.services.domain.service.ServiceDomainService
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.exception.UserNotFoundException
+import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,14 +26,22 @@ class ServiceCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating service '{}' for company: {}", request.name, companyId)
 
+        val priceValueObject = PriceValueObject.createFromInput(
+            inputValue = request.price.inputPrice,
+            inputType = PriceMapper.toDomain(request.price.inputType),
+            vatRate = request.vatRate
+        )
+
         val command = CreateServiceCommand(
             companyId = companyId,
             name = request.name.trim(),
             description = request.description?.trim(),
-            price = request.price,
+            price = priceValueObject,
             vatRate = request.vatRate,
-            userId = securityContext.getCurrentUserId() ?: throw UserNotFoundException("User ID not found in security context"),
-            userName = securityContext.getCurrentUserName() ?: throw UserNotFoundException("User name not found in security context")
+            userId = securityContext.getCurrentUserId()
+                ?: throw UserNotFoundException("User ID not found in security context"),
+            userName = securityContext.getCurrentUserName()
+                ?: throw UserNotFoundException("User name not found in security context")
         )
 
         val service = domainService.createService(command)
@@ -44,12 +54,18 @@ class ServiceCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Updating service: {} for company: {}", serviceId, companyId)
 
+        val priceValueObject = PriceValueObject.createFromInput(
+            inputValue = request.price.inputPrice,
+            inputType = PriceMapper.toDomain(request.price.inputType),
+            vatRate = request.vatRate
+        )
+
         val command = UpdateServiceCommand(
             serviceId = serviceId,
             companyId = companyId,
             name = request.name.trim(),
             description = request.description?.trim(),
-            price = request.price,
+            price = priceValueObject,
             vatRate = request.vatRate
         )
 

@@ -12,11 +12,19 @@ import com.carslab.crm.production.modules.visits.domain.orchestration.VehicleDet
 import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
+import com.carslab.crm.production.shared.domain.value_objects.PriceType
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Component
 class VisitCommandMapper {
+
+    companion object {
+        // Default VAT rate for Poland
+        private const val DEFAULT_VAT_RATE = 23
+    }
 
     fun mapCreateCommand(request: CreateVisitRequest, companyId: Long, entities: VisitEntities): CreateVisitCommand {
         return CreateVisitCommand(
@@ -83,28 +91,44 @@ class VisitCommandMapper {
     }
 
     private fun mapCreateServiceCommand(service: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {
+        // Convert the price to PriceValueObject
+        // Assuming the incoming price is NETTO (can be adjusted based on your API contract)
+        val priceValue = CalculationUtils.anyToBigDecimal(service.price)
+        val basePrice = PriceValueObject.createFromInput(
+            inputValue = priceValue,
+            inputType = PriceType.NETTO,
+            vatRate = DEFAULT_VAT_RATE
+        )
+
         return CreateServiceCommand(
             id = service.id,
             name = service.name,
-            basePrice = CalculationUtils.anyToBigDecimal(service.price),
+            basePrice = basePrice,
             quantity = service.quantity,
             discountType = EnumMappers.mapToDiscountType(service.discountType?.toString()),
             discountValue = service.discountValue?.let { CalculationUtils.anyToBigDecimal(it) },
-            finalPrice = service.finalPrice?.let { CalculationUtils.anyToBigDecimal(it) },
             approvalStatus = EnumMappers.mapToServiceApprovalStatus(service.approvalStatus?.toString()),
             note = service.note
         )
     }
 
     private fun mapUpdateServiceCommand(service: com.carslab.crm.modules.visits.api.commands.UpdateServiceCommand): UpdateServiceCommand {
+        // Convert the price to PriceValueObject
+        // Assuming the incoming price is NETTO (can be adjusted based on your API contract)
+        val priceValue = CalculationUtils.anyToBigDecimal(service.price)
+        val basePrice = PriceValueObject.createFromInput(
+            inputValue = priceValue,
+            inputType = PriceType.NETTO,
+            vatRate = DEFAULT_VAT_RATE
+        )
+
         return UpdateServiceCommand(
             id = service.id,
             name = service.name,
-            basePrice = CalculationUtils.anyToBigDecimal(service.price),
+            basePrice = basePrice,
             quantity = service.quantity,
             discountType = EnumMappers.mapToDiscountType(service.discountType?.toString()),
             discountValue = service.discountValue?.let { CalculationUtils.anyToBigDecimal(it) },
-            finalPrice = service.finalPrice?.let { CalculationUtils.anyToBigDecimal(it) },
             approvalStatus = EnumMappers.mapToServiceApprovalStatus(service.approvalStatus?.toString()),
             note = service.note
         )

@@ -27,8 +27,14 @@ class ServiceEntity(
     @Column(length = 500)
     val description: String? = null,
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    val price: BigDecimal,
+    @Column(name = "price_netto", nullable = false, precision = 10, scale = 2)
+    val priceNetto: BigDecimal,
+
+    @Column(name = "price_brutto", nullable = false, precision = 10, scale = 2)
+    val priceBrutto: BigDecimal,
+
+    @Column(name = "tax_amount", nullable = false, precision = 10, scale = 2)
+    val taxAmount: BigDecimal,
 
     @Column(name = "vat_rate", nullable = false)
     val vatRate: Int,

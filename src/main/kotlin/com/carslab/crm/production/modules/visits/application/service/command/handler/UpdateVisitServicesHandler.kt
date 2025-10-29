@@ -9,13 +9,13 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Ser
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.AggregateService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
-import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
+import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.math.BigDecimal
 
 @Component
 class UpdateVisitServicesHandler(
@@ -40,13 +40,18 @@ class UpdateVisitServicesHandler(
         companyId: Long
     ): UpdateVisitServicesCommand {
         val serviceUpdates = request.services.map { serviceItem ->
+            val priceValueObject = PriceValueObject.createFromInput(
+                inputValue = serviceItem.price.inputPrice,
+                inputType = PriceMapper.toDomain(serviceItem.price.inputType),
+                vatRate = serviceItem.vatRate
+            )
+
             ServiceUpdateItem(
                 name = serviceItem.name.trim(),
-                basePrice = serviceItem.price,
+                basePrice = priceValueObject,
                 quantity = serviceItem.quantity,
                 discountType = serviceItem.discountType?.let { EnumMappers.mapToDiscountType(it) },
                 discountValue = serviceItem.discountValue,
-                finalPrice = serviceItem.finalPrice,
                 approvalStatus = EnumMappers.mapToServiceApprovalStatus(serviceItem.approvalStatus),
                 note = serviceItem.note?.trim()
             )
@@ -90,7 +95,6 @@ class UpdateVisitServicesHandler(
             }
 
             if (serviceIndex != -1) {
-                // Aktualizuj istniejącą usługę
                 val existingService = updatedServices[serviceIndex]
                 val updatedService = updateExistingService(existingService, update)
                 updatedServices[serviceIndex] = updatedService
@@ -113,28 +117,12 @@ class UpdateVisitServicesHandler(
             ServiceDiscount(update.discountType, update.discountValue)
         } else null
 
-        val finalPrice = update.finalPrice ?: calculateFinalPrice(
-            update.basePrice,
-            update.quantity,
-            discount
-        )
-
         return existingService.copy(
             basePrice = update.basePrice,
             quantity = update.quantity,
             discount = discount,
-            finalPrice = finalPrice,
             approvalStatus = update.approvalStatus,
             note = update.note
         )
-    }
-
-    private fun calculateFinalPrice(
-        basePrice: BigDecimal,
-        quantity: Long,
-        discount: ServiceDiscount?
-    ): BigDecimal {
-        val totalBase = basePrice.multiply(BigDecimal.valueOf(quantity))
-        return discount?.applyTo(totalBase) ?: totalBase
     }
 }

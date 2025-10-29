@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.visits.application.dto
 
 import com.carslab.crm.production.modules.events.application.dto.RecurringEventResponse
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 fun VisitResponse.Companion.fromRecurringEvent(
@@ -17,7 +18,6 @@ fun VisitResponse.Companion.fromRecurringEvent(
         endDate = LocalDateTime.parse(originalRequest.endDate ?: originalRequest.startDate),
         status = VisitStatus.SCHEDULED,
         services = emptyList(),
-        totalAmount = java.math.BigDecimal.ZERO,
         serviceCount = 0,
         notes = "This is a recurring visit pattern. Individual visits will be created from this template.",
         referralSource = null,
@@ -26,6 +26,9 @@ fun VisitResponse.Companion.fromRecurringEvent(
         keysProvided = originalRequest.keysProvided ?: false,
         documentsProvided = originalRequest.documentsProvided ?: false,
         createdAt = recurringEvent.createdAt,
-        updatedAt = recurringEvent.updatedAt
+        updatedAt = recurringEvent.updatedAt,
+        totalAmountNetto = BigDecimal.ZERO,
+        totalAmountBrutto = BigDecimal.ZERO,
+        totalTaxAmount = BigDecimal.ZERO,
     )
 }

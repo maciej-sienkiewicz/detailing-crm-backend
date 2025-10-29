@@ -173,7 +173,7 @@ class VisitActivitySender(
         return previous.services.zip(updated.services).any { (oldService, newService) ->
             oldService.name != newService.name ||
             oldService.basePrice != newService.basePrice ||
-            oldService.finalPrice != newService.finalPrice ||
+            oldService.calculateFinalPrice() != newService.calculateFinalPrice() ||
             oldService.approvalStatus != newService.approvalStatus ||
             oldService.note != newService.note
         }

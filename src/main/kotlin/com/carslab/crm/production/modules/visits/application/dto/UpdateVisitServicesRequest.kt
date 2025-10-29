@@ -1,5 +1,6 @@
 package com.carslab.crm.production.modules.visits.application.dto
 
+import com.carslab.crm.production.shared.presentation.dto.PriceDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.Valid
 import jakarta.validation.constraints.*
@@ -8,18 +9,17 @@ import java.math.BigDecimal
 data class UpdateVisitServicesRequest(
     @field:Valid
     @field:NotEmpty(message = "Services list cannot be empty")
-    @field:Size(max = 50, message = "Cannot update more than 50 services at once")
-    val services: List<UpdateVisitServiceItemRequest>
+    val services: List<UpdateServiceItemRequest>
 )
 
-data class UpdateVisitServiceItemRequest(
+data class UpdateServiceItemRequest(
     @field:NotBlank(message = "Service name is required")
     @field:Size(max = 100, message = "Service name cannot exceed 100 characters")
     val name: String,
 
+    @field:Valid
     @field:NotNull(message = "Price is required")
-    @field:DecimalMin(value = "0.0", inclusive = true, message = "Price cannot be negative")
-    val price: BigDecimal,
+    val price: PriceDto,
 
     @field:NotNull(message = "Quantity is required")
     @field:Min(value = 1, message = "Quantity must be at least 1")
@@ -31,11 +31,14 @@ data class UpdateVisitServiceItemRequest(
     @JsonProperty("discount_value")
     val discountValue: BigDecimal? = null,
 
-    @JsonProperty("final_price")
-    val finalPrice: BigDecimal? = null,
-
     @JsonProperty("approval_status")
-    val approvalStatus: String? = "PENDING",
+    @field:NotBlank(message = "Approval status is required")
+    val approvalStatus: String,
 
-    val note: String? = null
+    @field:Size(max = 500, message = "Note cannot exceed 500 characters")
+    val note: String? = null,
+
+    @field:NotNull(message = "VAT rate is required")
+    @JsonProperty("vat_rate")
+    val vatRate: Int = 23
 )

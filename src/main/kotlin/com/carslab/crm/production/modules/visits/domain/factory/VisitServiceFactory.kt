@@ -13,7 +13,6 @@ class VisitServiceFactory {
 
     fun createService(command: CreateServiceCommand): VisitService {
         val discount = createDiscount(command.discountType, command.discountValue)
-        val finalPrice = calculateFinalPrice(command.basePrice, command.quantity, discount, command.finalPrice)
 
         return VisitService(
             id = command.id,
@@ -21,7 +20,6 @@ class VisitServiceFactory {
             basePrice = command.basePrice,
             quantity = command.quantity,
             discount = discount,
-            finalPrice = finalPrice,
             approvalStatus = command.approvalStatus,
             note = command.note
         )
@@ -29,7 +27,6 @@ class VisitServiceFactory {
 
     fun updateService(command: UpdateServiceCommand): VisitService {
         val discount = createDiscount(command.discountType, command.discountValue)
-        val finalPrice = calculateFinalPrice(command.basePrice, command.quantity, discount, command.finalPrice)
 
         return VisitService(
             id = command.id,
@@ -37,7 +34,6 @@ class VisitServiceFactory {
             basePrice = command.basePrice,
             quantity = command.quantity,
             discount = discount,
-            finalPrice = finalPrice,
             approvalStatus = command.approvalStatus,
             note = command.note
         )
@@ -50,20 +46,5 @@ class VisitServiceFactory {
         return if (discountType != null && discountValue != null) {
             ServiceDiscount(discountType, discountValue)
         } else null
-    }
-
-    private fun calculateFinalPrice(
-        basePrice: BigDecimal,
-        quantity: Long,
-        discount: ServiceDiscount?,
-        explicitFinalPrice: BigDecimal?
-    ): BigDecimal {
-        if (explicitFinalPrice != null) {
-            return explicitFinalPrice
-        }
-
-        val totalBase = basePrice.multiply(BigDecimal.valueOf(quantity))
-
-        return discount?.applyTo(totalBase) ?: totalBase
     }
 }

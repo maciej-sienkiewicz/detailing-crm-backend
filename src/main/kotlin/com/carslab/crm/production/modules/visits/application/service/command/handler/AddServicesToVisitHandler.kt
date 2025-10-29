@@ -16,11 +16,13 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Ser
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.AggregateService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.exception.BusinessException
+import com.carslab.crm.production.shared.presentation.dto.PriceDto
+import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.math.BigDecimal
 
 @Component
 class AddServicesToVisitHandler(
@@ -35,8 +37,8 @@ class AddServicesToVisitHandler(
 
         val command = buildCommand(visitId, request, companyId)
         val updatedVisit = addServicesToVisit(command)
-            .also { visit ->  
-                if(visit.status == VisitStatus.READY_FOR_PICKUP) {
+            .also { visit ->
+                if (visit.status == VisitStatus.READY_FOR_PICKUP) {
                     aggregateService.changeVisitStatus(ChangeVisitStatusCommand(
                         visitId = visitId,
                         newStatus = VisitStatus.IN_PROGRESS,
@@ -56,17 +58,22 @@ class AddServicesToVisitHandler(
         companyId: Long
     ): AddServicesToVisitCommand {
         val serviceCommands = request.services.map { serviceItem ->
+            val priceValueObject = PriceValueObject.createFromInput(
+                inputValue = serviceItem.price.inputPrice,
+                inputType = PriceMapper.toDomain(serviceItem.price.inputType),
+                vatRate = serviceItem.vatRate
+            )
+
             AddServiceItemCommand(
                 serviceId = resolveServiceId(serviceItem),
                 name = serviceItem.name,
-                basePrice = serviceItem.basePrice,
+                basePrice = priceValueObject,
                 quantity = serviceItem.quantity,
                 discountType = serviceItem.discountType?.let { EnumMappers.mapToDiscountType(it) },
                 discountValue = serviceItem.discountValue,
-                finalPrice = serviceItem.finalPrice,
                 note = serviceItem.note,
                 description = serviceItem.description,
-                vatRate = serviceItem.vatRate ?: 23
+                vatRate = serviceItem.vatRate
             )
         }
 
@@ -87,8 +94,8 @@ class AddServicesToVisitHandler(
         val createServiceRequest = CreateServiceRequest(
             name = serviceItem.name,
             description = serviceItem.description,
-            price = serviceItem.basePrice,
-            vatRate = serviceItem.vatRate ?: 23
+            price = serviceItem.price,
+            vatRate = serviceItem.vatRate
         )
 
         val createdService = serviceCommandService.createService(createServiceRequest)
@@ -125,30 +132,14 @@ class AddServicesToVisitHandler(
             ServiceDiscount(serviceCommand.discountType, serviceCommand.discountValue)
         } else null
 
-        val finalPrice = serviceCommand.finalPrice ?: calculateFinalPrice(
-            serviceCommand.basePrice,
-            serviceCommand.quantity,
-            discount
-        )
-
         return VisitService(
             id = serviceCommand.serviceId!!,
             name = serviceCommand.name,
             basePrice = serviceCommand.basePrice,
             quantity = serviceCommand.quantity,
             discount = discount,
-            finalPrice = finalPrice,
             approvalStatus = ServiceApprovalStatus.PENDING,
             note = serviceCommand.note
         )
-    }
-
-    private fun calculateFinalPrice(
-        basePrice: BigDecimal,
-        quantity: Long,
-        discount: ServiceDiscount?
-    ): BigDecimal {
-        val totalBase = basePrice.multiply(BigDecimal.valueOf(quantity))
-        return discount?.applyTo(totalBase) ?: totalBase
     }
 }

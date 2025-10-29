@@ -80,12 +80,11 @@ class JpaVisitListQueryRepositoryImpl(
                 status = mapToStatusString(projection.status),
                 calendarColorId = projection.calendarColorId,
                 totalServiceCount = services.size,
-                totalAmount = services.sumOf { it.finalPrice },
                 services = services.map { service ->
                     VisitServiceReadModel(
                         id = service.id,
                         name = service.name,
-                        finalPrice = service.finalPrice
+                        finalPriceNetto = service.finalPrice,
                     )
                 },
                 lastUpdate = projection.lastUpdate.format(dateTimeFormatter)
@@ -133,7 +132,6 @@ class JpaVisitListQueryRepositoryImpl(
                 status = mapToStatusString(projection.status),
                 calendarColorId = projection.calendarColorId,
                 totalServiceCount = projection.totalServiceCount,
-                totalAmount = projection.totalAmount,
                 services = services.map { service ->
                     VisitServiceReadModel(
                         id = service.id,

@@ -11,7 +11,9 @@ data class VisitListReadModel(
     val status: String,
     val calendarColorId: String,
     val totalServiceCount: Int,
-    val totalAmount: BigDecimal,
+    val totalAmountNetto: BigDecimal,
+    val totalAmountBrutto: BigDecimal,
+    val totalTaxAmount: BigDecimal,
     val services: List<VisitServiceReadModel>,
     val lastUpdate: String
 )
@@ -19,7 +21,9 @@ data class VisitListReadModel(
 data class VisitServiceReadModel(
     val id: String,
     val name: String,
-    val finalPrice: BigDecimal
+    val finalPriceNetto: BigDecimal,
+    val finalPriceBrutto: BigDecimal,
+    val finalTaxAmount: BigDecimal
 )
 
 data class VehicleBasicReadModel(

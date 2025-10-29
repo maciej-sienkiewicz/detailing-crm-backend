@@ -6,6 +6,7 @@ import com.carslab.crm.production.modules.visits.domain.models.entities.*
 import com.carslab.crm.production.modules.visits.domain.models.enums.*
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
@@ -26,7 +27,7 @@ data class Visit(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val deliveryPerson: DeliveryPerson?
-    
+
 ) {
     init {
         require(title.isNotBlank()) { "Visit title cannot be blank" }
@@ -34,10 +35,40 @@ data class Visit(
         require(calendarColorId.isNotBlank()) { "Calendar color ID cannot be blank" }
     }
 
-    fun totalAmount(): BigDecimal = services.sumOf { it.finalPrice }
+    /**
+     * Calculates the total price of all services in the visit
+     * Returns PriceValueObject with summed netto, brutto, and tax amounts
+     */
+    fun calculateTotalPrice(): PriceValueObject {
+        if (services.isEmpty()) {
+            return PriceValueObject(
+                priceNetto = BigDecimal.ZERO,
+                priceBrutto = BigDecimal.ZERO,
+                taxAmount = BigDecimal.ZERO
+            )
+        }
+
+        return services
+            .map { it.calculateFinalPrice() }
+            .reduce { acc, price -> acc.add(price) }
+    }
+
+    /**
+     * Legacy method for backward compatibility - returns brutto amount
+     */
+    fun totalAmount(): BigDecimal = calculateTotalPrice().priceBrutto
+
+    /**
+     * Gets total netto amount for all services
+     */
+    fun totalAmountNetto(): BigDecimal = calculateTotalPrice().priceNetto
+
+    /**
+     * Gets total tax amount for all services
+     */
+    fun totalTaxAmount(): BigDecimal = calculateTotalPrice().taxAmount
+
     fun serviceCount(): Int = services.size
-    fun hasApprovedServices(): Boolean = services.any { it.isApproved() }
-    fun hasPendingServices(): Boolean = services.any { it.isPending() }
 
     fun changeStatus(newStatus: VisitStatus): Visit {
         require(status.canTransitionTo(newStatus)) {

@@ -46,11 +46,15 @@ data class ClientDetailReadModel(
 data class ServiceDetailReadModel(
     val id: String,
     val name: String,
-    val basePrice: BigDecimal,
+    val basePriceNetto: BigDecimal,
+    val basePriceBrutto: BigDecimal,
+    val baseTaxAmount: BigDecimal,
     val quantity: Long,
     val discountType: String?,
     val discountValue: BigDecimal,
-    val finalPrice: BigDecimal,
+    val finalPriceNetto: BigDecimal,
+    val finalPriceBrutto: BigDecimal,
+    val finalTaxAmount: BigDecimal,
     val approvalStatus: String,
     val note: String?
 )

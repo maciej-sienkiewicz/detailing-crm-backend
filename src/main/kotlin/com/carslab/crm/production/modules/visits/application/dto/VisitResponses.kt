@@ -13,6 +13,7 @@ import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSou
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -31,8 +32,12 @@ data class VisitResponse(
     val endDate: LocalDateTime,
     val status: VisitStatus,
     val services: List<VisitServiceResponse>,
-    @JsonProperty("total_amount")
-    val totalAmount: BigDecimal,
+    @JsonProperty("total_amount_netto")
+    val totalAmountNetto: BigDecimal,
+    @JsonProperty("total_amount_brutto")
+    val totalAmountBrutto: BigDecimal,
+    @JsonProperty("total_tax_amount")
+    val totalTaxAmount: BigDecimal,
     @JsonProperty("service_count")
     val serviceCount: Int,
     val notes: String?,
@@ -53,6 +58,8 @@ data class VisitResponse(
 ) {
     companion object {
         fun from(visit: Visit): VisitResponse {
+            val totalPrice = visit.calculateTotalPrice()
+
             return VisitResponse(
                 id = visit.id?.value?.toString() ?: "",
                 title = visit.title,
@@ -62,7 +69,9 @@ data class VisitResponse(
                 endDate = visit.period.endDate,
                 status = visit.status,
                 services = visit.services.map { VisitServiceResponse.from(it) },
-                totalAmount = visit.totalAmount(),
+                totalAmountNetto = totalPrice.priceNetto,
+                totalAmountBrutto = totalPrice.priceBrutto,
+                totalTaxAmount = totalPrice.taxAmount,
                 serviceCount = visit.serviceCount(),
                 notes = visit.notes,
                 referralSource = visit.referralSource,
@@ -81,24 +90,26 @@ data class VisitServiceResponse(
     val id: String,
     val name: String,
     @JsonProperty("base_price")
-    val basePrice: BigDecimal,
+    val basePrice: PriceResponseDto,
     val quantity: Long,
     val discount: ServiceDiscountResponse?,
     @JsonProperty("final_price")
-    val finalPrice: BigDecimal,
+    val finalPrice: PriceResponseDto,
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus,
     val note: String?
 ) {
     companion object {
         fun from(service: VisitService): VisitServiceResponse {
+            val finalPrice = service.calculateFinalPrice()
+
             return VisitServiceResponse(
                 id = service.id,
                 name = service.name,
-                basePrice = service.basePrice,
+                basePrice = PriceResponseDto.from(service.basePrice),
                 quantity = service.quantity,
                 discount = service.discount?.let { ServiceDiscountResponse.from(it) },
-                finalPrice = service.finalPrice,
+                finalPrice = PriceResponseDto.from(finalPrice),
                 approvalStatus = service.approvalStatus,
                 note = service.note
             )
@@ -245,8 +256,8 @@ data class VisitTableResponse(
     val status: VisitStatus,
     @JsonProperty("service_count")
     val serviceCount: Int,
-    @JsonProperty("total_amount")
-    val totalAmount: BigDecimal,
+    @JsonProperty("total_amount_brutto")
+    val totalAmountBrutto: BigDecimal,
     @JsonProperty("created_at")
     val createdAt: String,
     @JsonProperty("updated_at")
@@ -256,6 +267,8 @@ data class VisitTableResponse(
         private val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
 
         fun from(visit: Visit, clientName: String, vehicleInfo: String, licensePlate: String): VisitTableResponse {
+            val totalPrice = visit.calculateTotalPrice()
+
             return VisitTableResponse(
                 id = visit.id?.value ?: 0L,
                 title = visit.title,
@@ -266,7 +279,7 @@ data class VisitTableResponse(
                 endDate = visit.period.endDate.format(dateFormatter),
                 status = visit.status,
                 serviceCount = visit.serviceCount(),
-                totalAmount = visit.totalAmount(),
+                totalAmountBrutto = totalPrice.priceBrutto,
                 createdAt = visit.createdAt.format(dateFormatter),
                 updatedAt = visit.updatedAt.format(dateFormatter)
             )

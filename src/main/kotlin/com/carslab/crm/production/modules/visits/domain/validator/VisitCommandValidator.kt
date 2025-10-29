@@ -56,16 +56,10 @@ class VisitCommandValidator {
                     if (service.name.isBlank()) {
                         throw BusinessException("Service name cannot be blank")
                     }
-                    if (service.basePrice < BigDecimal.ZERO) {
-                        throw BusinessException("Service price cannot be negative")
-                    }
                 }
                 is UpdateServiceCommand -> {
                     if (service.name.isBlank()) {
                         throw BusinessException("Service name cannot be blank")
-                    }
-                    if (service.basePrice < BigDecimal.ZERO) {
-                        throw BusinessException("Service price cannot be negative")
                     }
                 }
             }

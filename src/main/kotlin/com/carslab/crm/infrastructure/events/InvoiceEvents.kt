@@ -54,7 +54,7 @@ data class InvoiceCreatedEvent(
             clientName = visit?.client?.name.toString(),
             visitId = visit?.id,
             visitTitle = visit?.title,
-            amount = visit?.services?.sumOf { it.finalPrice } ?: BigDecimal.ZERO,
+            amount = visit?.services?.sumOf { it.finalPriceBrutto } ?: BigDecimal.ZERO,
             currency = "PLN",
             dueDate = document.dueDate.toString(),
             userId = userId,

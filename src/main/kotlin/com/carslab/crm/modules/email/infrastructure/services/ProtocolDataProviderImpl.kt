@@ -24,8 +24,8 @@ class ProtocolDataProviderImpl(
                 ProtocolServiceData(
                     name = service.name,
                     quantity = service.quantity,
-                    price = service.basePrice.toDouble(),
-                    finalPrice = service.finalPrice.toDouble()
+                    price = service.finalPriceBrutto.toDouble(),
+                    finalPrice = service.finalPriceBrutto.toDouble()
                 )
             }
 

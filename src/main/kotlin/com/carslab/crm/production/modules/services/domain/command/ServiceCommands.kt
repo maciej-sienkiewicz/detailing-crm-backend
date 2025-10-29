@@ -1,6 +1,6 @@
 package com.carslab.crm.production.modules.services.domain.command
 
-import java.math.BigDecimal
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 
 data class CreateServiceCommand(
     val companyId: Long,
@@ -8,7 +8,7 @@ data class CreateServiceCommand(
     val userName: String,
     val name: String,
     val description: String?,
-    val price: BigDecimal,
+    val price: PriceValueObject,
     val vatRate: Int
 )
 
@@ -17,6 +17,6 @@ data class UpdateServiceCommand(
     val companyId: Long,
     val name: String,
     val description: String?,
-    val price: BigDecimal,
+    val price: PriceValueObject,
     val vatRate: Int
 )
