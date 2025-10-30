@@ -14,6 +14,7 @@ import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappe
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
 import com.carslab.crm.production.shared.domain.value_objects.PriceType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
+import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -93,10 +94,9 @@ class VisitCommandMapper {
     private fun mapCreateServiceCommand(service: com.carslab.crm.modules.visits.api.commands.CreateServiceCommand): CreateServiceCommand {
         // Convert the price to PriceValueObject
         // Assuming the incoming price is NETTO (can be adjusted based on your API contract)
-        val priceValue = CalculationUtils.anyToBigDecimal(service.price)
         val basePrice = PriceValueObject.createFromInput(
-            inputValue = priceValue,
-            inputType = PriceType.NETTO,
+            inputValue = service.price.priceBrutto,
+            inputType = PriceType.BRUTTO,
             vatRate = DEFAULT_VAT_RATE
         )
 

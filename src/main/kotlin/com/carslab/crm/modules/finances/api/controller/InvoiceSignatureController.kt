@@ -48,10 +48,10 @@ class InvoiceSignatureController(
                     OverridenInvoiceServiceItem(
                         name = it.name,
                         quantity = it.quantity,
-                        basePrice = it.price,
+                        basePrice = it.price.priceBrutto,
                         discountType = it.discountType.toString(),
                         discountValue = it.discountValue,
-                        finalPrice = it.finalPrice,
+                        finalPrice = it.finalPrice?.priceBrutto,
                     )
                 },
                 paymentDays = request.paymentDays,

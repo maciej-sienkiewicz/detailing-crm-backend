@@ -6,5 +6,6 @@ interface VisitServiceProjection {
     val visitId: Long
     val serviceId: String
     val serviceName: String
-    val finalPrice: BigDecimal
+    val finalPriceNetto: BigDecimal
+    val finalPriceBrutto: BigDecimal
 }

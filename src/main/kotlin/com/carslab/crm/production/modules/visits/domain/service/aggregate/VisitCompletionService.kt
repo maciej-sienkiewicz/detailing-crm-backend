@@ -71,7 +71,7 @@ class VisitCompletionService(
             }
             
             launch {
-                runCatching { updateRevenueStatistics(visit.clientId, visit.vehicleId, authContext.companyId.value, visit.totalAmount()) }
+                runCatching { updateRevenueStatistics(visit.clientId, visit.vehicleId, authContext.companyId.value, visit.totalAmountBrutto()) }
                     .onFailure { logger.error("Failed to update revenue statistics", it) }
             }
 

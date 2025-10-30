@@ -96,21 +96,6 @@ interface VisitServiceJpaRepository : JpaRepository<VisitServiceEntity, String> 
         @Param("serviceIds") serviceIds: List<String>,
         @Param("status") status: ServiceApprovalStatus
     )
-
-    @Query("""
-        SELECT vs FROM VisitServiceEntity vs 
-        WHERE vs.visitId IN :visitIds 
-        ORDER BY vs.visitId, vs.name
-    """)
-    fun findByVisitIds(@Param("visitIds") visitIds: List<Long>): List<VisitServiceEntity>
-
-    @Query("""
-        SELECT vs.visitId as visitId, COUNT(vs) as serviceCount, SUM(vs.finalPrice) as totalAmount
-        FROM VisitServiceEntity vs 
-        WHERE vs.visitId IN :visitIds 
-        GROUP BY vs.visitId
-    """)
-    fun getVisitServiceSummary(@Param("visitIds") visitIds: List<Long>): List<VisitServiceSummaryProjection>
 }
 
 @Repository

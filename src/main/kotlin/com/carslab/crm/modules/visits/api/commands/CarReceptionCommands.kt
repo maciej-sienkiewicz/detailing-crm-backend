@@ -5,6 +5,9 @@ import com.carslab.crm.modules.visits.api.request.ApiDiscountType
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
+import com.carslab.crm.production.shared.presentation.dto.CalculatedPriceDto
+import com.carslab.crm.production.shared.presentation.dto.PriceDto
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
@@ -190,8 +193,8 @@ data class CreateServiceCommand(
     @JsonProperty("name")
     val name: String,
 
-    @JsonProperty("price")
-    val price: BigDecimal,
+    @JsonProperty("base_price")
+    val price: CalculatedPriceDto,
 
     @JsonProperty("quantity")
     val quantity: Long = 1L,
@@ -203,7 +206,7 @@ data class CreateServiceCommand(
     val discountValue: BigDecimal? = null,
 
     @JsonProperty("final_price")
-    val finalPrice: BigDecimal? = null,
+    val finalPrice: CalculatedPriceDto? = null,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
@@ -469,8 +472,8 @@ data class ServiceDto(
     @JsonProperty("quantity")
     val quantity: Long,
 
-    @JsonProperty("price")
-    val price: BigDecimal,
+    @JsonProperty("base_price")
+    val basePrice: PriceResponseDto,
 
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
@@ -479,7 +482,7 @@ data class ServiceDto(
     val discountValue: BigDecimal = BigDecimal.ZERO,
 
     @JsonProperty("final_price")
-    val finalPrice: BigDecimal,
+    val finalPrice: PriceResponseDto,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = null,

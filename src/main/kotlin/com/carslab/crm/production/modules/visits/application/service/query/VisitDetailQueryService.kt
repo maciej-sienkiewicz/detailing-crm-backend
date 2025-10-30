@@ -11,6 +11,7 @@ import com.carslab.crm.production.modules.visits.domain.service.details.AuthCont
 import com.carslab.crm.production.modules.visits.domain.service.details.MediaService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -84,11 +85,23 @@ class VisitDetailQueryService(
                     id = service.id,
                     name = service.name,
                     quantity = service.quantity,
-                    price = service.basePriceBrutto,
-                    discountType = service.discountType?.let { EnumMappers.mapToApiDiscountType(EnumMappers.mapToDiscountType(it)!!) },
+                    basePrice = PriceResponseDto(
+                        priceNetto = service.basePriceNetto,
+                        priceBrutto = service.basePriceBrutto,
+                        taxAmount = service.baseTaxAmount
+                    ),
+                    discountType = service.discountType?.let {
+                        EnumMappers.mapToApiDiscountType(EnumMappers.mapToDiscountType(it)!!)
+                    },
                     discountValue = service.discountValue,
-                    finalPrice = service.finalPriceBrutto,
-                    approvalStatus = EnumMappers.mapToApiServiceApprovalStatus(EnumMappers.mapToServiceApprovalStatus(service.approvalStatus)),
+                    finalPrice = PriceResponseDto(
+                        priceNetto = service.finalPriceNetto,
+                        priceBrutto = service.finalPriceBrutto,
+                        taxAmount = service.finalTaxAmount
+                    ),
+                    approvalStatus = EnumMappers.mapToApiServiceApprovalStatus(
+                        EnumMappers.mapToServiceApprovalStatus(service.approvalStatus)
+                    ),
                     note = service.note
                 )
             },
@@ -114,7 +127,7 @@ class VisitDetailQueryService(
             updatedAt = visitDetail.audit.updatedAt,
             statusUpdatedAt = visitDetail.audit.statusUpdatedAt,
             appointmentId = visitDetail.appointmentId,
-            deliveryPerson = visitDetail.deliveryPerson?.id?.let { 
+            deliveryPerson = visitDetail.deliveryPerson?.id?.let {
                 DeliveryPerson(
                     id = visitDetail.deliveryPerson.id,
                     name = visitDetail.deliveryPerson.name,

@@ -8,6 +8,7 @@ import com.carslab.crm.production.modules.visits.application.queries.models.Visi
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitListReadModel
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitSearchCriteria
 import com.carslab.crm.production.modules.visits.application.queries.models.VisitServiceReadModel
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListQueryRepository
 import com.carslab.crm.production.modules.visits.domain.repositories.VisitListRepository
@@ -58,6 +59,15 @@ class JpaVisitListQueryRepositoryImpl(
         val visitListReadModels = visitProjections.map { projection ->
             val visitId = VisitId.of(projection.visitId)
             val services = servicesMap[visitId] ?: emptyList()
+            val mappedServices = services.map { service ->
+                VisitServiceReadModel(
+                    id = service.id,
+                    name = service.name,
+                    finalPriceNetto = service.finalPriceNetto,
+                    finalPriceBrutto = service.finalPriceBrutto,
+                    finalTaxAmount = service.finalPriceBrutto - service.finalPriceNetto
+                )
+            }
 
             VisitListReadModel(
                 id = projection.visitId.toString(),
@@ -80,14 +90,11 @@ class JpaVisitListQueryRepositoryImpl(
                 status = mapToStatusString(projection.status),
                 calendarColorId = projection.calendarColorId,
                 totalServiceCount = services.size,
-                services = services.map { service ->
-                    VisitServiceReadModel(
-                        id = service.id,
-                        name = service.name,
-                        finalPriceNetto = service.finalPrice,
-                    )
-                },
-                lastUpdate = projection.lastUpdate.format(dateTimeFormatter)
+                services = mappedServices,
+                lastUpdate = projection.lastUpdate.format(dateTimeFormatter),
+                totalAmountNetto = mappedServices.sumOf { it.finalPriceNetto },
+                totalAmountBrutto = mappedServices.sumOf { it.finalPriceBrutto },
+                totalTaxAmount = mappedServices.sumOf { it.finalTaxAmount }
             )
         }
 
@@ -110,6 +117,15 @@ class JpaVisitListQueryRepositoryImpl(
         val visitListReadModels = visitListProjections.content.map { projection ->
             val visitId = VisitId.of(projection.visitId)
             val services = servicesMap[visitId] ?: emptyList()
+            val mappedServices = services.map { service ->
+                VisitServiceReadModel(
+                    id = service.id,
+                    name = service.name,
+                    finalPriceNetto = service.finalPriceNetto,
+                    finalPriceBrutto = service.finalPriceBrutto,
+                    finalTaxAmount = service.finalPriceBrutto - service.finalPriceNetto
+                )
+            }
 
             VisitListReadModel(
                 id = projection.visitId.toString(),
@@ -132,14 +148,11 @@ class JpaVisitListQueryRepositoryImpl(
                 status = mapToStatusString(projection.status),
                 calendarColorId = projection.calendarColorId,
                 totalServiceCount = projection.totalServiceCount,
-                services = services.map { service ->
-                    VisitServiceReadModel(
-                        id = service.id,
-                        name = service.name,
-                        finalPrice = service.finalPrice
-                    )
-                },
-                lastUpdate = projection.lastUpdate.format(dateTimeFormatter)
+                services = mappedServices,
+                lastUpdate = projection.lastUpdate.format(dateTimeFormatter),
+                totalAmountNetto = mappedServices.sumOf { it.finalPriceNetto },
+                totalAmountBrutto = mappedServices.sumOf { it.finalPriceBrutto },
+                totalTaxAmount = mappedServices.sumOf { it.finalTaxAmount }
             )
         }
 
@@ -152,14 +165,14 @@ class JpaVisitListQueryRepositoryImpl(
         )
     }
 
-    private fun mapToStatusString(status: com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus): String {
+    private fun mapToStatusString(status: VisitStatus): String {
         return when (status) {
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.SCHEDULED -> "SCHEDULED"
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.PENDING_APPROVAL -> "PENDING_APPROVAL"
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.IN_PROGRESS -> "IN_PROGRESS"
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.READY_FOR_PICKUP -> "READY_FOR_PICKUP"
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.COMPLETED -> "COMPLETED"
-            com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.CANCELLED -> "CANCELLED"
+            VisitStatus.SCHEDULED -> "SCHEDULED"
+            VisitStatus.PENDING_APPROVAL -> "PENDING_APPROVAL"
+            VisitStatus.IN_PROGRESS -> "IN_PROGRESS"
+            VisitStatus.READY_FOR_PICKUP -> "READY_FOR_PICKUP"
+            VisitStatus.COMPLETED -> "COMPLETED"
+            VisitStatus.CANCELLED -> "CANCELLED"
         }
     }
 }

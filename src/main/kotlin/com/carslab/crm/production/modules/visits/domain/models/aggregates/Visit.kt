@@ -56,7 +56,7 @@ data class Visit(
     /**
      * Legacy method for backward compatibility - returns brutto amount
      */
-    fun totalAmount(): BigDecimal = calculateTotalPrice().priceBrutto
+    fun totalAmountBrutto(): BigDecimal = calculateTotalPrice().priceBrutto
 
     /**
      * Gets total netto amount for all services

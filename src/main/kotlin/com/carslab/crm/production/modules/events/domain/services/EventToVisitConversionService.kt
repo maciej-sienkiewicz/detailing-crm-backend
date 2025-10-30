@@ -8,6 +8,9 @@ import com.carslab.crm.production.modules.events.domain.repositories.RecurringEv
 import com.carslab.crm.production.modules.visits.application.dto.CreateVisitRequest
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.production.shared.exception.BusinessException
+import com.carslab.crm.production.shared.presentation.dto.CalculatedPriceDto
+import com.carslab.crm.production.shared.presentation.dto.PriceDto
+import com.carslab.crm.production.shared.presentation.dto.PriceTypeDto
 import org.springframework.stereotype.Service
 import java.time.format.DateTimeFormatter
 
@@ -42,7 +45,11 @@ class EventToVisitConversionService(
             com.carslab.crm.modules.visits.api.commands.CreateServiceCommand(
                 id = "",
                 name = serviceTemplate.name,
-                price = serviceTemplate.basePrice,
+                price = CalculatedPriceDto(
+                    priceNetto = serviceTemplate.basePrice,
+                    priceBrutto = serviceTemplate.basePrice,
+                    taxAmount = serviceTemplate.basePrice
+                ),
                 quantity = 1,
                 discountType = null,
                 discountValue = null,
@@ -56,7 +63,11 @@ class EventToVisitConversionService(
             com.carslab.crm.modules.visits.api.commands.CreateServiceCommand(
                 id = "",
                 name = additionalService.name,
-                price = additionalService.basePrice,
+                price = CalculatedPriceDto(
+                    priceNetto = additionalService.basePrice,
+                    priceBrutto = additionalService.basePrice,
+                    taxAmount =  additionalService.basePrice
+                ),
                 quantity = additionalService.quantity,
                 discountType = null,
                 discountValue = null,

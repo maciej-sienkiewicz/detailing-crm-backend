@@ -29,7 +29,7 @@ class VisitActivitySender(
                     ?: throw IllegalStateException("User not found in security context"),
                 userName = securityContext.getCurrentUserName()
                     ?: throw IllegalStateException("User not found in security context"),
-                description = "Suma netto: ${visit.totalAmount()} PLN",
+                description = "Suma netto: ${visit.totalAmountNetto()} PLN",
                 primaryEntity = RelatedEntityDto(
                     id = visit.id.toString(),
                     type = "VISIT",
@@ -132,7 +132,7 @@ class VisitActivitySender(
                 message = "Wizyta zakończona: \"${visit.title}\"",
                 userId = authContext.userId.value,
                 userName = authContext.userName,
-                description = "Suma netto: ${visit.totalAmount()} PLN",
+                description = "Suma netto: ${visit.totalAmountBrutto()} PLN",
                 primaryEntity = RelatedEntityDto(
                     id = visit.id.toString(),
                     type = "VISIT",
@@ -160,7 +160,7 @@ class VisitActivitySender(
             }
             if (servicesChanged(previous, updated)) {
                 append("Liczba usług: ${previous.services.size} -> ${updated.services.size}\n")
-                append("Końcowa cena: ${previous.totalAmount()} PLN -> ${updated.totalAmount()} PLN\n")
+                append("Końcowa cena: ${previous.totalAmountBrutto()} PLN -> ${updated.totalAmountBrutto()} PLN\n")
             }
         }.takeIf { it.isNotEmpty() }
     }

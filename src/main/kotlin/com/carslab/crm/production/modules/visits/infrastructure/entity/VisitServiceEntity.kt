@@ -48,7 +48,17 @@ class VisitServiceEntity(
     val approvalStatus: ServiceApprovalStatus = ServiceApprovalStatus.PENDING,
 
     @Column(length = 500)
-    val note: String? = null
+    val note: String? = null,
+
+    // Obliczone ceny finalne - zapisywane przy każdym zapisie
+    @Column(name = "final_price_netto", nullable = false, precision = 10, scale = 2)
+    val finalPriceNetto: BigDecimal,
+
+    @Column(name = "final_price_brutto", nullable = false, precision = 10, scale = 2)
+    val finalPriceBrutto: BigDecimal,
+
+    @Column(name = "final_tax_amount", nullable = false, precision = 10, scale = 2)
+    val finalTaxAmount: BigDecimal
 ) {
     fun toDomain(): VisitService {
         val basePrice = PriceValueObject(
@@ -74,6 +84,9 @@ class VisitServiceEntity(
 
     companion object {
         fun fromDomain(visitService: VisitService, visitId: Long): VisitServiceEntity {
+            // Oblicz finalną cenę używając logiki domenowej
+            val finalPrice = visitService.calculateFinalPrice()
+
             return VisitServiceEntity(
                 visitId = visitId,
                 serviceId = visitService.id,
@@ -85,8 +98,22 @@ class VisitServiceEntity(
                 discountType = visitService.discount?.type,
                 discountValue = visitService.discount?.value,
                 approvalStatus = visitService.approvalStatus,
-                note = visitService.note
+                note = visitService.note,
+                // Zapisz obliczone ceny finalne
+                finalPriceNetto = finalPrice.priceNetto,
+                finalPriceBrutto = finalPrice.priceBrutto,
+                finalTaxAmount = finalPrice.taxAmount
             )
+        }
+
+        // Przeciążenie dla kompatybilności z VisitBatchOperations
+        fun fromDomain(
+            visitService: VisitService,
+            visitId: Long,
+            existingServices: Map<Long?, VisitServiceEntity>
+        ): VisitServiceEntity {
+            // existingServices nie jest używane, więc przekazujemy do głównej metody
+            return fromDomain(visitService, visitId)
         }
     }
 }

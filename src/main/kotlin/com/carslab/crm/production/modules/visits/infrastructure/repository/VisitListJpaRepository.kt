@@ -31,7 +31,7 @@ interface VisitListJpaRepository : JpaRepository<VisitEntity, Long>, JpaSpecific
             v.endDate as endDate,
             v.status as status,
             COALESCE(COUNT(vs.id), 0) as totalServiceCount,
-            COALESCE(SUM(vs.finalPrice), 0) as totalAmount,
+            COALESCE(SUM(vs.finalPriceBrutto), 0) as totalAmount,
             v.calendarColorId as calendarColorId,
             v.updatedAt as lastUpdate
         FROM VisitEntity v
@@ -78,9 +78,10 @@ interface VisitListJpaRepository : JpaRepository<VisitEntity, Long>, JpaSpecific
     @Query("""
         SELECT 
             vs.visitId as visitId,
-            vs.id as serviceId,
+            vs.serviceId as serviceId,
             vs.name as serviceName,
-            vs.finalPrice as finalPrice
+            vs.finalPriceNetto as finalPriceNetto,
+            vs.finalPriceBrutto as finalPriceBrutto
         FROM VisitServiceEntity vs
         JOIN VisitEntity v ON v.id = vs.visitId
         WHERE v.companyId = :companyId AND vs.visitId IN :visitIds

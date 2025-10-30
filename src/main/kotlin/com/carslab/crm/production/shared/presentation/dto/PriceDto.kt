@@ -15,3 +15,14 @@ data class PriceDto(
     @JsonProperty("input_type")
     val inputType: PriceTypeDto
 )
+
+data class CalculatedPriceDto(
+    @JsonProperty("price_netto")
+    val priceNetto: BigDecimal,
+
+    @JsonProperty("price_brutto")
+    val priceBrutto: BigDecimal,
+
+    @JsonProperty("tax_amount")
+    val taxAmount: BigDecimal
+)

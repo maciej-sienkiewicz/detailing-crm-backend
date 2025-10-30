@@ -53,17 +53,16 @@ class JpaVisitDetailQueryRepositoryImpl(
             ),
             status = projection.status,
             services = services.map { service ->
-                val domainService = service.toDomain()
-                val finalPrice = domainService.calculateFinalPrice()
                 ServiceDetailReadModel(
                     id = service.serviceId?.toString() ?: "",
                     name = service.name,
                     baseTaxAmount = service.baseTaxAmount,
                     basePriceNetto = service.basePriceNetto,
                     basePriceBrutto = service.basePriceBrutto,
-                    finalPriceNetto = finalPrice.priceNetto,
-                    finalPriceBrutto = finalPrice.priceBrutto,
-                    finalTaxAmount = finalPrice.taxAmount,
+                    // Używamy zapisanych finalnych cen z entity
+                    finalPriceNetto = service.finalPriceNetto,
+                    finalPriceBrutto = service.finalPriceBrutto,
+                    finalTaxAmount = service.finalTaxAmount,
                     quantity = service.quantity,
                     discountType = service.discountType?.name,
                     discountValue = service.discountValue ?: java.math.BigDecimal.ZERO,

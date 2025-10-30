@@ -50,7 +50,7 @@ class VisitRecurrenceHandler(
             defaultServices = request.selectedServices?.map { service ->
                 ServiceTemplateRequest(
                     name = service.name,
-                    basePrice = service.price
+                    basePrice = service.price.priceBrutto
                 )
             } ?: emptyList(),
             notes = request.notes

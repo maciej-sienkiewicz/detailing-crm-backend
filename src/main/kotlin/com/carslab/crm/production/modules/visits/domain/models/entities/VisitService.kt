@@ -53,5 +53,6 @@ data class VisitService(
 data class VisitListService(
     val id: String,
     val name: String,
-    val finalPrice: BigDecimal
+    val finalPriceNetto: BigDecimal,
+    val finalPriceBrutto: BigDecimal
 )

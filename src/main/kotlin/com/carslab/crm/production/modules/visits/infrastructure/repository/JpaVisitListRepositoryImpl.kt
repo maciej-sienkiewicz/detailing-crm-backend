@@ -32,7 +32,8 @@ class JpaVisitListRepositoryImpl(
                     VisitListService(
                         id = service.serviceId,
                         name = service.serviceName,
-                        finalPrice = service.finalPrice
+                        finalPriceNetto = service.finalPriceNetto,
+                        finalPriceBrutto = service.finalPriceBrutto
                     )
                 }
             }

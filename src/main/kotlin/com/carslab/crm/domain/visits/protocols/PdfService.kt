@@ -366,7 +366,7 @@ class PdfService(
             "tax" to (protocol.taxId ?: ""),
             "remarks" to (protocol.notes?: ""),
             "date" to (protocol.startDate.format()),
-            "price" to (protocol.selectedServices.sumOf { it.finalPrice }.toString())
+            "price" to (protocol.selectedServices.sumOf { it.finalPrice.priceBrutto }.toString())
         )
     }
 }
