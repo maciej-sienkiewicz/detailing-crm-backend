@@ -7,6 +7,7 @@ import com.carslab.crm.production.modules.visits.domain.command.CreateVisitComma
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
 import com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateVisitCommand
+import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.orchestration.ClientDetails
 import com.carslab.crm.production.modules.visits.domain.orchestration.VehicleDetails
 import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
@@ -36,7 +37,7 @@ class VisitCommandMapper {
             startDate = LocalDateTime.parse(request.startDate),
             endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: LocalDateTime.now(),
             status = request.status?.let { EnumMappers.mapFromApiProtocolStatus(it) }
-                ?: com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus.SCHEDULED,
+                ?: VisitStatus.SCHEDULED,
             services = request.selectedServices?.map { mapCreateServiceCommand(it) } ?: emptyList(),
             notes = request.notes,
             referralSource = request.referralSource?.let { EnumMappers.mapFromApiReferralSource(it) },
@@ -113,13 +114,10 @@ class VisitCommandMapper {
     }
 
     private fun mapUpdateServiceCommand(service: com.carslab.crm.modules.visits.api.commands.UpdateServiceCommand): UpdateServiceCommand {
-        // Convert the price to PriceValueObject
-        // Assuming the incoming price is NETTO (can be adjusted based on your API contract)
-        val priceValue = CalculationUtils.anyToBigDecimal(service.price)
-        val basePrice = PriceValueObject.createFromInput(
-            inputValue = priceValue,
-            inputType = PriceType.NETTO,
-            vatRate = DEFAULT_VAT_RATE
+        val basePrice = PriceValueObject(
+            priceNetto = service.price.priceNetto,
+            priceBrutto = service.price.priceBrutto,
+            taxAmount = service.price.taxAmount
         )
 
         return UpdateServiceCommand(

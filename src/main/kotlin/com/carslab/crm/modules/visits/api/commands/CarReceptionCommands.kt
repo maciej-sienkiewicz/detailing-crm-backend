@@ -229,8 +229,8 @@ data class UpdateServiceCommand(
     @JsonProperty("quantity")
     val quantity: Long,
 
-    @JsonProperty("price")
-    val price: BigDecimal,
+    @JsonProperty("base_price")
+    val price: CalculatedPriceDto,
 
     @JsonProperty("discount_type")
     val discountType: ApiDiscountType? = null,
@@ -239,7 +239,7 @@ data class UpdateServiceCommand(
     val discountValue: BigDecimal? = null,
 
     @JsonProperty("final_price")
-    val finalPrice: BigDecimal? = null,
+    val finalPrice: CalculatedPriceDto? = null,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
