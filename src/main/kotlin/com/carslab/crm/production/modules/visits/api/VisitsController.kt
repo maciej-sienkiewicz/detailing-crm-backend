@@ -13,6 +13,7 @@ import com.carslab.crm.production.modules.visits.application.service.query.Visit
 import com.carslab.crm.production.modules.visits.application.service.query.VisitListQueryService
 import com.carslab.crm.production.modules.visits.application.service.query.VisitQueryService
 import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -147,7 +148,11 @@ class VisitController(
                 carMake = it.vehicle.make,
                 carModel = it.vehicle.model,
                 licensePlate = it.vehicle.licensePlate,
-                totalAmount = it.totalAmountBrutto,
+                totalAmount = PriceResponseDto(
+                    it.totalAmountNetto,
+                    it.totalAmountBrutto,
+                    it.totalTaxAmount
+                ),
                 title = it.title
             ) },
             page = visits.page,

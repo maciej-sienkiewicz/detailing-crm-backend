@@ -456,8 +456,8 @@ data class ClientProtocolHistoryDto(
     @JsonProperty("license_plate")
     val licensePlate: String,
 
-    @JsonProperty("total_amount")
-    val totalAmount: BigDecimal,
+    @JsonProperty("revenue")
+    val totalAmount: PriceResponseDto,
     @JsonProperty("title")
     val title: String? = null,
 )
