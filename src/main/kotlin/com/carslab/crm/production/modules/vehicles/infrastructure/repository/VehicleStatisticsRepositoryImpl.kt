@@ -6,6 +6,8 @@ import com.carslab.crm.production.modules.vehicles.domain.model.VehicleStatistic
 import com.carslab.crm.production.modules.vehicles.domain.repository.VehicleStatisticsRepository
 import com.carslab.crm.production.modules.vehicles.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.vehicles.infrastructure.mapper.toEntity
+import com.carslab.crm.production.shared.domain.value_objects.PriceType
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -66,7 +68,9 @@ class VehicleStatisticsRepositoryImpl(
     override fun addRevenue(vehicleId: VehicleId, amount: BigDecimal) {
         logger.debug("Adding revenue {} for vehicle: {}", amount, vehicleId.value)
 
-        jpaRepository.addRevenue(vehicleId.value, amount)
+        val valueType = PriceValueObject.createFromInput(amount, PriceType.BRUTTO, 23)
+
+        jpaRepository.addRevenue(vehicleId.value, valueType.priceBrutto, valueType.priceNetto, valueType.taxAmount)
     }
 
     override fun deleteByVehicleId(vehicleId: VehicleId): Boolean {

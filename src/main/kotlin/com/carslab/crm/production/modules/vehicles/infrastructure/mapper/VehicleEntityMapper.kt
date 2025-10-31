@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.vehicles.domain.model.VehicleId
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleStatistics
 import com.carslab.crm.production.modules.vehicles.infrastructure.entity.VehicleEntity
 import com.carslab.crm.production.modules.vehicles.infrastructure.entity.VehicleStatisticsEntity
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 
 fun Vehicle.toEntity(): VehicleEntity {
     return VehicleEntity(
@@ -42,7 +43,9 @@ fun VehicleStatistics.toEntity(): VehicleStatisticsEntity {
     return VehicleStatisticsEntity(
         vehicleId = this.vehicleId.value,
         visitCount = this.visitCount,
-        totalRevenue = this.totalRevenue,
+        totalRevenueBrutto = this.totalRevenue.priceBrutto,
+        totalRevenueNetto = this.totalRevenue.priceNetto,
+        totalTaxAmount = this.totalRevenue.taxAmount,
         lastVisitDate = this.lastVisitDate,
         updatedAt = this.updatedAt
     )
@@ -52,7 +55,11 @@ fun VehicleStatisticsEntity.toDomain(): VehicleStatistics {
     return VehicleStatistics(
         vehicleId = VehicleId.of(this.vehicleId),
         visitCount = this.visitCount,
-        totalRevenue = this.totalRevenue,
+        totalRevenue = PriceValueObject(
+            priceNetto = this.totalRevenueNetto,
+            priceBrutto = this.totalRevenueBrutto,
+            taxAmount = this.totalTaxAmount
+        ),
         lastVisitDate = this.lastVisitDate,
         updatedAt = this.updatedAt
     )

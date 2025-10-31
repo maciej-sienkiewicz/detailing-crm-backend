@@ -3,6 +3,7 @@ package com.carslab.crm.production.modules.vehicles.application.dto
 import com.carslab.crm.production.modules.vehicles.domain.model.EnhancedVehicle
 import com.carslab.crm.production.modules.vehicles.domain.model.Vehicle
 import com.carslab.crm.production.modules.vehicles.domain.model.VehicleStatistics
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -68,7 +69,7 @@ data class VehicleStatisticsResponse(
     @JsonProperty("visit_count")
     val visitCount: Long,
     @JsonProperty("total_revenue")
-    val totalRevenue: BigDecimal,
+    val totalRevenue: PriceResponseDto,
     @JsonProperty("last_visit_date")
     val lastVisitDate: LocalDateTime?
 ) {
@@ -76,7 +77,11 @@ data class VehicleStatisticsResponse(
         fun from(statistics: VehicleStatistics): VehicleStatisticsResponse {
             return VehicleStatisticsResponse(
                 visitCount = statistics.visitCount,
-                totalRevenue = statistics.totalRevenue,
+                totalRevenue = PriceResponseDto(
+                    priceNetto = statistics.totalRevenue.priceNetto,
+                    priceBrutto = statistics.totalRevenue.priceBrutto,
+                    taxAmount = statistics.totalRevenue.taxAmount,
+                ),
                 lastVisitDate = statistics.lastVisitDate
             )
         }
@@ -99,7 +104,7 @@ data class VehicleTableResponse(
     @JsonProperty("last_visit_date")
     val lastVisitDate: LocalDateTime?,
     @JsonProperty("total_revenue")
-    val totalRevenue: BigDecimal,
+    val totalRevenue: PriceResponseDto,
     @JsonProperty("created_at")
     val createdAt: LocalDateTime,
     @JsonProperty("updated_at")
@@ -128,7 +133,11 @@ data class VehicleTableResponse(
                 },
                 visitCount = enhancedVehicle.visitCount,
                 lastVisitDate = enhancedVehicle.lastVisitDate,
-                totalRevenue = enhancedVehicle.totalRevenue,
+                totalRevenue = PriceResponseDto(
+                    priceNetto = enhancedVehicle.statistics?.totalRevenue?.priceNetto ?: BigDecimal.ZERO,
+                    priceBrutto = enhancedVehicle.statistics?.totalRevenue?.priceBrutto ?: BigDecimal.ZERO,
+                    taxAmount = enhancedVehicle.statistics?.totalRevenue?.taxAmount ?: BigDecimal.ZERO,
+                ),
                 createdAt = enhancedVehicle.createdAt,
                 updatedAt = enhancedVehicle.updatedAt
             )

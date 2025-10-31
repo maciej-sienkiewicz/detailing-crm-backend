@@ -1,6 +1,7 @@
 package com.carslab.crm.production.modules.vehicles.infrastructure.repository
 
 import com.carslab.crm.production.modules.vehicles.infrastructure.entity.VehicleStatisticsEntity
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -29,22 +30,32 @@ interface VehicleStatisticsJpaRepository : JpaRepository<VehicleStatisticsEntity
 
     @Modifying
     @Query("""
-        INSERT INTO vehicle_statistics (vehicle_id, visit_count, total_revenue, created_at, updated_at) 
-        VALUES (:vehicleId, 1, 0.00, :now, :now)
+        INSERT INTO vehicle_statistics (vehicle_id, visit_count, total_revenue_brutto, total_revenue_netto, total_tax_amount, created_at, updated_at) 
+        VALUES (:vehicleId, 1, 0.00, 0.00, 0.00, :now, :now)
         ON CONFLICT (vehicle_id) DO UPDATE SET 
             visit_count = vehicle_statistics.visit_count + 1,
             last_visit_date = :visitDate,
             updated_at = :now
     """, nativeQuery = true)
     fun upsertVisitCount(@Param("vehicleId") vehicleId: Long, @Param("visitDate") visitDate: LocalDateTime, @Param("now") now: LocalDateTime): Int
-    
+
     @Modifying
     @Query("""
         UPDATE VehicleStatisticsEntity s 
-        SET s.totalRevenue = s.totalRevenue + :amount, s.updatedAt = :now 
+        SET 
+            s.totalRevenueBrutto = s.totalRevenueBrutto + :bruttoAmount, 
+            s.totalRevenueNetto = s.totalRevenueNetto + :nettoAmount,
+            s.totalTaxAmount = s.totalTaxAmount + :taxAmount,
+            s.updatedAt = :now 
         WHERE s.vehicleId = :vehicleId
     """)
-    fun addRevenue(@Param("vehicleId") vehicleId: Long, @Param("amount") amount: BigDecimal, @Param("now") now: LocalDateTime = LocalDateTime.now()): Int
+    fun addRevenue(
+        @Param("vehicleId") vehicleId: Long,
+        @Param("bruttoAmount") bruttoAmount: BigDecimal,
+        @Param("nettoAmount") nettoAmount: BigDecimal,
+        @Param("taxAmount") taxAmount: BigDecimal,
+        @Param("now") now: LocalDateTime = LocalDateTime.now()
+    ): Int
 
     @Modifying
     @Query("DELETE FROM VehicleStatisticsEntity s WHERE s.vehicleId = :vehicleId")

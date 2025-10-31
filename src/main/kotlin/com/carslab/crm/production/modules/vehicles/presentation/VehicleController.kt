@@ -14,6 +14,7 @@ import com.carslab.crm.production.modules.vehicles.application.service.VehicleMe
 import com.carslab.crm.production.modules.vehicles.application.service.VehicleQueryService
 import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -204,7 +205,11 @@ class VehicleController(
         val stats = VehicleStatisticsResponse(
             visitNo = vehicleWithStats.statistics?.visitCount ?: 0L,
             servicesNo = 0,
-            totalRevenue = vehicleWithStats.statistics?.totalRevenue ?: BigDecimal.ZERO
+            totalRevenue = PriceResponseDto(
+                priceNetto = vehicleWithStats.statistics?.totalRevenue?.priceNetto ?: BigDecimal.ZERO,
+                priceBrutto = vehicleWithStats.statistics?.totalRevenue?.priceBrutto ?: BigDecimal.ZERO,
+                taxAmount = vehicleWithStats.statistics?.totalRevenue?.taxAmount ?: BigDecimal.ZERO,
+            )
         )
 
         return ok(stats)
@@ -365,7 +370,7 @@ class VehicleController(
 data class VehicleStatisticsResponse(
     val visitNo: Long,
     val servicesNo: Int,
-    val totalRevenue: BigDecimal
+    val totalRevenue: PriceResponseDto
 )
 
 data class VehicleImageResponse(

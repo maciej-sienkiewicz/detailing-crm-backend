@@ -10,7 +10,8 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "idx_vehicle_stats_vehicle_id", columnList = "vehicle_id"),
         Index(name = "idx_vehicle_stats_visit_count", columnList = "visit_count"),
-        Index(name = "idx_vehicle_stats_total_revenue", columnList = "total_revenue"),
+        Index(name = "idx_vehicle_stats_total_revenue_brutto", columnList = "total_revenue_brutto"),
+        Index(name = "idx_vehicle_stats_total_revenue_netto", columnList = "total_revenue_netto"),
         Index(name = "idx_vehicle_stats_last_visit", columnList = "last_visit_date")
     ]
 )
@@ -22,8 +23,14 @@ class VehicleStatisticsEntity(
     @Column(name = "visit_count", nullable = false)
     var visitCount: Long = 0,
 
-    @Column(name = "total_revenue", nullable = false, precision = 12, scale = 2)
-    var totalRevenue: BigDecimal = BigDecimal.ZERO,
+    @Column(name = "total_revenue_brutto", nullable = false, precision = 12, scale = 2)
+    var totalRevenueBrutto: BigDecimal = BigDecimal.ZERO,
+
+    @Column(name = "total_revenue_netto", nullable = false, precision = 12, scale = 2)
+    var totalRevenueNetto: BigDecimal = BigDecimal.ZERO,
+
+    @Column(name = "total_tax_amount", nullable = false, precision = 12, scale = 2)
+    var totalTaxAmount: BigDecimal = BigDecimal.ZERO,
 
     @Column(name = "last_visit_date")
     var lastVisitDate: LocalDateTime? = null,

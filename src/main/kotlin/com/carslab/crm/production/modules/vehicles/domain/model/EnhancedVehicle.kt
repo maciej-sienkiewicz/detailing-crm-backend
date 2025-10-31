@@ -22,7 +22,6 @@ data class EnhancedVehicle(
     val updatedAt: LocalDateTime get() = vehicle.updatedAt
 
     val visitCount: Long get() = statistics?.visitCount ?: 0L
-    val totalRevenue: BigDecimal get() = statistics?.totalRevenue ?: BigDecimal.ZERO
     val lastVisitDate: LocalDateTime? get() = statistics?.lastVisitDate
 }
 
