@@ -21,7 +21,9 @@ interface ClientWithStatisticsRaw {
 
     fun getStatsClientId(): Long?
     fun getStatsVisitCount(): Long?
-    fun getStatsTotalRevenue(): BigDecimal?
+    fun getStatsTotalRevenueNetto(): BigDecimal?
+    fun getStatsTotalRevenueBrutto(): BigDecimal?
+    fun getStatsTotalTaxAmount(): BigDecimal?
     fun getStatsVehicleCount(): Long?
     fun getStatsLastVisitDate(): LocalDateTime?
     fun getStatsUpdatedAt(): LocalDateTime?

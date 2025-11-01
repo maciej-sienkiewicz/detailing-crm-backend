@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.clients.application.dto
 
 import com.carslab.crm.production.modules.clients.domain.model.Client
 import com.carslab.crm.production.modules.clients.domain.model.ClientStatistics
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -64,7 +65,7 @@ data class ClientStatisticsResponse(
     @JsonProperty("visit_count")
     val visitCount: Long,
     @JsonProperty("total_revenue")
-    val totalRevenue: BigDecimal,
+    val totalRevenue: PriceResponseDto,
     @JsonProperty("vehicle_count")
     val vehicleCount: Long,
     @JsonProperty("last_visit_date")
@@ -74,7 +75,11 @@ data class ClientStatisticsResponse(
         fun from(statistics: ClientStatistics): ClientStatisticsResponse {
             return ClientStatisticsResponse(
                 visitCount = statistics.visitCount,
-                totalRevenue = statistics.totalRevenue,
+                totalRevenue = PriceResponseDto(
+                    statistics.totalRevenue.priceNetto,
+                    statistics.totalRevenue.priceBrutto,
+                    statistics.totalRevenue.taxAmount,
+                ),
                 vehicleCount = statistics.vehicleCount,
                 lastVisitDate = statistics.lastVisitDate
             )

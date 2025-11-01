@@ -84,7 +84,9 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
         c.active as client_active,
         cs.client_id as stats_client_id,
         cs.visit_count as stats_visit_count,
-        cs.total_revenue as stats_total_revenue,
+        cs.total_revenue_netto as stats_total_revenue_netto,
+        cs.total_revenue_brutto as stats_total_revenue_brutto,
+        cs.total_tax_amount as stats_total_tax_amount,
         cs.vehicle_count as stats_vehicle_count,
         cs.last_visit_date as stats_last_visit_date,
         cs.updated_at as stats_updated_at
@@ -98,8 +100,8 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
     AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER('%' || :company || '%'))
     AND (:minVehicles IS NULL OR 
          COALESCE(cs.vehicle_count, 0) >= :minVehicles)
-    AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
-    AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
+    AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue_brutto, 0) >= :minTotalRevenue)
+    AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue_brutto, 0) <= :maxTotalRevenue)
     AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
     AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
     ORDER BY c.created_at DESC
@@ -132,8 +134,8 @@ interface ClientJpaRepository : JpaRepository<ClientEntity, Long> {
         AND (:company IS NULL OR LOWER(COALESCE(c.company, '')) LIKE LOWER('%' || :company || '%'))
             AND (:minVehicles IS NULL OR 
          COALESCE(cs.vehicle_count, 0) >= :minVehicles)
-        AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) >= :minTotalRevenue)
-        AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue, 0) <= :maxTotalRevenue)
+        AND (:minTotalRevenue IS NULL OR COALESCE(cs.total_revenue_brutto, 0) >= :minTotalRevenue)
+        AND (:maxTotalRevenue IS NULL OR COALESCE(cs.total_revenue_brutto, 0) <= :maxTotalRevenue)
         AND (:minVisits IS NULL OR COALESCE(cs.visit_count, 0) >= :minVisits)
         AND (:maxVisits IS NULL OR COALESCE(cs.visit_count, 0) <= :maxVisits)
     """)

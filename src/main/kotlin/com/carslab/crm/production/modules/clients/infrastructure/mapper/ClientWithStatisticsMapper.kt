@@ -5,6 +5,7 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.clients.domain.model.ClientStatistics
 import com.carslab.crm.production.modules.clients.domain.model.ClientWithStatistics
 import com.carslab.crm.production.modules.clients.infrastructure.dto.ClientWithStatisticsRaw
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.math.BigDecimal
 
 
@@ -28,7 +29,11 @@ fun ClientWithStatisticsRaw.toDomain(): ClientWithStatistics {
         ClientStatistics(
             clientId = ClientId.of(getStatsClientId()!!),
             visitCount = getStatsVisitCount() ?: 0,
-            totalRevenue = getStatsTotalRevenue() ?: BigDecimal.ZERO,
+            totalRevenue = PriceValueObject(
+                getStatsTotalRevenueNetto() ?: BigDecimal.ZERO,
+                getStatsTotalRevenueBrutto() ?: BigDecimal.ZERO,
+                getStatsTotalTaxAmount() ?: BigDecimal.ZERO
+            ),
             vehicleCount = getStatsVehicleCount() ?: 0,
             lastVisitDate = getStatsLastVisitDate(),
             updatedAt = getStatsUpdatedAt() ?: getClientUpdatedAt()

@@ -5,6 +5,8 @@ import com.carslab.crm.production.modules.clients.domain.model.ClientStatistics
 import com.carslab.crm.production.modules.clients.domain.repository.ClientStatisticsRepository
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toDomain
 import com.carslab.crm.production.modules.clients.infrastructure.mapper.toEntity
+import com.carslab.crm.production.shared.domain.value_objects.PriceType
+import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.observability.annotations.DatabaseMonitored
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
@@ -75,7 +77,8 @@ class ClientStatisticsRepositoryImpl(
         logger.debug("Atomically adding revenue {} for client: {}", amount, clientId.value)
 
         val now = LocalDateTime.now()
-        val rowsUpdated = jpaRepository.upsertRevenue(clientId.value, amount, now)
+        val price = PriceValueObject.createFromInput(amount, PriceType.BRUTTO, 23)
+        val rowsUpdated = jpaRepository.upsertRevenue(clientId.value, price.priceNetto, price.priceBrutto, price.taxAmount, now)
 
         if (rowsUpdated > 0) {
             logger.debug("Revenue added for client: {}, amount: {}", clientId.value, amount)

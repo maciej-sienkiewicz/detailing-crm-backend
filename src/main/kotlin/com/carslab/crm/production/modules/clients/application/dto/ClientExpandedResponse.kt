@@ -1,7 +1,9 @@
 package com.carslab.crm.production.modules.clients.application.dto
 
 import com.carslab.crm.production.modules.clients.domain.model.ClientWithStatistics
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 data class ClientExpandedResponse(
@@ -19,7 +21,7 @@ data class ClientExpandedResponse(
     @JsonProperty("totalVisits")
     val totalVisits: Int,
     @JsonProperty("totalRevenue")
-    val totalRevenue: Double,
+    val totalRevenue: PriceResponseDto,
     @JsonProperty("lastVisitDate")
     val lastVisitDate: String? = null,
     val notes: String? = null,
@@ -39,7 +41,11 @@ data class ClientExpandedResponse(
                 company = clientWithStats.client.company,
                 taxId = clientWithStats.client.taxId,
                 totalVisits = clientWithStats.statistics?.visitCount?.toInt() ?: 0,
-                totalRevenue = clientWithStats.statistics?.totalRevenue?.toDouble() ?: 0.0,
+                totalRevenue = PriceResponseDto(
+                    priceNetto = clientWithStats.statistics?.totalRevenue?.priceNetto ?: BigDecimal.ZERO,
+                    priceBrutto = clientWithStats.statistics?.totalRevenue?.priceBrutto ?: BigDecimal.ZERO,
+                    taxAmount = clientWithStats.statistics?.totalRevenue?.taxAmount ?: BigDecimal.ZERO,
+                ),
                 lastVisitDate = clientWithStats.statistics?.lastVisitDate?.format(DATE_FORMATTER),
                 notes = clientWithStats.client.notes,
                 vehicles = clientWithStats.vehicleIds

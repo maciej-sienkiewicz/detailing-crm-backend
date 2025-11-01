@@ -21,8 +21,8 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
 
     @Modifying
     @Query("""
-        INSERT INTO client_statistics (client_id, visit_count, total_revenue, vehicle_count, last_visit_date, created_at, updated_at) 
-        VALUES (:clientId, 1, 0.00, 0, :visitDate, :now, :now)
+        INSERT INTO client_statistics (client_id, visit_count, total_revenue_netto, total_revenue_brutto, total_tax_amount, vehicle_count, last_visit_date, created_at, updated_at) 
+        VALUES (:clientId, 1, 0.00, 0.00, 0.00, 0, :visitDate, :now, :now)
         ON CONFLICT (client_id) DO UPDATE SET 
             visit_count = client_statistics.visit_count + 1,
             last_visit_date = :visitDate,
@@ -36,8 +36,8 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
 
     @Modifying
     @Query("""
-        INSERT INTO client_statistics (client_id, visit_count, total_revenue, vehicle_count, last_visit_date, created_at, updated_at) 
-        VALUES (:clientId, 0, 0.00, 1, NULL, :now, :now)
+        INSERT INTO client_statistics (client_id, visit_count, total_revenue_netto, total_revenue_brutto, total_tax_amount, vehicle_count, last_visit_date, created_at, updated_at) 
+        VALUES (:clientId, 0, 0.00, 0.00, 0.00, 1, NULL, :now, :now)
         ON CONFLICT (client_id) DO UPDATE SET 
             vehicle_count = client_statistics.vehicle_count + 1,
             updated_at = :now
@@ -49,15 +49,19 @@ interface ClientStatisticsJpaRepository : JpaRepository<ClientStatisticsEntity, 
 
     @Modifying
     @Query("""
-        INSERT INTO client_statistics (client_id, visit_count, total_revenue, vehicle_count, last_visit_date, created_at, updated_at) 
-        VALUES (:clientId, 0, :amount, 0, NULL, :now, :now)
+        INSERT INTO client_statistics (client_id, visit_count, total_revenue_netto, total_revenue_brutto, total_tax_amount, vehicle_count, last_visit_date, created_at, updated_at) 
+        VALUES (:clientId, 0, :netto, :brutto, :tax, 0, NULL, :now, :now)
         ON CONFLICT (client_id) DO UPDATE SET 
-            total_revenue = client_statistics.total_revenue + :amount,
+            total_revenue_netto = client_statistics.total_revenue_netto + :netto,
+            total_revenue_brutto = client_statistics.total_revenue_brutto + :brutto,
+            total_tax_amount = client_statistics.total_tax_amount + :tax,
             updated_at = :now
     """, nativeQuery = true)
     fun upsertRevenue(
         @Param("clientId") clientId: Long,
-        @Param("amount") amount: BigDecimal,
+        @Param("netto") netto: BigDecimal,
+        @Param("brutto") brutto: BigDecimal,
+        @Param("tax") tax: BigDecimal,
         @Param("now") now: LocalDateTime
     ): Int
 

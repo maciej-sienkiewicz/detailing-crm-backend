@@ -10,6 +10,7 @@ import com.carslab.crm.production.modules.clients.application.service.ClientComm
 import com.carslab.crm.production.modules.clients.application.service.ClientQueryService
 import com.carslab.crm.production.shared.observability.annotations.HttpMonitored
 import com.carslab.crm.production.shared.presentation.BaseController
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -17,6 +18,7 @@ import jakarta.validation.Valid
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.math.BigDecimal
 
 @RestController
 @RequestMapping("/api/clients")
@@ -188,7 +190,11 @@ class ClientController(
         return ok(
             ClientStatisticsResponse(
                 totalVisits = clientWithStats.statistics?.visitCount ?: 0,
-                totalRevenue = clientWithStats.statistics?.totalRevenue ?: java.math.BigDecimal.ZERO,
+                totalRevenue = PriceResponseDto(
+                    priceNetto = clientWithStats.statistics?.totalRevenue?.priceNetto ?: BigDecimal.ZERO,
+                    priceBrutto = clientWithStats.statistics?.totalRevenue?.priceBrutto ?: BigDecimal.ZERO,
+                    taxAmount = clientWithStats.statistics?.totalRevenue?.taxAmount ?: BigDecimal.ZERO,
+                ),
                 vehicleNo = clientWithStats.statistics?.vehicleCount ?: 0
             )
         )
@@ -208,7 +214,7 @@ class ClientController(
 
 data class ClientStatisticsResponse(
     val totalVisits: Long,
-    val totalRevenue: java.math.BigDecimal,
+    val totalRevenue: PriceResponseDto,
     val vehicleNo: Long
 )
 
