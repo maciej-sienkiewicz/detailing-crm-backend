@@ -28,7 +28,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -88,7 +88,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -157,14 +157,14 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
                 WHERE v.client_id = :clientId 
                   AND v.company_id = :companyId
                   AND v.status IN ('COMPLETED', 'READY_FOR_PICKUP')
-                  AND v.start_date >= CURRENT_DATE - INTERVAL '24 months' -- Last 2 years for better seasonality
+                  AND v.start_date >= CURRENT_DATE - INTERVAL '24 months'
                 GROUP BY EXTRACT(MONTH FROM v.start_date)
             )
             SELECT 
@@ -209,8 +209,8 @@ class ClientAnalyticsRepositoryImpl(
                 vs.service_id,
                 vs.name,
                 COUNT(*) as usage_count,
-                SUM(vs.final_price * vs.quantity) as total_revenue,
-                AVG(vs.final_price) as average_price,
+                SUM(vs.final_price_brutto) as total_revenue,
+                AVG(vs.final_price_brutto) as average_price,
                 MAX(v.start_date) as last_used_date
             FROM visit_services vs
             JOIN visits v ON vs.visit_id = v.id
@@ -251,7 +251,7 @@ class ClientAnalyticsRepositoryImpl(
             LEFT JOIN (
                 SELECT 
                     vs.visit_id,
-                    SUM(vs.final_price * vs.quantity) as total_revenue
+                    SUM(vs.final_price_brutto) as total_revenue
                 FROM visit_services vs
                 GROUP BY vs.visit_id
             ) service_totals ON v.id = service_totals.visit_id
@@ -278,7 +278,6 @@ class ClientAnalyticsRepositoryImpl(
     }
 
     override fun getClientGrowthChart(clientId: ClientId, companyId: Long, months: Int): List<ClientMonthlyRevenue> {
-        // Najpierw tworzymy zapytanie z użyciem konkatenacji stringów dla INTERVAL
         val sql = """
             WITH monthly_buckets AS (
                 SELECT 
@@ -297,7 +296,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -349,7 +348,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -405,7 +404,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price * vs.quantity) as total_revenue
+                        SUM(vs.final_price_brutto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id

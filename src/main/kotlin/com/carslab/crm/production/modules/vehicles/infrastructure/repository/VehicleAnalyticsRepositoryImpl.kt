@@ -29,7 +29,7 @@ class VehicleAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id, 
-                        SUM(vs.final_price * vs.quantity) as total
+                        SUM(vs.final_price_brutto) as total
                     FROM visit_services vs 
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -208,8 +208,8 @@ class VehicleAnalyticsRepositoryImpl(
                 vs.service_id,
                 vs.name as service_name,
                 COUNT(*) as usage_count,
-                SUM(vs.final_price * vs.quantity) as total_revenue,
-                AVG(vs.final_price) as average_price,
+                SUM(vs.final_price_brutto) as total_revenue,
+                AVG(vs.final_price_brutto) as average_price,
                 MAX(v.start_date) as last_used_date
             FROM visit_services vs
             JOIN visits v ON vs.visit_id = v.id
@@ -267,7 +267,7 @@ class VehicleAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id, 
-                        SUM(vs.final_price * vs.quantity) as total
+                        SUM(vs.final_price_brutto) as total
                     FROM visit_services vs 
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -460,10 +460,10 @@ class VehicleAnalyticsRepositoryImpl(
                     vs.service_id,
                     vs.name as service_name,
                     COUNT(*) as usage_count,
-                    SUM(vs.final_price * vs.quantity) as total_revenue,
-                    AVG(vs.final_price) as average_price,
+                    SUM(vs.final_price_brutto) as total_revenue,
+                    AVG(vs.final_price_brutto) as average_price,
                     MAX(v.start_date) as last_used_date,
-                    ROW_NUMBER() OVER (PARTITION BY v.vehicle_id ORDER BY COUNT(*) DESC, SUM(vs.final_price * vs.quantity) DESC) as rank
+                    ROW_NUMBER() OVER (PARTITION BY v.vehicle_id ORDER BY COUNT(*) DESC, SUM(vs.final_price_brutto) DESC) as rank
                 FROM visit_services vs
                 JOIN visits v ON vs.visit_id = v.id
                 JOIN vehicle_filter vf ON v.vehicle_id = vf.vehicle_id
