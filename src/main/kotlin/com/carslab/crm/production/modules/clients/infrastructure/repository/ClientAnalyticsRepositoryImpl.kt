@@ -28,7 +28,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -88,7 +88,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -157,7 +157,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -209,8 +209,8 @@ class ClientAnalyticsRepositoryImpl(
                 vs.service_id,
                 vs.name,
                 COUNT(*) as usage_count,
-                SUM(vs.final_price_brutto) as total_revenue,
-                AVG(vs.final_price_brutto) as average_price,
+                SUM(vs.final_price_netto) as total_revenue,
+                AVG(vs.final_price_netto) as average_price,
                 MAX(v.start_date) as last_used_date
             FROM visit_services vs
             JOIN visits v ON vs.visit_id = v.id
@@ -251,7 +251,7 @@ class ClientAnalyticsRepositoryImpl(
             LEFT JOIN (
                 SELECT 
                     vs.visit_id,
-                    SUM(vs.final_price_brutto) as total_revenue
+                    SUM(vs.final_price_netto) as total_revenue
                 FROM visit_services vs
                 GROUP BY vs.visit_id
             ) service_totals ON v.id = service_totals.visit_id
@@ -296,7 +296,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -348,7 +348,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
@@ -404,7 +404,7 @@ class ClientAnalyticsRepositoryImpl(
                 LEFT JOIN (
                     SELECT 
                         vs.visit_id,
-                        SUM(vs.final_price_brutto) as total_revenue
+                        SUM(vs.final_price_netto) as total_revenue
                     FROM visit_services vs
                     GROUP BY vs.visit_id
                 ) service_totals ON v.id = service_totals.visit_id
