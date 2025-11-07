@@ -24,7 +24,7 @@ class VisitActivitySender(
         activityCommandService.createActivity(
             CreateActivityRequest(
                 category = ActivityCategory.PROTOCOL,
-                message = "Utworzono nową wizytę: \"${visit.title}\"",
+                message = "Rozpoczęto nową wizytę: \"${visit.title}\"",
                 userId = securityContext.getCurrentUserId()
                     ?: throw IllegalStateException("User not found in security context"),
                 userName = securityContext.getCurrentUserName()

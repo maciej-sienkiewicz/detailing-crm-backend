@@ -4,15 +4,20 @@ import com.carslab.crm.api.model.response.PaginatedResponse
 import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.reservations.application.dto.ReservationCountersResponse
 import com.carslab.crm.production.modules.reservations.application.dto.ReservationResponse
+import com.carslab.crm.production.modules.reservations.application.dto.ReservationServiceResponse
 import com.carslab.crm.production.modules.reservations.domain.models.aggregates.Reservation
+import com.carslab.crm.production.modules.reservations.domain.models.entities.ReservationService
 import com.carslab.crm.production.modules.reservations.domain.models.enums.ReservationStatus
 import com.carslab.crm.production.modules.reservations.domain.models.value_objects.ReservationId
 import com.carslab.crm.production.modules.reservations.domain.repositories.ReservationRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
+import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.format.DateTimeFormatter
 
 @Service
 @Transactional(readOnly = true)
@@ -81,21 +86,24 @@ class ReservationQueryService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.debug("Fetching reservation counters for company: {}", companyId)
 
-        val pending = reservationRepository.countByStatus(companyId, ReservationStatus.PENDING)
         val confirmed = reservationRepository.countByStatus(companyId, ReservationStatus.CONFIRMED)
-        val converted = reservationRepository.countByStatus(companyId, ReservationStatus.CONVERTED)
-        val cancelled = reservationRepository.countByStatus(companyId, ReservationStatus.CANCELLED)
 
         return ReservationCountersResponse(
-            pending = pending,
-            confirmed = confirmed,
-            converted = converted,
-            cancelled = cancelled,
-            all = pending + confirmed + converted + cancelled
+            confirmed = confirmed
         )
     }
 
     private fun mapToResponse(reservation: Reservation): ReservationResponse {
+        val totalNetto = reservation.services.fold(BigDecimal.ZERO) { acc, service ->
+            acc.add(service.getTotalNetto())
+        }
+        val totalBrutto = reservation.services.fold(BigDecimal.ZERO) { acc, service ->
+            acc.add(service.getTotalBrutto())
+        }
+        val totalTax = reservation.services.fold(BigDecimal.ZERO) { acc, service ->
+            acc.add(service.getTotalTax())
+        }
+
         return ReservationResponse(
             id = reservation.id.toString(),
             title = reservation.title,
@@ -104,15 +112,32 @@ class ReservationQueryService(
             vehicleMake = reservation.vehicleInfo.make,
             vehicleModel = reservation.vehicleInfo.model,
             vehicleDisplay = reservation.vehicleInfo.displayName(),
-            startDate = reservation.period.startDate,
-            endDate = reservation.period.endDate,
+            startDate = reservation.period.startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyy")),
+            endDate = reservation.period.endDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
             status = reservation.status.name,
             notes = reservation.notes,
             calendarColorId = reservation.calendarColorId,
             visitId = reservation.visitId,
             canBeConverted = reservation.canBeConverted(),
-            createdAt = reservation.createdAt,
-            updatedAt = reservation.updatedAt
+            services = reservation.services.map { mapServiceToResponse(it) },
+            serviceCount = reservation.serviceCount(),
+            totalPriceNetto = totalNetto,
+            totalPriceBrutto = totalBrutto,
+            totalTaxAmount = totalTax,
+            createdAt = reservation.createdAt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+            updatedAt = reservation.updatedAt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+        )
+    }
+
+    private fun mapServiceToResponse(service: ReservationService): ReservationServiceResponse {
+        val finalPrice = service.calculateFinalPrice()
+        return ReservationServiceResponse(
+            id = service.id,
+            name = service.name,
+            basePrice = PriceResponseDto.from(service.basePrice),
+            quantity = service.quantity,
+            finalPrice = PriceResponseDto.from(finalPrice),
+            note = service.note
         )
     }
 }

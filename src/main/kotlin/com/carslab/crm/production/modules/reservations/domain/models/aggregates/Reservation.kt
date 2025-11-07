@@ -26,13 +26,11 @@ data class Reservation(
     val period: ReservationPeriod,
     val status: ReservationStatus,
 
-    // Usługi zaplanowane w rezerwacji
     val services: List<ReservationService>,
 
     val notes: String?,
     val calendarColorId: String,
 
-    // ID powiązanej wizyty (po konwersji)
     val visitId: Long?,
 
     val createdAt: LocalDateTime,

@@ -1,8 +1,10 @@
 package com.carslab.crm.production.modules.reservations.application.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 // Request do tworzenia rezerwacji
@@ -41,7 +43,11 @@ data class CreateReservationRequest(
 
     @field:NotBlank(message = "Calendar color ID is required")
     @JsonProperty("calendar_color_id")
-    val calendarColorId: String
+    val calendarColorId: String,
+
+    @field:Valid
+    @JsonProperty("selected_services")
+    val selectedServices: List<CreateReservationServiceRequest>? = null
 )
 
 // Request do aktualizacji rezerwacji
@@ -78,7 +84,11 @@ data class UpdateReservationRequest(
 
     @field:NotBlank(message = "Calendar color ID is required")
     @JsonProperty("calendar_color_id")
-    val calendarColorId: String
+    val calendarColorId: String,
+
+    @field:Valid
+    @JsonProperty("selected_services")
+    val selectedServices: List<CreateReservationServiceRequest>? = null
 )
 
 // Response dla rezerwacji
@@ -96,9 +106,9 @@ data class ReservationResponse(
     @JsonProperty("vehicle_display")
     val vehicleDisplay: String,
     @JsonProperty("start_date")
-    val startDate: LocalDateTime,
+    val startDate: String,
     @JsonProperty("end_date")
-    val endDate: LocalDateTime,
+    val endDate: String,
     val status: String,
     val notes: String?,
     @JsonProperty("calendar_color_id")
@@ -107,10 +117,20 @@ data class ReservationResponse(
     val visitId: Long?,
     @JsonProperty("can_be_converted")
     val canBeConverted: Boolean,
+    @JsonProperty("services")
+    val services: List<ReservationServiceResponse>,
+    @JsonProperty("service_count")
+    val serviceCount: Int,
+    @JsonProperty("total_price_netto")
+    val totalPriceNetto: BigDecimal,
+    @JsonProperty("total_price_brutto")
+    val totalPriceBrutto: BigDecimal,
+    @JsonProperty("total_tax_amount")
+    val totalTaxAmount: BigDecimal,
     @JsonProperty("created_at")
-    val createdAt: LocalDateTime,
+    val createdAt: String,
     @JsonProperty("updated_at")
-    val updatedAt: LocalDateTime
+    val updatedAt: String
 )
 
 // Request do zmiany statusu
@@ -124,9 +144,5 @@ data class ChangeReservationStatusRequest(
 
 // Counters dla statusów
 data class ReservationCountersResponse(
-    val pending: Long,
     val confirmed: Long,
-    val converted: Long,
-    val cancelled: Long,
-    val all: Long
 )

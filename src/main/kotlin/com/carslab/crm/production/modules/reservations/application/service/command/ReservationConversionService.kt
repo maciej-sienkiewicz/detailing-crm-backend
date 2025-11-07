@@ -2,6 +2,7 @@ package com.carslab.crm.production.modules.reservations.application.service.comm
 
 import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.infrastructure.security.SecurityContext
+import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.production.modules.reservations.application.dto.ConvertReservationToVisitRequest
 import com.carslab.crm.production.modules.reservations.domain.models.value_objects.ReservationId
 import com.carslab.crm.production.modules.reservations.domain.repositories.ReservationRepository
@@ -67,7 +68,7 @@ class ReservationConversionService(
             keysProvided = request.keysProvided,
             documentsProvided = request.documentsProvided,
             notes = combineNotes(reservation.notes, request.additionalNotes),
-            selectedServices = request.selectedServices,
+            selectedServices = request.selectedServices?.map { it.copy(approvalStatus = ServiceApprovalStatus.APPROVED) },
             status = ApiProtocolStatus.IN_PROGRESS,
             referralSource = null,
             appointmentId = null,

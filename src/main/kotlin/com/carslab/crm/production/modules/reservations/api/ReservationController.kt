@@ -55,7 +55,7 @@ class ReservationController(
         val reservations = if (status != null) {
             queryService.getReservationsByStatus(status, pageable)
         } else {
-            queryService.getReservations(pageable)
+            queryService.getReservationsByStatus("CONFIRMED", pageable)
         }
 
         return ResponseEntity.ok(reservations)
