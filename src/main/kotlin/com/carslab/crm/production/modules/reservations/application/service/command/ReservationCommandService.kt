@@ -13,6 +13,7 @@ import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.exception.BusinessException
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
+import com.carslab.crm.production.shared.presentation.mapper.DiscountMapper
 import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -28,6 +29,7 @@ class ReservationCommandService(
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(ReservationCommandService::class.java)
+    private val VAT_RATE = 23
 
     fun createReservation(request: CreateReservationRequest): ReservationResponse {
         val companyId = securityContext.getCurrentCompanyId()
@@ -37,19 +39,7 @@ class ReservationCommandService(
         val endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: startDate.plusHours(1)
 
         val services = request.selectedServices?.map { serviceRequest ->
-            val basePrice = PriceValueObject.createFromInput(
-                inputValue = serviceRequest.basePrice.inputPrice,
-                inputType = PriceMapper.toDomain(serviceRequest.basePrice.inputType),
-                vatRate = 23,
-            )
-
-            ReservationService(
-                id = serviceRequest.serviceId,
-                name = serviceRequest.name,
-                basePrice = basePrice,
-                quantity = serviceRequest.quantity,
-                note = serviceRequest.note
-            )
+            createDomainService(serviceRequest)
         } ?: emptyList()
 
         val reservation = Reservation(
@@ -92,19 +82,7 @@ class ReservationCommandService(
         val endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: startDate.plusHours(1)
 
         val services = request.selectedServices?.map { serviceRequest ->
-            val basePrice = PriceValueObject.createFromInput(
-                inputValue = serviceRequest.basePrice.inputPrice,
-                inputType = PriceMapper.toDomain(serviceRequest.basePrice.inputType),
-                vatRate = 23,
-            )
-
-            ReservationService(
-                id = serviceRequest.serviceId,
-                name = serviceRequest.name,
-                basePrice = basePrice,
-                quantity = serviceRequest.quantity,
-                note = serviceRequest.note
-            )
+            createDomainService(serviceRequest)
         } ?: reservation.services
 
         val updated = reservation.update(
@@ -165,6 +143,31 @@ class ReservationCommandService(
         logger.info("Reservation deleted successfully: {}", reservationId)
     }
 
+    // ============ HELPER METHODS ============
+
+    /**
+     * Tworzy domenowy obiekt usługi z DTO.
+     * KRYTYCZNE: Wszystkie obliczenia cenowe wykonuje model domenowy.
+     */
+    private fun createDomainService(serviceRequest: CreateReservationServiceRequest): ReservationService {
+        val basePrice = PriceValueObject.createFromInput(
+            inputValue = serviceRequest.basePrice.inputPrice,
+            inputType = PriceMapper.toDomain(serviceRequest.basePrice.inputType),
+            vatRate = VAT_RATE
+        )
+
+        val discount = DiscountMapper.toDomainOrNull(serviceRequest.discount)
+
+        return ReservationService(
+            id = serviceRequest.serviceId,
+            name = serviceRequest.name,
+            basePrice = basePrice,
+            quantity = serviceRequest.quantity,
+            discount = discount,
+            note = serviceRequest.note
+        )
+    }
+
     private fun mapToResponse(reservation: Reservation): ReservationResponse {
         val totalNetto = reservation.services.fold(BigDecimal.ZERO) { acc, service ->
             acc.add(service.getTotalNetto())
@@ -202,13 +205,21 @@ class ReservationCommandService(
     }
 
     private fun mapServiceToResponse(service: ReservationService): ReservationServiceResponse {
+        val unitPrice = service.calculateUnitPrice()
         val finalPrice = service.calculateFinalPrice()
+
+        val discountResponse = service.discount?.let { discount ->
+            DiscountMapper.toResponseDto(discount, service.basePrice, VAT_RATE)
+        }
+
         return ReservationServiceResponse(
             id = service.id,
             name = service.name,
             basePrice = PriceResponseDto.from(service.basePrice),
             quantity = service.quantity,
+            unitPrice = PriceResponseDto.from(unitPrice),
             finalPrice = PriceResponseDto.from(finalPrice),
+            discount = discountResponse,
             note = service.note
         )
     }

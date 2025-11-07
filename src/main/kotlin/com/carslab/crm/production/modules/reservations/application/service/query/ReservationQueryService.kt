@@ -12,6 +12,7 @@ import com.carslab.crm.production.modules.reservations.domain.models.value_objec
 import com.carslab.crm.production.modules.reservations.domain.repositories.ReservationRepository
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
+import com.carslab.crm.production.shared.presentation.mapper.DiscountMapper
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -26,6 +27,7 @@ class ReservationQueryService(
     private val securityContext: SecurityContext
 ) {
     private val logger = LoggerFactory.getLogger(ReservationQueryService::class.java)
+    private val VAT_RATE = 23
 
     fun getReservation(reservationId: String): ReservationResponse {
         val companyId = securityContext.getCurrentCompanyId()
@@ -112,7 +114,7 @@ class ReservationQueryService(
             vehicleMake = reservation.vehicleInfo.make,
             vehicleModel = reservation.vehicleInfo.model,
             vehicleDisplay = reservation.vehicleInfo.displayName(),
-            startDate = reservation.period.startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyy")),
+            startDate = reservation.period.startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
             endDate = reservation.period.endDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
             status = reservation.status.name,
             notes = reservation.notes,
@@ -130,13 +132,21 @@ class ReservationQueryService(
     }
 
     private fun mapServiceToResponse(service: ReservationService): ReservationServiceResponse {
+        val unitPrice = service.calculateUnitPrice()
         val finalPrice = service.calculateFinalPrice()
+
+        val discountResponse = service.discount?.let { discount ->
+            DiscountMapper.toResponseDto(discount, service.basePrice, VAT_RATE)
+        }
+
         return ReservationServiceResponse(
             id = service.id,
             name = service.name,
             basePrice = PriceResponseDto.from(service.basePrice),
             quantity = service.quantity,
+            unitPrice = PriceResponseDto.from(unitPrice),
             finalPrice = PriceResponseDto.from(finalPrice),
+            discount = discountResponse,
             note = service.note
         )
     }

@@ -1,6 +1,5 @@
 package com.carslab.crm.production.modules.reservations.application.dto
 
-import com.carslab.crm.api.model.ApiProtocolStatus
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.fasterxml.jackson.annotation.JsonProperty
