@@ -22,7 +22,7 @@ data class VisitService(
         val priceAfterQuantity = basePrice.multiply(quantityMultiplier)
 
         return if (discount != null) {
-            discount.applyTo(priceAfterQuantity)
+            discount.applyTo(priceAfterQuantity, 23.toBigDecimal())
         } else {
             priceAfterQuantity
         }

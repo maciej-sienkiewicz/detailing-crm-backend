@@ -20,10 +20,6 @@ data class DiscountDto(
     @field:DecimalMin(value = "0.0", inclusive = true, message = "Discount value cannot be negative")
     @JsonProperty("discount_value")
     val discountValue: BigDecimal,
-
-    @field:Size(max = 500, message = "Discount reason cannot exceed 500 characters")
-    @JsonProperty("discount_reason")
-    val discountReason: String? = null
 )
 
 /**
@@ -36,12 +32,6 @@ data class DiscountResponseDto(
 
     @JsonProperty("discount_value")
     val discountValue: BigDecimal,
-
-    @JsonProperty("discount_reason")
-    val discountReason: String?,
-
-    @JsonProperty("discount_description")
-    val discountDescription: String,
 
     @JsonProperty("savings")
     val savings: PriceResponseDto

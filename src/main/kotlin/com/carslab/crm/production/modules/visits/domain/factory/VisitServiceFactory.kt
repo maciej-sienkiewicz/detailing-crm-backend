@@ -3,8 +3,8 @@ package com.carslab.crm.production.modules.visits.domain.factory
 import com.carslab.crm.production.modules.visits.domain.command.CreateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.command.UpdateServiceCommand
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 

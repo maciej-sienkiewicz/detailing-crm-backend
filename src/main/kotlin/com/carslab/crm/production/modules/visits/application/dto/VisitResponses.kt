@@ -6,13 +6,13 @@ import com.carslab.crm.production.modules.visits.domain.models.entities.VisitDoc
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitMedia
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
 import com.carslab.crm.production.modules.visits.domain.models.enums.CommentType
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.DocumentType
 import com.carslab.crm.production.modules.visits.domain.models.enums.MediaType
 import com.carslab.crm.production.modules.visits.domain.models.enums.ReferralSource
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.enums.VisitStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal

@@ -5,7 +5,9 @@ import com.carslab.crm.modules.visits.api.request.ApiDiscountType
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
 import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.command.DeliveryPerson
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.presentation.dto.CalculatedPriceDto
+import com.carslab.crm.production.shared.presentation.dto.DiscountDto
 import com.carslab.crm.production.shared.presentation.dto.PriceDto
 import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -207,6 +209,9 @@ data class CreateServiceCommand(
 
     @JsonProperty("final_price")
     val finalPrice: CalculatedPriceDto? = null,
+
+    @JsonProperty("discount")
+    val discount: DiscountDto? = null,
 
     @JsonProperty("approval_status")
     val approvalStatus: ServiceApprovalStatus? = ServiceApprovalStatus.PENDING,
@@ -476,7 +481,7 @@ data class ServiceDto(
     val basePrice: PriceResponseDto,
 
     @JsonProperty("discount_type")
-    val discountType: ApiDiscountType? = null,
+    val discountType: DiscountType? = null,
 
     @JsonProperty("discount_value")
     val discountValue: BigDecimal = BigDecimal.ZERO,

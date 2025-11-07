@@ -2,10 +2,14 @@ package com.carslab.crm.production.modules.reservations.application.dto
 
 import com.carslab.crm.modules.visits.api.commands.CreateServiceCommand
 import com.carslab.crm.modules.visits.api.request.ApiReferralSource
+import com.carslab.crm.modules.visits.api.request.ServiceApprovalStatus
+import com.carslab.crm.production.shared.presentation.dto.CalculatedPriceDto
+import com.carslab.crm.production.shared.presentation.dto.DiscountDto
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.math.BigDecimal
 
 /**
  * Request do przekonwertowania rezerwacji na wizytę

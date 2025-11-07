@@ -13,6 +13,7 @@ import com.carslab.crm.production.modules.visits.domain.orchestration.VehicleDet
 import com.carslab.crm.production.modules.visits.domain.orchestration.VisitEntities
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
 import com.carslab.crm.production.modules.visits.infrastructure.utils.CalculationUtils
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.domain.value_objects.PriceType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
@@ -106,8 +107,8 @@ class VisitCommandMapper {
             name = service.name,
             basePrice = basePrice,
             quantity = service.quantity,
-            discountType = EnumMappers.mapToDiscountType(service.discountType?.toString()),
-            discountValue = service.discountValue?.let { CalculationUtils.anyToBigDecimal(it) },
+            discountType = DiscountType.valueOf(service.discount!!.discountType.name),
+            discountValue = service.discount.discountValue,
             approvalStatus = EnumMappers.mapToServiceApprovalStatus(service.approvalStatus?.toString()),
             note = service.note
         )
@@ -125,8 +126,8 @@ class VisitCommandMapper {
             name = service.name,
             basePrice = basePrice,
             quantity = service.quantity,
-            discountType = EnumMappers.mapToDiscountType(service.discountType?.toString()),
-            discountValue = service.discountValue?.let { CalculationUtils.anyToBigDecimal(it) },
+            discountType = DiscountType.PERCENT,
+            discountValue = BigDecimal.ZERO,
             approvalStatus = EnumMappers.mapToServiceApprovalStatus(service.approvalStatus?.toString()),
             note = service.note
         )

@@ -56,9 +56,6 @@ class ReservationServiceEntity(
     @Column(name = "discount_value", precision = 10, scale = 2)
     val discountValue: BigDecimal? = null,
 
-    @Column(name = "discount_reason", length = 500)
-    val discountReason: String? = null,
-
     // ============ CENA JEDNOSTKOWA (po rabacie, przed mnożeniem przez ilość) ============
     @Column(name = "unit_price_netto", nullable = false, precision = 10, scale = 2)
     val unitPriceNetto: BigDecimal,
@@ -100,7 +97,6 @@ class ReservationServiceEntity(
             DiscountValueObject.fromRaw(
                 type = localDiscountType,
                 value = localDiscountValue,
-                reason = discountReason
             )
         } else {
             null
@@ -142,7 +138,6 @@ class ReservationServiceEntity(
                 // Rabat
                 discountType = service.discount?.type,
                 discountValue = service.discount?.value,
-                discountReason = service.discount?.reason,
 
                 // Cena jednostkowa (po rabacie)
                 unitPriceNetto = unitPrice.priceNetto,

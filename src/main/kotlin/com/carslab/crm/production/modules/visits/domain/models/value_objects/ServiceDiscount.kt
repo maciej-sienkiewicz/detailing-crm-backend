@@ -1,6 +1,6 @@
 package com.carslab.crm.production.modules.visits.domain.models.value_objects
 
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -12,72 +12,91 @@ data class ServiceDiscount(
     companion object {
         private const val SCALE = 2
         private val ROUNDING_MODE = RoundingMode.HALF_UP
+        private val ONE_HUNDRED = BigDecimal(100)
     }
 
     init {
         if (value < BigDecimal.ZERO) {
             throw IllegalArgumentException("Discount value cannot be negative: $value")
         }
-        if (type == DiscountType.PERCENTAGE && value > BigDecimal(100)) {
+        if (type == DiscountType.PERCENT && value > ONE_HUNDRED) {
             throw IllegalArgumentException("Percentage discount cannot exceed 100%: $value")
         }
     }
 
     /**
-     * Applies this discount to the given price
+     * Applies this discount to the given price.
+     * @param price Cena bazowa do zastosowania rabatu.
+     * @param vatRate Stawka VAT w formacie np. 0.23 dla 23%. Wymagana dla przeliczeń Netto <-> Brutto.
      */
-    fun applyTo(price: PriceValueObject): PriceValueObject {
+    fun applyTo(price: PriceValueObject, vatRate: BigDecimal): PriceValueObject {
+        val vatMultiplier = BigDecimal.ONE.add(vatRate.divide(100.toBigDecimal()))
+
         return when (type) {
-            DiscountType.PERCENTAGE -> applyPercentageDiscount(price)
-            DiscountType.AMOUNT -> applyAmountDiscount(price)
-            DiscountType.FIXED_PRICE -> applyFixedPrice(price)
+            DiscountType.PERCENT -> applyPercentageDiscount(price)
+            DiscountType.FIXED_AMOUNT_OFF_BRUTTO -> applyFixedAmountOffBrutto(price, vatMultiplier)
+            DiscountType.FIXED_AMOUNT_OFF_NETTO -> applyFixedAmountOffNetto(price, vatMultiplier)
+            DiscountType.FIXED_FINAL_BRUTTO -> applyFixedFinalBrutto(vatMultiplier)
+            DiscountType.FIXED_FINAL_NETTO -> applyFixedFinalNetto(vatMultiplier)
         }
     }
+
+    // --- Typy Rabatów ---
 
     private fun applyPercentageDiscount(price: PriceValueObject): PriceValueObject {
         val discountMultiplier = BigDecimal.ONE.subtract(
-            value.divide(BigDecimal(100), 4, ROUNDING_MODE)
+            value.divide(ONE_HUNDRED, 4, ROUNDING_MODE)
         )
 
-        val newNetto = price.priceNetto.multiply(discountMultiplier).setScale(SCALE, ROUNDING_MODE)
-        val newBrutto = price.priceBrutto.multiply(discountMultiplier).setScale(SCALE, ROUNDING_MODE)
-        val newTax = newBrutto.subtract(newNetto)
+        val finalNetto = price.priceNetto.multiply(discountMultiplier)
+        val finalBrutto = price.priceBrutto.multiply(discountMultiplier)
 
-        return PriceValueObject(newNetto, newBrutto, newTax)
+        return createPriceValueObject(finalNetto, finalBrutto)
     }
 
-    private fun applyAmountDiscount(price: PriceValueObject): PriceValueObject {
-        // Discount is applied proportionally to netto and brutto
-        val ratio = if (price.priceBrutto > BigDecimal.ZERO) {
-            price.priceNetto.divide(price.priceBrutto, 4, ROUNDING_MODE)
-        } else {
-            BigDecimal.ZERO
-        }
+    private fun applyFixedAmountOffBrutto(price: PriceValueObject, vatMultiplier: BigDecimal): PriceValueObject {
+        val finalBrutto = (price.priceBrutto.subtract(value)).max(BigDecimal.ZERO)
+        val finalNetto = finalBrutto.divide(vatMultiplier, 4, ROUNDING_MODE)
 
-        val discountNetto = value.multiply(ratio).setScale(SCALE, ROUNDING_MODE)
-        val discountBrutto = value.setScale(SCALE, ROUNDING_MODE)
-
-        val newNetto = (price.priceNetto.subtract(discountNetto)).max(BigDecimal.ZERO)
-        val newBrutto = (price.priceBrutto.subtract(discountBrutto)).max(BigDecimal.ZERO)
-        val newTax = newBrutto.subtract(newNetto)
-
-        return PriceValueObject(newNetto, newBrutto, newTax)
+        return createPriceValueObject(finalNetto, finalBrutto)
     }
 
-    private fun applyFixedPrice(price: PriceValueObject): PriceValueObject {
-        // Fixed price means the brutto price is set to the discount value
-        // We need to recalculate netto and tax based on the VAT rate from original price
-        val originalVatRate = if (price.priceNetto > BigDecimal.ZERO) {
-            price.taxAmount.divide(price.priceNetto, 4, ROUNDING_MODE).multiply(BigDecimal(100))
-        } else {
-            BigDecimal.ZERO
-        }
+    private fun applyFixedAmountOffNetto(price: PriceValueObject, vatMultiplier: BigDecimal): PriceValueObject {
+        val finalNetto = (price.priceNetto.subtract(value)).max(BigDecimal.ZERO)
+        val finalBrutto = finalNetto.multiply(vatMultiplier)
 
-        val newBrutto = value.setScale(SCALE, ROUNDING_MODE)
-        val vatMultiplier = BigDecimal.ONE.add(originalVatRate.divide(BigDecimal(100), 4, ROUNDING_MODE))
-        val newNetto = newBrutto.divide(vatMultiplier, 4, ROUNDING_MODE).setScale(SCALE, ROUNDING_MODE)
-        val newTax = newBrutto.subtract(newNetto)
+        return createPriceValueObject(finalNetto, finalBrutto)
+    }
 
-        return PriceValueObject(newNetto, newBrutto, newTax)
+    private fun applyFixedFinalBrutto(vatMultiplier: BigDecimal): PriceValueObject {
+        val finalBrutto = value
+        val finalNetto = finalBrutto.divide(vatMultiplier, 4, ROUNDING_MODE)
+
+        return createPriceValueObject(finalNetto, finalBrutto)
+    }
+
+    private fun applyFixedFinalNetto(vatMultiplier: BigDecimal): PriceValueObject {
+        val finalNetto = value
+        val finalBrutto = finalNetto.multiply(vatMultiplier)
+
+        return createPriceValueObject(finalNetto, finalBrutto)
+    }
+
+    // --- Metoda pomocnicza do ujednolicenia zaokrągleń ---
+
+    private fun createPriceValueObject(netto: BigDecimal, brutto: BigDecimal): PriceValueObject {
+        // Zaokrąglamy Brutto i Netto do 2 miejsc
+        val roundedBrutto = brutto.setScale(SCALE, ROUNDING_MODE)
+        val roundedNetto = netto.setScale(SCALE, ROUNDING_MODE)
+
+        // Obliczamy Tax jako różnicę zaokrąglonych wartości
+        val calculatedTax = roundedBrutto.subtract(roundedNetto)
+
+        // Zapewnia, że każda wartość jest zaokrąglona do 2 miejsc
+        return PriceValueObject(
+            priceNetto = roundedNetto,
+            priceBrutto = roundedBrutto,
+            taxAmount = calculatedTax.setScale(SCALE, ROUNDING_MODE)
+        )
     }
 }

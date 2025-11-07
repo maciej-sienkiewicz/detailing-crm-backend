@@ -51,7 +51,6 @@ object DiscountMapper {
         return DiscountValueObject.fromRaw(
             type = type,
             value = dto.discountValue,
-            reason = dto.discountReason
         )
     }
 
@@ -72,8 +71,6 @@ object DiscountMapper {
         return DiscountResponseDto(
             discountType = toDto(discount.type),
             discountValue = discount.value,
-            discountReason = discount.reason,
-            discountDescription = discount.getDescription(),
             savings = PriceResponseDto.from(savings)
         )
     }

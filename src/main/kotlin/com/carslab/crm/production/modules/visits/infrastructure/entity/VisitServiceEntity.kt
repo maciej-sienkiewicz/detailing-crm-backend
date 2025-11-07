@@ -1,9 +1,9 @@
 package com.carslab.crm.production.modules.visits.infrastructure.entity
 
 import com.carslab.crm.production.modules.visits.domain.models.entities.VisitService
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.ServiceDiscount
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import jakarta.persistence.*
 import java.math.BigDecimal

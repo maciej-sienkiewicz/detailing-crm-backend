@@ -10,6 +10,7 @@ import com.carslab.crm.production.modules.visits.domain.repositories.VisitDetail
 import com.carslab.crm.production.modules.visits.domain.service.details.AuthContext
 import com.carslab.crm.production.modules.visits.domain.service.details.MediaService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.exception.EntityNotFoundException
 import com.carslab.crm.production.shared.presentation.dto.PriceResponseDto
 import org.slf4j.LoggerFactory
@@ -91,7 +92,7 @@ class VisitDetailQueryService(
                         taxAmount = service.baseTaxAmount
                     ),
                     discountType = service.discountType?.let {
-                        EnumMappers.mapToApiDiscountType(EnumMappers.mapToDiscountType(it)!!)
+                        DiscountType.valueOf(it.uppercase())
                     },
                     discountValue = service.discountValue,
                     finalPrice = PriceResponseDto(

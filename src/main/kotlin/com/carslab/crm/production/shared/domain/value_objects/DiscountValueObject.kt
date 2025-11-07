@@ -18,7 +18,6 @@ import java.math.RoundingMode
 data class DiscountValueObject(
     val type: DiscountType,
     val value: BigDecimal,
-    val reason: String? = null
 ) {
     companion object {
         private const val SCALE = 2
@@ -33,12 +32,10 @@ data class DiscountValueObject(
         private fun createUnsafe(
             type: DiscountType,
             value: BigDecimal,
-            reason: String? = null
         ): DiscountValueObject {
             return DiscountValueObject(
                 type = type,
                 value = value.setScale(SCALE, ROUNDING_MODE),
-                reason = reason?.trim()?.takeIf { it.isNotBlank() }
             )
         }
 
@@ -54,7 +51,7 @@ data class DiscountValueObject(
             require(normalizedValue <= ONE_HUNDRED) {
                 "Percentage discount cannot exceed 100%: $percentage"
             }
-            return createUnsafe(DiscountType.PERCENT, normalizedValue, reason)
+            return createUnsafe(DiscountType.PERCENT, normalizedValue)
         }
 
         /**
@@ -68,7 +65,7 @@ data class DiscountValueObject(
             require(normalizedValue >= ZERO) {
                 "Discount amount cannot be negative: $amount"
             }
-            return createUnsafe(DiscountType.FIXED_AMOUNT_OFF_BRUTTO, normalizedValue, reason)
+            return createUnsafe(DiscountType.FIXED_AMOUNT_OFF_BRUTTO, normalizedValue)
         }
 
         /**
@@ -76,13 +73,12 @@ data class DiscountValueObject(
          */
         fun createFixedAmountOffNetto(
             amount: BigDecimal,
-            reason: String? = null
         ): DiscountValueObject {
             val normalizedValue = amount.setScale(SCALE, ROUNDING_MODE)
             require(normalizedValue >= ZERO) {
                 "Discount amount cannot be negative: $amount"
             }
-            return createUnsafe(DiscountType.FIXED_AMOUNT_OFF_NETTO, normalizedValue, reason)
+            return createUnsafe(DiscountType.FIXED_AMOUNT_OFF_NETTO, normalizedValue)
         }
 
         /**
@@ -90,13 +86,12 @@ data class DiscountValueObject(
          */
         fun createFixedFinalBrutto(
             finalPrice: BigDecimal,
-            reason: String? = null
         ): DiscountValueObject {
             val normalizedValue = finalPrice.setScale(SCALE, ROUNDING_MODE)
             require(normalizedValue >= ZERO) {
                 "Final price cannot be negative: $finalPrice"
             }
-            return createUnsafe(DiscountType.FIXED_FINAL_BRUTTO, normalizedValue, reason)
+            return createUnsafe(DiscountType.FIXED_FINAL_BRUTTO, normalizedValue)
         }
 
         /**
@@ -104,13 +99,12 @@ data class DiscountValueObject(
          */
         fun createFixedFinalNetto(
             finalPrice: BigDecimal,
-            reason: String? = null
         ): DiscountValueObject {
             val normalizedValue = finalPrice.setScale(SCALE, ROUNDING_MODE)
             require(normalizedValue >= ZERO) {
                 "Final price cannot be negative: $finalPrice"
             }
-            return createUnsafe(DiscountType.FIXED_FINAL_NETTO, normalizedValue, reason)
+            return createUnsafe(DiscountType.FIXED_FINAL_NETTO, normalizedValue)
         }
 
         /**
@@ -120,14 +114,13 @@ data class DiscountValueObject(
         fun fromRaw(
             type: DiscountType,
             value: BigDecimal,
-            reason: String? = null
         ): DiscountValueObject {
             return when (type) {
-                DiscountType.PERCENT -> createPercent(value, reason)
-                DiscountType.FIXED_AMOUNT_OFF_BRUTTO -> createFixedAmountOffBrutto(value, reason)
-                DiscountType.FIXED_AMOUNT_OFF_NETTO -> createFixedAmountOffNetto(value, reason)
-                DiscountType.FIXED_FINAL_BRUTTO -> createFixedFinalBrutto(value, reason)
-                DiscountType.FIXED_FINAL_NETTO -> createFixedFinalNetto(value, reason)
+                DiscountType.PERCENT -> createPercent(value)
+                DiscountType.FIXED_AMOUNT_OFF_BRUTTO -> createFixedAmountOffBrutto(value)
+                DiscountType.FIXED_AMOUNT_OFF_NETTO -> createFixedAmountOffNetto(value)
+                DiscountType.FIXED_FINAL_BRUTTO -> createFixedFinalBrutto(value)
+                DiscountType.FIXED_FINAL_NETTO -> createFixedFinalNetto(value,)
             }
         }
     }
@@ -301,8 +294,6 @@ data class DiscountValueObject(
             DiscountType.FIXED_AMOUNT_OFF_NETTO -> "Obniżka o ${value} zł netto"
             DiscountType.FIXED_FINAL_BRUTTO -> "Cena finalna: ${value} zł brutto"
             DiscountType.FIXED_FINAL_NETTO -> "Cena finalna: ${value} zł netto"
-        }.let { base ->
-            if (reason.isNullOrBlank()) base else "$base ($reason)"
         }
     }
 }

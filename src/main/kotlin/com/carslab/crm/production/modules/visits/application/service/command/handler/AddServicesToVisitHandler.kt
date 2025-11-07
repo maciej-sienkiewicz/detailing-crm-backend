@@ -16,9 +16,9 @@ import com.carslab.crm.production.modules.visits.domain.models.value_objects.Ser
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
 import com.carslab.crm.production.modules.visits.domain.service.AggregateService
 import com.carslab.crm.production.modules.visits.infrastructure.mapper.EnumMappers
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import com.carslab.crm.production.shared.exception.BusinessException
-import com.carslab.crm.production.shared.presentation.dto.PriceDto
 import com.carslab.crm.production.shared.presentation.mapper.PriceMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -69,7 +69,7 @@ class AddServicesToVisitHandler(
                 name = serviceItem.name,
                 basePrice = priceValueObject,
                 quantity = serviceItem.quantity,
-                discountType = serviceItem.discountType?.let { EnumMappers.mapToDiscountType(it) },
+                discountType = serviceItem.discountType?.let { DiscountType.valueOf(it.uppercase()) },
                 discountValue = serviceItem.discountValue,
                 note = serviceItem.note,
                 description = serviceItem.description,

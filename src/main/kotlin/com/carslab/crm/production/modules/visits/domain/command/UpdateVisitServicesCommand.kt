@@ -1,8 +1,8 @@
 package com.carslab.crm.production.modules.visits.domain.command
 
-import com.carslab.crm.production.modules.visits.domain.models.enums.DiscountType
 import com.carslab.crm.production.modules.visits.domain.models.enums.ServiceApprovalStatus
 import com.carslab.crm.production.modules.visits.domain.models.value_objects.VisitId
+import com.carslab.crm.production.shared.domain.value_objects.DiscountType
 import com.carslab.crm.production.shared.domain.value_objects.PriceValueObject
 import java.math.BigDecimal
 
