@@ -23,7 +23,7 @@ class BalanceHistoryEntity(
     @Column(name = "company_id", nullable = false)
     val companyId: Long,
 
-    @Column(name = "balance_type", nullable = false, length = 20)
+    @Column(name = "balance_type", nullable = false, length = 100)
     val balanceType: String, // CASH lub BANK
 
     @Column(name = "balance_before", nullable = false, precision = 19, scale = 2)

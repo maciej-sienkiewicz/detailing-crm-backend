@@ -37,14 +37,14 @@ class VisitServiceEntity(
     val quantity: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "discount_type", length = 20)
+    @Column(name = "discount_type", length = 100)
     val discountType: DiscountType? = null,
 
     @Column(name = "discount_value", precision = 10, scale = 2)
     val discountValue: BigDecimal? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "approval_status", nullable = false, length = 20)
+    @Column(name = "approval_status", nullable = false, length = 100)
     val approvalStatus: ServiceApprovalStatus = ServiceApprovalStatus.PENDING,
 
     @Column(length = 500)

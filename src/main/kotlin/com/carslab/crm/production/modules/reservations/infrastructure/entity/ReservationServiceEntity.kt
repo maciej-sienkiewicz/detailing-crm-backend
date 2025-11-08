@@ -50,7 +50,7 @@ class ReservationServiceEntity(
 
     // ============ RABAT ============
     @Enumerated(EnumType.STRING)
-    @Column(name = "discount_type", length = 50)
+    @Column(name = "discount_type", length = 100)
     val discountType: DiscountType? = null,
 
     @Column(name = "discount_value", precision = 10, scale = 2)
