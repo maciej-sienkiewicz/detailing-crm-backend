@@ -35,8 +35,9 @@ class ReservationCommandService(
         val companyId = securityContext.getCurrentCompanyId()
         logger.info("Creating reservation for company: {}", companyId)
 
-        val startDate = LocalDateTime.parse(request.startDate)
-        val endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: startDate.plusHours(1)
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
+        val startDate: LocalDateTime = LocalDateTime.parse(request.startDate, formatter)
+        val endDate = request.endDate?.let { LocalDateTime.parse(it, formatter) } ?: startDate.plusHours(1)
 
         val services = request.selectedServices?.map { serviceRequest ->
             createDomainService(serviceRequest)
@@ -78,8 +79,9 @@ class ReservationCommandService(
         val reservation = reservationRepository.findById(ReservationId.of(reservationId), companyId)
             ?: throw EntityNotFoundException("Reservation not found: $reservationId")
 
-        val startDate = LocalDateTime.parse(request.startDate)
-        val endDate = request.endDate?.let { LocalDateTime.parse(it) } ?: startDate.plusHours(1)
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
+        val startDate: LocalDateTime = LocalDateTime.parse(request.startDate, formatter)
+        val endDate = request.endDate?.let { LocalDateTime.parse(it, formatter) } ?: startDate.plusHours(1)
 
         val services = request.selectedServices?.map { serviceRequest ->
             createDomainService(serviceRequest)

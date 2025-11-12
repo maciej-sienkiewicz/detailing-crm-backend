@@ -107,8 +107,8 @@ class VisitCommandMapper {
             name = service.name,
             basePrice = basePrice,
             quantity = service.quantity,
-            discountType = DiscountType.valueOf(service.discount!!.discountType.name),
-            discountValue = service.discount.discountValue,
+            discountType = service.discount?.let { DiscountType.valueOf(service.discount.discountType.name) },
+            discountValue = service.discount?.let { service.discount.discountValue },
             approvalStatus = EnumMappers.mapToServiceApprovalStatus(service.approvalStatus?.toString()),
             note = service.note
         )

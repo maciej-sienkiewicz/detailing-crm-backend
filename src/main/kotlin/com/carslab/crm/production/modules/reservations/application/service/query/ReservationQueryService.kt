@@ -114,7 +114,7 @@ class ReservationQueryService(
             vehicleMake = reservation.vehicleInfo.make,
             vehicleModel = reservation.vehicleInfo.model,
             vehicleDisplay = reservation.vehicleInfo.displayName(),
-            startDate = reservation.period.startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
+            startDate = reservation.period.startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
             endDate = reservation.period.endDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
             status = reservation.status.name,
             notes = reservation.notes,
