@@ -18,7 +18,6 @@ class DiscountValueObjectTest {
 
         assertEquals(DiscountType.PERCENT, discount.type)
         assertEquals(BigDecimal("10.00"), discount.value)
-        assertEquals("Test discount", discount.reason)
     }
 
     @Test
@@ -206,13 +205,11 @@ class DiscountValueObjectTest {
         val discount = DiscountValueObject.fromRaw(
             type = DiscountType.PERCENT,
             value = BigDecimal("15.00"),
-            reason = "Promocja"
         )
 
         // Then: Rabat jest poprawnie utworzony
         assertEquals(DiscountType.PERCENT, discount.type)
         assertEquals(BigDecimal("15.00"), discount.value)
-        assertEquals("Promocja", discount.reason)
     }
 
     @Test
