@@ -1,4 +1,4 @@
-FROM openjdk:22-jre-slim-bookworm
+FROM openjdk:22-jdk-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates wget gnupg locales \
