@@ -1,4 +1,4 @@
-FROM openjdk:22-slim
+FROM openjdk:22
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates wget gnupg locales \
