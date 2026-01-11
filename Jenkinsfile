@@ -1,23 +1,24 @@
 pipeline {
     agent none
- 
+
     environment {
-        GRADLE_USER_HOME = '/home/gradle/.gradle'
         IMAGE_NAME = '172.17.0.1:5000/detailing-crm-backend'
     }
+
     stages {
         stage('Build') {
             agent {
-                docker {
-                    image 'gradle:7.6.6-jdk17-corretto'
-                    label 'docker'
-                    reuseNode true
-                }
+                label 'docker'
             }
             steps {
-                sh 'mkdir -p "$GRADLE_USER_HOME"'
-                sh 'chmod +x gradlew || true'
-                sh './gradlew -g "$GRADLE_USER_HOME" build'
+                script {
+                    docker.image('gradle:7.6.6-jdk17-corretto').inside(
+                        '-v /home/gradle/.gradle:/home/gradle/.gradle'
+                    ) {
+                        sh 'chmod +x gradlew || true'
+                        sh './gradlew build'
+                    }
+                }
             }
         }
 
@@ -27,15 +28,15 @@ pipeline {
             }
             steps {
                 script {
-                    def branch = env.GIT_BRANCH ?: 'unknown'
+                    def branch = env.BRANCH_NAME
                     def tag
 
-                    if (branch == 'origin/main') {
+                    if (branch == 'main') {
                         tag = 'latest'
-                    } else if (branch == 'origin/develop') {
+                    } else if (branch == 'develop') {
                         tag = 'develop'
                     } else {
-                        error("Build przerwany: branch '${branch}' nie jest obsługiwany (tylko 'main' lub 'develop').")
+                        error("Build przerwany: branch '${branch}' nie jest obsługiwany.")
                     }
 
                     sh """
@@ -46,6 +47,4 @@ pipeline {
             }
         }
     }
-
-
 }
