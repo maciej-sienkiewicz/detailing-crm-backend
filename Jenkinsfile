@@ -7,17 +7,20 @@ pipeline {
     }
     stages {
         stage('Build') {
-            agent { label 'docker' }
+            agent {
+                docker {
+                    image 'gradle:7.6.6-jdk17-corretto'
+                    label 'docker'
+                    reuseNode true
+                }
+            }
             steps {
-                sh '''
-          docker run --rm \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            node:24.12.0-alpine3.23 \
-            sh -c "npm ci && npm test"
-        '''
+                sh 'mkdir -p "$GRADLE_USER_HOME"'
+                sh 'chmod +x gradlew || true'
+                sh './gradlew -g "$GRADLE_USER_HOME" build'
             }
         }
+
         stage('Docker Build & Push') {
             agent {
                 label 'docker'
