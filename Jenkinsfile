@@ -7,16 +7,17 @@ pipeline {
     }
     stages {
         stage('Build') {
-            agent {
-                docker { image 'node:24.12.0-alpine3.23' }
-            }
-
+            agent { label 'docker' }
             steps {
-                sh 'chmod +x gradlew || true'
-                sh './gradlew build'
+                sh '''
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            node:24.12.0-alpine3.23 \
+            sh -c "npm ci && npm test"
+        '''
             }
         }
-
         stage('Docker Build & Push') {
             agent {
                 label 'docker'
