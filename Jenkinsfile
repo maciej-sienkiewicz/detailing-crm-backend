@@ -1,6 +1,6 @@
 pipeline {
     agent none
-
+ 
 
     environment {
         GRADLE_USER_HOME = '/home/gradle/.gradle'
