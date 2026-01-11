@@ -10,7 +10,6 @@ pipeline {
             agent {
                 dockerContainer {
                     image 'gradle:7.6.6-jdk17-corretto'
-                    args '-v /home/gradle/.gradle:/home/gradle/.gradle'
                 }
             }
             steps {
