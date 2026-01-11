@@ -1,6 +1,7 @@
 pipeline {
     agent none
 
+
     environment {
         GRADLE_USER_HOME = '/home/gradle/.gradle'
         IMAGE_NAME = '172.17.0.1:5000/detailing-crm-backend'
@@ -9,7 +10,7 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    image 'gradle:9.2.1-jdk17-ubi10'
+                    image 'gradle:7.6.6-jdk17-corretto'
                     label 'docker'
                     reuseNode true
                 }
@@ -38,6 +39,7 @@ pipeline {
                         error("Build przerwany: branch '${branch}' nie jest obsługiwany (tylko 'main' lub 'develop').")
                     }
 
+
                     sh """
                       docker build -f ./deploy/Dockerfile -t ${IMAGE_NAME}:${tag} .
                       docker push ${IMAGE_NAME}:${tag}
@@ -49,3 +51,4 @@ pipeline {
 
 
 }
+
