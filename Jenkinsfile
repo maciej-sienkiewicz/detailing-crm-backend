@@ -12,6 +12,7 @@ pipeline {
                     image 'gradle:9.2.1-jdk17-ubi10'
                 }
             }
+
             steps {
                 sh 'chmod +x gradlew || true'
                 sh './gradlew build'
