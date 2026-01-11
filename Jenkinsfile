@@ -9,7 +9,7 @@ pipeline {
         stage('Build') {
             agent {
                 dockerContainer {
-                    image 'gradle:7.6.6-jdk17-corretto'
+                    image 'gradle:9.2.1-jdk17-ubi10'
                 }
             }
             steps {
