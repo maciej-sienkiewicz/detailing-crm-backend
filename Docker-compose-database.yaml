@@ -11,6 +11,7 @@ services:
       - "81:80"
     networks:
       - db-network
+
   postgres-formfiller:
     image: 'postgres:latest'
     hostname: postgres-formfiller
