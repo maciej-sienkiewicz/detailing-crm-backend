@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         GRADLE_USER_HOME = '/home/gradle/.gradle'
-        IMAGE_NAME = '172.17.0.1:5000/detailing-crm-backend'
+        IMAGE_NAME = 'docker-registry:5000/detailing-crm-backend'
     }
     stages {
         stage('Build') {
