@@ -4,6 +4,9 @@ import com.carslab.crm.infrastructure.security.SecurityContext
 import com.carslab.crm.production.modules.clients.application.dto.ClientExpandedResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientResponse
 import com.carslab.crm.production.modules.clients.application.dto.ClientWithStatisticsResponse
+import com.carslab.crm.production.modules.clients.application.dto.CustomerDetailResponse
+import com.carslab.crm.production.modules.clients.application.dto.CustomerDetailDto
+import com.carslab.crm.production.modules.clients.application.dto.CustomerRevenueDto
 import com.carslab.crm.production.modules.clients.domain.model.ClientId
 import com.carslab.crm.production.modules.clients.domain.repository.ClientRepository
 import com.carslab.crm.production.modules.clients.domain.repository.ClientSearchCriteria
@@ -160,5 +163,34 @@ class ClientQueryService(
         logger.debug("Client found by phone or email: {}", client.fullName)
 
         return ClientResponse.from(client)
+    }
+
+    fun getCustomerDetail(clientId: String): CustomerDetailResponse {
+        val companyId = securityContext.getCurrentCompanyId()
+        logger.debug("Fetching customer detail for client: {} and company: {}", clientId, companyId)
+
+        val client = clientDomainService.getClientForCompany(ClientId.of(clientId.toLong()), companyId)
+        val statistics = clientStatisticsRepository.findByClientId(client.id)
+
+        logger.debug("Customer detail found for client: {}", client.fullName)
+
+        // Calculate loyalty tier based on total revenue
+        val loyaltyTier = calculateLoyaltyTier(statistics?.totalRevenue?.priceBrutto?.toDouble() ?: 0.0)
+
+        return CustomerDetailResponse(
+            customer = CustomerDetailDto.from(client, statistics),
+            marketingConsents = emptyList(), // TODO: Implement marketing consents when the feature is added
+            loyaltyTier = loyaltyTier,
+            lifetimeValue = CustomerRevenueDto.from(statistics?.totalRevenue)
+        )
+    }
+
+    private fun calculateLoyaltyTier(totalRevenue: Double): String {
+        return when {
+            totalRevenue >= 100000.0 -> "platinum"
+            totalRevenue >= 50000.0 -> "gold"
+            totalRevenue >= 10000.0 -> "silver"
+            else -> "bronze"
+        }
     }
 }
