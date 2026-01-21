@@ -20,6 +20,11 @@ services:
     networks:
       - network
 
+  redis:
+    image: redis:alpine
+    networks:
+      - network
+
 networks:
   network:
     name: ${ENV_NETWORK}
