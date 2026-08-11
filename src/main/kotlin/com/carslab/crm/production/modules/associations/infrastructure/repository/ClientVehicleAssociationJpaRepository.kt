@@ -54,6 +54,9 @@ interface ClientVehicleAssociationJpaRepository : JpaRepository<ClientVehicleAss
         @Param("endDate") endDate: LocalDateTime
     ): Int
 
+    @Query("SELECT DISTINCT a.vehicleId FROM ClientVehicleAssociationEntity a WHERE a.clientId = :clientId")
+    fun findAllVehicleIdsByClientId(@Param("clientId") clientId: Long): List<Long>
+
     @Modifying
     @Query("DELETE FROM ClientVehicleAssociationEntity a WHERE a.clientId = :clientId")
     fun deleteByClientId(@Param("clientId") clientId: Long): Int
